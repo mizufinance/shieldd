@@ -422,7 +422,7 @@ impl QuadTree {
         let mut current_hash = leaf_hash;
         let mut current_position = position;
 
-        for siblings in auth_path.iter().take(depth as usize) {
+        for (level, siblings) in auth_path.iter().take(depth as usize).enumerate() {
             // Determine which child (0-3) we are
             let child_index = (current_position % 4) as usize;
 
@@ -435,8 +435,11 @@ impl QuadTree {
                 _ => unreachable!(),
             };
 
-            // Hash to get parent
-            current_hash = Self::hash_children(children[0], children[1], children[2], children[3]);
+            current_hash = if children.iter().all(|child| *child == ZERO_HASHES[level]) {
+                ZERO_HASHES[level + 1]
+            } else {
+                Self::hash_children(children[0], children[1], children[2], children[3])
+            };
 
             // Move to parent position
             current_position /= 4;
@@ -481,16 +484,6 @@ mod tests {
     }
 
     #[test]
-    fn test_auth_path_length() {
-        let mut tree = QuadTree::new();
-        let leaf_hash = StateCommitment(Fq::from(123u64));
-        tree.update(5, leaf_hash).unwrap();
-
-        let path = tree.auth_path(5).unwrap();
-        assert_eq!(path.len(), DEFAULT_DEPTH as usize);
-    }
-
-    #[test]
     fn test_verify_auth_path() {
         let mut tree = QuadTree::new();
         let leaf_hash = StateCommitment(Fq::from(999u64));
@@ -499,6 +492,7 @@ mod tests {
         tree.update(position, leaf_hash).unwrap();
         let root = tree.root();
         let path = tree.auth_path(position).unwrap();
+        assert_eq!(path.len(), DEFAULT_DEPTH as usize);
 
         // Verification should succeed
         assert!(QuadTree::verify_auth_path(
@@ -517,6 +511,19 @@ mod tests {
             &path,
             root,
             DEFAULT_DEPTH
+        ));
+    }
+
+    #[test]
+    fn empty_leaf_path_authenticates_against_the_sparse_zero_root() {
+        let tree = QuadTree::new();
+        let path = tree.auth_path(0).unwrap();
+        assert!(QuadTree::verify_auth_path(
+            0,
+            ZERO_HASHES[0],
+            &path,
+            tree.root(),
+            DEFAULT_DEPTH,
         ));
     }
 

@@ -11,25 +11,25 @@ edition = {workspace = true}
 component = [
     "cnidarium",
     "cnidarium-component",
-    "ibc-proto",
     "shieldd-sdk-proto/cnidarium",
-    "shieldd-sdk-proto/rpc",
     "shieldd-sdk-sct/component",
-    "rusqlite",
-    "tokio",
-    "tonic",
+    "dep:tokio",
 ]
 default = ["component"]
-sqlite-bundled = ["rusqlite/bundled"]
+scanner = ["dep:rusqlite", "dep:tokio", "tokio/sync", "tokio/time"]
+sqlite-bundled = ["scanner", "rusqlite/bundled"]
 test-helpers = ["decaf377-ka"]
-poc-orbis-v0 = ["dep:aes-gcm", "dep:hkdf"]
+poc-orbis = ["dep:aes-gcm", "dep:hkdf"]
+
+[[example]]
+name = "dev_orbis_registration"
+required-features = ["test-helpers"]
 
 [dependencies]
 anyhow = {workspace = true}
 aes-gcm = {version = "0.10", optional = true}
 ark-ff = {workspace = true}
 base64 = {workspace = true}
-ark-serialize = {workspace = true}
 async-trait = {workspace = true}
 bincode = {workspace = true}
 cnidarium = {workspace = true, optional = true, default-features = true}
@@ -52,16 +52,16 @@ sha2 = {workspace = true}
 blake2b_simd = {workspace = true}
 hex = {workspace = true}
 hkdf = {version = "0.12", optional = true}
-ibc-proto = {workspace = true, optional = true, default-features = false}
 futures = {workspace = true}
 rand_core = {workspace = true}
 rusqlite = {version = "0.32", optional = true}
 tendermint = {workspace = true}
 tokio = {workspace = true, optional = true}
-tonic = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+shieldd-sdk-compliance = { path = ".", features = ["scanner"] }
+ark-serialize = {workspace = true}
 decaf377-ka = {workspace = true}
 shieldd-sdk-keys = {workspace = true, features = ["demo"]}
 rand = {workspace = true}

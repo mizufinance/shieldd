@@ -9,7 +9,6 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/frontend/cs/r1cs"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/test"
 )
@@ -192,20 +191,6 @@ func TestDecaf377EncodeToCurveNativeMatchesShielddVectors(t *testing.T) {
 	}
 }
 
-func TestPoseidon377Hash7Compiles(t *testing.T) {
-	_, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &poseidon377Hash7Circuit{})
-	if err != nil {
-		t.Fatalf("compile poseidon377 hash7 circuit: %v", err)
-	}
-}
-
-func TestDecaf377EncodeToCurveCompiles(t *testing.T) {
-	_, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &decaf377EncodeToCurveCircuit{})
-	if err != nil {
-		t.Fatalf("compile decaf377 encode_to_curve circuit: %v", err)
-	}
-}
-
 // Composite-derivation differential tests: the nullifier and the note
 // commitment are re-implemented in-circuit as Poseidon hashes over their
 // respective domains. Rust golden outputs (poseidon377::hash_3 / hash_6, real
@@ -263,13 +248,14 @@ type noteCommitmentDerivationCircuit struct {
 	In2    frontend.Variable
 	In3    frontend.Variable
 	In4    frontend.Variable
+	In5    frontend.Variable
 
 	Expected frontend.Variable `gnark:",public"`
 }
 
 func (c *noteCommitmentDerivationCircuit) Define(api frontend.API) error {
-	result, err := Poseidon377Hash5(api, c.Domain, [5]frontend.Variable{
-		c.In0, c.In1, c.In2, c.In3, c.In4,
+	result, err := Poseidon377Hash6(api, c.Domain, [6]frontend.Variable{
+		c.In0, c.In1, c.In2, c.In3, c.In4, c.In5,
 	})
 	if err != nil {
 		return err
@@ -283,7 +269,7 @@ func TestNoteCommitmentDerivationMatchesShielddVectors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)
 	}
-	if got, want := len(vectors.Poseidon377.NoteCommitInputs), 5; got != want {
+	if got, want := len(vectors.Poseidon377.NoteCommitInputs), 6; got != want {
 		t.Fatalf("note commit input length mismatch: got %d want %d", got, want)
 	}
 
@@ -294,6 +280,7 @@ func TestNoteCommitmentDerivationMatchesShielddVectors(t *testing.T) {
 		In2:      vectors.Poseidon377.NoteCommitInputs[2],
 		In3:      vectors.Poseidon377.NoteCommitInputs[3],
 		In4:      vectors.Poseidon377.NoteCommitInputs[4],
+		In5:      vectors.Poseidon377.NoteCommitInputs[5],
 		Expected: vectors.Poseidon377.NoteCommitOutput,
 	}
 
@@ -323,9 +310,9 @@ func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
 	var label string
 	var nIn, nOut int
 	switch len(c.Fields) {
-	case 32:
+	case 33:
 		label, nIn, nOut = "note_reshape8x1", 8, 1
-	case 18:
+	case 26:
 		label, nIn, nOut = "note_reshape1x8", 1, 8
 	default:
 		return fmt.Errorf("unsupported note reshape statement field count %d", len(c.Fields))

@@ -19,7 +19,7 @@ import (
 	"github.com/consensys/gnark/frontend/schema"
 )
 
-const wiringTranscriptSchema = "shieldd.gnark.wiring.v1"
+const wiringTranscriptSchema = "shieldd.gnark.wiring"
 
 // WiringTranscript records the semantic call graph emitted by a circuit Define.
 type WiringTranscript struct {
@@ -153,16 +153,28 @@ func (c *TransferCircuit) bindSemantic(name string, variables ...frontend.Variab
 	}
 }
 
-func (c *ShieldedIcs20WithdrawalCircuit) traceWiring(op string, args ...string) {
+func (c *ShieldedWithdrawalCircuit) traceWiring(op string, args ...string) {
 	if c.wiringTrace != nil {
 		c.wiringTrace.record(op, args...)
 	}
 }
 
-func (c *ShieldedIcs20WithdrawalCircuit) bindSemantic(
+func (c *ShieldedWithdrawalCircuit) bindSemantic(
 	name string,
 	variables ...frontend.Variable,
 ) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bind(name, variables...)
+	}
+}
+
+func (c *NoteSeizureCircuit) traceWiring(op string, args ...string) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.record(op, args...)
+	}
+}
+
+func (c *NoteSeizureCircuit) bindSemantic(name string, variables ...frontend.Variable) {
 	if c.wiringTrace != nil {
 		c.wiringTrace.bind(name, variables...)
 	}
@@ -180,7 +192,13 @@ func (c *TransferCircuit) bindWiringTrace(api frontend.API) {
 	}
 }
 
-func (c *ShieldedIcs20WithdrawalCircuit) bindWiringTrace(api frontend.API) {
+func (c *ShieldedWithdrawalCircuit) bindWiringTrace(api frontend.API) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bindCompiler(api.Compiler())
+	}
+}
+
+func (c *NoteSeizureCircuit) bindWiringTrace(api frontend.API) {
 	if c.wiringTrace != nil {
 		c.wiringTrace.bindCompiler(api.Compiler())
 	}
@@ -192,17 +210,23 @@ func noteReshapeCircuitWithTranscript(label string, nIn, nOut int, transcript *W
 	return circuit
 }
 
-func shieldedIcs20WithdrawalCircuitWithTranscript(
+func shieldedWithdrawalCircuitWithTranscript(
 	nIn int,
 	transcript *WiringTranscript,
 ) frontend.Circuit {
-	circuit := NewShieldedIcs20WithdrawalCircuit(nIn)
+	circuit := NewShieldedWithdrawalCircuit(nIn)
 	circuit.wiringTrace = transcript
 	return circuit
 }
 
 func transferCircuitWithTranscript(transcript *WiringTranscript) frontend.Circuit {
 	circuit := NewTransferCircuit()
+	circuit.wiringTrace = transcript
+	return circuit
+}
+
+func noteSeizureCircuitWithTranscript(transcript *WiringTranscript) frontend.Circuit {
+	circuit := NewNoteSeizureCircuit()
 	circuit.wiringTrace = transcript
 	return circuit
 }
@@ -240,9 +264,9 @@ func ExportTransferWiringTranscript() (string, error) {
 	return transcript.canonical()
 }
 
-// ExportShieldedIcs20WithdrawalWiringTranscript returns the canonical
+// ExportShieldedWithdrawalWiringTranscript returns the canonical
 // transcript for the registered withdrawal Define path.
-func ExportShieldedIcs20WithdrawalWiringTranscript(
+func ExportShieldedWithdrawalWiringTranscript(
 	label string,
 	nIn int,
 ) (string, error) {
@@ -250,14 +274,14 @@ func ExportShieldedIcs20WithdrawalWiringTranscript(
 	if _, err := frontend.Compile(
 		ecc.BLS12_377.ScalarField(),
 		r1cs.NewBuilder,
-		shieldedIcs20WithdrawalCircuitWithTranscript(nIn, transcript),
+		shieldedWithdrawalCircuitWithTranscript(nIn, transcript),
 	); err != nil {
 		return "", fmt.Errorf("compile %s for wiring transcript: %w", label, err)
 	}
 	return transcript.canonical()
 }
 
-const constraintManifestSchema = "shieldd.gnark.constraint_manifest.v1"
+const constraintManifestSchema = "shieldd.gnark.constraint_manifest"
 
 type ConstraintManifest struct {
 	Schema           string                      `json:"schema"`
@@ -387,13 +411,28 @@ func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, er
 	return manifest, nil
 }
 
-func ExportShieldedIcs20WithdrawalConstraintManifest(
+func ExportShieldedWithdrawalConstraintManifest(
 	sr1csPath string,
 ) (*ConstraintManifest, error) {
-	_, manifest, err := CompileShieldedIcs20WithdrawalForExport(
-		"shielded_ics20_withdrawal",
+	_, manifest, err := CompileShieldedWithdrawalForExport(
+		"shielded_withdrawal",
 		2,
 	)
+	if err != nil {
+		return nil, err
+	}
+	if sr1csPath != "" {
+		hash, err := sha256HexFile(sr1csPath)
+		if err != nil {
+			return nil, err
+		}
+		manifest.SR1CSSHA256Hex = hash
+	}
+	return manifest, nil
+}
+
+func ExportNoteSeizureConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
+	_, manifest, err := CompileNoteSeizureForExport()
 	if err != nil {
 		return nil, err
 	}
@@ -427,14 +466,14 @@ func CompileTransferForExport() (constraint.ConstraintSystem, *ConstraintManifes
 	return ccs, manifest, nil
 }
 
-// CompileShieldedIcs20WithdrawalForExport returns the circuit and semantic manifest.
-func CompileShieldedIcs20WithdrawalForExport(
+// CompileShieldedWithdrawalForExport returns the circuit and semantic manifest.
+func CompileShieldedWithdrawalForExport(
 	label string,
 	nIn int,
 ) (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript(label, nIn, 1)
 	transcript.recordCounts = true
-	circuit := shieldedIcs20WithdrawalCircuitWithTranscript(nIn, transcript)
+	circuit := shieldedWithdrawalCircuitWithTranscript(nIn, transcript)
 	ccs, err := frontend.Compile(
 		ecc.BLS12_377.ScalarField(),
 		r1cs.NewBuilder,
@@ -446,6 +485,26 @@ func CompileShieldedIcs20WithdrawalForExport(
 	manifest, err := transcript.constraintManifest(ccs, "", circuit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("manifest %s for export: %w", label, err)
+	}
+	return ccs, manifest, nil
+}
+
+// CompileNoteSeizureForExport returns the circuit and semantic manifest.
+func CompileNoteSeizureForExport() (constraint.ConstraintSystem, *ConstraintManifest, error) {
+	transcript := newWiringTranscript("note_seizure", 1, 0)
+	transcript.recordCounts = true
+	circuit := noteSeizureCircuitWithTranscript(transcript)
+	ccs, err := frontend.Compile(
+		ecc.BLS12_377.ScalarField(),
+		r1cs.NewBuilder,
+		circuit,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("compile note_seizure for export: %w", err)
+	}
+	manifest, err := transcript.constraintManifest(ccs, "", circuit)
+	if err != nil {
+		return nil, nil, fmt.Errorf("manifest note_seizure for export: %w", err)
 	}
 	return ccs, manifest, nil
 }

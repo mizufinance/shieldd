@@ -5,18 +5,18 @@ use std::{
     sync::Mutex,
 };
 
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "prover", any(unix, windows)))]
 use std::{ffi::CString, ptr};
 
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "prover", any(unix, windows)))]
 use anyhow::Context;
 use anyhow::{anyhow, bail, Result};
 use ark_groth16::PreparedVerifyingKey;
 use decaf377::Bls12_377;
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "prover", any(unix, windows)))]
 use libloading::Library;
 
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "prover", any(unix, windows)))]
 use crate::gnark::artifacts::sha256_hex;
 use crate::gnark::artifacts::{
     load_artifact_metadata, load_artifact_metadata_bytes, load_prepared_vk, load_prepared_vk_bytes,
@@ -53,7 +53,7 @@ pub(crate) type ShielddGnarkFree = unsafe extern "C" fn(*mut c_void, usize);
 pub(crate) type ShielddGnarkShutdown = unsafe extern "C" fn(u64);
 
 pub(crate) enum GnarkTransport {
-    #[cfg(any(unix, windows))]
+    #[cfg(all(feature = "prover", any(unix, windows)))]
     Library {
         _library: Library,
         prove: ShielddGnarkProve,
@@ -70,6 +70,7 @@ pub(crate) enum GnarkTransport {
 #[derive(Clone, Copy)]
 pub(crate) struct GnarkFamilyConfig {
     pub family: &'static str,
+    pub bundled_library: Option<&'static str>,
     pub env_artifact_dir: &'static str,
     pub env_lib: &'static str,
     pub env_daemon: &'static str,
@@ -80,16 +81,246 @@ pub(crate) struct GnarkFamilyConfig {
     pub shutdown_symbol: &'static [u8],
 }
 
-#[cfg(any(unix, windows))]
+pub(crate) struct GnarkClient {
+    transport: GnarkTransport,
+    pub verifying_key: PreparedVerifyingKey<Bls12_377>,
+    config: &'static GnarkFamilyConfig,
+}
+
+pub(crate) struct BundledArtifacts<'a> {
+    pub proving_key: &'a [u8],
+    pub verifying_key: &'a [u8],
+    pub metadata: &'a [u8],
+}
+
+impl GnarkFamilyConfig {
+    pub fn env_override_configured(&self) -> bool {
+        [self.env_lib, self.env_daemon, self.env_artifact_dir]
+            .iter()
+            .any(|name| std::env::var_os(name).is_some())
+    }
+
+    pub fn library_path(&self) -> Option<PathBuf> {
+        let filename = self.bundled_library?;
+        let root = match std::env::var_os("SHIELDD_ARTIFACT_ROOT") {
+            Some(root) => PathBuf::from(root),
+            None => std::env::current_exe()
+                .ok()?
+                .parent()?
+                .parent()?
+                .to_path_buf(),
+        };
+        Some(root.join("lib/gnark").join(filename))
+    }
+
+    pub fn resolve(&'static self) -> Result<ResolvedGnarkConfig> {
+        let source = if self.env_override_configured() {
+            ArtifactSource::External(self.configured_transport()?)
+        } else {
+            ArtifactSource::Bundled(self.library_path().ok_or_else(|| {
+                anyhow!("gnark {} bundled library is not configured", self.family)
+            })?)
+        };
+        Ok(ResolvedGnarkConfig {
+            family: self,
+            source,
+        })
+    }
+}
+
+pub(crate) struct ResolvedGnarkConfig {
+    family: &'static GnarkFamilyConfig,
+    source: ArtifactSource,
+}
+
+enum ArtifactSource {
+    Bundled(PathBuf),
+    External(ConfiguredTransport),
+}
+
+struct ConfiguredTransport {
+    artifact_dir: PathBuf,
+    executable: TransportExecutable,
+}
+
+enum TransportExecutable {
+    Library(PathBuf),
+    Daemon(PathBuf),
+}
+
+impl GnarkFamilyConfig {
+    fn configured_transport(&self) -> Result<ConfiguredTransport> {
+        self.resolve_explicit_paths(
+            std::env::var_os(self.env_artifact_dir).map(PathBuf::from),
+            std::env::var_os(self.env_lib).map(PathBuf::from),
+            std::env::var_os(self.env_daemon).map(PathBuf::from),
+        )
+    }
+
+    fn resolve_explicit_paths(
+        &self,
+        artifact_dir: Option<PathBuf>,
+        library: Option<PathBuf>,
+        daemon: Option<PathBuf>,
+    ) -> Result<ConfiguredTransport> {
+        let artifact_dir =
+            artifact_dir.ok_or_else(|| anyhow!("{} is not set", self.env_artifact_dir))?;
+        let executable = match (library, daemon) {
+            (Some(path), None) => {
+                anyhow::ensure!(
+                    !self.init_symbol.is_empty(),
+                    "gnark {} supports only daemon transport; set {}",
+                    self.family,
+                    self.env_daemon
+                );
+                TransportExecutable::Library(path)
+            }
+            (None, Some(path)) => TransportExecutable::Daemon(path),
+            (Some(_), Some(_)) => bail!(
+                "{} and {} are mutually exclusive",
+                self.env_lib,
+                self.env_daemon
+            ),
+            (None, None) => bail!("expected {} or {} to be set", self.env_lib, self.env_daemon),
+        };
+        Ok(ConfiguredTransport {
+            artifact_dir,
+            executable,
+        })
+    }
+
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub fn require_test_prerequisites(&self, proving_key: &[u8]) -> Result<()> {
+        anyhow::ensure!(
+            !cfg!(debug_assertions),
+            "proof-generation tests require a release build"
+        );
+        if self.env_override_configured() {
+            let configured = self.configured_transport()?;
+            let path = match configured.executable {
+                TransportExecutable::Library(path) | TransportExecutable::Daemon(path) => path,
+            };
+            anyhow::ensure!(
+                path.is_file(),
+                "gnark {} transport not found: {}",
+                self.family,
+                path.display()
+            );
+            let metadata = load_artifact_metadata(&configured.artifact_dir)?;
+            validate_artifact_metadata(&metadata, self.family)?;
+            validate_artifact_hashes(&configured.artifact_dir, &metadata, self.family)?;
+            load_prepared_vk(&configured.artifact_dir, self.family)?;
+        } else {
+            let path = self
+                .library_path()
+                .ok_or_else(|| anyhow!("gnark {} library not found", self.family))?;
+            anyhow::ensure!(
+                path.is_file(),
+                "gnark {} library not found: {}",
+                self.family,
+                path.display()
+            );
+            anyhow::ensure!(
+                !proving_key.is_empty(),
+                "gnark {} proving key is missing; enable bundled-proving-keys",
+                self.family
+            );
+        }
+        Ok(())
+    }
+}
+
+impl GnarkClient {
+    pub fn load(resolved: &ResolvedGnarkConfig, artifacts: BundledArtifacts<'_>) -> Result<Self> {
+        let config = resolved.family;
+        match &resolved.source {
+            ArtifactSource::Bundled(library) => {
+                anyhow::ensure!(
+                    !artifacts.proving_key.is_empty(),
+                    "gnark {} proving key not bundled (enable bundled-proving-keys feature)",
+                    config.family
+                );
+                Self::from_bundled(config, library, artifacts)
+            }
+            ArtifactSource::External(configured) => Self::from_external(config, configured),
+        }
+    }
+
+    pub fn load_external(resolved: &ResolvedGnarkConfig) -> Result<Self> {
+        match &resolved.source {
+            ArtifactSource::External(configured) => {
+                Self::from_external(resolved.family, configured)
+            }
+            ArtifactSource::Bundled(_) => bail!("external prover configuration required"),
+        }
+    }
+
+    fn from_external(
+        config: &'static GnarkFamilyConfig,
+        configured: &ConfiguredTransport,
+    ) -> Result<Self> {
+        match &configured.executable {
+            TransportExecutable::Library(library) => {
+                #[cfg(all(feature = "prover", any(unix, windows)))]
+                {
+                    load_library_transport(&library, &configured.artifact_dir, config)
+                }
+                #[cfg(not(all(feature = "prover", any(unix, windows))))]
+                {
+                    let _ = library;
+                    bail!("gnark library transport is not supported on this platform")
+                }
+            }
+            TransportExecutable::Daemon(binary) => {
+                load_daemon_transport(&binary, &configured.artifact_dir, config)
+            }
+        }
+    }
+
+    pub fn from_bundled(
+        config: &'static GnarkFamilyConfig,
+        library: &Path,
+        artifacts: BundledArtifacts<'_>,
+    ) -> Result<Self> {
+        #[cfg(all(feature = "prover", any(unix, windows)))]
+        {
+            load_bundled_transport(
+                library,
+                artifacts.proving_key,
+                artifacts.verifying_key,
+                artifacts.metadata,
+                config,
+            )
+        }
+        #[cfg(not(all(feature = "prover", any(unix, windows))))]
+        {
+            let _ = (config, library, artifacts);
+            bail!("gnark bundled library loading is not supported on this platform")
+        }
+    }
+
+    pub fn prove(&self, witness: &[u8]) -> Result<Vec<u8>> {
+        prove_with_transport(&self.transport, witness, self.config.family)
+    }
+}
+
+impl Drop for GnarkTransport {
+    fn drop(&mut self) {
+        shutdown_transport(self);
+    }
+}
+
+#[cfg(all(feature = "prover", any(unix, windows)))]
 pub(crate) fn load_library_transport(
     lib_path: &Path,
     artifact_dir: &Path,
     config: &'static GnarkFamilyConfig,
-) -> Result<(GnarkTransport, PreparedVerifyingKey<Bls12_377>)> {
+) -> Result<GnarkClient> {
     let metadata = load_artifact_metadata(artifact_dir)?;
     validate_artifact_metadata(&metadata, config.family)?;
     validate_artifact_hashes(artifact_dir, &metadata, config.family)?;
 
+    let pvk = load_prepared_vk(artifact_dir, config.family)?;
     let library = unsafe { Library::new(lib_path) }.with_context(|| {
         format!(
             "load gnark {} library {}",
@@ -131,9 +362,8 @@ pub(crate) fn load_library_transport(
         );
     }
 
-    let pvk = load_prepared_vk(artifact_dir, config.family)?;
-    Ok((
-        GnarkTransport::Library {
+    Ok(GnarkClient {
+        transport: GnarkTransport::Library {
             _library: library,
             prove,
             free,
@@ -141,15 +371,16 @@ pub(crate) fn load_library_transport(
             handle: init_result.handle,
             prove_mutex: Mutex::new(()),
         },
-        pvk,
-    ))
+        verifying_key: pvk,
+        config,
+    })
 }
 
 pub(crate) fn load_daemon_transport(
     binary: &Path,
     artifact_dir: &Path,
     config: &'static GnarkFamilyConfig,
-) -> Result<(GnarkTransport, PreparedVerifyingKey<Bls12_377>)> {
+) -> Result<GnarkClient> {
     let metadata = load_artifact_metadata(artifact_dir)?;
     validate_artifact_metadata(&metadata, config.family)?;
     validate_artifact_hashes(artifact_dir, &metadata, config.family)?;
@@ -166,22 +397,23 @@ pub(crate) fn load_daemon_transport(
     )?;
 
     let pvk = load_prepared_vk(artifact_dir, config.family)?;
-    Ok((
-        GnarkTransport::Daemon {
+    Ok(GnarkClient {
+        transport: GnarkTransport::Daemon {
             process: Mutex::new(process),
         },
-        pvk,
-    ))
+        verifying_key: pvk,
+        config,
+    })
 }
 
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "prover", any(unix, windows)))]
 pub(crate) fn load_bundled_transport(
     lib_path: &Path,
     pk_bytes: &[u8],
     vk_json_bytes: &[u8],
     metadata_json: &[u8],
     config: &'static GnarkFamilyConfig,
-) -> Result<(GnarkTransport, PreparedVerifyingKey<Bls12_377>)> {
+) -> Result<GnarkClient> {
     let metadata = load_artifact_metadata_bytes(
         metadata_json,
         &format!("bundled {} circuit_metadata.json", config.family),
@@ -254,8 +486,8 @@ pub(crate) fn load_bundled_transport(
         );
     }
 
-    Ok((
-        GnarkTransport::Library {
+    Ok(GnarkClient {
+        transport: GnarkTransport::Library {
             _library: library,
             prove,
             free,
@@ -263,8 +495,9 @@ pub(crate) fn load_bundled_transport(
             handle: init_result.handle,
             prove_mutex: Mutex::new(()),
         },
-        pvk,
-    ))
+        verifying_key: pvk,
+        config,
+    })
 }
 
 pub(crate) fn prove_with_transport(
@@ -274,7 +507,7 @@ pub(crate) fn prove_with_transport(
 ) -> Result<Vec<u8>> {
     validate_prove_request_len(family, witness)?;
     match transport {
-        #[cfg(any(unix, windows))]
+        #[cfg(all(feature = "prover", any(unix, windows)))]
         GnarkTransport::Library {
             prove,
             free,
@@ -320,7 +553,7 @@ pub(crate) fn prove_with_transport(
 }
 
 pub(crate) fn shutdown_transport(transport: &mut GnarkTransport) {
-    #[cfg(any(unix, windows))]
+    #[cfg(all(feature = "prover", any(unix, windows)))]
     if let GnarkTransport::Library {
         shutdown, handle, ..
     } = transport
@@ -330,25 +563,8 @@ pub(crate) fn shutdown_transport(transport: &mut GnarkTransport) {
             *handle = 0;
         }
     }
-    #[cfg(not(any(unix, windows)))]
+    #[cfg(not(all(feature = "prover", any(unix, windows))))]
     let _ = transport;
-}
-
-#[cfg(any(unix, windows))]
-pub(crate) fn auto_lib_path(lib_basename: &str) -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    let exe_dir = exe.parent()?;
-    let exts = ["so", "dylib", "dll"];
-    let find_in = |dir: &Path| -> Option<PathBuf> {
-        exts.iter()
-            .map(|e| dir.join(format!("{lib_basename}.{e}")))
-            .find(|p| p.exists())
-    };
-
-    if let Some(p) = find_in(exe_dir) {
-        return Some(p);
-    }
-    None
 }
 
 pub(crate) fn validate_prove_request_len(family: &str, witness: &[u8]) -> Result<()> {
@@ -359,17 +575,6 @@ pub(crate) fn validate_prove_request_len(family: &str, witness: &[u8]) -> Result
         );
     }
     Ok(())
-}
-
-pub(crate) fn load_from_env_paths(
-    config: &'static GnarkFamilyConfig,
-) -> Result<(PathBuf, Option<PathBuf>, Option<PathBuf>)> {
-    let artifact_dir = std::env::var_os(config.env_artifact_dir)
-        .map(PathBuf::from)
-        .ok_or_else(|| anyhow!("{} is not set", config.env_artifact_dir))?;
-    let lib_path = std::env::var_os(config.env_lib).map(PathBuf::from);
-    let daemon_path = std::env::var_os(config.env_daemon).map(PathBuf::from);
-    Ok((artifact_dir, lib_path, daemon_path))
 }
 
 fn take_returned_bytes(ptr: *mut c_void, len: usize) -> Result<Vec<u8>> {
@@ -390,6 +595,37 @@ mod tests {
     use std::ptr::NonNull;
 
     use super::*;
+
+    #[test]
+    fn explicit_configuration_requires_one_transport_and_artifacts() {
+        let config = &crate::gnark::transfer::TRANSFER_FAMILY_CONFIG;
+        let artifacts = Some(PathBuf::from("artifacts"));
+        let library = Some(PathBuf::from("library"));
+        let daemon = Some(PathBuf::from("daemon"));
+        assert!(config
+            .resolve_explicit_paths(None, library.clone(), None)
+            .is_err());
+        assert!(config
+            .resolve_explicit_paths(artifacts.clone(), None, None)
+            .is_err());
+        assert!(config
+            .resolve_explicit_paths(artifacts.clone(), library.clone(), daemon.clone())
+            .is_err());
+        let selected = config
+            .resolve_explicit_paths(artifacts.clone(), library, None)
+            .expect("library config");
+        assert!(matches!(
+            selected.executable,
+            TransportExecutable::Library(_)
+        ));
+        let selected = config
+            .resolve_explicit_paths(artifacts, None, daemon)
+            .expect("daemon config");
+        assert!(matches!(
+            selected.executable,
+            TransportExecutable::Daemon(_)
+        ));
+    }
 
     #[test]
     fn validate_prove_request_len_rejects_oversized_request() {

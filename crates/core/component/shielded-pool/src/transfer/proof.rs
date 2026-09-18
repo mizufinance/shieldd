@@ -14,7 +14,7 @@ use crate::{
     discovery::{Parameters as RoutingParameters, TransferRouting},
     public_input_hash::{transfer_statement_hash_from_public, StatementHashError},
     transfer::{transfer_input_count, transfer_output_count, TRANSFER_PROOF_LABEL},
-    Note,
+    Note, TransferProofContext, VolumeAccumulatorPrivate, VolumeAccumulatorPublic,
 };
 
 #[derive(Clone, Debug)]
@@ -27,6 +27,7 @@ pub struct TransferSpendPublic {
 #[derive(Clone, Debug)]
 pub struct TransferOutputPublic {
     pub note_commitment: tct::StateCommitment,
+    pub recovery_commitment: crate::RecoveryCommitment,
 }
 
 #[derive(Clone, Debug)]
@@ -40,6 +41,8 @@ pub struct TransferComplianceCiphertextPublic {
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
     pub metadata: TransferComplianceMetadata,
+    pub sender_core_key_confirmation: Fq,
+    pub output_core_key_confirmation: Fq,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
     pub output_core: TransferComplianceCiphertextPublic,
@@ -59,6 +62,8 @@ pub struct TransferProofPublic {
     pub routing: TransferRouting,
     pub routing_parameter_set_id: Fq,
     pub recent_position_floor: u64,
+    pub volume_accumulator: VolumeAccumulatorPublic,
+    pub proof_context: TransferProofContext,
 }
 
 impl TransferProofPublic {
@@ -143,6 +148,7 @@ pub struct TransferProofPrivate {
     pub optional_input: TransferOptionalSpendPrivate,
     pub receiver_output: TransferReceiverOutputPrivate,
     pub change_output: TransferChangeOutputPrivate,
+    pub volume_accumulator: VolumeAccumulatorPrivate,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -198,7 +204,7 @@ impl TransferProof {
         Ok(())
     }
 
-    #[cfg(any(unix, windows))]
+    #[cfg(all(feature = "prover", any(unix, windows)))]
     pub fn prove(
         public: TransferProofPublic,
         private: TransferProofPrivate,
@@ -236,7 +242,8 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
     }
 }
 
-#[cfg(all(test, any(unix, windows)))]
+#[cfg(feature = "component")]
+#[cfg(all(test, all(feature = "prover", any(unix, windows))))]
 mod tests {
     use std::sync::{LazyLock, Mutex};
 
@@ -249,7 +256,9 @@ mod tests {
         build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng, full_proof_roundtrip,
         CircuitType,
     };
-    use crate::{Note, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
+    use crate::{
+        Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    };
     use decaf377::Fr;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_compliance::{ComplianceLeaf, MerklePath, QuadTree};
@@ -259,8 +268,17 @@ mod tests {
 
     static TRANSFER_PROOF_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
+    fn proof_runtime() -> std::sync::MutexGuard<'static, ()> {
+        let guard = TRANSFER_PROOF_TEST_MUTEX
+            .lock()
+            .expect("lock transfer test mutex");
+        crate::gnark::require_proof_test_runtime(crate::gnark::ProofTestFamily::Transfer)
+            .expect("proof test prerequisites must be present");
+        guard
+    }
+
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
-        ComplianceLeaf::new(address.clone(), *BASE_ASSET_ID)
+        ComplianceLeaf::synthetic_unregulated(address.clone(), *BASE_ASSET_ID)
     }
 
     fn sender_recipient_compliance_witnesses() -> (
@@ -295,35 +313,67 @@ mod tests {
     }
 
     #[test]
-    fn transfer_proof_roundtrip_regulated() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
+    fn transfer_public_projection_matches_builder_without_proving() {
+        for regulated in [false, true] {
+            let (transfer, expected, context) = crate::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof(regulated);
+            let actual =
+                transfer_extract_public(&transfer, &context).expect("extract public inputs");
+            assert_eq!(
+                actual.statement_hash().unwrap(),
+                expected.statement_hash().unwrap()
+            );
         }
+    }
+
+    #[test]
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_proof_roundtrip_regulated() {
+        let _guard = proof_runtime();
         full_proof_roundtrip(CircuitType::Transfer, true);
     }
 
     #[test]
-    fn transfer_proof_roundtrip_unregulated() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_proof_roundtrip_unregulated() {
+        let _guard = proof_runtime();
         full_proof_roundtrip(CircuitType::Transfer, false);
     }
 
     #[test]
-    fn transfer_hidden_arity_1x1_roundtrip_sender_to_self() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_accumulator_origin() {
+        let _guard = proof_runtime();
+
+        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_accumulating_hidden_arity_roundtrip_inputs_with_rng(
+                &mut rand::thread_rng(),
+                100,
+            );
+        TransferProof::prove(public.clone(), private)
+            .expect("prove transfer with a daily accumulator origin")
+            .verify(&public)
+            .expect("verify transfer with a daily accumulator origin");
+    }
+
+    #[test]
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_accumulator_continuation() {
+        let _guard = proof_runtime();
+
+        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_continuing_accumulator_roundtrip_inputs_with_rng(
+                &mut rand::thread_rng(),
+            );
+        TransferProof::prove(public.clone(), private)
+            .expect("prove transfer continuing a daily accumulator")
+            .verify(&public)
+            .expect("verify transfer continuing a daily accumulator");
+    }
+
+    #[test]
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_sender_to_self() {
+        let _guard = proof_runtime();
 
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_with_rng(
@@ -338,13 +388,9 @@ mod tests {
     }
 
     #[test]
-    fn repro_unregulated_nonbase_test_usd() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_repro_unregulated_nonbase_test_usd() {
+        let _guard = proof_runtime();
         // test_usd real asset id (base denom wtest_usd).
         let test_usd = shieldd_sdk_asset::asset::REGISTRY
             .parse_unit("test_usd")
@@ -364,18 +410,14 @@ mod tests {
     }
 
     #[test]
-    fn repro_unregulated_nonbase_test_usd_populated_tree() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_repro_unregulated_nonbase_test_usd_populated_tree() {
+        let _guard = proof_runtime();
         let test_usd = shieldd_sdk_asset::asset::REGISTRY
             .parse_unit("test_usd")
             .id();
         // Predecessor (low) leaf is a regulated asset just below test_usd, mirroring
-        // the live registry gap; threshold = 5e20 like regulated_usd.
+        // the live registry gap; daily_volume_limit = 5e20 like regulated_usd.
         let low_asset_id = test_usd.0 - decaf377::Fq::from(1u64);
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
@@ -392,13 +434,9 @@ mod tests {
     }
 
     #[test]
-    fn transfer_hidden_arity_1x1_roundtrip_sender_to_other() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_sender_to_other() {
+        let _guard = proof_runtime();
 
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_with_rng(
@@ -413,13 +451,9 @@ mod tests {
     }
 
     #[test]
-    fn transfer_hidden_arity_1x1_roundtrip_base_asset_sender_to_other() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_base_asset_sender_to_other() {
+        let _guard = proof_runtime();
 
         let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
             &mut rand::thread_rng(),
@@ -434,13 +468,9 @@ mod tests {
     }
 
     #[test]
-    fn transfer_hidden_arity_1x1_roundtrip_test_keys_base_asset_sender_to_other() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_test_keys_base_asset_sender_to_other() {
+        let _guard = proof_runtime();
 
         let mut rng = rand::thread_rng();
         let input_note = Note::from_parts(
@@ -450,6 +480,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create base-asset test note");
 
@@ -462,28 +493,42 @@ mod tests {
         let anchor = sct.root();
 
         let (
-            _sender_leaf,
-            _recipient_leaf,
+            sender_leaf,
+            recipient_leaf,
             compliance_anchor,
             sender_compliance_path,
             recipient_compliance_path,
         ) = sender_recipient_compliance_witnesses();
-        let mut spend = ShieldedInputPlan::new(
+        let spend = ShieldedInputPlan::new(
             &mut rng,
             input_note.clone(),
             state_commitment_proof.position(),
         );
-        spend.compliance_anchor = compliance_anchor;
-        spend.compliance_path = sender_compliance_path;
-        spend.compliance_position = 0;
-        let mut output =
+        let output =
             ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-        output.compliance_anchor = compliance_anchor;
-        output.compliance_path = recipient_compliance_path;
-        output.compliance_position = 1;
-        output.tx_blinding_nonce = spend.tx_blinding_nonce;
-        let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
-            .expect("build test-key transfer plan");
+        let mut compliance =
+            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
+        compliance.witness.user_root = compliance_anchor;
+        compliance.witness.sender = crate::UserWitness {
+            leaf: sender_leaf,
+            path: sender_compliance_path,
+            position: 0,
+        };
+        compliance.recipient = crate::UserWitness {
+            leaf: recipient_leaf,
+            path: recipient_compliance_path,
+            position: 1,
+        };
+        let transfer = TransferPlan::new(
+            vec![spend],
+            vec![output],
+            Fr::rand(&mut rng),
+            compliance.clone(),
+            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
+            crate::TransferProofContext::Ordinary,
+            crate::discovery::Parameters::default(),
+        )
+        .expect("build test-key transfer plan");
         let (public, private) = transfer
             .transfer_public_private(
                 &test_keys::FULL_VIEWING_KEY,
@@ -500,13 +545,9 @@ mod tests {
     }
 
     #[test]
-    fn transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other() {
+        let _guard = proof_runtime();
 
         let mut rng = rand::thread_rng();
         let input_note = Note::from_parts(
@@ -516,277 +557,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed::generate(&mut rng),
-        )
-        .expect("create registered base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert registered base-asset note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness registered base-asset note");
-        let anchor = sct.root();
-
-        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
-        let (
-            _,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-
-        let mut spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-        spend.asset_indexed_leaf = asset_indexed_leaf.clone();
-        spend.asset_path = asset_path.clone();
-        spend.asset_position = asset_position;
-        spend.asset_anchor = asset_anchor;
-        spend.is_regulated = false;
-        spend.compliance_anchor = compliance_anchor;
-        spend.compliance_path = sender_compliance_path;
-        spend.compliance_position = 0;
-        spend
-            .set_compliance_details()
-            .expect("set registered base-asset spend compliance details");
-
-        let mut output =
-            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-        output.asset_indexed_leaf = asset_indexed_leaf;
-        output.asset_path = asset_path;
-        output.asset_position = asset_position;
-        output.asset_anchor = asset_anchor;
-        output.is_regulated = false;
-        output.compliance_anchor = compliance_anchor;
-        output.compliance_path = recipient_compliance_path;
-        output.compliance_position = 1;
-        output
-            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
-            .expect("set registered base-asset output compliance details");
-
-        let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
-            .expect("build registered base-asset transfer plan");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive registered base-asset transfer public/private inputs");
-
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity registered base-asset sender-to-other transfer")
-            .verify(&public)
-            .expect("verify hidden-arity registered base-asset sender-to-other transfer");
-    }
-
-    #[test]
-    fn transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_high_position() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
-
-        let mut rng = rand::thread_rng();
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
-        )
-        .expect("create registered base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        for _ in 0..512 {
-            let filler_note = Note::from_parts(
-                test_keys::ADDRESS_1.clone(),
-                Value {
-                    amount: Amount::from(1u64),
-                    asset_id: *BASE_ASSET_ID,
-                },
-                Rseed::generate(&mut rng),
-            )
-            .expect("create filler note");
-            sct.insert(tct::Witness::Forget, filler_note.commit())
-                .expect("insert filler note");
-        }
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert registered base-asset note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness registered base-asset note");
-        let anchor = sct.root();
-
-        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
-        let (
-            _,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-
-        let mut spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-        spend.asset_indexed_leaf = asset_indexed_leaf.clone();
-        spend.asset_path = asset_path.clone();
-        spend.asset_position = asset_position;
-        spend.asset_anchor = asset_anchor;
-        spend.is_regulated = false;
-        spend.compliance_anchor = compliance_anchor;
-        spend.compliance_path = sender_compliance_path;
-        spend.compliance_position = 0;
-        spend
-            .set_compliance_details()
-            .expect("set registered base-asset spend compliance details");
-
-        let mut output =
-            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-        output.asset_indexed_leaf = asset_indexed_leaf;
-        output.asset_path = asset_path;
-        output.asset_position = asset_position;
-        output.asset_anchor = asset_anchor;
-        output.is_regulated = false;
-        output.compliance_anchor = compliance_anchor;
-        output.compliance_path = recipient_compliance_path;
-        output.compliance_position = 1;
-        output
-            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
-            .expect("set registered base-asset output compliance details");
-
-        let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
-            .expect("build registered base-asset transfer plan");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive registered base-asset transfer public/private inputs");
-
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity registered base-asset sender-to-other transfer at high position")
-            .verify(&public)
-            .expect("verify hidden-arity registered base-asset sender-to-other transfer at high position");
-    }
-
-    #[test]
-    fn transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_real_user_tree() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
-
-        let mut rng = rand::thread_rng();
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
-        )
-        .expect("create registered base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert registered base-asset note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness registered base-asset note");
-        let anchor = sct.root();
-
-        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
-        let (
-            _,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-
-        let mut spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-        spend.asset_indexed_leaf = asset_indexed_leaf.clone();
-        spend.asset_path = asset_path.clone();
-        spend.asset_position = asset_position;
-        spend.asset_anchor = asset_anchor;
-        spend.is_regulated = false;
-        spend.compliance_anchor = compliance_anchor;
-        spend.compliance_path = sender_compliance_path;
-        spend.compliance_position = 0;
-        spend
-            .set_compliance_details()
-            .expect("set registered base-asset spend compliance details");
-
-        let mut output =
-            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-        output.asset_indexed_leaf = asset_indexed_leaf;
-        output.asset_path = asset_path;
-        output.asset_position = asset_position;
-        output.asset_anchor = asset_anchor;
-        output.is_regulated = false;
-        output.compliance_anchor = compliance_anchor;
-        output.compliance_path = recipient_compliance_path;
-        output.compliance_position = 1;
-        output
-            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
-            .expect("set registered base-asset output compliance details");
-
-        let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
-            .expect("build registered base-asset transfer plan");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive registered base-asset transfer public/private inputs");
-
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity registered base-asset transfer with real user tree")
-            .verify(&public)
-            .expect("verify hidden-arity registered base-asset transfer with real user tree");
-    }
-
-    #[test]
-    fn transfer_hidden_arity_1x2_roundtrip_registered_base_asset_with_change_real_user_tree() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
-
-        let mut rng = rand::thread_rng();
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
         )
         .expect("create registered base-asset test note");
 
@@ -808,24 +579,288 @@ mod tests {
             recipient_compliance_path,
         ) = sender_recipient_compliance_witnesses();
 
-        let mut spend = ShieldedInputPlan::new(
+        let spend = ShieldedInputPlan::new(
             &mut rng,
             input_note.clone(),
             state_commitment_proof.position(),
         );
-        spend.asset_indexed_leaf = asset_indexed_leaf.clone();
-        spend.asset_path = asset_path.clone();
-        spend.asset_position = asset_position;
-        spend.asset_anchor = asset_anchor;
-        spend.is_regulated = false;
-        spend.compliance_anchor = compliance_anchor;
-        spend.compliance_path = sender_compliance_path.clone();
-        spend.compliance_position = 0;
-        spend
-            .set_compliance_details()
-            .expect("set registered base-asset spend compliance details");
 
-        let mut receiver_output = ShieldedOutputPlan::new(
+        let output =
+            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
+
+        let mut compliance =
+            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
+        compliance.witness.user_root = compliance_anchor;
+        compliance.witness.sender = crate::UserWitness {
+            leaf: sender_leaf,
+            path: sender_compliance_path,
+            position: 0,
+        };
+        compliance.recipient = crate::UserWitness {
+            leaf: recipient_leaf,
+            path: recipient_compliance_path,
+            position: 1,
+        };
+        compliance.witness.asset.root = asset_anchor;
+        compliance.witness.asset.leaf = asset_indexed_leaf;
+        compliance.witness.asset.path = asset_path;
+        compliance.witness.asset.position = asset_position;
+        let transfer = TransferPlan::new(
+            vec![spend],
+            vec![output],
+            Fr::rand(&mut rng),
+            compliance.clone(),
+            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
+            crate::TransferProofContext::Ordinary,
+            crate::discovery::Parameters::default(),
+        )
+        .expect("build registered base-asset transfer plan");
+        let (public, private) = transfer
+            .transfer_public_private(
+                &test_keys::FULL_VIEWING_KEY,
+                &[state_commitment_proof],
+                anchor,
+                0,
+            )
+            .expect("derive registered base-asset transfer public/private inputs");
+
+        TransferProof::prove(public.clone(), private)
+            .expect("prove hidden-arity registered base-asset sender-to-other transfer")
+            .verify(&public)
+            .expect("verify hidden-arity registered base-asset sender-to-other transfer");
+    }
+
+    #[test]
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_high_position(
+    ) {
+        let _guard = proof_runtime();
+
+        let mut rng = rand::thread_rng();
+        let input_note = Note::from_parts(
+            test_keys::ADDRESS_0.clone(),
+            Value {
+                amount: Amount::from(1_000_000u64),
+                asset_id: *BASE_ASSET_ID,
+            },
+            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
+        )
+        .expect("create registered base-asset test note");
+
+        let mut sct = tct::Tree::new();
+        for _ in 0..512 {
+            let filler_note = Note::from_parts(
+                test_keys::ADDRESS_1.clone(),
+                Value {
+                    amount: Amount::from(1u64),
+                    asset_id: *BASE_ASSET_ID,
+                },
+                Rseed::generate(&mut rng),
+                RecoveryCommitment::unavailable(),
+            )
+            .expect("create filler note");
+            sct.insert(tct::Witness::Forget, filler_note.commit())
+                .expect("insert filler note");
+        }
+        sct.insert(tct::Witness::Keep, input_note.commit())
+            .expect("insert registered base-asset note");
+        let state_commitment_proof = sct
+            .witness(input_note.commit())
+            .expect("witness registered base-asset note");
+        let anchor = sct.root();
+
+        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+        let (
+            sender_leaf,
+            recipient_leaf,
+            compliance_anchor,
+            sender_compliance_path,
+            recipient_compliance_path,
+        ) = sender_recipient_compliance_witnesses();
+
+        let spend = ShieldedInputPlan::new(
+            &mut rng,
+            input_note.clone(),
+            state_commitment_proof.position(),
+        );
+
+        let output =
+            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
+
+        let mut compliance =
+            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
+        compliance.witness.user_root = compliance_anchor;
+        compliance.witness.sender = crate::UserWitness {
+            leaf: sender_leaf,
+            path: sender_compliance_path,
+            position: 0,
+        };
+        compliance.recipient = crate::UserWitness {
+            leaf: recipient_leaf,
+            path: recipient_compliance_path,
+            position: 1,
+        };
+        compliance.witness.asset.root = asset_anchor;
+        compliance.witness.asset.leaf = asset_indexed_leaf;
+        compliance.witness.asset.path = asset_path;
+        compliance.witness.asset.position = asset_position;
+        let transfer = TransferPlan::new(
+            vec![spend],
+            vec![output],
+            Fr::rand(&mut rng),
+            compliance.clone(),
+            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
+            crate::TransferProofContext::Ordinary,
+            crate::discovery::Parameters::default(),
+        )
+        .expect("build registered base-asset transfer plan");
+        let (public, private) = transfer
+            .transfer_public_private(
+                &test_keys::FULL_VIEWING_KEY,
+                &[state_commitment_proof],
+                anchor,
+                0,
+            )
+            .expect("derive registered base-asset transfer public/private inputs");
+
+        TransferProof::prove(public.clone(), private)
+            .expect("prove hidden-arity registered base-asset sender-to-other transfer at high position")
+            .verify(&public)
+            .expect("verify hidden-arity registered base-asset sender-to-other transfer at high position");
+    }
+
+    #[test]
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_real_user_tree(
+    ) {
+        let _guard = proof_runtime();
+
+        let mut rng = rand::thread_rng();
+        let input_note = Note::from_parts(
+            test_keys::ADDRESS_0.clone(),
+            Value {
+                amount: Amount::from(1_000_000u64),
+                asset_id: *BASE_ASSET_ID,
+            },
+            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
+        )
+        .expect("create registered base-asset test note");
+
+        let mut sct = tct::Tree::new();
+        sct.insert(tct::Witness::Keep, input_note.commit())
+            .expect("insert registered base-asset note");
+        let state_commitment_proof = sct
+            .witness(input_note.commit())
+            .expect("witness registered base-asset note");
+        let anchor = sct.root();
+
+        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+        let (
+            sender_leaf,
+            recipient_leaf,
+            compliance_anchor,
+            sender_compliance_path,
+            recipient_compliance_path,
+        ) = sender_recipient_compliance_witnesses();
+
+        let spend = ShieldedInputPlan::new(
+            &mut rng,
+            input_note.clone(),
+            state_commitment_proof.position(),
+        );
+
+        let output =
+            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
+
+        let mut compliance =
+            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
+        compliance.witness.user_root = compliance_anchor;
+        compliance.witness.sender = crate::UserWitness {
+            leaf: sender_leaf,
+            path: sender_compliance_path,
+            position: 0,
+        };
+        compliance.recipient = crate::UserWitness {
+            leaf: recipient_leaf,
+            path: recipient_compliance_path,
+            position: 1,
+        };
+        compliance.witness.asset.root = asset_anchor;
+        compliance.witness.asset.leaf = asset_indexed_leaf;
+        compliance.witness.asset.path = asset_path;
+        compliance.witness.asset.position = asset_position;
+        let transfer = TransferPlan::new(
+            vec![spend],
+            vec![output],
+            Fr::rand(&mut rng),
+            compliance.clone(),
+            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
+            crate::TransferProofContext::Ordinary,
+            crate::discovery::Parameters::default(),
+        )
+        .expect("build registered base-asset transfer plan");
+        let (public, private) = transfer
+            .transfer_public_private(
+                &test_keys::FULL_VIEWING_KEY,
+                &[state_commitment_proof],
+                anchor,
+                0,
+            )
+            .expect("derive registered base-asset transfer public/private inputs");
+
+        TransferProof::prove(public.clone(), private)
+            .expect("prove hidden-arity registered base-asset transfer with real user tree")
+            .verify(&public)
+            .expect("verify hidden-arity registered base-asset transfer with real user tree");
+    }
+
+    #[test]
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_hidden_arity_1x2_roundtrip_registered_base_asset_with_change_real_user_tree(
+    ) {
+        let _guard = proof_runtime();
+
+        let mut rng = rand::thread_rng();
+        let input_note = Note::from_parts(
+            test_keys::ADDRESS_0.clone(),
+            Value {
+                amount: Amount::from(1_000_000u64),
+                asset_id: *BASE_ASSET_ID,
+            },
+            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
+        )
+        .expect("create registered base-asset test note");
+
+        let mut sct = tct::Tree::new();
+        sct.insert(tct::Witness::Keep, input_note.commit())
+            .expect("insert registered base-asset note");
+        let state_commitment_proof = sct
+            .witness(input_note.commit())
+            .expect("witness registered base-asset note");
+        let anchor = sct.root();
+
+        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+        let (
+            sender_leaf,
+            recipient_leaf,
+            compliance_anchor,
+            sender_compliance_path,
+            recipient_compliance_path,
+        ) = sender_recipient_compliance_witnesses();
+
+        let spend = ShieldedInputPlan::new(
+            &mut rng,
+            input_note.clone(),
+            state_commitment_proof.position(),
+        );
+
+        let receiver_output = ShieldedOutputPlan::new(
             &mut rng,
             Value {
                 amount: Amount::from(1u64),
@@ -833,19 +868,8 @@ mod tests {
             },
             test_keys::ADDRESS_1.clone(),
         );
-        receiver_output.asset_indexed_leaf = asset_indexed_leaf.clone();
-        receiver_output.asset_path = asset_path.clone();
-        receiver_output.asset_position = asset_position;
-        receiver_output.asset_anchor = asset_anchor;
-        receiver_output.is_regulated = false;
-        receiver_output.compliance_anchor = compliance_anchor;
-        receiver_output.compliance_path = recipient_compliance_path;
-        receiver_output.compliance_position = 1;
-        receiver_output
-            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
-            .expect("set receiver output compliance details");
 
-        let mut change_output = ShieldedOutputPlan::new(
+        let change_output = ShieldedOutputPlan::new(
             &mut rng,
             Value {
                 amount: Amount::from(999_999u64),
@@ -853,22 +877,32 @@ mod tests {
             },
             test_keys::ADDRESS_0.clone(),
         );
-        change_output.asset_indexed_leaf = asset_indexed_leaf;
-        change_output.asset_path = asset_path;
-        change_output.asset_position = asset_position;
-        change_output.asset_anchor = asset_anchor;
-        change_output.is_regulated = false;
-        change_output.compliance_anchor = compliance_anchor;
-        change_output.compliance_path = sender_compliance_path;
-        change_output.compliance_position = 0;
-        change_output
-            .set_compliance_details(&sender_leaf, spend.tx_blinding_nonce)
-            .expect("set change output compliance details");
 
+        let mut compliance =
+            crate::test_plan_helpers::transfer_context(&spend, &receiver_output.dest_address);
+        compliance.witness.user_root = compliance_anchor;
+        compliance.witness.sender = crate::UserWitness {
+            leaf: sender_leaf,
+            path: sender_compliance_path,
+            position: 0,
+        };
+        compliance.recipient = crate::UserWitness {
+            leaf: recipient_leaf,
+            path: recipient_compliance_path,
+            position: 1,
+        };
+        compliance.witness.asset.root = asset_anchor;
+        compliance.witness.asset.leaf = asset_indexed_leaf;
+        compliance.witness.asset.path = asset_path;
+        compliance.witness.asset.position = asset_position;
         let transfer = TransferPlan::new(
             vec![spend],
             vec![receiver_output, change_output],
             Fr::rand(&mut rng),
+            compliance.clone(),
+            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
+            crate::TransferProofContext::Ordinary,
+            crate::discovery::Parameters::default(),
         )
         .expect("build registered base-asset transfer plan with change");
         let (public, private) = transfer
@@ -892,13 +926,9 @@ mod tests {
 
     #[cfg(feature = "component")]
     #[test]
-    fn transfer_action_public_matches_proving_public_regulated() {
-        let _guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        if super::super::test_runtime::should_skip_transfer_proof_roundtrip_tests() {
-            return;
-        }
+    #[ignore = "expensive: real release-mode Gnark proof generation"]
+    fn gnark_proof_transfer_action_public_matches_proving_public_regulated() {
+        let _guard = proof_runtime();
 
         let (transfer, proving_public, context) = build_transfer_action_and_public(true);
         let extracted_public =

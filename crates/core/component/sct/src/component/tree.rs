@@ -5,6 +5,7 @@ use futures::{Stream, StreamExt};
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
 use shieldd_sdk_tct as tct;
 use std::{
+    collections::BTreeSet,
     fmt,
     ops::{Range, RangeFrom},
     pin::Pin,
@@ -19,13 +20,123 @@ use crate::{
     event, nullifier_tree, state_key, CommitmentSource, Nullifier,
 };
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct ProposalNullifierBatchProfile {
-    pub lookup_write_ms: f64,
-    pub pending_stage_ms: f64,
+/// The consensus maximum number of nullifiers in one block.
+pub const MAX_NULLIFIERS_PER_BLOCK: usize = 32_768;
+
+/// Block-scoped nullifier state. Durable tree writes happen only at block finalization.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum PendingNullifierBlock {
+    /// Transactions may validate and append ordered nullifiers.
+    Open {
+        generation: Option<crate::nullifier_generation::NullifierTreeId>,
+        ordered: imbl::Vector<Nullifier>,
+        membership: imbl::OrdSet<Nullifier>,
+    },
+    /// The ordered nullifiers have been materialized in the active generation.
+    Materialized { ordered: imbl::Vector<Nullifier> },
+}
+
+impl Default for PendingNullifierBlock {
+    fn default() -> Self {
+        Self::Open {
+            generation: None,
+            ordered: imbl::Vector::new(),
+            membership: imbl::OrdSet::new(),
+        }
+    }
+}
+
+impl PendingNullifierBlock {
+    fn ordered(&self) -> &imbl::Vector<Nullifier> {
+        match self {
+            Self::Open { ordered, .. } | Self::Materialized { ordered, .. } => ordered,
+        }
+    }
+
+    fn contains(&self, nullifier: &Nullifier) -> bool {
+        match self {
+            Self::Open { membership, .. } => membership.contains(nullifier),
+            Self::Materialized { .. } => false,
+        }
+    }
+}
+
+async fn stage_nullifiers<S: StateWrite + ?Sized>(
+    state: &mut S,
+    nullifiers: &[Nullifier],
+    check_durable: bool,
+) -> Result<()> {
+    let mut local = BTreeSet::new();
+    for nullifier in nullifiers {
+        ensure!(
+            local.insert(*nullifier),
+            "duplicate nullifier {nullifier} in batch"
+        );
+    }
+    let pending = state
+        .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        .unwrap_or_default();
+    let PendingNullifierBlock::Open {
+        generation: staged_generation,
+        mut ordered,
+        mut membership,
+    } = pending
+    else {
+        anyhow::bail!("cannot stage nullifiers after block materialization");
+    };
+    ensure!(
+        ordered.len().saturating_add(nullifiers.len()) <= MAX_NULLIFIERS_PER_BLOCK,
+        "block nullifier limit exceeded"
+    );
+    for nullifier in nullifiers {
+        ensure!(
+            !membership.contains(nullifier),
+            "nullifier {nullifier} was already spent in this block"
+        );
+    }
+    if check_durable {
+        for (nullifier, spent) in nullifiers
+            .iter()
+            .zip(nullifier_tree::contains_batch(state, nullifiers).await?)
+        {
+            ensure!(!spent, "nullifier {nullifier} was already spent");
+        }
+    }
+    let generation = nullifier_tree::generation_state(state).await?;
+    if let Some(staged_generation) = staged_generation {
+        ensure!(
+            staged_generation == generation.current_tree,
+            "nullifier generation changed while the block was open"
+        );
+    }
+    let durable_count = nullifier_tree::current_leaf_count(state).await?;
+    ensure!(
+        durable_count
+            .saturating_add(ordered.len() as u64)
+            .saturating_add(nullifiers.len() as u64)
+            <= crate::indexed_nullifier_tree::CAPACITY,
+        "nullifier generation is full"
+    );
+    ordered.extend(nullifiers.iter().copied());
+    membership.extend(nullifiers.iter().copied());
+    state.object_put(
+        state_key::nullifier_generations::pending_block(),
+        PendingNullifierBlock::Open {
+            generation: Some(generation.current_tree),
+            ordered,
+            membership,
+        },
+    );
+    Ok(())
 }
 
 pub const SCT_BLOCK_COMMITMENT_CAPACITY: usize = u16::MAX as usize + 1;
+const TCT_BATCH_THRESHOLD: usize = 64;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct FinalizedSctBlock {
+    root: block::Root,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SctCapacityError {
@@ -417,18 +528,55 @@ pub trait SctRead: StateRead {
 
     /// Return whether the specified nullifier has been spent.
     async fn is_nullifier_spent(&self, nullifier: Nullifier) -> Result<bool> {
+        if self
+            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+            .is_some_and(|pending| pending.contains(&nullifier))
+        {
+            return Ok(true);
+        }
         nullifier_tree::is_spent(self, nullifier).await
     }
 
     /// Check a batch through the direct spent-marker index without constructing proofs.
     async fn contains_nullifiers(&self, nullifiers: &[Nullifier]) -> Result<Vec<bool>> {
-        nullifier_tree::contains_batch(self, nullifiers).await
+        let mut spent = nullifier_tree::contains_batch(self, nullifiers).await?;
+        if let Some(pending) = self
+            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        {
+            for (nullifier, spent) in nullifiers.iter().zip(&mut spent) {
+                *spent |= pending.contains(nullifier);
+            }
+        }
+        Ok(spent)
     }
 
     /// Return the set of nullifiers that have been spent in the current block.
     fn pending_nullifiers(&self) -> imbl::Vector<Nullifier> {
-        self.object_get(state_key::nullifier_generations::pending_nullifiers())
+        self.object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+            .map(|pending| pending.ordered().clone())
             .unwrap_or_default()
+    }
+
+    /// Return whether an active block has materialized its staged nullifiers.
+    fn nullifier_block_is_materialized(&self) -> bool {
+        matches!(
+            self.object_get::<PendingNullifierBlock>(
+                state_key::nullifier_generations::pending_block()
+            ),
+            Some(PendingNullifierBlock::Materialized { .. })
+        )
+    }
+
+    /// Reject persistence or compact-block finalization while an active block is still open.
+    fn ensure_nullifier_block_materialized(&self) -> Result<()> {
+        match self
+            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        {
+            None | Some(PendingNullifierBlock::Materialized { .. }) => Ok(()),
+            Some(PendingNullifierBlock::Open { .. }) => {
+                anyhow::bail!("block nullifiers have not been materialized")
+            }
+        }
     }
 }
 
@@ -584,8 +732,8 @@ pub trait SctManager: StateWrite {
         Ok(())
     }
 
-    /// Add positioned state commitments into the SCT with one tree load.
-    async fn add_sct_commitments_at_positions(
+    /// Finalize an all-`Forget` validator block from positioned commitments.
+    async fn finalize_sct_block_forget(
         &mut self,
         entries: Vec<(tct::Position, tct::StateCommitment)>,
     ) -> Result<()> {
@@ -595,6 +743,38 @@ pub trait SctManager: StateWrite {
 
         let mut tree = self.get_sct().await;
         ensure_block_capacity(&tree, entries.len())?;
+        let start = tree.position().context("state commitment tree is full")?;
+        for (offset, (expected_position, _)) in entries.iter().enumerate() {
+            ensure!(
+                u64::from(*expected_position) == u64::from(start) + offset as u64,
+                "deferred SCT position drifted before block materialization"
+            );
+        }
+
+        if entries.len() >= TCT_BATCH_THRESHOLD {
+            ensure!(
+                start.commitment() == 0,
+                "root-only SCT block insertion must begin at a block boundary"
+            );
+            let root = tct::builder::block::finalized_forget_root(
+                &entries
+                    .iter()
+                    .map(|(_, commitment)| *commitment)
+                    .collect::<Vec<_>>(),
+            )?;
+            let inserted_root = tree.insert_block(root)?;
+            ensure!(
+                inserted_root == root,
+                "SCT block root drifted during insertion"
+            );
+            self.write_sct_cache(tree);
+            self.object_put(
+                state_key::cache::block_materialization(),
+                FinalizedSctBlock { root },
+            );
+            return Ok(());
+        }
+
         for (expected_position, commitment) in entries {
             let position = tree.insert(tct::Witness::Forget, commitment)?;
             ensure!(
@@ -608,7 +788,7 @@ pub trait SctManager: StateWrite {
     }
 
     #[instrument(skip(self, source))]
-    /// Record a nullifier as spent in the verifiable storage.
+    /// Stage a nullifier as spent in the current block.
     async fn nullify(&mut self, nullifier: Nullifier, source: CommitmentSource) -> Result<()> {
         tracing::debug!("marking as spent");
         self.nullify_all(std::slice::from_ref(&nullifier), source)
@@ -616,7 +796,7 @@ pub trait SctManager: StateWrite {
     }
 
     #[instrument(skip(self, source, nullifiers))]
-    /// Record a batch of nullifiers as spent in the verifiable storage.
+    /// Stage a batch of nullifiers as spent in the current block.
     async fn nullify_all(
         &mut self,
         nullifiers: &[Nullifier],
@@ -632,57 +812,38 @@ pub trait SctManager: StateWrite {
             source.id().is_some(),
             "nullifiers are only consumed by transactions"
         );
-        nullifier_tree::insert_batch(self, nullifiers.iter().copied()).await?;
-
-        // Record the nullifiers to be inserted into the compact block in one object-store rewrite.
-        let mut pending_nullifiers = self.pending_nullifiers();
-        pending_nullifiers.extend(nullifiers.iter().copied());
-        self.object_put(
-            state_key::nullifier_generations::pending_nullifiers(),
-            pending_nullifiers,
-        );
-
-        Ok(())
+        stage_nullifiers(self, nullifiers, true).await
     }
 
-    #[instrument(skip(self, entries))]
-    /// Record a proposal-ordered batch of nullifiers as spent in verifiable storage.
-    ///
-    /// This method is intentionally blind to same-block conflicts. Proposal-order conflict
-    /// resolution must happen before this batch is applied.
-    async fn nullify_proposal_batch(
-        &mut self,
-        entries: &[(Nullifier, CommitmentSource)],
-    ) -> Result<ProposalNullifierBatchProfile> {
-        if entries.is_empty() {
-            return Ok(ProposalNullifierBatchProfile::default());
+    /// Materialize the ordered nullifier block exactly once.
+    async fn materialize_nullifier_block(&mut self) -> Result<()> {
+        let pending = self
+            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+            .unwrap_or_default();
+        match pending {
+            PendingNullifierBlock::Materialized { .. } => {
+                anyhow::bail!("nullifier block was already materialized")
+            }
+            PendingNullifierBlock::Open {
+                generation: staged_generation,
+                ordered,
+                ..
+            } => {
+                let before = nullifier_tree::generation_state(self).await?;
+                if let Some(staged_generation) = staged_generation {
+                    ensure!(
+                        staged_generation == before.current_tree,
+                        "nullifier generation changed before block materialization"
+                    );
+                }
+                nullifier_tree::insert_batch(self, ordered.iter().copied()).await?;
+                self.object_put(
+                    state_key::nullifier_generations::pending_block(),
+                    PendingNullifierBlock::Materialized { ordered },
+                );
+                Ok(())
+            }
         }
-
-        tracing::debug!(
-            count = entries.len(),
-            "marking proposal nullifier batch as spent"
-        );
-
-        let mut profile = ProposalNullifierBatchProfile::default();
-
-        let lookup_write_start = std::time::Instant::now();
-        ensure!(
-            entries.iter().all(|(_, source)| source.id().is_some()),
-            "nullifiers are only consumed by transactions"
-        );
-        nullifier_tree::insert_batch(self, entries.iter().map(|(nullifier, _)| *nullifier)).await?;
-        profile.lookup_write_ms = lookup_write_start.elapsed().as_secs_f64() * 1000.0;
-
-        let pending_stage_start = std::time::Instant::now();
-        let mut pending_nullifiers = self.pending_nullifiers();
-        pending_nullifiers.extend(entries.iter().map(|(nullifier, _)| *nullifier));
-        self.object_put(
-            state_key::nullifier_generations::pending_nullifiers(),
-            pending_nullifiers,
-        );
-        profile.pending_stage_ms = pending_stage_start.elapsed().as_secs_f64() * 1000.0;
-
-        Ok(profile)
     }
 
     /// Seal the current block in the SCT, and produce an epoch root if
@@ -694,14 +855,19 @@ pub trait SctManager: StateWrite {
         &mut self,
         end_epoch: bool,
     ) -> Result<(block::Root, Option<epoch::Root>)> {
+        self.ensure_nullifier_block_materialized()?;
         let height = self.get_block_height().await?;
 
         let mut tree = self.get_sct().await;
 
-        // Close the block in the SCT
-        let block_root = tree
-            .end_block()
-            .expect("ending a block in the state commitment tree can never fail");
+        let block_root =
+            match self.object_get::<FinalizedSctBlock>(state_key::cache::block_materialization()) {
+                Some(FinalizedSctBlock { root }) => root,
+                None => tree
+                    .end_block()
+                    .expect("ending a block in the state commitment tree can never fail"),
+            };
+        self.object_delete(state_key::cache::block_materialization());
 
         // If the block ends an epoch, also close the epoch in the SCT
         let epoch_root = if end_epoch {
@@ -989,6 +1155,138 @@ mod tests {
                 remaining: 2,
             })
         );
+    }
+
+    #[tokio::test]
+    async fn nullifiers_are_visible_before_one_shot_materialization() -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        nullifier_tree::initialize(&mut state).await?;
+        let starting = nullifier_tree::generation_state(&state).await?;
+        let nullifiers = [
+            Nullifier(decaf377::Fq::from(7u64)),
+            Nullifier(decaf377::Fq::from(3u64)),
+            Nullifier(decaf377::Fq::from(11u64)),
+        ];
+        let source = CommitmentSource::Transaction {
+            id: Some([9u8; 32]),
+        };
+
+        state.nullify_all(&nullifiers, source).await?;
+        assert_eq!(
+            nullifier_tree::generation_state(&state).await?.current_root,
+            starting.current_root
+        );
+        assert_eq!(
+            state
+                .pending_nullifiers()
+                .iter()
+                .copied()
+                .collect::<Vec<_>>(),
+            nullifiers
+        );
+        for nullifier in nullifiers {
+            assert!(state.is_nullifier_spent(nullifier).await?);
+        }
+        assert!(state.ensure_nullifier_block_materialized().is_err());
+
+        state.materialize_nullifier_block().await?;
+        assert!(state.nullifier_block_is_materialized());
+        state.ensure_nullifier_block_materialized()?;
+        assert_ne!(
+            nullifier_tree::generation_state(&state).await?.current_root,
+            starting.current_root
+        );
+        assert_eq!(nullifier_tree::current_leaf_count(&state).await?, 4);
+        assert!(state.materialize_nullifier_block().await.is_err());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn finalized_forget_block_matches_sequential_tree_and_reload() -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_sct_params(SctParameters {
+            epoch_duration: 10,
+            sct_anchor_retention_blocks: 100,
+        });
+        state.put_block_height(1);
+        state.put_epoch_by_height(
+            1,
+            Epoch {
+                index: 0,
+                start_height: 0,
+            },
+        );
+
+        let commitments = (1..=257u64)
+            .map(|value| tct::StateCommitment(decaf377::Fq::from(value)))
+            .collect::<Vec<_>>();
+        let mut reference = tct::Tree::new();
+        let mut entries = Vec::new();
+        for commitment in &commitments {
+            let position = reference.insert(tct::Witness::Forget, *commitment)?;
+            entries.push((position, *commitment));
+        }
+        let expected_block_root = reference.end_block()?;
+        let expected_root = reference.root();
+
+        state.finalize_sct_block_forget(entries).await?;
+        assert!(state
+            .object_get::<FinalizedSctBlock>(state_key::cache::block_materialization())
+            .is_some());
+        let (block_root, epoch_root) = state.end_sct_block(false).await?;
+        assert_eq!(block_root, expected_block_root);
+        assert_eq!(epoch_root, None);
+        assert_eq!(state.get_sct().await.root(), expected_root);
+        assert_eq!(state.load_sct_from_nv().await?.root(), expected_root);
+        assert!(state
+            .object_get::<FinalizedSctBlock>(state_key::cache::block_materialization())
+            .is_none());
+
+        state.put_block_height(2);
+        state.put_epoch_by_height(
+            2,
+            Epoch {
+                index: 0,
+                start_height: 0,
+            },
+        );
+        let mut second_entries = Vec::new();
+        for value in 1_000..1_064u64 {
+            let commitment = tct::StateCommitment(decaf377::Fq::from(value));
+            let position = reference.insert(tct::Witness::Forget, commitment)?;
+            second_entries.push((position, commitment));
+        }
+        let second_block_root = reference.end_block()?;
+        state.finalize_sct_block_forget(second_entries).await?;
+        let (actual_second_root, _) = state.end_sct_block(false).await?;
+        assert_eq!(actual_second_root, second_block_root);
+        assert_eq!(state.get_sct().await.root(), reference.root());
+
+        state.put_block_height(3);
+        state.put_epoch_by_height(
+            3,
+            Epoch {
+                index: 0,
+                start_height: 0,
+            },
+        );
+        let mut third_entries = Vec::new();
+        for value in 2_000..2_063u64 {
+            let commitment = tct::StateCommitment(decaf377::Fq::from(value));
+            let position = reference.insert(tct::Witness::Forget, commitment)?;
+            third_entries.push((position, commitment));
+        }
+        let third_block_root = reference.end_block()?;
+        let third_epoch_root = reference.end_epoch()?;
+        state.finalize_sct_block_forget(third_entries).await?;
+        let (actual_third_root, actual_epoch_root) = state.end_sct_block(true).await?;
+        assert_eq!(actual_third_root, third_block_root);
+        assert_eq!(actual_epoch_root, Some(third_epoch_root));
+        assert_eq!(state.get_sct().await.root(), reference.root());
+        assert_eq!(state.load_sct_from_nv().await?.root(), reference.root());
+        Ok(())
     }
 
     #[tokio::test]

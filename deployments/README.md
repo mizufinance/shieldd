@@ -1,16 +1,8 @@
 # Shieldd deployments
 
-See the [Shieldd Guide] for setup steps on running a Shieldd node.
+Bankd owns consensus, localnet startup, and live deposit, transfer, withdrawal,
+registration, and audit smoke tests. Run those workflows from the Bankd repository.
+Shieldd tests its execution lifecycle and wallet projection with direct host fixtures.
 
-## Directory structure
-
-```
-.
-├── systemd/ # example systemd configs for node operators
-├── containerfiles/ # OCI container image manifests
-├── scripts/ # scripts related to testing shieldd in ci
-├── containerfiles/ # OCI container image manifests
-├── compose/ # example docker-compose configs, unmaintained
-```
-
-[Shieldd Guide]: https://github.com/mizufinance/guide
+The [Orbis stack](orbis/README.md) uses Docker Compose v2.
+Bankd packages the [embedded library and tools](../docs/embedded-artifacts.md).

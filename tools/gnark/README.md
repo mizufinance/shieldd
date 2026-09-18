@@ -5,7 +5,8 @@ Shieldd proves these Groth16 families over BLS12-377:
 - `transfer`
 - `note_reshape1x8`
 - `note_reshape8x1`
-- `shielded_ics20_withdrawal`
+- `shielded_withdrawal`
+- `note_seizure`
 
 The Rust client sends binary witnesses to a bundled shared library or a prover
 daemon. Both transports use the same family registry, ABI, artifacts, and
@@ -30,7 +31,7 @@ exports. Run it without a command for the current command list.
 ## Circuit export boundary
 
 Formal verification belongs to
-[`mizufinance/shieldd-formal`](https://github.com/mizufinance/shieldd-formal).
+[`mizufinance/shieldd-security`](https://github.com/mizufinance/shieldd-security).
 That repository pins a Shieldd commit and obtains deterministic circuit inputs
 with:
 
@@ -53,9 +54,11 @@ Each family uses an artifact directory and one transport:
 - `SHIELDD_GNARK_TRANSFER_LIB` or `SHIELDD_GNARK_TRANSFER_DAEMON`
 - `SHIELDD_GNARK_NOTE_RESHAPE_ARTIFACT_DIR`
 - `SHIELDD_GNARK_NOTE_RESHAPE_LIB` or `SHIELDD_GNARK_NOTE_RESHAPE_DAEMON`
-- `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR`
-- `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB` or
-  `SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_DAEMON`
+- `SHIELDD_GNARK_SHIELDED_WITHDRAWAL_ARTIFACT_DIR`
+- `SHIELDD_GNARK_SHIELDED_WITHDRAWAL_LIB` or
+  `SHIELDD_GNARK_SHIELDED_WITHDRAWAL_DAEMON`
+- `SHIELDD_GNARK_NOTE_SEIZURE_ARTIFACT_DIR`
+- `SHIELDD_GNARK_NOTE_SEIZURE_DAEMON`
 
 These variables select proving inputs and transports. Consensus verification
 uses verifying keys compiled from the bundled artifacts.

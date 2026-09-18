@@ -1,9 +1,7 @@
 use shieldd_sdk_fee::Gas;
-use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_shielded_pool::{
     HostWithdrawal, HostWithdrawalDestination, NoteReshape, NoteReshapePlan,
-    ShieldedHostWithdrawal, ShieldedHostWithdrawalPlan, ShieldedIcs20Withdrawal,
-    ShieldedIcs20WithdrawalPlan,
+    ShieldedHostWithdrawal, ShieldedHostWithdrawalPlan,
 };
 
 use crate::{
@@ -82,7 +80,7 @@ pub fn shielded_withdrawal_gas_cost() -> Gas {
     spend_gas_cost() + spend_gas_cost() + output_gas_cost()
 }
 
-fn host_withdrawal_gas_cost(withdrawal: &HostWithdrawal) -> Gas {
+pub fn host_withdrawal_gas_cost(withdrawal: &HostWithdrawal) -> Gas {
     let mut gas = shielded_withdrawal_gas_cost();
     gas.block_space = gas
         .block_space
@@ -110,38 +108,37 @@ impl GasCost for Transaction {
     }
 }
 
+pub fn planned_gas<'a>(
+    actions: impl Iterator<Item = Gas>,
+    spends: impl Iterator<Item = &'a shieldd_sdk_shielded_pool::ShieldedInputPlan>,
+    window: Option<shieldd_sdk_sct::nullifier_generation::NullifierWindow>,
+) -> Gas {
+    let mut gas: Gas = actions.sum();
+    if let Some(window) = window {
+        let old_inputs = spends
+            .filter(|spend| {
+                spend.note.amount() != 0u64.into()
+                    && u64::from(spend.position) < window.recent_position_floor
+            })
+            .count();
+        gas += historical_gas(old_inputs, window.archived_generation_count);
+    }
+    gas
+}
+
 impl GasCost for TransactionPlan {
     fn gas_cost(&self) -> Gas {
-        let mut gas: Gas = self.actions.iter().map(GasCost::gas_cost).sum();
-        if let Some(fee_funding) = &self.fee_funding {
-            gas += fee_funding.transfer.gas_cost();
-        }
-        if let Some(window) = self.nullifier_window {
-            let floor = window.recent_position_floor;
-            let zero_amount = 0u64.into();
-            let action_old = self
-                .actions
+        planned_gas(
+            self.actions
+                .iter()
+                .map(GasCost::gas_cost)
+                .chain(self.fee_funding.as_ref().map(|fee| fee.transfer.gas_cost())),
+            self.actions
                 .iter()
                 .flat_map(ActionPlan::spends)
-                .filter(|spend| {
-                    spend.note.amount() != zero_amount && u64::from(spend.position) < floor
-                })
-                .count();
-            let fee_old = self
-                .fee_funding
-                .as_ref()
-                .into_iter()
-                .flat_map(|fee| &fee.transfer.spends)
-                .filter(|spend| {
-                    spend.note.amount() != zero_amount && u64::from(spend.position) < floor
-                })
-                .count();
-            gas += historical_gas(
-                action_old.saturating_add(fee_old),
-                window.archived_generation_count,
-            );
-        }
-        gas
+                .chain(self.fee_funding.iter().flat_map(|fee| &fee.transfer.spends)),
+            self.nullifier_window,
+        )
     }
 }
 
@@ -153,8 +150,7 @@ impl GasCost for ActionPlan {
                 plan.family_id().input_count(),
                 plan.family_id().output_count(),
             ),
-            ActionPlan::IbcAction(i) => i.gas_cost(),
-            ActionPlan::ShieldedIcs20Withdrawal(w) => w.gas_cost(),
+
             ActionPlan::ShieldedHostWithdrawal(w) => w.gas_cost(),
             ActionPlan::ComplianceRegisterAsset(_) | ActionPlan::ComplianceRegisterUser(_) => Gas {
                 block_space: 100,
@@ -174,9 +170,9 @@ impl GasCost for Action {
                 note_reshape.body.inputs.len(),
                 note_reshape.body.outputs.len(),
             ),
-            Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.gas_cost(),
+
             Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.gas_cost(),
-            Action::IbcRelay(x) => x.gas_cost(),
+
             Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => Gas {
                 block_space: 100,
                 compact_block_space: 100,
@@ -220,18 +216,6 @@ impl GasCost for NoteReshapePlan {
     }
 }
 
-impl GasCost for ShieldedIcs20WithdrawalPlan {
-    fn gas_cost(&self) -> Gas {
-        shielded_withdrawal_gas_cost()
-    }
-}
-
-impl GasCost for ShieldedIcs20Withdrawal {
-    fn gas_cost(&self) -> Gas {
-        shielded_withdrawal_gas_cost()
-    }
-}
-
 impl GasCost for ShieldedHostWithdrawal {
     fn gas_cost(&self) -> Gas {
         host_withdrawal_gas_cost(&self.body.withdrawal)
@@ -241,17 +225,6 @@ impl GasCost for ShieldedHostWithdrawal {
 impl GasCost for ShieldedHostWithdrawalPlan {
     fn gas_cost(&self) -> Gas {
         host_withdrawal_gas_cost(&self.withdrawal)
-    }
-}
-
-impl GasCost for IbcRelay {
-    fn gas_cost(&self) -> Gas {
-        Gas {
-            block_space: self.encode_to_vec().len() as u64,
-            compact_block_space: 0,
-            verification: 0,
-            execution: 10,
-        }
     }
 }
 

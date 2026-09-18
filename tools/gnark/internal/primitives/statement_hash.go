@@ -10,14 +10,15 @@ import (
 
 const SpendStatementFieldCount = 17
 const OutputStatementFieldCount = 29
-const TransferStatementBaseFields = 37
+const TransferStatementBaseFields = 43
 const TransferStatementFieldsPerInput = 3
-const TransferStatementFieldsPerOutput = 1
+const TransferStatementFieldsPerOutput = 2
 const NoteReshapeStatementBaseFields = 7
 const NoteReshapeStatementFieldsPerInput = 3
-const NoteReshapeStatementFieldsPerOutput = 1
-const ShieldedIcs20WithdrawalStatementBaseFields = 15
-const ShieldedIcs20WithdrawalStatementFieldsPerInput = 3
+const NoteReshapeStatementFieldsPerOutput = 2
+const ShieldedWithdrawalStatementBaseFields = 25
+const ShieldedWithdrawalStatementFieldsPerInput = 3
+const NoteSeizureStatementFieldCount = 19
 
 func hashStatementFields(
 	api frontend.API,
@@ -102,25 +103,16 @@ func transferStatementHashConstant(label, suffix string) *big.Int {
 	return outputStatementHashConstant("shieldd.shielded_pool." + label + ".public_input_hash." + suffix)
 }
 
-func transferStatementHash(
+func transferStatementHashWithDomain(
 	api frontend.API,
 	label string,
-	fields []frontend.Variable,
-	expectedFieldCount int,
-) (frontend.Variable, error) {
-	return transferStatementHashWithVersion(api, label, "v1", fields, expectedFieldCount)
-}
-
-func transferStatementHashWithVersion(
-	api frontend.API,
-	label string,
-	version string,
+	domainSuffix string,
 	fields []frontend.Variable,
 	expectedFieldCount int,
 ) (frontend.Variable, error) {
 	return hashStatementFields(
 		api,
-		transferStatementHashConstant(label, version),
+		transferStatementHashConstant(label, domainSuffix),
 		transferStatementHashConstant(label, "pad0"),
 		transferStatementHashConstant(label, "pad1"),
 		fields,
@@ -142,9 +134,9 @@ func NoteReshapeStatementFieldCount(nIn, nOut int) int {
 
 func transferStatementLabel() string { return "transfer" }
 
-func shieldedIcs20WithdrawalStatementLabel(nIn int) string {
+func shieldedWithdrawalStatementLabel(nIn int) string {
 	_ = nIn
-	return "shielded_ics20_withdrawal"
+	return "shielded_withdrawal"
 }
 
 func TransferStatementHashForShape(
@@ -152,10 +144,10 @@ func TransferStatementHashForShape(
 	nIn, nOut int,
 	fields []frontend.Variable,
 ) (frontend.Variable, error) {
-	return transferStatementHashWithVersion(
+	return transferStatementHashWithDomain(
 		api,
 		transferStatementLabel(),
-		"v7",
+		"statement",
 		fields,
 		transferStatementFieldCount(nIn, nOut),
 	)
@@ -168,46 +160,68 @@ func NoteReshapeStatementHashForShape(
 	nOut int,
 	fields []frontend.Variable,
 ) (frontend.Variable, error) {
-	return transferStatementHashWithVersion(
+	return transferStatementHashWithDomain(
 		api,
 		label,
-		"v4",
+		"statement",
 		fields,
 		NoteReshapeStatementFieldCount(nIn, nOut),
 	)
 }
 
-func ShieldedIcs20WithdrawalStatementFieldCount(nIn int) int {
-	return ShieldedIcs20WithdrawalStatementBaseFields +
-		ShieldedIcs20WithdrawalStatementFieldsPerInput*nIn
+func ShieldedWithdrawalStatementFieldCount(nIn int) int {
+	return ShieldedWithdrawalStatementBaseFields +
+		ShieldedWithdrawalStatementFieldsPerInput*nIn
 }
 
-func ShieldedIcs20WithdrawalStatementHashForShape(
+func ShieldedWithdrawalStatementHashForShape(
 	api frontend.API,
 	nIn int,
 	fields []frontend.Variable,
 ) (frontend.Variable, error) {
-	return shieldedIcs20WithdrawalStatementHash(api, nIn, fields)
+	return shieldedWithdrawalStatementHash(api, nIn, fields)
 }
 
-func shieldedIcs20WithdrawalStatementHash(
+func NoteSeizureStatementHash(
 	api frontend.API,
-	nIn int,
 	fields []frontend.Variable,
 ) (frontend.Variable, error) {
-	return transferStatementHashWithVersion(
+	return transferStatementHashWithDomain(
 		api,
-		shieldedIcs20WithdrawalStatementLabel(nIn),
-		"v4",
+		"note_seizure",
+		"statement",
 		fields,
-		ShieldedIcs20WithdrawalStatementFieldCount(nIn),
+		NoteSeizureStatementFieldCount,
+	)
+}
+
+func NoteSeizureStatementHashNative(fields []*big.Int) (*big.Int, error) {
+	return transferStatementHashNativeWithDomain(
+		fields,
+		"note_seizure",
+		"statement",
+		NoteSeizureStatementFieldCount,
+	)
+}
+
+func shieldedWithdrawalStatementHash(
+	api frontend.API,
+	nIn int,
+	fields []frontend.Variable,
+) (frontend.Variable, error) {
+	return transferStatementHashWithDomain(
+		api,
+		shieldedWithdrawalStatementLabel(nIn),
+		"statement",
+		fields,
+		ShieldedWithdrawalStatementFieldCount(nIn),
 	)
 }
 
 func OutputStatementHash(api frontend.API, fields []frontend.Variable) (frontend.Variable, error) {
 	return hashStatementFields(
 		api,
-		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.v1"),
+		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.statement"),
 		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad0"),
 		outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad1"),
 		fields,
@@ -279,7 +293,7 @@ func OutputStatementHashNative(fields []*big.Int) (*big.Int, error) {
 		return nil, errors.New("invalid output statement field count")
 	}
 
-	domain := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.v1")
+	domain := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.statement")
 	pad0 := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad0")
 	pad1 := outputStatementHashConstant("shieldd.shielded_pool.output.public_input_hash.pad1")
 	first := [7]*big.Int{pad0, pad1, pad0, pad1, pad0, pad1, pad0}
@@ -328,25 +342,17 @@ func OutputStatementHashNative(fields []*big.Int) (*big.Int, error) {
 	return h, nil
 }
 
-func transferStatementHashNative(
+func transferStatementHashNativeWithDomain(
 	fields []*big.Int,
 	label string,
-	expectedFieldCount int,
-) (*big.Int, error) {
-	return transferStatementHashNativeWithVersion(fields, label, "v1", expectedFieldCount)
-}
-
-func transferStatementHashNativeWithVersion(
-	fields []*big.Int,
-	label string,
-	version string,
+	domainSuffix string,
 	expectedFieldCount int,
 ) (*big.Int, error) {
 	if len(fields) != expectedFieldCount {
 		return nil, errors.New("invalid " + label + " statement field count")
 	}
 
-	domain := transferStatementHashConstant(label, version)
+	domain := transferStatementHashConstant(label, domainSuffix)
 	pad0 := transferStatementHashConstant(label, "pad0")
 	pad1 := transferStatementHashConstant(label, "pad1")
 	first := [7]*big.Int{pad0, pad1, pad0, pad1, pad0, pad1, pad0}
@@ -399,10 +405,10 @@ func TransferStatementHashNativeForShape(
 	fields []*big.Int,
 	nIn, nOut int,
 ) (*big.Int, error) {
-	return transferStatementHashNativeWithVersion(
+	return transferStatementHashNativeWithDomain(
 		fields,
 		transferStatementLabel(),
-		"v7",
+		"statement",
 		transferStatementFieldCount(nIn, nOut),
 	)
 }
@@ -412,22 +418,22 @@ func NoteReshapeStatementHashNativeForShape(
 	label string,
 	nIn, nOut int,
 ) (*big.Int, error) {
-	return transferStatementHashNativeWithVersion(
+	return transferStatementHashNativeWithDomain(
 		fields,
 		label,
-		"v4",
+		"statement",
 		NoteReshapeStatementFieldCount(nIn, nOut),
 	)
 }
 
-func ShieldedIcs20WithdrawalStatementHashNativeForShape(
+func ShieldedWithdrawalStatementHashNativeForShape(
 	fields []*big.Int,
 	nIn int,
 ) (*big.Int, error) {
-	return transferStatementHashNativeWithVersion(
+	return transferStatementHashNativeWithDomain(
 		fields,
-		shieldedIcs20WithdrawalStatementLabel(nIn),
-		"v4",
-		ShieldedIcs20WithdrawalStatementFieldCount(nIn),
+		shieldedWithdrawalStatementLabel(nIn),
+		"statement",
+		ShieldedWithdrawalStatementFieldCount(nIn),
 	)
 }

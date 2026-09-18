@@ -1,0 +1,53 @@
+{
+  "protoc_version": "33.1",
+  "roots": [
+    "shieldd/cnidarium/v1/cnidarium.proto",
+    "shieldd/core/app/v1/app.proto",
+    "shieldd/core/asset/v1/asset.proto",
+    "shieldd/core/txhash/v1/txhash.proto",
+    "shieldd/core/component/compact_block/v1/compact_block.proto",
+    "shieldd/core/component/compliance/v1/compliance.proto",
+    "shieldd/core/component/fee/v1/fee.proto",
+    "shieldd/core/component/sct/v1/sct.proto",
+    "shieldd/core/component/shielded_pool/v1/shielded_pool.proto",
+    "shieldd/core/keys/v1/keys.proto",
+    "shieldd/core/num/v1/num.proto",
+    "shieldd/core/transaction/v1/transaction.proto",
+    "shieldd/crypto/decaf377_frost/v1/decaf377_frost.proto",
+    "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto",
+    "shieldd/crypto/tct/v1/tct.proto",
+    "shieldd/custody/v1/custody.proto",
+    "shieldd/custody/threshold/v1/threshold.proto",
+    "shieldd/view/v1/view.proto",
+    "shieldd/execution_client/v1/execution_client.proto"
+  ],
+  "rust_packages": [
+    "cosmos.base.v1beta1",
+    "shieldd.cnidarium.v1",
+    "shieldd.core.app.v1",
+    "shieldd.core.asset.v1",
+    "shieldd.core.component.compact_block.v1",
+    "shieldd.core.component.compliance.v1",
+    "shieldd.core.component.fee.v1",
+    "shieldd.core.component.sct.v1",
+    "shieldd.core.component.shielded_pool.v1",
+    "shieldd.core.keys.v1",
+    "shieldd.core.num.v1",
+    "shieldd.core.transaction.v1",
+    "shieldd.core.txhash.v1",
+    "shieldd.crypto.decaf377_frost.v1",
+    "shieldd.crypto.decaf377_rdsa.v1",
+    "shieldd.crypto.tct.v1",
+    "shieldd.custody.threshold.v1",
+    "shieldd.custody.v1",
+    "shieldd.execution_client.v1",
+    "shieldd.view.v1"
+  ],
+  "rust_rpc_clients": [
+    "shieldd.custody.v1",
+    "shieldd.core.component.sct.v1"
+  ],
+  "rust_rpc_servers": [
+    "shieldd.custody.v1"
+  ]
+}

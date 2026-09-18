@@ -56,21 +56,15 @@ trait Inner: StateWrite {
 
         let app_parameters_updated = height == 0;
 
-        // Check to see if the gas prices have changed, and include them in the compact block
-        // if they have (this is signaled by `shieldd_sdk_fee::StateWriteExt::put_gas_prices`):
-        let (gas_prices, alt_gas_prices) = if self.gas_prices_changed() || height == 0 {
-            (
-                Some(
-                    self.get_gas_prices()
-                        .await
-                        .context("could not get gas prices")?,
-                ),
-                self.get_alt_gas_prices()
+        // Fee parameter writes mark prices changed for wallet synchronization.
+        let gas_prices = if self.gas_prices_changed() || height == 0 {
+            Some(
+                self.get_gas_prices()
                     .await
-                    .context("could not get alt gas prices")?,
+                    .context("could not get gas prices")?,
             )
         } else {
-            (None, Vec::new())
+            None
         };
 
         let current_discovery_parameters = self
@@ -98,9 +92,24 @@ trait Inner: StateWrite {
             .pending_rolled_up_payloads()
             .into_iter()
             .map(|(pos, commitment)| (pos, commitment.into()));
+        let volume_accumulator_payloads = self
+            .pending_volume_accumulator_payloads()
+            .into_iter()
+            .map(|(pos, payload, source)| {
+                (
+                    pos,
+                    crate::StatePayload::VolumeAccumulator {
+                        source: source.stripped(),
+                        payload: Box::new(payload),
+                    },
+                )
+            });
 
         // Sort the payloads by position and put them in the compact block
-        let mut state_payloads = note_payloads.chain(rolled_up_payloads).collect::<Vec<_>>();
+        let mut state_payloads = note_payloads
+            .chain(rolled_up_payloads)
+            .chain(volume_accumulator_payloads)
+            .collect::<Vec<_>>();
         state_payloads.sort_by_key(|(pos, _)| *pos);
         let state_payloads = state_payloads
             .into_iter()
@@ -171,7 +180,6 @@ trait Inner: StateWrite {
             routing_action_payloads,
             app_parameters_updated,
             gas_prices,
-            alt_gas_prices,
             epoch_index,
             compliance_user_anchor,
             compliance_asset_anchor,

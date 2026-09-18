@@ -7,12 +7,13 @@ use shieldd_sdk_keys::symmetric::{PayloadKey, WrappedMemoKey};
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
+#[cfg(all(feature = "prover", any(unix, windows)))]
 use shieldd_sdk_txhash::EffectingData;
 use std::convert::{TryFrom, TryInto};
 
 use crate::discovery::{self, Parameters};
 
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "prover", any(unix, windows)))]
 use super::{NoteReshape, NoteReshapeProof};
 use super::{
     NoteReshapeBody, NoteReshapeFamilyId, NoteReshapeInputBody, NoteReshapeInputPrivate,
@@ -30,58 +31,41 @@ pub struct NoteReshapePlan {
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
     pub routing_parameters: Parameters,
+    pub compliance: crate::NoteReshapeContext,
 }
 
 impl NoteReshapePlan {
-    pub fn new_auto(
-        spends: Vec<ShieldedInputPlan>,
-        outputs: Vec<ShieldedOutputPlan>,
-        value_blinding: Fr,
-    ) -> anyhow::Result<Self> {
-        // Wallet policy is intentionally directional: 8x1 hides many-to-one
-        // input arity with synthetic private inputs; 1x8 hides output arity
-        // with ordinary zero-value notes. Keep selection at the wallet edge.
-        let family_id = NoteReshapeFamilyId::smallest_covering(spends.len(), outputs.len())
-            .ok_or_else(|| {
-                anyhow!(
-                    "no note reshape family can cover {} real inputs and {} real outputs",
-                    spends.len(),
-                    outputs.len()
-                )
-            })?;
-        Self::new(family_id, spends, outputs, value_blinding)
-    }
-
     pub fn new(
         family_id: NoteReshapeFamilyId,
         spends: Vec<ShieldedInputPlan>,
         outputs: Vec<ShieldedOutputPlan>,
         value_blinding: Fr,
+        compliance: crate::NoteReshapeContext,
+        routing_parameters: Parameters,
     ) -> anyhow::Result<Self> {
         let plan = Self {
             family_id,
             value_blinding,
             spends,
             outputs,
-            routing_parameters: Parameters::default(),
+            routing_parameters,
+            compliance,
         };
         plan.validate()?;
         Ok(plan)
     }
 
-    fn padder_for(
-        spends: &[ShieldedInputPlan],
-        _outputs: &[ShieldedOutputPlan],
-        value_blinding: Fr,
-    ) -> HiddenArityPadder {
-        let first_spend = spends
+    fn padder(&self) -> HiddenArityPadder {
+        let first_spend = self
+            .spends
             .first()
             .expect("note reshape must contain a real spend");
         HiddenArityPadder {
-            value_blinding,
+            value_blinding: self.value_blinding,
             first_spend_randomizer: first_spend.randomizer,
             sender_address: first_spend.note.address(),
             asset_id: first_spend.note.asset_id(),
+            capk: self.compliance.witness.sender.leaf.capk,
             nullifier_domain_sep_label: b"shieldd.note_reshape.synthetic_dummy.nullifier",
             nullifier_seed_label: b"shieldd.note_reshape.synthetic_dummy.nullifier_seed",
             spend_auth_key_label: b"shieldd.note_reshape.synthetic_dummy.spend_auth_key",
@@ -90,10 +74,6 @@ impl NoteReshapePlan {
             input_note_label: b"shieldd.note_reshape.synthetic_dummy.input_note",
             output_note_label: b"shieldd.note_reshape.synthetic_dummy.output_note",
         }
-    }
-
-    fn padder(&self) -> HiddenArityPadder {
-        Self::padder_for(&self.spends, &self.outputs, self.value_blinding)
     }
 
     pub fn synthetic_dummy_auth_sig(
@@ -106,6 +86,7 @@ impl NoteReshapePlan {
 
     fn encrypted_output_body(
         note: crate::Note,
+        recovery_capsule: crate::RecoveryCapsule,
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         action_balance_commitment: shieldd_sdk_asset::balance::Commitment,
@@ -118,14 +99,10 @@ impl NoteReshapePlan {
         );
         let ovk_wrapped_key = note.encrypt_key(fvk.outgoing(), action_balance_commitment);
         NoteReshapeOutputBody {
-            note_payload: note.payload(),
+            note_payload: note.payload(recovery_capsule),
             wrapped_memo_key,
             ovk_wrapped_key,
         }
-    }
-
-    pub fn set_routing_parameters(&mut self, parameters: Parameters) {
-        self.routing_parameters = parameters;
     }
 
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -167,16 +144,9 @@ impl NoteReshapePlan {
                     .all(|output| output.value.asset_id == shared_asset_id),
             "note_reshape requires all spends and outputs to use the same asset",
         );
-        ensure!(
-            self.spends.iter().all(|spend| {
-                spend.asset_anchor == first_spend.asset_anchor
-                    && spend.asset_path == first_spend.asset_path
-                    && spend.asset_position == first_spend.asset_position
-                    && spend.asset_indexed_leaf == first_spend.asset_indexed_leaf
-                    && spend.is_regulated == first_spend.is_regulated
-            }),
-            "note_reshape spends must share one asset-registry witness and class",
-        );
+        self.compliance
+            .witness
+            .validate(first_spend.note.asset_id(), &first_spend.note.address())?;
         Ok(())
     }
 
@@ -218,12 +188,17 @@ impl NoteReshapePlan {
         }
 
         let padder = self.padder();
+        let nullifier_key = self
+            .compliance
+            .witness
+            .nullifier_key(fvk)
+            .map_err(|error| crate::ProofError::InvalidPrivateInput(error.to_string()))?;
         let mut input_publics = self
             .spends
             .iter()
             .map(|spend| {
                 Ok(NoteReshapeInputPublic {
-                    nullifier: spend.nullifier(fvk),
+                    nullifier: spend.nullifier(&nullifier_key),
                     rk: spend.rk(fvk),
                     history_required: shieldd_sdk_sct::nullifier_generation::is_old(
                         u64::from(spend.position),
@@ -245,8 +220,10 @@ impl NoteReshapePlan {
             .outputs
             .iter()
             .map(|output| {
+                let note = output.output_note(self.compliance.witness.sender.leaf.capk);
                 Ok(NoteReshapeOutputPublic {
-                    note_commitment: output.output_note().commit(),
+                    note_commitment: note.commit(),
+                    recovery_commitment: note.recovery_commitment(),
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -255,6 +232,9 @@ impl NoteReshapePlan {
             self.family_id().output_count(),
             |slot| NoteReshapeOutputPublic {
                 note_commitment: padder.synthetic_dummy_output_note(slot).commit(),
+                recovery_commitment: padder
+                    .synthetic_dummy_output_note(slot)
+                    .recovery_commitment(),
             },
         );
 
@@ -291,7 +271,7 @@ impl NoteReshapePlan {
             .iter()
             .map(|output| {
                 Ok(NoteReshapeOutputPrivate {
-                    created_note: output.output_note(),
+                    created_note: output.output_note(self.compliance.witness.sender.leaf.capk),
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -304,10 +284,10 @@ impl NoteReshapePlan {
         );
 
         let first_spend = &self.spends[0];
-        let routing_nonce = Fq::from_le_bytes_mod_order(&first_spend.tx_blinding_nonce.to_bytes());
+        let routing_nonce = Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes());
         let routing_tag = discovery::single_tag(
             &first_spend.note.address(),
-            first_spend.is_regulated,
+            self.compliance.witness.asset.is_regulated,
             &self.routing_parameters,
             routing_nonce,
         );
@@ -317,8 +297,8 @@ impl NoteReshapePlan {
                 family_id: self.family_id,
                 anchor,
                 balance_commitment: self.balance().commit(self.value_blinding),
-                asset_anchor: first_spend.asset_anchor,
-                compliance_anchor: first_spend.compliance_anchor,
+                asset_anchor: self.compliance.witness.asset.root,
+                compliance_anchor: self.compliance.witness.user_root,
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
                 recent_position_floor,
@@ -330,17 +310,13 @@ impl NoteReshapePlan {
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
-                asset_path: first_spend.asset_path.clone(),
-                asset_position: first_spend.asset_position,
-                asset_indexed_leaf: first_spend.asset_indexed_leaf.clone(),
-                sender_compliance_path: first_spend.compliance_path.clone(),
-                sender_compliance_position: first_spend.compliance_position,
-                sender_leaf: first_spend.compliance_leaf.clone().ok_or_else(|| {
-                    crate::ProofError::InvalidPublicInput(
-                        "note reshape sender compliance leaf is missing".to_owned(),
-                    )
-                })?,
-                is_regulated: first_spend.is_regulated,
+                asset_path: self.compliance.witness.asset.path.clone(),
+                asset_position: self.compliance.witness.asset.position,
+                asset_indexed_leaf: self.compliance.witness.asset.leaf.clone(),
+                sender_compliance_path: self.compliance.witness.sender.path.clone(),
+                sender_compliance_position: self.compliance.witness.sender.position,
+                sender_leaf: self.compliance.witness.sender.leaf.clone(),
+                is_regulated: self.compliance.witness.asset.is_regulated,
                 routing_parameters: self.routing_parameters.clone(),
                 routing_nonce,
                 inputs: input_privates,
@@ -359,11 +335,13 @@ impl NoteReshapePlan {
         self.validate()?;
         let padder = self.padder();
         let action_balance_commitment = self.balance().commit(self.value_blinding);
+        let nullifier_key = self.compliance.witness.nullifier_key(fvk)?;
         let mut inputs = self
             .spends
             .iter()
             .map(|spend| {
-                let spend_body = spend.action_input_body(fvk, recent_position_floor)?;
+                let spend_body =
+                    spend.action_input_body(fvk, &nullifier_key, recent_position_floor)?;
                 Ok(NoteReshapeInputBody {
                     nullifier: spend_body.nullifier,
                     rk: spend_body.rk,
@@ -386,8 +364,11 @@ impl NoteReshapePlan {
             .outputs
             .iter()
             .map(|output| {
+                let (note, recovery_capsule) =
+                    output.output_note_and_capsule(self.compliance.witness.sender.leaf.capk);
                 Self::encrypted_output_body(
-                    output.output_note(),
+                    note,
+                    recovery_capsule,
                     fvk,
                     memo_key,
                     action_balance_commitment,
@@ -395,8 +376,10 @@ impl NoteReshapePlan {
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut outputs, self.family_id().output_count(), |slot| {
+            let (note, recovery_capsule) = padder.synthetic_dummy_output_note_and_capsule(slot);
             Self::encrypted_output_body(
-                padder.synthetic_dummy_output_note(slot),
+                note,
+                recovery_capsule,
                 fvk,
                 memo_key,
                 action_balance_commitment,
@@ -404,10 +387,10 @@ impl NoteReshapePlan {
         });
 
         let first_spend = &self.spends[0];
-        let routing_nonce = Fq::from_le_bytes_mod_order(&first_spend.tx_blinding_nonce.to_bytes());
+        let routing_nonce = Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes());
         let routing_tag = discovery::single_tag(
             &first_spend.note.address(),
-            first_spend.is_regulated,
+            self.compliance.witness.asset.is_regulated,
             &self.routing_parameters,
             routing_nonce,
         );
@@ -420,12 +403,12 @@ impl NoteReshapePlan {
             outputs,
             routing_tag,
             routing_parameter_set_id: self.routing_parameters.id(),
-            asset_anchor: first_spend.asset_anchor,
-            compliance_anchor: first_spend.compliance_anchor,
+            asset_anchor: self.compliance.witness.asset.root,
+            compliance_anchor: self.compliance.witness.user_root,
         })
     }
 
-    #[cfg(any(unix, windows))]
+    #[cfg(all(feature = "prover", any(unix, windows)))]
     pub fn note_reshape(
         &self,
         fvk: &FullViewingKey,
@@ -477,6 +460,7 @@ impl From<NoteReshapePlan> for pb::NoteReshapePlan {
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
             routing_parameters: Some(msg.routing_parameters.into()),
+            compliance: Some(msg.compliance.into()),
         }
     }
 }
@@ -505,6 +489,10 @@ impl TryFrom<pb::NoteReshapePlan> for NoteReshapePlan {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+            compliance: proto
+                .compliance
+                .ok_or_else(|| anyhow!("missing action compliance context"))?
+                .try_into()?,
             routing_parameters: proto
                 .routing_parameters
                 .ok_or_else(|| anyhow!("missing routing parameters"))?
@@ -550,7 +538,7 @@ mod tests {
             test_keys::ADDRESS_0.clone(),
         );
 
-        NoteReshapePlan::new(
+        crate::test_plan_helpers::note_reshape(
             NoteReshapeFamilyId::EightByOne,
             spends,
             vec![output],
@@ -588,7 +576,7 @@ mod tests {
                 )
             })
             .collect();
-        NoteReshapePlan::new(family_id, spends, outputs, Fr::from(17u64))
+        crate::test_plan_helpers::note_reshape(family_id, spends, outputs, Fr::from(17u64))
             .expect("family plan must be valid")
     }
 
@@ -606,27 +594,6 @@ mod tests {
         assert!(
             error.to_string().contains(expected),
             "unexpected decoding error: {error}"
-        );
-    }
-
-    #[test]
-    fn note_reshape_family_specs_cover_expected_shapes() {
-        assert_eq!(NoteReshapeFamilyId::EightByOne.input_count(), 8);
-        assert_eq!(
-            NoteReshapeFamilyId::smallest_covering(2, 1),
-            Some(NoteReshapeFamilyId::EightByOne)
-        );
-        assert_eq!(
-            NoteReshapeFamilyId::smallest_covering(3, 1),
-            Some(NoteReshapeFamilyId::EightByOne)
-        );
-        assert_eq!(
-            NoteReshapeFamilyId::smallest_covering(5, 1),
-            Some(NoteReshapeFamilyId::EightByOne)
-        );
-        assert_eq!(
-            NoteReshapeFamilyId::smallest_covering(1, 2),
-            Some(NoteReshapeFamilyId::OneByEight)
         );
     }
 

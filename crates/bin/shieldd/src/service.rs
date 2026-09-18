@@ -1,34 +1,27 @@
 use std::{fmt, path::Path};
 
 use anyhow::{Context as _, Result};
-use cnidarium::{
-    proto::v1::{
-        query_service_server::QueryService as CnidariumQueryService, KeyValueRequest,
-        KeyValueResponse,
-    },
-    Storage,
-};
+use cnidarium::{StateRead as _, Storage};
 use futures::TryStreamExt as _;
+use prost::Message as _;
 use shieldd_sdk_app::{
     app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal, StateReadExt as _},
     genesis::AppState,
     SUBSTORE_PREFIXES,
 };
+use shieldd_sdk_compact_block::component::StateReadExt as _;
 use shieldd_sdk_proto::core::component::{
-    compact_block::v1::{
-        query_service_server::QueryService as CompactBlockQueryService, CompactBlockRangeRequest,
-        CompactBlockRangeResponse,
-    },
+    compact_block::v1::{CompactBlockRangeRequest, CompactBlockRangeResponse},
     compliance::v1::{
-        query_service_server::QueryService as ComplianceQueryService, ComplianceAssetStatusRequest,
-        ComplianceAssetStatusResponse, ComplianceBatchMerkleProofsRequest,
-        ComplianceBatchMerkleProofsResponse, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
+        ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
+        ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
+        ComplianceUserLeafRequest, ComplianceUserLeafResponse,
     },
-    sct::v1::{ArchivedNullifierProofRequest, ArchivedNullifierProofResponse},
-    shielded_pool::v1::{
-        query_service_server::QueryService as ShieldedPoolQueryService, AssetMetadataByIdRequest,
-        AssetMetadataByIdResponse,
+    sct::v1::{
+        ArchivedNullifierProofRequest, ArchivedNullifierProofResponse, NullifierWindowRequest,
+        NullifierWindowResponse,
     },
+    shielded_pool::v1::{AssetMetadataByIdRequest, AssetMetadataByIdResponse},
 };
 use shieldd_sdk_proto::{
     cnidarium::v1::{
@@ -45,6 +38,7 @@ use shieldd_sdk_proto::{
         EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
         GetCommittedStateRequest, GetCommittedStateResponse, HostWithdrawal as ProtoHostWithdrawal,
         InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
+        SeizeNoteRequest, SeizeNoteResponse,
     },
 };
 use shieldd_sdk_sct::{
@@ -89,13 +83,6 @@ impl ServiceError {
         }
     }
 
-    fn not_found(source: anyhow::Error) -> Self {
-        Self {
-            kind: ErrorKind::NotFound,
-            source,
-        }
-    }
-
     fn internal(source: anyhow::Error) -> Self {
         Self {
             kind: ErrorKind::Internal,
@@ -107,13 +94,11 @@ impl ServiceError {
         Self::failed_precondition(anyhow::anyhow!("Shieldd execution service is closed"))
     }
 
-    fn query(status: tonic::Status) -> Self {
-        let source = anyhow::anyhow!(status.message().to_owned());
-        match status.code() {
-            tonic::Code::InvalidArgument => Self::invalid_argument(source),
-            tonic::Code::FailedPrecondition => Self::failed_precondition(source),
-            tonic::Code::NotFound => Self::not_found(source),
-            _ => Self::internal(source),
+    fn state_query(error: cnidarium_component::QueryError) -> Self {
+        let source = anyhow::anyhow!(error.to_string());
+        match error.kind {
+            cnidarium_component::QueryErrorKind::InvalidArgument => Self::invalid_argument(source),
+            cnidarium_component::QueryErrorKind::Internal => Self::internal(source),
         }
     }
 }
@@ -162,6 +147,11 @@ impl ExecutionService {
             .with_context(|| format!("failed to open Shieldd RocksDB at {}", db.display()))
             .map_err(ServiceError::internal)?;
 
+        if let Err(error) = shieldd_sdk_app::app_version::check_app_version(&storage).await {
+            storage.release().await;
+            return Err(ServiceError::failed_precondition(error));
+        }
+
         if storage.latest_version() == u64::MAX {
             tracing::info!("Shieldd app state is not initialized; waiting for InitGenesis");
         } else if App::is_ready(storage.latest_snapshot()).await {
@@ -196,6 +186,7 @@ impl ExecutionService {
         Ok(Self::new_with_generation_packs(storage, generation_packs))
     }
 
+    /// Uses caller-validated storage; `open` checks persisted application compatibility.
     pub fn new(storage: Storage) -> Self {
         Self::new_with_generation_packs(storage, None)
     }
@@ -275,6 +266,27 @@ impl ExecutionService {
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(response.response)
+    }
+
+    pub async fn seize_note(
+        &mut self,
+        request: SeizeNoteRequest,
+    ) -> std::result::Result<SeizeNoteResponse, ServiceError> {
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
+        let result = execution
+            .seize_note(request)
+            .await
+            .map_err(ServiceError::invalid_argument)?;
+        Ok(SeizeNoteResponse {
+            source: Some(result.source),
+            replayed: result.replayed,
+            withdrawal: Some(encode_withdrawal(result.withdrawal)),
+            current_status:
+                shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(
+                    result.current_status,
+                ) as i32,
+            freeze_generation: result.freeze_generation,
+        })
     }
 
     pub async fn check_tx(
@@ -374,11 +386,12 @@ impl ExecutionService {
         request: AssetMetadataByIdRequest,
     ) -> std::result::Result<AssetMetadataByIdResponse, ServiceError> {
         let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        let server = shieldd_sdk_shielded_pool::component::rpc::Server::new(storage.clone());
-        ShieldedPoolQueryService::asset_metadata_by_id(&server, tonic::Request::new(request))
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(ServiceError::query)
+        shieldd_sdk_shielded_pool::component::query::asset_metadata_by_id(
+            &storage.latest_snapshot(),
+            request,
+        )
+        .await
+        .map_err(ServiceError::state_query)
     }
 
     pub async fn compact_block_range(
@@ -398,8 +411,8 @@ impl ExecutionService {
             )));
         }
 
-        let current_height = storage
-            .latest_snapshot()
+        let snapshot = storage.latest_snapshot();
+        let current_height = snapshot
             .get_block_height()
             .await
             .context("read committed Shieldd block height")
@@ -418,14 +431,27 @@ impl ExecutionService {
             )));
         }
 
-        let server = shieldd_sdk_compact_block::component::rpc::Server::new(storage.clone());
-        let stream =
-            CompactBlockQueryService::compact_block_range(&server, tonic::Request::new(request))
-                .await
-                .map(tonic::Response::into_inner)
-                .map_err(ServiceError::query)?;
-
-        stream.try_collect().await.map_err(ServiceError::query)
+        let mut blocks = snapshot.stream_compact_block(request.start_height);
+        let mut responses = Vec::with_capacity(block_count as usize);
+        let mut next_height = request.start_height;
+        while let Some(block) = blocks.try_next().await.map_err(|error| {
+            ServiceError::internal(anyhow::anyhow!("error streaming compact blocks: {error}"))
+        })? {
+            if block.height > effective_end {
+                break;
+            }
+            if block.height != next_height {
+                return Err(ServiceError::internal(anyhow::anyhow!(
+                    "block height mismatch while sending: expected {next_height}, got {}",
+                    block.height
+                )));
+            }
+            next_height = next_height.saturating_add(1);
+            responses.push(CompactBlockRangeResponse {
+                compact_block: Some(block),
+            });
+        }
+        Ok(responses)
     }
 
     pub async fn compliance_asset_status(
@@ -433,11 +459,12 @@ impl ExecutionService {
         request: ComplianceAssetStatusRequest,
     ) -> std::result::Result<ComplianceAssetStatusResponse, ServiceError> {
         let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
-        ComplianceQueryService::compliance_asset_status(&server, tonic::Request::new(request))
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(ServiceError::query)
+        shieldd_sdk_compliance::component::query::compliance_asset_status(
+            &storage.latest_snapshot(),
+            request,
+        )
+        .await
+        .map_err(ServiceError::state_query)
     }
 
     pub async fn compliance_batch_merkle_proofs(
@@ -445,14 +472,12 @@ impl ExecutionService {
         request: ComplianceBatchMerkleProofsRequest,
     ) -> std::result::Result<ComplianceBatchMerkleProofsResponse, ServiceError> {
         let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
-        ComplianceQueryService::compliance_batch_merkle_proofs(
-            &server,
-            tonic::Request::new(request),
+        shieldd_sdk_compliance::component::query::compliance_batch_merkle_proofs(
+            &storage.latest_snapshot(),
+            request,
         )
         .await
-        .map(tonic::Response::into_inner)
-        .map_err(ServiceError::query)
+        .map_err(ServiceError::state_query)
     }
 
     pub async fn compliance_user_leaf(
@@ -460,11 +485,12 @@ impl ExecutionService {
         request: ComplianceUserLeafRequest,
     ) -> std::result::Result<ComplianceUserLeafResponse, ServiceError> {
         let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        let server = shieldd_sdk_compliance::RpcServer::new(storage.clone());
-        ComplianceQueryService::compliance_user_leaf(&server, tonic::Request::new(request))
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(ServiceError::query)
+        shieldd_sdk_compliance::component::query::compliance_user_leaf(
+            &storage.latest_snapshot(),
+            request,
+        )
+        .await
+        .map_err(ServiceError::state_query)
     }
 
     pub async fn key_value(
@@ -472,22 +498,60 @@ impl ExecutionService {
         request: ProtoKeyValueRequest,
     ) -> std::result::Result<ProtoKeyValueResponse, ServiceError> {
         let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        let server = cnidarium::rpc::Server::new(storage.clone());
-        CnidariumQueryService::key_value(
-            &server,
-            tonic::Request::new(KeyValueRequest {
-                key: request.key,
-                proof: request.proof,
-            }),
-        )
-        .await
-        .map(tonic::Response::into_inner)
-        .map_err(ServiceError::query)
-        .map(|response: KeyValueResponse| ProtoKeyValueResponse {
-            value: response
-                .value
-                .map(|value| ProtoKeyValue { value: value.value }),
-            proof: response.proof,
+        if request.key.is_empty() {
+            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
+                "key is empty"
+            )));
+        }
+        let state = storage.latest_snapshot();
+        let (value, proof) = if request.proof {
+            let (value, proof) = state
+                .get_with_proof(request.key.into_bytes())
+                .await
+                .map_err(ServiceError::internal)?;
+            let proofs = proof
+                .proofs
+                .into_iter()
+                .map(|proof| {
+                    // Cnidarium and the host can select distinct ICS23 package versions.
+                    prost::Message::decode(proof.encode_to_vec().as_slice())
+                        .map_err(|error| ServiceError::internal(error.into()))
+                })
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            (
+                value,
+                Some(ibc_proto::ibc::core::commitment::v1::MerkleProof { proofs }),
+            )
+        } else {
+            (
+                state
+                    .get_raw(&request.key)
+                    .await
+                    .map_err(ServiceError::internal)?,
+                None,
+            )
+        };
+        Ok(ProtoKeyValueResponse {
+            value: value.map(|value| ProtoKeyValue { value }),
+            proof,
+        })
+    }
+
+    pub async fn nullifier_window(
+        &self,
+        _request: NullifierWindowRequest,
+    ) -> std::result::Result<NullifierWindowResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        let generation =
+            shieldd_sdk_sct::nullifier_tree::generation_state(&storage.latest_snapshot())
+                .await
+                .map_err(|error| {
+                    ServiceError::internal(anyhow::anyhow!(
+                        "could not read nullifier window: {error}"
+                    ))
+                })?;
+        Ok(NullifierWindowResponse {
+            window: Some(generation.window().into()),
         })
     }
 
@@ -626,23 +690,24 @@ fn deliver_tx_response(response: HostTxResponse) -> Result<DeliverTxResponse> {
 }
 
 fn encode_withdrawals(withdrawals: Vec<HostWithdrawal>) -> Vec<ProtoHostWithdrawal> {
-    withdrawals
-        .into_iter()
-        .map(|withdrawal| ProtoHostWithdrawal {
-            coin: Some(Coin {
-                denom: withdrawal.denom,
-                amount: withdrawal.amount.to_string(),
-            }),
-            destination: Some(match withdrawal.destination {
-                HostWithdrawalDestination::Transfer(transfer) => {
-                    ProtoDestination::Transfer(transfer.into())
-                }
-                HostWithdrawalDestination::Execution(execution) => {
-                    ProtoDestination::Execution(execution.into())
-                }
-            }),
-        })
-        .collect()
+    withdrawals.into_iter().map(encode_withdrawal).collect()
+}
+
+fn encode_withdrawal(withdrawal: HostWithdrawal) -> ProtoHostWithdrawal {
+    ProtoHostWithdrawal {
+        coin: Some(Coin {
+            denom: withdrawal.denom,
+            amount: withdrawal.amount.to_string(),
+        }),
+        destination: Some(match withdrawal.destination {
+            HostWithdrawalDestination::Transfer(transfer) => {
+                ProtoDestination::Transfer(transfer.into())
+            }
+            HostWithdrawalDestination::Execution(execution) => {
+                ProtoDestination::Execution(execution.into())
+            }
+        }),
+    }
 }
 
 fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
@@ -743,9 +808,12 @@ mod tests {
             .expect("test request has time")
             .seconds = 1_700_000_000;
 
+        request.time.as_mut().expect("time").nanos = 123_456_789;
         let block = decode_host_block(request).expect("valid host block");
 
         assert_eq!(block.height, 7);
+        assert_eq!(block.time.unix_timestamp(), 1_700_000_000);
+        assert_eq!(block.time.unix_timestamp_nanos(), 1_700_000_000_123_456_789);
     }
 
     #[test]
@@ -844,6 +912,68 @@ mod tests {
             .await
             .expect("storage was released");
         reopened.close().await.expect("close reopened service");
+    }
+
+    #[tokio::test]
+    async fn reopening_rejects_incompatible_application_state() -> Result<()> {
+        use cnidarium::StateWrite;
+        use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+        for (version, verifiable_change) in [
+            (None, false),
+            (None, true),
+            (Some(shieldd_sdk_app::APP_VERSION - 1), true),
+        ] {
+            let directory = tempfile::tempdir()?;
+            let mut service = ExecutionService::open(directory.path()).await?;
+            service.init_genesis(init_genesis_request()).await?;
+            service.commit(CommitRequest {}).await?;
+            let storage = service.storage.as_ref().expect("open storage");
+            let mut state = StateDelta::new(storage.latest_snapshot());
+            if verifiable_change {
+                state.put_raw("test/version-check".into(), vec![1]);
+            }
+            let key = shieldd_sdk_app::app::state_key::app_version::safeguard().as_bytes();
+            match version {
+                Some(version) => state.nonverifiable_put_proto(key.to_vec(), version),
+                None => state.nonverifiable_delete(key.to_vec()),
+            }
+            storage.commit(state).await?;
+            let stored_version = storage.latest_version();
+            assert_eq!(
+                storage
+                    .latest_snapshot()
+                    .nonverifiable_get_proto::<u64>(key)
+                    .await?,
+                version
+            );
+            service.close().await?;
+            match ExecutionService::open(directory.path()).await {
+                Err(error) => assert_eq!(error.kind(), ErrorKind::FailedPrecondition),
+                Ok(mut reopened) => {
+                    reopened.close().await?;
+                    panic!("incompatible application state must not reopen");
+                }
+            }
+            let storage =
+                Storage::load(directory.path().to_path_buf(), SUBSTORE_PREFIXES.to_vec()).await?;
+            assert_eq!(
+                storage.latest_version(),
+                if verifiable_change {
+                    stored_version
+                } else {
+                    u64::MAX
+                }
+            );
+            assert_eq!(
+                storage
+                    .latest_snapshot()
+                    .nonverifiable_get_proto::<u64>(key)
+                    .await?,
+                version
+            );
+            storage.release().await;
+        }
+        Ok(())
     }
 
     #[tokio::test]

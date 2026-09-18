@@ -1,19 +1,5 @@
-//! Protobuf definitions for Shieldd.
-//!
-//! This crate only contains the `.proto` files and the Rust types generated
-//! from them.  These types only handle parsing the wire format; validation
-//! should be performed by converting them into an appropriate domain type, as
-//! in the following diagram:
-//!
-//! ```ascii
-//! ┌───────┐          ┌──────────────┐               ┌──────────────┐
-//! │encoded│ protobuf │shieldd_sdk_proto│ TryFrom/Into  │ domain types │
-//! │ bytes │<──wire ─>│    types     │<─validation ─>│(other crates)│
-//! └───────┘  format  └──────────────┘   boundary    └──────────────┘
-//! ```
-//!
-//! The [`DomainType`] marker trait can be implemented on a domain type to ensure
-//! these conversions exist.
+//! Protobuf wire types for Shieldd.
+//! Convert into domain types through [`DomainType`] to validate decoded data.
 
 // The autogen code is not clippy-clean, so we disable some clippy warnings for this crate.
 #![allow(clippy::derive_partial_eq_without_eq)]
@@ -27,9 +13,6 @@ pub use prost::{Message, Name};
 
 /// Helper methods used for shaping the JSON (and other Serde) formats derived from the protos.
 pub mod serializers;
-
-#[cfg(feature = "box-grpc")]
-pub mod box_grpc_svc;
 
 /// Helper trait for using Protobuf messages as ABCI events.
 pub mod event;
@@ -98,13 +81,6 @@ pub mod shieldd {
                 pub mod v1 {
                     include!("gen/shieldd.core.component.fee.v1.rs");
                     include!("gen/shieldd.core.component.fee.v1.serde.rs");
-                }
-            }
-
-            pub mod ibc {
-                pub mod v1 {
-                    include!("gen/shieldd.core.component.ibc.v1.rs");
-                    include!("gen/shieldd.core.component.ibc.v1.serde.rs");
                 }
             }
 
@@ -193,28 +169,6 @@ pub mod shieldd {
         }
     }
 
-    pub mod util {
-        pub mod node {
-            pub mod v1 {
-                include!("gen/shieldd.util.node.v1.rs");
-                include!("gen/shieldd.util.node.v1.serde.rs");
-            }
-        }
-
-        pub mod tendermint_proxy {
-            pub mod v1 {
-                include!("gen/shieldd.util.tendermint_proxy.v1.rs");
-                include!("gen/shieldd.util.tendermint_proxy.v1.serde.rs");
-
-                /// gRPC metadata set only after the proxy attempted an
-                /// upstream transaction broadcast whose outcome is unknown.
-                pub const BROADCAST_OUTCOME_METADATA_KEY: &str = "shieldd-broadcast-outcome";
-                pub const BROADCAST_OUTCOME_UNKNOWN: &str = "unknown";
-                pub const BROADCAST_OUTCOME_NOT_SUBMITTED: &str = "not-submitted";
-            }
-        }
-    }
-
     /// View protocol structures.
     pub mod view {
         pub mod v1 {
@@ -224,91 +178,10 @@ pub mod shieldd {
     }
 }
 
-pub mod tendermint {
-    pub mod crypto {
-        include!("gen/tendermint.crypto.rs");
-    }
-
-    #[allow(clippy::large_enum_variant)]
-    pub mod types {
-        include!("gen/tendermint.types.rs");
-    }
-
-    pub mod version {
-        include!("gen/tendermint.version.rs");
-    }
-
-    pub mod p2p {
-        include!("gen/tendermint.p2p.rs");
-    }
-
-    pub mod abci {
-        include!("gen/tendermint.abci.rs");
-    }
-}
-
-pub mod noble {
-    pub mod forwarding {
-        pub mod v1 {
-            include!("gen/noble.forwarding.v1.rs");
-        }
-    }
-}
-
 pub mod cosmos {
     pub mod base {
         pub mod v1beta1 {
             include!("gen/cosmos.base.v1beta1.rs");
-        }
-
-        pub mod query {
-            pub mod v1beta1 {
-                include!("gen/cosmos.base.query.v1beta1.rs");
-            }
-        }
-
-        pub mod abci {
-            pub mod v1beta1 {
-                include!("gen/cosmos.base.abci.v1beta1.rs");
-            }
-        }
-    }
-
-    pub mod auth {
-        pub mod v1beta1 {
-            include!("gen/cosmos.auth.v1beta1.rs");
-        }
-    }
-
-    pub mod bank {
-        pub mod v1beta1 {
-            include!("gen/cosmos.bank.v1beta1.rs");
-        }
-    }
-
-    pub mod tx {
-        pub mod v1beta1 {
-            include!("gen/cosmos.tx.v1beta1.rs");
-        }
-
-        pub mod config {
-            pub mod v1 {
-                include!("gen/cosmos.tx.config.v1.rs");
-            }
-        }
-
-        pub mod signing {
-            pub mod v1beta1 {
-                include!("gen/cosmos.tx.signing.v1beta1.rs");
-            }
-        }
-    }
-
-    pub mod crypto {
-        pub mod multisig {
-            pub mod v1beta1 {
-                include!("gen/cosmos.crypto.multisig.v1beta1.rs");
-            }
         }
     }
 }

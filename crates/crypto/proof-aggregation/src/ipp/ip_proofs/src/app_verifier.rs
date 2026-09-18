@@ -4,20 +4,14 @@
 //! owns every acceptance-relevant scalar comparison and tagged reduction.
 
 /// Wire version authenticated by the shipping aggregate statement.
-pub const APP_VERIFY_PROTOCOL_VERSION: u32 = 2;
-
-/// Protocol version used by the shipping-input constructor.
-#[doc(hidden)]
-pub fn app_verify_protocol_version_core() -> u32 {
-    APP_VERIFY_PROTOCOL_VERSION
-}
+pub const APP_VERIFY_PROTOCOL_VERSION: u32 = 3;
 
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AppVerifyFamilyCode {
     pub proof_family_id: u32,
     pub note_reshape_family_id: u32,
-    pub shielded_ics20_withdrawal_family_id: u32,
+    pub shielded_withdrawal_family_id: u32,
 }
 
 #[doc(hidden)]
@@ -52,11 +46,7 @@ pub struct AppVerifyCallResult {
     pub accepted: bool,
 }
 
-/// Exact scalar projection of one application-planned shipping verifier call.
-///
-/// The application owns the richer statement, proof, and SRS values. This
-/// record pins only the family and count fields consumed by the extracted
-/// identity and padding checks.
+/// Family and count facts checked against one application-planned verifier call.
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AppVerifyShippingCall {
@@ -77,11 +67,8 @@ pub struct AppVerifyShippingWrapperProjection {
     pub inner_proof_bytes: Vec<u8>,
 }
 
-/// Concrete byte-level input authenticated before one shipping verifier call.
-///
-/// The strict aggregate-proof decoder consumes `inner_proof_bytes` after this
-/// record is constructed. Curve objects and decoder semantics remain explicit
-/// external refinement boundaries.
+/// Authenticated input to one verifier call. The strict proof decoder consumes
+/// `inner_proof_bytes` only after preflight checks.
 #[doc(hidden)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AppVerifyShippingInput {
@@ -110,11 +97,7 @@ pub struct AppVerifyShippingResult {
     pub result: AppVerifyCallResult,
 }
 
-/// One backend result retaining the exact execution that produced its bit.
-///
-/// The execution is opaque at the application boundary. Production constructs
-/// this record from the semantic verifier execution before profiling or async
-/// task transport can discard that execution.
+/// Tagged result and observation produced by the backend verifier.
 #[doc(hidden)]
 #[derive(Clone, Debug)]
 pub struct AppVerifyShippingBackendResult<Execution> {
@@ -285,73 +268,6 @@ pub enum AppVerifyAcceptedJoinProjectionError {
     OutcomeOrderMismatch { position: usize },
 }
 
-/// Pure constructor used by the production planner after preparing one call.
-///
-/// Validation remains in `app_verify_plan_identity_core` and
-/// `app_verify_plan_padding_core`, preserving their failure ordering.
-#[doc(hidden)]
-pub fn app_verify_shipping_call_from_parts(
-    id: AppVerifyCallId,
-    bundle_family: AppVerifyFamilyCode,
-    expected_real_count: usize,
-    bundle_real_count: u32,
-    expected_padded_count: usize,
-    bundle_padded_count: u32,
-) -> AppVerifyShippingCall {
-    AppVerifyShippingCall {
-        id,
-        bundle_family,
-        expected_real_count,
-        bundle_real_count,
-        expected_padded_count,
-        bundle_padded_count,
-    }
-}
-
-/// Pure retention projection for one successfully decoded proof wrapper.
-#[doc(hidden)]
-pub fn app_verify_shipping_wrapper_projection_from_parts(
-    statement_digest: Vec<u8>,
-    wrapped_proof_bytes: Vec<u8>,
-    inner_proof_bytes: Vec<u8>,
-) -> AppVerifyShippingWrapperProjection {
-    AppVerifyShippingWrapperProjection {
-        statement_digest,
-        wrapped_proof_bytes,
-        inner_proof_bytes,
-    }
-}
-
-/// Pure projection used by `AggregateStatement::shipping_rows`.
-#[doc(hidden)]
-pub fn app_verify_shipping_rows_from_parts<Fields, Serialized>(
-    real_count: u32,
-    padded_count: u32,
-    public_input_arity: u32,
-    fields: Fields,
-    serialized: Serialized,
-) -> AppVerifyShippingRowsProjection<Fields, Serialized> {
-    AppVerifyShippingRowsProjection {
-        real_count,
-        padded_count,
-        public_input_arity,
-        fields,
-        serialized,
-    }
-}
-
-/// Pure retention boundary after Arkworks has serialized every statement row.
-#[doc(hidden)]
-pub fn app_verify_statement_row_bytes_from_parts<Rows, Serialized>(
-    source_rows: Rows,
-    serialized_rows: Serialized,
-) -> AppVerifyStatementRowBytesProjection<Rows, Serialized> {
-    AppVerifyStatementRowBytesProjection {
-        source_rows,
-        serialized_rows,
-    }
-}
-
 /// Validate the scalar statement projection against one planned call.
 ///
 /// This is the production check that binds the routed statement family and
@@ -482,19 +398,6 @@ pub fn app_verify_shipping_preflight_core<BackendCall, Fields>(
     })
 }
 
-/// Pure result constructor used by the async caller before bundle reduction.
-#[doc(hidden)]
-pub fn app_verify_shipping_result_from_parts(
-    input: AppVerifyShippingInput,
-    accepted: bool,
-) -> AppVerifyShippingResult {
-    let id = input.call.id;
-    AppVerifyShippingResult {
-        input,
-        result: AppVerifyCallResult { id, accepted },
-    }
-}
-
 /// Internal constructor used only after a semantic execution has produced the
 /// complete call result. Shipping code must not construct this from a bare
 /// acceptance bit.
@@ -503,13 +406,6 @@ pub(crate) fn app_verify_shipping_backend_result_from_parts<Execution>(
     result: AppVerifyCallResult,
 ) -> AppVerifyShippingBackendResult<Execution> {
     AppVerifyShippingBackendResult { execution, result }
-}
-
-/// Copy the exact tagged result without exposing or discarding its execution.
-pub(crate) fn app_verify_shipping_backend_call_result<Execution>(
-    backend: &AppVerifyShippingBackendResult<Execution>,
-) -> AppVerifyCallResult {
-    backend.result
 }
 
 /// Move the exact execution and tagged result across an opaque runtime
@@ -776,13 +672,13 @@ pub fn app_verify_shipping_statement_preflight_core<BackendCall, Field, BindingE
         Err(error) => return Err(error),
     };
 
-    let rows = app_verify_shipping_rows_from_parts(
-        statement_rows.real_count,
-        statement_rows.padded_count,
-        statement_rows.public_input_arity,
-        statement_rows.fields,
-        statement_rows.serialized,
-    );
+    let rows = crate::app_verifier::AppVerifyShippingRowsProjection {
+        real_count: statement_rows.real_count,
+        padded_count: statement_rows.padded_count,
+        public_input_arity: statement_rows.public_input_arity,
+        fields: statement_rows.fields,
+        serialized: statement_rows.serialized,
+    };
     let preflight = match app_verify_shipping_preflight_core(
         backend_call,
         rows,
@@ -903,7 +799,7 @@ pub fn app_verify_plan_ids_core(expected: Vec<AppVerifyExpectedCall>) -> Vec<App
 fn app_verify_family_code_matches(left: AppVerifyFamilyCode, right: AppVerifyFamilyCode) -> bool {
     left.proof_family_id == right.proof_family_id
         && left.note_reshape_family_id == right.note_reshape_family_id
-        && left.shielded_ics20_withdrawal_family_id == right.shielded_ics20_withdrawal_family_id
+        && left.shielded_withdrawal_family_id == right.shielded_withdrawal_family_id
 }
 
 fn app_verify_call_id_matches(left: AppVerifyCallId, right: AppVerifyCallId) -> bool {
@@ -911,26 +807,6 @@ fn app_verify_call_id_matches(left: AppVerifyCallId, right: AppVerifyCallId) -> 
         && left.segment_index == right.segment_index
         && left.family_index == right.family_index
         && app_verify_family_code_matches(left.family, right.family)
-}
-
-fn app_verify_find_unique_result(
-    expected_id: AppVerifyCallId,
-    results: &[AppVerifyCallResult],
-) -> Option<bool> {
-    let mut matched_acceptances = Vec::new();
-    let mut result_index = 0usize;
-    while result_index < results.len() {
-        let result = results[result_index];
-        if app_verify_call_id_matches(result.id, expected_id) {
-            matched_acceptances.push(result.accepted);
-        }
-        result_index += 1;
-    }
-    if matched_acceptances.len() == 1 {
-        Some(matched_acceptances[0])
-    } else {
-        None
-    }
 }
 
 #[doc(hidden)]
@@ -1048,66 +924,36 @@ pub fn app_verify_reduce_core(
         return Err(AppVerifyReductionError::OutcomeCountMismatch);
     }
 
-    let mut rejected_calls = Vec::new();
-    let mut position = 0usize;
-    let mut identities_match = true;
-    while position < expected_call_ids.len() && identities_match {
-        let expected_id = expected_call_ids[position];
-        match app_verify_find_unique_result(expected_id, &results) {
-            Some(accepted) => {
-                if !accepted {
-                    rejected_calls.push(expected_id);
-                }
-                position += 1;
-            }
-            None => {
-                identities_match = false;
-            }
+    let mut accepted = vec![None; expected_call_ids.len()];
+    for result in results {
+        let index = result.id.order_index;
+        let Some(expected) = expected_call_ids.get(index) else {
+            return Err(AppVerifyReductionError::OutcomeIdentityMismatch);
+        };
+        if *expected != result.id || accepted[index].replace(result.accepted).is_some() {
+            return Err(AppVerifyReductionError::OutcomeIdentityMismatch);
         }
     }
-    if !identities_match {
-        return Err(AppVerifyReductionError::OutcomeIdentityMismatch);
-    }
-    Ok(rejected_calls)
-}
-
-#[doc(hidden)]
-pub fn app_verify_profiled_acceptance_core(
-    expected_call_ids: Vec<AppVerifyCallId>,
-    results: Vec<AppVerifyCallResult>,
-) -> Result<bool, AppVerifyReductionError> {
-    match app_verify_reduce_core(expected_call_ids, results) {
-        Ok(rejected_calls) => Ok(rejected_calls.len() == 0),
-        Err(error) => Err(error),
-    }
-}
-
-#[doc(hidden)]
-pub fn app_verify_normal_acceptance_core(
-    expected_call_ids: Vec<AppVerifyCallId>,
-    results: Vec<AppVerifyCallResult>,
-) -> Result<bool, AppVerifyReductionError> {
-    app_verify_profiled_acceptance_core(expected_call_ids, results)
+    expected_call_ids
+        .into_iter()
+        .zip(accepted)
+        .filter_map(|(id, accepted)| match accepted {
+            Some(true) => None,
+            Some(false) => Some(Ok(id)),
+            None => Some(Err(AppVerifyReductionError::OutcomeIdentityMismatch)),
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn shipping_protocol_version_root_is_current() {
-        assert_eq!(app_verify_protocol_version_core(), 2);
-        assert_eq!(
-            app_verify_protocol_version_core(),
-            APP_VERIFY_PROTOCOL_VERSION
-        );
-    }
-
     fn family(tag: u32) -> AppVerifyFamilyCode {
         AppVerifyFamilyCode {
             proof_family_id: tag,
             note_reshape_family_id: 0,
-            shielded_ics20_withdrawal_family_id: 0,
+            shielded_withdrawal_family_id: 0,
         }
     }
 
@@ -1213,10 +1059,6 @@ mod tests {
             app_verify_reduce_core(expected.clone(), outcomes.clone()),
             Ok(vec![expected[2]])
         );
-        assert_eq!(
-            app_verify_normal_acceptance_core(expected.clone(), outcomes.clone()),
-            app_verify_profiled_acceptance_core(expected, outcomes)
-        );
     }
 
     #[test]
@@ -1284,7 +1126,7 @@ mod tests {
             |id: &mut AppVerifyCallId| id.family_index += 1,
             |id: &mut AppVerifyCallId| id.family.proof_family_id += 1,
             |id: &mut AppVerifyCallId| id.family.note_reshape_family_id += 1,
-            |id: &mut AppVerifyCallId| id.family.shielded_ics20_withdrawal_family_id += 1,
+            |id: &mut AppVerifyCallId| id.family.shielded_withdrawal_family_id += 1,
         ];
         for mutate in full_id_mutations {
             let mut bad_full_id = records.clone();
@@ -1334,12 +1176,12 @@ mod tests {
         let transfer = AppVerifyFamilyCode {
             proof_family_id: 1,
             note_reshape_family_id: 0,
-            shielded_ics20_withdrawal_family_id: 0,
+            shielded_withdrawal_family_id: 0,
         };
         let reshape = AppVerifyFamilyCode {
             proof_family_id: 2,
             note_reshape_family_id: 1,
-            shielded_ics20_withdrawal_family_id: 0,
+            shielded_withdrawal_family_id: 0,
         };
         let id = AppVerifyCallId {
             order_index: 3,
@@ -1376,42 +1218,20 @@ mod tests {
     }
 
     #[test]
-    fn shipping_call_constructor_preserves_every_checked_field() {
-        let id = AppVerifyCallId {
-            order_index: 4,
-            segment_index: 2,
-            family_index: 1,
-            family: family(7),
-        };
-        let bundle_family = family(7);
-        assert_eq!(
-            app_verify_shipping_call_from_parts(id, bundle_family, 3, 3, 4, 4),
-            AppVerifyShippingCall {
-                id,
-                bundle_family,
-                expected_real_count: 3,
-                bundle_real_count: 3,
-                expected_padded_count: 4,
-                bundle_padded_count: 4,
-            }
-        );
-    }
-
-    #[test]
     fn shipping_projection_accepts_exact_input_and_preserves_failure_order() {
-        let call = app_verify_shipping_call_from_parts(
-            AppVerifyCallId {
+        let call = crate::app_verifier::AppVerifyShippingCall {
+            id: AppVerifyCallId {
                 order_index: 4,
                 segment_index: 2,
                 family_index: 1,
                 family: family(7),
             },
-            family(7),
-            3,
-            3,
-            4,
-            4,
-        );
+            bundle_family: family(7),
+            expected_real_count: 3,
+            bundle_real_count: 3,
+            expected_padded_count: 4,
+            bundle_padded_count: 4,
+        };
 
         assert_eq!(
             app_verify_shipping_projection_core(call, family(7), 3, 4),
@@ -1453,31 +1273,26 @@ mod tests {
     }
 
     #[test]
-    fn shipping_wrapper_projection_preserves_exact_parts() {
-        let projection = app_verify_shipping_wrapper_projection_from_parts(
-            vec![0x71; 32],
-            vec![0x81, 0x82, 0x83],
-            vec![0x82, 0x83],
-        );
-        assert_eq!(projection.statement_digest, vec![0x71; 32]);
-        assert_eq!(projection.wrapped_proof_bytes, vec![0x81, 0x82, 0x83]);
-        assert_eq!(projection.inner_proof_bytes, vec![0x82, 0x83]);
-    }
-
-    #[test]
     fn shipping_preflight_projection_cores_preserve_exact_parts() {
         let fields = vec![vec![1u8], vec![2u8]];
         let serialized = vec![vec![vec![0x11]], vec![vec![0x22]]];
-        let rows =
-            app_verify_shipping_rows_from_parts(2, 2, 1, fields.as_slice(), serialized.as_slice());
+        let rows = crate::app_verifier::AppVerifyShippingRowsProjection {
+            real_count: 2,
+            padded_count: 2,
+            public_input_arity: 1,
+            fields: fields.as_slice(),
+            serialized: serialized.as_slice(),
+        };
         assert_eq!(rows.real_count, 2);
         assert_eq!(rows.padded_count, 2);
         assert_eq!(rows.public_input_arity, 1);
         assert_eq!(rows.fields, fields.as_slice());
         assert_eq!(rows.serialized, serialized.as_slice());
 
-        let encoded =
-            app_verify_statement_row_bytes_from_parts(fields.as_slice(), serialized.clone());
+        let encoded = crate::app_verifier::AppVerifyStatementRowBytesProjection {
+            source_rows: fields.as_slice(),
+            serialized_rows: serialized.clone(),
+        };
         assert_eq!(encoded.source_rows, fields.as_slice());
         assert_eq!(encoded.serialized_rows, serialized);
 
@@ -1492,19 +1307,19 @@ mod tests {
 
     #[test]
     fn shipping_statement_preflight_retains_exact_padding_provenance() {
-        let call = app_verify_shipping_call_from_parts(
-            AppVerifyCallId {
+        let call = crate::app_verifier::AppVerifyShippingCall {
+            id: AppVerifyCallId {
                 order_index: 4,
                 segment_index: 2,
                 family_index: 1,
                 family: family(7),
             },
-            family(7),
-            2,
-            2,
-            4,
-            4,
-        );
+            bundle_family: family(7),
+            expected_real_count: 2,
+            bundle_real_count: 2,
+            expected_padded_count: 4,
+            bundle_padded_count: 4,
+        };
         let source_fields = vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]];
         let statement_fields = vec![
             source_fields[0].clone(),
@@ -1523,17 +1338,17 @@ mod tests {
         let provenance = app_verify_shipping_statement_preflight_core(
             vec![0xa1, 0xa2],
             vec![0xd1, 0xd2],
-            app_verify_statement_row_bytes_from_parts(
-                source_fields.clone(),
-                source_serialized_rows.clone(),
-            ),
-            app_verify_shipping_rows_from_parts(
-                2,
-                4,
-                2,
-                statement_fields.clone(),
-                statement_serialized_rows.clone(),
-            ),
+            crate::app_verifier::AppVerifyStatementRowBytesProjection {
+                source_rows: source_fields.clone(),
+                serialized_rows: source_serialized_rows.clone(),
+            },
+            crate::app_verifier::AppVerifyShippingRowsProjection {
+                real_count: 2,
+                padded_count: 4,
+                public_input_arity: 2,
+                fields: statement_fields.clone(),
+                serialized: statement_serialized_rows.clone(),
+            },
             call,
             2,
             family(7),
@@ -1541,11 +1356,11 @@ mod tests {
             vec![0x22, 0x23],
             vec![0x33; 32],
             vec![0x61, 0x62],
-            app_verify_shipping_wrapper_projection_from_parts(
-                vec![0x71; 32],
-                vec![0x81, 0x82, 0x83],
-                vec![0x82, 0x83],
-            ),
+            crate::app_verifier::AppVerifyShippingWrapperProjection {
+                statement_digest: vec![0x71; 32],
+                wrapped_proof_bytes: vec![0x81, 0x82, 0x83],
+                inner_proof_bytes: vec![0x82, 0x83],
+            },
             vec![0x91; 32],
         )
         .expect("matching statement provenance");
@@ -1575,27 +1390,27 @@ mod tests {
         let source_count_mismatch = app_verify_shipping_statement_preflight_core(
             (),
             (),
-            app_verify_statement_row_bytes_from_parts(
-                vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]],
-                vec![vec![vec![0x41], vec![0x42]]],
-            ),
-            app_verify_shipping_rows_from_parts(
-                2,
-                4,
-                2,
-                vec![
+            crate::app_verifier::AppVerifyStatementRowBytesProjection {
+                source_rows: vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]],
+                serialized_rows: vec![vec![vec![0x41], vec![0x42]]],
+            },
+            crate::app_verifier::AppVerifyShippingRowsProjection {
+                real_count: 2,
+                padded_count: 4,
+                public_input_arity: 2,
+                fields: vec![
                     vec![0xb1, 0xb2],
                     vec![0xc1, 0xc2],
                     vec![0xc1, 0xc2],
                     vec![0xc1, 0xc2],
                 ],
-                vec![
+                serialized: vec![
                     vec![vec![0x41], vec![0x42]],
                     vec![vec![0x51], vec![0x52]],
                     vec![vec![0x51], vec![0x52]],
                     vec![vec![0x51], vec![0x52]],
                 ],
-            ),
+            },
             call,
             2,
             family(7),
@@ -1603,11 +1418,11 @@ mod tests {
             vec![0x22, 0x23],
             vec![0x33; 32],
             vec![0x61, 0x62],
-            app_verify_shipping_wrapper_projection_from_parts(
-                vec![0x71; 32],
-                vec![0x81, 0x82, 0x83],
-                vec![0x82, 0x83],
-            ),
+            crate::app_verifier::AppVerifyShippingWrapperProjection {
+                statement_digest: vec![0x71; 32],
+                wrapped_proof_bytes: vec![0x81, 0x82, 0x83],
+                inner_proof_bytes: vec![0x82, 0x83],
+            },
             vec![0x91; 32],
         );
         assert!(matches!(
@@ -1618,27 +1433,27 @@ mod tests {
         let serialized_mismatch = app_verify_shipping_statement_preflight_core(
             (),
             (),
-            app_verify_statement_row_bytes_from_parts(
-                vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]],
-                vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]]],
-            ),
-            app_verify_shipping_rows_from_parts(
-                2,
-                4,
-                2,
-                vec![
+            crate::app_verifier::AppVerifyStatementRowBytesProjection {
+                source_rows: vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]],
+                serialized_rows: vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]]],
+            },
+            crate::app_verifier::AppVerifyShippingRowsProjection {
+                real_count: 2,
+                padded_count: 4,
+                public_input_arity: 2,
+                fields: vec![
                     vec![0xb1, 0xb2],
                     vec![0xc1, 0xc2],
                     vec![0xc1, 0xc2],
                     vec![0xc1, 0xc2],
                 ],
-                vec![
+                serialized: vec![
                     vec![vec![0x41], vec![0x42]],
                     vec![vec![0x51], vec![0x52]],
                     vec![vec![0x51], vec![0x52]],
                     vec![vec![0x51], vec![0x53]],
                 ],
-            ),
+            },
             call,
             2,
             family(7),
@@ -1646,11 +1461,11 @@ mod tests {
             vec![0x22, 0x23],
             vec![0x33; 32],
             vec![0x61, 0x62],
-            app_verify_shipping_wrapper_projection_from_parts(
-                vec![0x71; 32],
-                vec![0x81, 0x82, 0x83],
-                vec![0x82, 0x83],
-            ),
+            crate::app_verifier::AppVerifyShippingWrapperProjection {
+                statement_digest: vec![0x71; 32],
+                wrapped_proof_bytes: vec![0x81, 0x82, 0x83],
+                inner_proof_bytes: vec![0x82, 0x83],
+            },
             vec![0x91; 32],
         );
         assert!(matches!(
@@ -1661,24 +1476,30 @@ mod tests {
 
     #[test]
     fn shipping_input_and_result_preserve_every_authenticated_field() {
-        let call = app_verify_shipping_call_from_parts(
-            AppVerifyCallId {
+        let call = crate::app_verifier::AppVerifyShippingCall {
+            id: AppVerifyCallId {
                 order_index: 4,
                 segment_index: 2,
                 family_index: 1,
                 family: family(7),
             },
-            family(7),
-            3,
-            3,
-            4,
-            4,
-        );
+            bundle_family: family(7),
+            expected_real_count: 3,
+            bundle_real_count: 3,
+            expected_padded_count: 4,
+            bundle_padded_count: 4,
+        };
         let row_fields = vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]];
         let row_bytes = vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]]];
         let preflight = app_verify_shipping_preflight_core(
             vec![0xa1, 0xa2],
-            app_verify_shipping_rows_from_parts(3, 4, 2, row_fields.clone(), row_bytes.clone()),
+            crate::app_verifier::AppVerifyShippingRowsProjection {
+                real_count: 3,
+                padded_count: 4,
+                public_input_arity: 2,
+                fields: row_fields.clone(),
+                serialized: row_bytes.clone(),
+            },
             call,
             2,
             family(7),
@@ -1686,11 +1507,11 @@ mod tests {
             vec![0x22, 0x23],
             vec![0x33; 32],
             vec![0x61, 0x62],
-            app_verify_shipping_wrapper_projection_from_parts(
-                vec![0x71; 32],
-                vec![0x81, 0x82, 0x83],
-                vec![0x82, 0x83],
-            ),
+            crate::app_verifier::AppVerifyShippingWrapperProjection {
+                statement_digest: vec![0x71; 32],
+                wrapped_proof_bytes: vec![0x81, 0x82, 0x83],
+                inner_proof_bytes: vec![0x82, 0x83],
+            },
             vec![0x91; 32],
         )
         .expect("matching shipping input");
@@ -1713,11 +1534,6 @@ mod tests {
         assert_eq!(input.inner_proof_bytes, vec![0x82, 0x83]);
         assert_eq!(input.challenge_context, vec![0x91; 32]);
 
-        let result = app_verify_shipping_result_from_parts(input.clone(), true);
-        assert_eq!(result.input, input);
-        assert_eq!(result.result.id, call.id);
-        assert!(result.result.accepted);
-
         let backend_result = app_verify_shipping_backend_result_from_parts(
             vec![0xd1, 0xd2],
             AppVerifyCallResult {
@@ -1734,7 +1550,7 @@ mod tests {
         assert!(executed_result.result.accepted);
         let (_, retained) = app_verify_shipping_executed_result_into_parts(executed);
         assert_eq!(
-            app_verify_shipping_backend_call_result(&retained),
+            retained.result,
             AppVerifyCallResult {
                 id: call.id,
                 accepted: true,
@@ -1792,19 +1608,19 @@ mod tests {
 
     #[test]
     fn shipping_input_rejects_cross_record_substitution() {
-        let call = app_verify_shipping_call_from_parts(
-            AppVerifyCallId {
+        let call = crate::app_verifier::AppVerifyShippingCall {
+            id: AppVerifyCallId {
                 order_index: 4,
                 segment_index: 2,
                 family_index: 1,
                 family: family(7),
             },
-            family(7),
-            3,
-            3,
-            4,
-            4,
-        );
+            bundle_family: family(7),
+            expected_real_count: 3,
+            bundle_real_count: 3,
+            expected_padded_count: 4,
+            bundle_padded_count: 4,
+        };
         let build = |call, statement_family, real_count, padded_count| {
             app_verify_shipping_input_from_parts(
                 call,
@@ -1818,11 +1634,11 @@ mod tests {
                 1,
                 vec![vec![vec![0x41]]; 4],
                 vec![0x61],
-                app_verify_shipping_wrapper_projection_from_parts(
-                    vec![0x71; 32],
-                    vec![0x81, 0x82],
-                    vec![0x82],
-                ),
+                crate::app_verifier::AppVerifyShippingWrapperProjection {
+                    statement_digest: vec![0x71; 32],
+                    wrapped_proof_bytes: vec![0x81, 0x82],
+                    inner_proof_bytes: vec![0x82],
+                },
                 vec![0x91; 32],
             )
         };
@@ -1909,5 +1725,35 @@ mod tests {
             ),
             Err(AppVerifyReductionError::OutcomeIdentityMismatch)
         );
+    }
+
+    #[test]
+    fn reduction_checks_full_identity_before_accepting_indexed_results() {
+        let expected = app_verify_plan_ids_core(vec![call(0, 0), call(1, 0)]);
+        for field in 0..4 {
+            let mut wrong = expected[1];
+            match field {
+                0 => wrong.order_index = usize::MAX,
+                1 => wrong.segment_index += 1,
+                2 => wrong.family_index += 1,
+                _ => wrong.family = family(99),
+            }
+            assert_eq!(
+                app_verify_reduce_core(
+                    expected.clone(),
+                    vec![
+                        AppVerifyCallResult {
+                            id: wrong,
+                            accepted: true
+                        },
+                        AppVerifyCallResult {
+                            id: expected[0],
+                            accepted: true
+                        },
+                    ]
+                ),
+                Err(AppVerifyReductionError::OutcomeIdentityMismatch)
+            );
+        }
     }
 }

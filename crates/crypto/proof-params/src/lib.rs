@@ -21,18 +21,13 @@ pub mod batch;
 mod gnark_artifact_validation;
 pub mod historical;
 pub mod statement_hash;
-mod traits;
-
-pub use traits::{
-    generate_constraint_matrices, generate_prepared_test_parameters, generate_test_parameters,
-    DummyWitness, ProvingKeyExt, VerifyingKeyExt,
-};
 
 include!(concat!(env!("OUT_DIR"), "/gnark_bundled.rs"));
 
 include!("gen/gnark/transfer_registry.rs");
 include!("gen/gnark/note_reshape_registry.rs");
-include!("gen/gnark/shielded_ics20_withdrawal_registry.rs");
+include!("gen/gnark/shielded_withdrawal_registry.rs");
+include!("gen/gnark/note_seizure_registry.rs");
 
 /// Closed identity for every proof key deployed by consensus.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -40,15 +35,17 @@ pub enum DeployedProofKey {
     Transfer,
     NoteReshapeOneByEight,
     NoteReshapeEightByOne,
-    ShieldedIcs20WithdrawalCanonical,
+    ShieldedWithdrawalCanonical,
+    NoteSeizure,
 }
 
 impl DeployedProofKey {
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 5] = [
         Self::Transfer,
         Self::NoteReshapeOneByEight,
         Self::NoteReshapeEightByOne,
-        Self::ShieldedIcs20WithdrawalCanonical,
+        Self::ShieldedWithdrawalCanonical,
+        Self::NoteSeizure,
     ];
 
     /// Resolve this closed identity to its bundled prepared verification key.
@@ -57,9 +54,8 @@ impl DeployedProofKey {
             Self::Transfer => transfer_proof_verification_key(),
             Self::NoteReshapeOneByEight => note_reshape_proof_verification_key(2),
             Self::NoteReshapeEightByOne => note_reshape_proof_verification_key(3),
-            Self::ShieldedIcs20WithdrawalCanonical => {
-                shielded_ics20_withdrawal_proof_verification_key(1)
-            }
+            Self::ShieldedWithdrawalCanonical => shielded_withdrawal_proof_verification_key(1),
+            Self::NoteSeizure => note_seizure_proof_verification_key(),
         }
     }
 }
@@ -157,8 +153,12 @@ mod gnark_artifact_tests {
             );
         }
         assert_bundled_verification_key(
-            shielded_ics20_withdrawal_verifying_key_json_bytes(1),
-            shielded_ics20_withdrawal_proof_verification_key(1),
+            shielded_withdrawal_verifying_key_json_bytes(1),
+            shielded_withdrawal_proof_verification_key(1),
+        );
+        assert_bundled_verification_key(
+            note_seizure_verifying_key_json_bytes(),
+            note_seizure_proof_verification_key(),
         );
     }
 
@@ -166,8 +166,8 @@ mod gnark_artifact_tests {
     fn deployed_proof_key_registry_is_exhaustive_and_pairwise_distinct() {
         assert_eq!(
             DeployedProofKey::ALL.len(),
-            1 + GENERATED_NOTE_RESHAPE_PROOF_FAMILIES.len()
-                + GENERATED_SHIELDED_ICS20_WITHDRAWAL_PROOF_FAMILIES.len(),
+            2 + GENERATED_NOTE_RESHAPE_PROOF_FAMILIES.len()
+                + GENERATED_SHIELDED_WITHDRAWAL_PROOF_FAMILIES.len(),
             "closed deployed-key registry must track every generated proof family"
         );
 
@@ -184,18 +184,22 @@ mod gnark_artifact_tests {
             (key, &**family.verification_key)
         }));
         generated.extend(
-            GENERATED_SHIELDED_ICS20_WITHDRAWAL_PROOF_FAMILIES
+            GENERATED_SHIELDED_WITHDRAWAL_PROOF_FAMILIES
                 .iter()
                 .map(|family| {
                     let key = match family.id {
-                        1 => DeployedProofKey::ShieldedIcs20WithdrawalCanonical,
+                        1 => DeployedProofKey::ShieldedWithdrawalCanonical,
                         unknown => panic!(
-                            "generated shielded ICS-20 withdrawal family {unknown} has no deployed key"
+                            "generated shielded withdrawal family {unknown} has no deployed key"
                         ),
                     };
                     (key, &**family.verification_key)
                 }),
         );
+        generated.push((
+            DeployedProofKey::NoteSeizure,
+            note_seizure_proof_verification_key(),
+        ));
 
         for deployed_key in DeployedProofKey::ALL {
             let matches = generated

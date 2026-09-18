@@ -8,30 +8,18 @@ license = {workspace = true}
 edition = {workspace = true}
 
 [features]
-rpc = ["dep:tonic", "ibc-proto/client"]
-box-grpc = ["dep:http-body", "dep:http-body-util", "dep:tonic", "dep:tower"]
+rpc = ["dep:tonic"]
 cnidarium = ["dep:cnidarium"]
-tendermint = [
-    "dep:chrono",
-    "dep:tendermint-proto",
-    "dep:tendermint-rpc",
-    "dep:thiserror",
-    "dep:tonic",
-]
 
 [dependencies]
 anyhow = {workspace = true}
 async-trait = {workspace = true}
 bech32 = {workspace = true}
 bytes = {workspace = true, features = ["serde"]}
-chrono = {workspace = true, optional = true, default-features = false, features = ["serde"]}
-cnidarium = {workspace = true, optional = true, default-features = true, features = ["rpc"]}
+cnidarium = {workspace = true, optional = true, default-features = true}
 decaf377-rdsa = {workspace = true}
 futures = {workspace = true}
 hex = {workspace = true}
-http-body = {workspace = true, optional = true}
-http-body-util = {workspace = true, optional = true}
-ibc-types = {workspace = true, features = ["std"], default-features = true}
 ics23 = {workspace = true}
 pbjson = {workspace = true}
 pbjson-types = {workspace = true}
@@ -40,11 +28,7 @@ prost = {workspace = true}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 tendermint = {workspace = true}
-tendermint-proto = {workspace = true, optional = true}
-tendermint-rpc = {workspace = true, optional = true, features = ["http-client"]}
-thiserror = {workspace = true, optional = true}
 tonic = {workspace = true, optional = true}
-tower = {workspace = true, features = ["full"], optional = true}
 tracing = {workspace = true}
 
 [dependencies.ibc-proto]

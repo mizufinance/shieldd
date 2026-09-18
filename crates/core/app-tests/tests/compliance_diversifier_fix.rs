@@ -1,33 +1,26 @@
 use {
-    self::common::BuilderExt,
     anyhow::anyhow,
-    cnidarium::{StateDelta, TempStorage},
-    common::TempStorageExt as _,
+    cnidarium::StateDelta,
     decaf377::Fr,
     rand_core::OsRng,
-    shieldd_sdk_app::{
-        genesis::{self, AppState},
-        server::consensus::Consensus,
-    },
+    shieldd_sdk_app::genesis::{self, AppState},
+    shieldd_sdk_app::test_support::{TestHost, TEST_CHAIN_ID},
     shieldd_sdk_asset::asset::REGISTRY,
     shieldd_sdk_compliance::{
         scanning::decrypt_full_flagged, structs::AssetPolicy, ComplianceRegistryWrite,
-        DetectionKey, TransferComplianceCiphertext,
+        DetectionKey, TransferComplianceCiphertext, TransferComplianceMetadata,
     },
     shieldd_sdk_keys::{keys::AddressIndex, symmetric::PayloadKey, test_keys},
     shieldd_sdk_mock_client::MockClient,
-    shieldd_sdk_mock_consensus::TestNode,
-    shieldd_sdk_shielded_pool::{
-        genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
-    },
+    shieldd_sdk_shielded_pool::{genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan},
     shieldd_sdk_transaction::{
         memo::MemoPlaintext,
         plan::{ActionPlan, MemoPlan},
-        TransactionParameters, TransactionPlan,
+        TransactionParameters,
     },
-    shieldd_sdk_view::enrich_plan_with_compliance,
+    shieldd_sdk_view::complete_plan_with_compliance,
     std::ops::Deref,
-    tap::{Tap, TapFallible},
+    tap::Tap,
     tracing::info,
 };
 
@@ -37,7 +30,7 @@ mod common;
 async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfer(
 ) -> anyhow::Result<()> {
     let guard = common::set_tracing_subscriber();
-    let storage = TempStorage::new_with_shieldd_prefixes().await?;
+    let storage = common::new_storage().await?;
     let regulated_denom = "test_regulated_asset";
     let regulated_asset_id = REGISTRY
         .parse_denom(regulated_denom)
@@ -48,8 +41,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     let recipient = test_keys::ADDRESS_0.deref().clone();
 
     let _test_node = {
-        let mut content =
-            genesis::Content::default().with_chain_id(TestNode::<()>::CHAIN_ID.to_string());
+        let mut content = genesis::Content::default().with_chain_id(TEST_CHAIN_ID.to_string());
         content.shielded_pool_content.allocations = vec![Allocation {
             raw_amount: 1_000u128.into(),
             raw_denom: regulated_denom.to_string(),
@@ -57,13 +49,12 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         }];
 
         let app_state = AppState::Content(content);
-        let consensus = Consensus::new(storage.as_ref().clone());
-        TestNode::builder()
-            .single_validator()
-            .with_shieldd_auto_app_state(app_state)?
-            .init_chain(consensus)
-            .await
-            .tap_ok(|e| info!(hash = %e.last_app_hash_hex(), "finished init chain"))?
+        TestHost::new(
+            storage.as_ref().clone(),
+            app_state,
+            tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+        )
+        .await?
     };
 
     let client = MockClient::new(test_keys::SPEND_KEY.clone())
@@ -87,32 +78,40 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     build_state
         .test_only_register_asset(
             asset_id,
-            AssetPolicy::simple(dk.public_key(), 1u128, ring_pk),
+            AssetPolicy::for_test(dk.public_key(), 1u128, ring_pk),
             true,
         )
         .await?;
-    common::register_test_users_for_compliance(
-        &mut build_state,
-        &[sender.clone(), recipient.clone()],
-        &[asset_id],
-    )
-    .await?;
+    for address in [sender.clone(), recipient.clone()] {
+        let rnk_dh_pk = address.diversified_generator().clone();
+        let rnk = shieldd_sdk_compliance::derive_regulated_nullifier_key(
+            client.fvk.incoming(),
+            &address,
+            asset_id,
+            ring_pk,
+            rnk_dh_pk,
+        )?;
+        let leaf = shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
+            address, asset_id, ring_pk, rnk_dh_pk, rnk,
+        )?;
+        build_state.test_only_add_compliance_leaf(leaf).await?;
+    }
 
-    let mut spend = ShieldedInputPlan::new(
+    let spend = ShieldedInputPlan::new(
         &mut OsRng,
         note.clone(),
         client
             .position(note.commit())
             .ok_or_else(|| anyhow!("sender note position unknown"))?,
     );
-    let mut output = ShieldedOutputPlan::new(&mut OsRng, note.value(), recipient.clone());
-    common::align_transfer_planning_metadata(
-        std::slice::from_mut(&mut spend),
-        std::slice::from_mut(&mut output),
-    );
-    let transfer = TransferPlan::new(vec![spend], vec![output], Fr::from(1u64))?;
+    let output = ShieldedOutputPlan::new(&mut OsRng, note.value(), recipient.clone());
+    let transfer = shieldd_sdk_mock_client::TransferIntent {
+        spends: vec![spend],
+        outputs: vec![output],
+        value_blinding: Fr::from(1u64),
+    };
 
-    let mut plan = TransactionPlan {
+    let intent = shieldd_sdk_mock_client::TransactionIntent {
         nullifier_window: Some(
             shieldd_sdk_sct::nullifier_tree::generation_state(&build_state)
                 .await?
@@ -125,13 +124,28 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         )),
         fee_funding: None,
         transaction_parameters: TransactionParameters {
-            chain_id: TestNode::<()>::CHAIN_ID.to_string(),
+            chain_id: TEST_CHAIN_ID.to_string(),
             ..Default::default()
         },
     };
 
     let provider = shieldd_sdk_mock_client::StateReadComplianceProvider::new(build_state);
-    enrich_plan_with_compliance(&mut plan, &provider, &mut OsRng, None).await?;
+    let plan = complete_plan_with_compliance(
+        intent,
+        |queries| async move {
+            provider.get_batch_proofs(&queries).await.map(|compliance| {
+                shieldd_sdk_view::CompletionData {
+                    compliance,
+                    volumes: vec![],
+                }
+            })
+        },
+        &mut OsRng,
+        Default::default(),
+        None,
+        true,
+    )
+    .await?;
 
     let witness_data = client.witness_plan(&plan)?;
     let dummy_payload_key: PayloadKey = [0u8; 32].into();
@@ -151,7 +165,8 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     let ciphertext =
         TransferComplianceCiphertext::from_bytes(&receiver_output.compliance_ciphertext)
             .expect("transfer output should carry a valid compliance ciphertext");
-    let decrypted = decrypt_full_flagged(dk.inner(), &ciphertext, asset_id)?
+    let metadata = TransferComplianceMetadata::from_bytes(&receiver_output.compliance_metadata)?;
+    let decrypted = decrypt_full_flagged(dk.inner(), &ciphertext, &metadata, asset_id)?
         .expect("flagged transfer compliance should decrypt");
 
     assert_eq!(

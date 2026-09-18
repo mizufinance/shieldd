@@ -5,28 +5,12 @@
 # --- Repo-local tmp directory for all artifacts ---
 COMPLIANCE_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPLIANCE_TMP="${COMPLIANCE_TMP:-$COMPLIANCE_REPO_ROOT/tmp}"
-COMPLIANCE_STACK_HOME="${SHIELDD_ORBIS_HOME:-$COMPLIANCE_TMP/shieldd-home}"
-COMPLIANCE_NETWORK_DATA_DIR="${COMPLIANCE_STACK_HOME}/network_data"
 ORBIS_RUNTIME_FILE="$COMPLIANCE_TMP/orbis-runtime.json"
 mkdir -p "$COMPLIANCE_TMP"
 
-SHIELDD_PD_GRPC_PORT="${SHIELDD_PD_GRPC_PORT:-8080}"
-SHIELDD_COMETBFT_RPC_PORT="${SHIELDD_COMETBFT_RPC_PORT:-16657}"
-SHIELDD_COMETBFT_P2P_PORT="${SHIELDD_COMETBFT_P2P_PORT:-16656}"
-SHIELDD_POSTGRES_PORT="${SHIELDD_POSTGRES_PORT:-5432}"
-SHIELDD_PCLIENTD_PORT_BASE="${SHIELDD_PCLIENTD_PORT_BASE:-18081}"
-SHIELDD_NODE_PD_URL="${SHIELDD_NODE_PD_URL:-http://127.0.0.1:$SHIELDD_PD_GRPC_PORT}"
-SHIELDD_NODE_CMT_URL="${SHIELDD_NODE_CMT_URL:-http://127.0.0.1:$SHIELDD_COMETBFT_RPC_PORT}"
 
 export COMPLIANCE_TMP
 export ORBIS_RUNTIME_FILE
-export SHIELDD_PD_GRPC_PORT
-export SHIELDD_COMETBFT_RPC_PORT
-export SHIELDD_COMETBFT_P2P_PORT
-export SHIELDD_POSTGRES_PORT
-export SHIELDD_PCLIENTD_PORT_BASE
-export SHIELDD_NODE_PD_URL
-export SHIELDD_NODE_CMT_URL
 
 gnark_lib_ext() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -47,8 +31,8 @@ export_demo_gnark_env() {
 
     export SHIELDD_GNARK_NOTE_RESHAPE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_note_reshape.${ext}"
 
-    export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_shielded_ics20_withdrawal.${ext}"
-    export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/shielded_ics20_withdrawal"
+    export SHIELDD_GNARK_SHIELDED_WITHDRAWAL_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_shielded_withdrawal.${ext}"
+    export SHIELDD_GNARK_SHIELDED_WITHDRAWAL_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/shielded_withdrawal"
 }
 
 export_compliance_rust_log() {
@@ -100,7 +84,7 @@ build_demo_gnark_libs() {
         cd "$COMPLIANCE_REPO_ROOT/tools/gnark"
         CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_note_reshape.$(gnark_lib_ext)" ./cmd/note_reshapelib
         CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_transfer.$(gnark_lib_ext)" ./cmd/transferlib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_shielded_ics20_withdrawal.$(gnark_lib_ext)" ./cmd/shieldedics20withdrawallib
+        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_shielded_withdrawal.$(gnark_lib_ext)" ./cmd/shieldedwithdrawallib
     )
 }
 
@@ -113,7 +97,7 @@ ensure_demo_gnark_libs() {
     for spec in \
         "note_reshape:shieldd_gnark_note_reshape_init" \
         "transfer:shieldd_gnark_transfer_init" \
-        "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
+        "shielded_withdrawal:shieldd_gnark_shielded_withdrawal_init"
     do
         local family="${spec%%:*}"
         local symbol="${spec#*:}"
@@ -135,7 +119,7 @@ ensure_demo_gnark_libs() {
     for spec in \
         "note_reshape:shieldd_gnark_note_reshape_init" \
         "transfer:shieldd_gnark_transfer_init" \
-        "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
+        "shielded_withdrawal:shieldd_gnark_shielded_withdrawal_init"
     do
         local family="${spec%%:*}"
         local symbol="${spec#*:}"
@@ -285,106 +269,13 @@ extract_toml_string() {
     awk -F'"' -v key="$key" '$1 == key " = " { print $2; exit }' "$file"
 }
 
-set_pcli_view_url() {
-    local config_path="$1"
-    local view_url="$2"
-    local tmpfile
-    tmpfile=$(mktemp)
 
-    awk -v view_url="$view_url" '
-        BEGIN { updated = 0 }
-        /^view_url = / {
-            print "view_url = \"" view_url "\""
-            updated = 1
-            next
-        }
-        /^grpc_url = / {
-            print
-            if (!updated) {
-                print "view_url = \"" view_url "\""
-                updated = 1
-            }
-            next
-        }
-        { print }
-        END {
-            if (!updated) {
-                print "view_url = \"" view_url "\""
-            }
-        }
-    ' "$config_path" > "$tmpfile"
 
-    mv "$tmpfile" "$config_path"
-}
-
-configure_wallet_view_service() {
-    local wallet_name="$1"
-    local wallet_home="$2"
-    local daemon_home="$3"
-    local bind_port="$4"
-    local pcli_bin="$5"
-    local pclientd_bin="$6"
-    local pid_file="$7"
-    local config_path="$wallet_home/config.toml"
-    local fvk
-    local grpc_url
-    local view_url="http://127.0.0.1:${bind_port}"
-    local daemon_log="$COMPLIANCE_TMP/${wallet_name}-pclientd.log"
-    local daemon_pid
-
-    fvk="$(extract_toml_string "$config_path" "full_viewing_key")"
-    grpc_url="$(extract_toml_string "$config_path" "grpc_url")"
-
-    if [ -z "$fvk" ] || [ -z "$grpc_url" ]; then
-        log_error "failed to read wallet config for $wallet_name from $config_path"
+require_docker_compose() {
+    if ! docker compose version >/dev/null 2>&1; then
+        log_error "Docker Compose v2 is required"
         return 1
     fi
-
-    rm -rf "$daemon_home"
-    mkdir -p "$daemon_home"
-
-    printf '%s\n' "$fvk" | "$pclientd_bin" --home "$daemon_home" init \
-        --view \
-        --grpc-url "$grpc_url" \
-        --bind-addr "127.0.0.1:${bind_port}" >/dev/null
-
-    set_pcli_view_url "$config_path" "$view_url"
-
-    "$pclientd_bin" --home "$daemon_home" start > "$daemon_log" 2>&1 &
-    daemon_pid=$!
-    echo "${wallet_name}_PCLIENTD_PID=$daemon_pid" >> "$pid_file"
-
-    wait_for_tcp_port "$bind_port" 30 1
-
-    for attempt in $(seq 1 30); do
-        if ! kill -0 "$daemon_pid" 2>/dev/null; then
-            log_error "$wallet_name pclientd exited early"
-            tail -n 50 "$daemon_log" >&2 || true
-            return 1
-        fi
-
-        if "$pcli_bin" --home "$wallet_home" view balance >/dev/null 2>&1; then
-            return 0
-        fi
-        sleep 1
-    done
-
-    log_error "$wallet_name pclientd did not become ready"
-    tail -n 50 "$daemon_log" >&2 || true
-    return 1
-}
-
-docker_compose_flavor() {
-    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-        printf 'docker-compose-v2\n'
-        return 0
-    fi
-    if command -v docker-compose >/dev/null 2>&1; then
-        printf 'docker-compose-v1\n'
-        return 0
-    fi
-    log_error "docker compose not found"
-    return 1
 }
 
 docker_daemon_ready() {
@@ -439,8 +330,7 @@ ensure_orbis_images() {
         return 1
     fi
     if ! jq -e '
-        .schema_version == 1
-        and (.orbis.source_revision | strings | test("^[0-9a-f]{40}$"))
+        (.orbis.source_revision | strings | test("^[0-9a-f]{40}$"))
         and (.orbis.crypto | strings | length > 0)
         and (.orbis.image | strings | test("^ghcr\\.io/sourcenetwork/orbis-rs@sha256:[0-9a-f]{64}$"))
         and (.vera.source_revision | strings | test("^[0-9a-f]{40}$"))
@@ -475,18 +365,10 @@ orbis_compose_project_name() {
 run_orbis_compose() {
     local compose_file="$1"
     shift
-    local flavor
-    flavor="$(docker_compose_flavor)" || return 1
+    require_docker_compose || return 1
     local project_name
     project_name="$(orbis_compose_project_name)"
-    case "$flavor" in
-        docker-compose-v2)
-            docker compose -p "$project_name" -f "$compose_file" "$@"
-            ;;
-        docker-compose-v1)
-            docker-compose -p "$project_name" -f "$compose_file" "$@"
-            ;;
-    esac
+    docker compose -p "$project_name" -f "$compose_file" "$@"
 }
 
 orbis_published_port() {
@@ -736,52 +618,9 @@ wait_for_orbis_stack() {
     resolve_orbis_runtime_node_endpoints || return 1
 }
 
-wait_for_shieldd_stack() {
-    wait_for_shieldd "$SHIELDD_COMETBFT_RPC_PORT" 45 2 5 || return 1
-    wait_for_tcp_port "$SHIELDD_PD_GRPC_PORT" 30 1 || return 1
-}
 
-kill_tracked_pids() {
-    local pid_file="$1"
-
-    [ -f "$pid_file" ] || return 0
-
-    while IFS='=' read -r _ pid; do
-        [ -n "${pid:-}" ] || continue
-        kill "$pid" 2>/dev/null || true
-    done < "$pid_file"
-
-    while IFS='=' read -r _ pid; do
-        [ -n "${pid:-}" ] || continue
-        wait "$pid" 2>/dev/null || true
-    done < "$pid_file"
-
-    rm -f "$pid_file"
-}
 
 # --- Wait for Shieldd node to be fully ready (blocks producing) ---
-wait_for_shieldd() {
-    local cometbft_port="${1:-16657}"
-    local max_attempts="${2:-45}"
-    local interval="${3:-2}"
-    local min_height="${4:-1}"
-    local url="http://localhost:${cometbft_port}/status"
-
-    for attempt in $(seq 1 "$max_attempts"); do
-        local height
-        height=$(curl -sf "$url" 2>/dev/null \
-            | jq -r '.result.sync_info.latest_block_height' 2>/dev/null || echo "0")
-        if [ "$height" -ge "$min_height" ] 2>/dev/null; then
-            return 0
-        fi
-        if [ "$attempt" -eq "$max_attempts" ]; then
-            log_error "Shieldd did not reach height $min_height within $((max_attempts * interval))s"
-            return 1
-        fi
-        echo "    ... waiting for Shieldd height >= $min_height ($attempt/$max_attempts)"
-        sleep "$interval"
-    done
-}
 
 # --- Active polling for PRE status ---
 poll_pre_status() {

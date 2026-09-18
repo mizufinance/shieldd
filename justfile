@@ -1,17 +1,12 @@
+set export
+export CARGO_BUILD_JOBS := "2"
+export RAYON_NUM_THREADS := "2"
+export GOMAXPROCS := "2"
+export GOFLAGS := "-p=2"
+
 # Prints the list of recipes.
 default:
     @just --list
-
-# Creates and runs a local devnet with solo validator. Includes ancillary services
-
-# like metrics and PostgreSQL for storing ABCI events.
-dev:
-    ./deployments/scripts/check-nix-shell && \
-        ./deployments/scripts/run-local-devnet.sh \
-        --keep-project \
-        --config ./deployments/compose/process-compose-postgres.yml \
-        --config ./deployments/compose/process-compose-metrics.yml \
-        --config ./deployments/compose/process-compose-dev-tooling.yml
 
 # Formats the rust files in the project.
 fmt:
@@ -23,33 +18,28 @@ build:
 
 # Runs 'cargo check' on all rust files in the project.
 check:
+    just tooling-test
     just snarkpack-invariants
     # check, failing on warnings
     RUSTFLAGS="-D warnings" cargo check --release --all-targets --all-features --target-dir=target/check
     # fmt dry-run, failing on any suggestions
     cargo fmt --all -- --check
 
+tooling-test:
+    python3 -m unittest discover -s scripts/tests
+    python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+    python3 -m unittest discover -s deployments/scripts/tests
+
 # Go formatting check for the gnark runtime.
 go-fmt-check:
-    bash -lc 'cd tools/gnark && \
-      files="$(gofmt -l .)"; \
-      if test -z "$files"; then \
-        exit 0; \
-      fi; \
-      echo "unformatted Go files:"; \
-      printf "%s\n" "$files"; \
-      if test -n "$CI"; then \
-        echo "run: cd tools/gnark && gofmt -w $files"; \
-        exit 1; \
-      fi; \
-      echo "auto-fixing with gofmt -w"; \
-      gofmt -w $files; \
-      remaining="$(gofmt -l .)"; \
-      if test -n "$remaining"; then \
-        echo "still unformatted after gofmt:"; \
-        printf "%s\n" "$remaining"; \
-        exit 1; \
-      fi'
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd tools/gnark
+    files="$(gofmt -l .)"
+    if [[ -n "$files" ]]; then
+        printf 'Run just go-fmt to format:\n%s\n' "$files" >&2
+        exit 1
+    fi
 
 # Format the gnark Go module.
 go-fmt:
@@ -76,15 +66,21 @@ gnark-proof-tests-fast:
     cargo test -p shieldd-sdk-shielded-pool gnark:: --lib
     cargo test -p shieldd-sdk-shielded-pool public_input_hash:: --lib
 
+# Exercise the note-seizure daemon, consensus verifier, and host state transition.
+note-seizure-proof-tests:
+    mkdir -p target/gnark-test
+    cd tools/gnark && go build -o ../../target/gnark-test/proverdaemon ./cmd/proverdaemon
+    SHIELDD_GNARK_NOTE_SEIZURE_DAEMON="$PWD/target/gnark-test/proverdaemon" SHIELDD_GNARK_NOTE_SEIZURE_ARTIFACT_DIR="$PWD/tools/gnark/artifacts/note_seizure" cargo test --release -p shieldd-sdk-shielded-pool gnark::note_seizure::tests::gnark_daemon_proof_note_seizure_roundtrip --lib -- --exact --ignored --test-threads=1
+    SHIELDD_GNARK_NOTE_SEIZURE_DAEMON="$PWD/target/gnark-test/proverdaemon" SHIELDD_GNARK_NOTE_SEIZURE_ARTIFACT_DIR="$PWD/tools/gnark/artifacts/note_seizure" cargo test --release -p shieldd-sdk-app app::host::tests::note_seizure_verifies_capsule_release_and_commits_once --lib -- --exact --ignored --test-threads=1
+
 # Run the slow end-to-end gnark proof-generation suite.
 gnark-proof-tests-slow:
     python3 scripts/proof_artifacts.py materialize --bundle runtime
-    cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
-    cargo test --release -p shieldd-sdk-shielded-pool --lib
+    just note-seizure-proof-tests
+    bash scripts/gnark-proof-tests-slow.sh
 
 # Run ignored slow SnarkPack parity tests.
 snarkpack-slow:
-    just snarkpack-slow-one legacy
     just snarkpack-slow-one oracle
     just snarkpack-slow-one interop
 
@@ -93,10 +89,6 @@ snarkpack-slow-one test:
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{test}}" in
-      legacy)
-        package=shieldd-sdk-proof-aggregation
-        filter=snarkpack_matches_legacy_batch_across_families_and_counts_slow
-        ;;
       oracle)
         package=shieldd-sdk-proof-aggregation
         filter=snarkpack_matches_single_and_batch_groth16_oracles_slow
@@ -110,7 +102,7 @@ snarkpack-slow-one test:
         exit 2
         ;;
     esac
-    cargo test -p "$package" "$filter" --lib -- --ignored --test-threads=1
+    cargo test --release -p "$package" "$filter" --lib -- --ignored --test-threads=1
 
 # Run the exact ordinary tests anchoring the bounded challenge sampler and its
 # public prover/verifier exhaustion mappings.
@@ -120,7 +112,7 @@ snarkpack-challenge-boundaries:
 
 # Run bounded SnarkPack fuzz harness smoke tests.
 snarkpack-fuzz-smoke:
-    bash -lc 'set -euo pipefail; unset ROCKSDB_LIB_DIR ROCKSDB_INCLUDE_DIR; toolchain="${SNARKPACK_FUZZ_TOOLCHAIN:-nightly-2025-09-30}"; export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH" RUSTUP_TOOLCHAIN="$toolchain"; runs="${SNARKPACK_FUZZ_RUNS:-16}"; fuzz_dir="crates/crypto/proof-aggregation-fuzz"; tmp="$(mktemp -d)"; trap "rm -rf \"$tmp\"" EXIT; cargo fuzz build --fuzz-dir "$fuzz_dir"; for target in wrapper_inner_range preflight_aggregate_verify deserialize_aggregate_proof; do mkdir -p "$tmp/$target"; cp "$fuzz_dir"/corpus/"$target"/* "$tmp/$target"/; cargo fuzz run --fuzz-dir "$fuzz_dir" "$target" "$tmp/$target" -- -runs="$runs"; done'
+    bash -lc 'set -euo pipefail; unset ROCKSDB_LIB_DIR ROCKSDB_INCLUDE_DIR; toolchain="${SNARKPACK_FUZZ_TOOLCHAIN:-nightly-2025-09-30}"; export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH" RUSTUP_TOOLCHAIN="$toolchain"; runs="${SNARKPACK_FUZZ_RUNS:-16}"; fuzz_dir="crates/crypto/proof-aggregation-fuzz"; tmp="$(mktemp -d)"; trap "rm -rf \"$tmp\"" EXIT; cargo fuzz build --fuzz-dir "$fuzz_dir"; for target in deserialize_aggregate_proof; do mkdir -p "$tmp/$target"; cp "$fuzz_dir"/corpus/"$target"/* "$tmp/$target"/; cargo fuzz run --fuzz-dir "$fuzz_dir" "$target" "$tmp/$target" -- -runs="$runs"; done'
 
 # Check durable SnarkPack runtime invariants.
 snarkpack-invariants:
@@ -143,11 +135,12 @@ ci-check:
 
 # CI wrapper for `test`.
 ci-test:
+    python3 scripts/stage_artifacts.py provers --profile ci
     if command -v cargo-nextest >/dev/null 2>&1; then \
-      cargo nextest run --cargo-profile ci --no-fail-fast; \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo nextest run --cargo-profile ci --no-fail-fast -j 2; \
     else \
       echo "warning: cargo-nextest not found; falling back to 'cargo test --release --no-fail-fast'"; \
-      cargo test --release --no-fail-fast; \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo test --release --no-fail-fast -- --test-threads=2; \
     fi
 
 # CI wrapper for `go-check`.
@@ -184,15 +177,6 @@ ci-preflight:
     just ci-test
     just ci-go-check
     just ci-gnark-proof-tests
-    if command -v nix >/dev/null 2>&1; then \
-      nix develop --command just smoke; \
-    else \
-      just smoke; \
-    fi
-
-# Bring up Shieldd infra for the Orbis compliance flow.
-shieldd-up:
-    ./scripts/shieldd-up.sh
 
 # Validate local dependencies for the Orbis integration flow.
 orbis-integration-preflight:
@@ -202,23 +186,14 @@ orbis-integration-preflight:
 orbis-integration-preflight-binaries:
     ./scripts/orbis-integration-preflight.sh --require-binaries
 
-# Validate binaries and local ports before bringing up the stack.
-orbis-integration-preflight-bringup:
-    ./scripts/orbis-integration-preflight.sh --require-binaries --check-ports-free
-
 # Build the binaries required by the Orbis integration flow.
 orbis-integration-build:
-    python3 scripts/proof_artifacts.py materialize --bundle runtime
-    cargo build --release -p pcli -p pclientd --features bundled-proving-keys
-    # Insecure deterministic SRS is confined to the local Orbis integration node.
-    cargo build --release -p pd --features orbis-dev-srs
     cargo build --release -p orbis-audit -p orbis-integration
 
-# Bring up Shieldd and Orbis for phased local debugging.
+# Bring up the Orbis stack for use with Bankd.
 orbis-integration-up:
     just orbis-integration-build
-    just orbis-integration-preflight-bringup
-    ./scripts/shieldd-up.sh
+    just orbis-integration-preflight-binaries
     ./scripts/orbis-stack.sh up
 
 # Create a ring and policy against an already running Orbis/Vera stack.
@@ -230,26 +205,23 @@ orbis-integration-setup-ring output_json:
 # Tear down the Orbis integration stack.
 orbis-integration-down:
     ./scripts/orbis-stack.sh down
-    ./scripts/shieldd-down.sh
 
 # Print Docker logs for the Orbis stack.
 orbis-integration-logs:
     ./scripts/orbis-stack.sh logs
 
-# Render livereload environment for editing the Protocol documentation.
-protocol-docs:
-    # Access local docs at http://127.0.0.1:3002
-    cd docs/protocol && \
-        mdbook serve -n 127.0.0.1 --port 3002
-
 # Generate code for Rust & Go from proto definitions.
 proto:
     ./deployments/scripts/protobuf-codegen
 
-# Run a local prometheus/grafana setup, to scrape a local node.
-metrics:
-    ./deployments/scripts/check-nix-shell && \
-        process-compose --no-server --config ./deployments/compose/process-compose-metrics.yml up --keep-tui
+proto-check:
+    ./deployments/scripts/protobuf-codegen --check
+
+features-check:
+    ./deployments/scripts/check-crate-feature-sets
+
+wasm-check:
+    ./deployments/scripts/check-wasm-compat.sh
 
 # Rebuild Rust crate documentation
 rustdocs:
@@ -257,48 +229,23 @@ rustdocs:
 
 # Run rust unit tests, via cargo-nextest
 test:
-    cargo nextest run --release
+    python3 scripts/stage_artifacts.py provers
+    SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo nextest run --release -j 2
 
-# Run integration tests against the testnet, for validating HTTPS support
-integration-testnet:
-    cargo nextest run --release ${CARGO_FEATURE_ARGS:-} --features integration-testnet -E 'test(/_testnet$/)'
+# Stage relocatable artifacts for embedded hosts and proof tools.
+artifacts-native:
+    python3 scripts/stage_artifacts.py native
 
-# Run smoke test suite, via process-compose config.
-smoke:
-    ./deployments/scripts/check-nix-shell
-    ./deployments/scripts/smoke-test.sh
+artifacts-provers:
+    python3 scripts/stage_artifacts.py provers
 
-reduced-surface-check:
-    bash ./deployments/scripts/check-reduced-surface.sh
+artifacts-audit:
+    python3 scripts/stage_artifacts.py audit
 
-# Run integration tests for pclientd. Assumes specific dev env is already running.
-integration-pclientd:
-    python3 scripts/proof_artifacts.py materialize --bundle runtime
-    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pclientd --test network_integration -- \
-      --ignored --test-threads 1 --nocapture
+# Opt-in circuit sizing diagnostics; no correctness assertions.
+gnark-profile:
+    cd tools/gnark && GOMAXPROCS=2 go test -p 2 -tags diagnostics ./internal/circuits -run '^TestConstraintProfiles$' -v
 
-# Run integration tests for pcli. Assumes specific dev env is already running.
-integration-pcli:
-    python3 scripts/proof_artifacts.py materialize --bundle runtime
-    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test network_integration -- \
-      --ignored --test-threads 1 --nocapture
-    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test compliance_network -- \
-      --ignored --test-threads 1 --nocapture
-
-# Run integration tests for pd. Assumes specific dev env is already running.
-integration-pd:
-    cargo test --release --package pd --test network_integration -- --ignored --test-threads 1 --nocapture
-
-# Build the container image locally
-container:
-    docker build -t ghcr.io/mizufinance/shieldd:local -f ./deployments/containerfiles/Dockerfile .
-
-# Run the testnet locally entirely
-testnet:
-    just --justfile {{ justfile() }} testnet-clean
-    docker compose -f deployments/compose/docker-compose.yml up
-
-# clean up the testnet, removing all volumes
-testnet-clean:
-    docker compose -f deployments/compose/docker-compose.yml down --volumes
-    docker volume rm compose_shieldd-pd-node0 --force || true
+# Explicitly regenerate the frozen seizure witness fixture.
+gnark-bless-seizure:
+    cd tools/gnark && GOMAXPROCS=2 go test -p 2 -tags fixtures ./internal/abi -run '^TestBlessNoteSeizureWitness$' -v

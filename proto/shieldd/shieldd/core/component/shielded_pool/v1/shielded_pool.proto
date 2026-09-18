@@ -3,7 +3,6 @@ package shieldd.core.component.shielded_pool.v1;
 
 import "shieldd/core/asset/v1/asset.proto";
 import "shieldd/core/component/compliance/v1/compliance.proto";
-import "shieldd/core/component/ibc/v1/ibc.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/core/num/v1/num.proto";
@@ -56,17 +55,27 @@ message Note {
   asset.v1.Value value = 1;
   bytes rseed = 2;
   keys.v1.Address address = 3;
+  // Commitment to the recovery capsule that can spend this exact note under seizure.
+  bytes recovery_commitment = 4;
 }
 
 message NoteView {
   asset.v1.ValueView value = 1;
   bytes rseed = 2;
   keys.v1.AddressView address = 3;
+  bytes recovery_commitment = 4;
 }
 
 // An encrypted note.
-// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+// 176 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed)
+//     + 32(recovery commitment) + 16(MAC) bytes.
 message NoteCiphertext {
+  bytes inner = 1;
+}
+
+// Fixed-shape capability ciphertext for amount and note blinding.
+message RecoveryCapsule {
+  // Canonical 192-byte encoding of epk and five Fq words.
   bytes inner = 1;
 }
 
@@ -78,8 +87,10 @@ message NotePayload {
   // The encoding of an ephemeral public key. 32 bytes.
   bytes ephemeral_key = 2;
   // An encryption of the newly created note.
-  // 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+  // 176-byte authenticated encryption of the newly created note.
   NoteCiphertext encrypted_note = 3;
+  // Public recovery sidecar authenticated by note_commitment.
+  RecoveryCapsule recovery_capsule = 4;
 }
 
 // A Shieldd ZK transfer proof.
@@ -92,9 +103,73 @@ message ZKNoteReshapeProof {
   bytes inner = 1;
 }
 
-// A Shieldd ZK shielded ICS-20 withdrawal proof.
-message ZKShieldedIcs20WithdrawalProof {
+// A Shieldd ZK shielded withdrawal proof.
+message ZKShieldedWithdrawalProof {
   bytes inner = 1;
+}
+
+// A proof that one real note is consumed with its canonical compliance nullifier.
+message ZKNoteSeizureProof {
+  bytes inner = 1;
+}
+
+// Immutable facts signed by the asset's seizure authority.
+message NoteSeizureAuthorizationBody {
+  reserved 10;
+
+  string chain_id = 1;
+  crypto.tct.v1.StateCommitment note_commitment = 2;
+  sct.v1.Nullifier nullifier = 3;
+  keys.v1.Address address = 4;
+  asset.v1.AssetId asset_id = 5;
+  num.v1.Amount amount = 6;
+  uint64 freeze_generation = 7;
+  uint64 frozen_since_height = 8;
+  HostWithdrawal withdrawal = 9;
+  uint64 expiry_height = 11;
+}
+
+// Canonical metadata for a future ACP-gated release of one recovery capsule.
+message CapsuleReleaseRequest {
+  string chain_id = 1;
+  string ring_id = 2;
+  string policy_id = 3;
+  string permission = 4;
+  string resource = 5;
+  bytes ring_pk = 6;
+  asset.v1.AssetId asset_id = 7;
+  keys.v1.Address address = 8;
+  bytes capk = 9;
+  crypto.tct.v1.StateCommitment note_commitment = 10;
+  bytes recovery_commitment = 11;
+  bytes capsule_epk = 12;
+  bytes authority_instruction_commitment = 13;
+  uint64 expiry_height = 14;
+}
+
+// A capsule-specific point and proof returned by a future Orbis release API.
+message CapsuleReleaseEvidence {
+  bytes release_id = 1;
+  bytes recovered_point = 2;
+  compliance.v1.DleqProof proof = 3;
+}
+
+// Complete evidence needed to seize one note. It is submitted through the
+// privileged host execution boundary rather than as a user transaction.
+message NoteSeizure {
+  reserved 7, 9, 10, 11;
+
+  NoteSeizureAuthorizationBody authorization = 1;
+  crypto.decaf377_rdsa.v1.SpendAuthSignature authority_signature = 2;
+  crypto.tct.v1.MerkleRoot anchor = 3;
+  bool history_required = 4;
+  uint64 recent_position_floor = 5;
+  RecoveryCapsule recovery_capsule = 6;
+  bytes rnk_commitment = 8;
+  ZKNoteSeizureProof proof = 12;
+  sct.v1.NullifierWindow nullifier_window = 13;
+  sct.v1.HistoricalNullifierProof historical_nullifier_proof = 14;
+  CapsuleReleaseEvidence capsule_release = 15;
 }
 
 message TransferInputBody {
@@ -119,7 +194,7 @@ message TransferOutputBody {
   bytes ovk_wrapped_key = 3;
   // Compliance ciphertext encrypting created note details for the asset issuer.
   bytes compliance_ciphertext = 4;
-  // Canonical 328-byte factored circuit metadata for the receiver output only.
+  // Canonical 264-byte factored circuit metadata for the receiver output only.
   // This field must never contain DH shared points or seed-opening material.
   bytes compliance_metadata = 5;
 }
@@ -150,10 +225,44 @@ message TransferBody {
   crypto.tct.v1.StateCommitment compliance_anchor = 5;
   // Asset tree anchor used during proof generation.
   crypto.tct.v1.StateCommitment asset_anchor = 6;
-  // Fixed two-slot routing bundle; slot roles are private.
+  // Fixed sender/receiver routing-tag bundle.
   TransferRouting routing = 7;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 8;
+  // Fixed-shape daily undisclosed-volume accumulator payload.
+  VolumeAccumulatorPayload volume_accumulator = 9;
+  // Public circuit context preventing fee funding from advancing an accumulator.
+  TransferProofContext proof_context = 10;
+}
+
+enum TransferProofContext {
+  TRANSFER_PROOF_CONTEXT_UNSPECIFIED = 0;
+  TRANSFER_PROOF_CONTEXT_ORDINARY = 1;
+  TRANSFER_PROOF_CONTEXT_FEE_FUNDING = 2;
+}
+
+// Public transition material for one daily undisclosed-volume accumulator slot.
+message VolumeAccumulatorPayload {
+  sct.v1.Nullifier nullifier = 1;
+  crypto.tct.v1.StateCommitment commitment = 2;
+  // OVK-encrypted fixed-width accumulator state (92-byte plaintext plus AEAD tag).
+  bytes encrypted_state = 3;
+  // UTC day start in Unix seconds. Used only to scope temporary nullifier storage.
+  uint64 day_start = 4;
+}
+
+// Private planning state for the fixed accumulator slot.
+message VolumeAccumulatorPlan {
+  bool use_real = 1;
+  bool starts_new_day = 2;
+  uint64 day_start = 3;
+  bytes subject = 4;
+  bytes prior_volume = 5;
+  bytes prior_blinding = 6;
+  crypto.tct.v1.StateCommitment prior_commitment = 7;
+  uint64 prior_position = 8;
+  bytes successor_volume = 9;
+  bytes successor_blinding = 10;
 }
 
 message TransferView {
@@ -185,6 +294,9 @@ message TransferPlan {
   repeated ShieldedOutputPlan outputs = 5;
   // Protocol routing parameter set used to construct and prove the action.
   DiscoveryParameters routing_parameters = 6;
+  TransferContext compliance = 7;
+  VolumeAccumulatorPlan volume_accumulator = 8;
+  TransferProofContext proof_context = 9;
 }
 
 // Releases shielded value for transfer or execution on the host chain.
@@ -226,7 +338,7 @@ message ShieldedHostWithdrawal {
   // The authorizing signatures for each consumed input.
   repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
   // The proof that the withdrawal is well-formed.
-  ZKShieldedIcs20WithdrawalProof proof = 3;
+  ZKShieldedWithdrawalProof proof = 3;
 }
 
 message ShieldedHostWithdrawalBody {
@@ -241,7 +353,7 @@ message ShieldedHostWithdrawalBody {
   // The embedded host-chain withdrawal payload.
   HostWithdrawal withdrawal = 5;
   // The sender-owned change note or sender-owned zero-value dummy.
-  ShieldedIcs20WithdrawalChangeBody change_output = 6;
+  ShieldedWithdrawalChangeBody change_output = 6;
   // Target timestamp for compliance verification (Unix UTC seconds).
   uint64 target_timestamp = 7;
   // Compliance tree anchor (user tree root) used during proof generation.
@@ -252,6 +364,9 @@ message ShieldedHostWithdrawalBody {
   RoutingTag routing_tag = 10;
   // Poseidon identifier of the privately selected protocol parameter set.
   bytes routing_parameter_set_id = 11;
+  // Proof-bound encryption of the exact sender compliance address.
+  bytes withdrawal_compliance_ciphertext = 12;
+  VolumeAccumulatorPayload volume_accumulator = 14;
 }
 
 message ShieldedHostWithdrawalView {
@@ -285,83 +400,17 @@ message ShieldedHostWithdrawalPlan {
   HostWithdrawal withdrawal = 6;
   // Protocol-wide routing parameters bound by the reused withdrawal proof.
   DiscoveryParameters routing_parameters = 7;
+  WithdrawalContext compliance = 8;
+  VolumeAccumulatorPlan volume_accumulator = 9;
 }
 
-message ShieldedIcs20WithdrawalChangeBody {
+message ShieldedWithdrawalChangeBody {
   // The minimal data required to scan and process the created change note.
   NotePayload note_payload = 1;
   // An encrypted key for decrypting the memo.
   bytes wrapped_memo_key = 2;
   // The key material used for note encryption, wrapped to the sender's OVK.
   bytes ovk_wrapped_key = 3;
-}
-
-// Withdraws shielded funds over ICS-20 while keeping shielded change in the same action.
-message ShieldedIcs20Withdrawal {
-  // The effecting data of the withdrawal.
-  ShieldedIcs20WithdrawalBody body = 1;
-  // The authorizing signatures for each consumed input.
-  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
-  // The proof that the withdrawal is well-formed.
-  ZKShieldedIcs20WithdrawalProof proof = 3;
-}
-
-message ShieldedIcs20WithdrawalBody {
-  // The proving family this action uses.
-  uint32 family_id = 1;
-  // The state commitment tree anchor used during proof generation.
-  crypto.tct.v1.MerkleRoot anchor = 2;
-  // A commitment to the net balance of the action.
-  asset.v1.BalanceCommitment balance_commitment = 3;
-  // The consumed notes.
-  repeated TransferInputBody inputs = 4;
-  // The embedded outbound ICS-20 withdrawal payload.
-  shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 5;
-  // The sender-owned change note or sender-owned zero-value dummy.
-  ShieldedIcs20WithdrawalChangeBody change_output = 6;
-  // Target timestamp for compliance verification (Unix UTC seconds).
-  uint64 target_timestamp = 7;
-  // Compliance tree anchor (user tree root) used during proof generation.
-  crypto.tct.v1.StateCommitment compliance_anchor = 8;
-  // Asset tree anchor used during proof generation.
-  crypto.tct.v1.StateCommitment asset_anchor = 9;
-  // Sender routing tag, present even when the change output is dummy.
-  RoutingTag routing_tag = 10;
-  // Poseidon identifier of the privately selected protocol parameter set.
-  bytes routing_parameter_set_id = 11;
-}
-
-message ShieldedIcs20WithdrawalView {
-  message Visible {
-    ShieldedIcs20Withdrawal withdrawal = 1;
-    repeated NoteView spent_notes = 2;
-    NoteView change_note = 3;
-    keys.v1.PayloadKey payload_key = 4;
-  }
-
-  message Opaque {
-    ShieldedIcs20Withdrawal withdrawal = 1;
-  }
-
-  oneof shielded_ics20_withdrawal_view {
-    Visible visible = 1;
-    Opaque opaque = 2;
-  }
-}
-
-message ShieldedIcs20WithdrawalPlan {
-  reserved 1, 3;
-
-  // The blinding factor to use for the net balance commitment.
-  bytes value_blinding = 2;
-  // The shielded input plans fused into this withdrawal.
-  repeated ShieldedInputPlan spends = 4;
-  // The sender-owned change output, if any.
-  ShieldedOutputPlan change_output = 5;
-  // The embedded outbound ICS-20 withdrawal payload.
-  shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 6;
-  // Protocol routing parameter set used to construct and prove the action.
-  DiscoveryParameters routing_parameters = 7;
 }
 
 message NoteReshapeInputBody {
@@ -446,6 +495,7 @@ message NoteReshapePlan {
   uint32 family_id = 6;
   // Protocol routing parameter set used to construct and prove the action.
   DiscoveryParameters routing_parameters = 7;
+  NoteReshapeContext compliance = 8;
 }
 
 // ABCI Event recording a spent nullifier.
@@ -459,77 +509,17 @@ message EventNoteCreated {
 }
 
 message ShieldedInputPlan {
-  reserved 5, 6, 8, 11, 12, 13, 22 to 29;
-
-  // The plaintext note we plan to spend.
   Note note = 1;
-  // The position of the note we plan to spend.
   uint64 position = 2;
-  // The randomizer to use for the spend.
   bytes randomizer = 3;
-  // The blinding factor to use for the value commitment.
   bytes value_blinding = 4;
-  // Target timestamp for compliance verification (Unix UTC seconds).
-  uint64 target_timestamp = 7;
-  // Whether the asset is regulated (requires compliance).
-  bool is_regulated = 9;
-  // Compliance leaf for ZK proof (sender's registry entry).
-  compliance.v1.ComplianceLeaf compliance_leaf = 10;
-  // Shared transaction blinding nonce (same for spend and output in one transaction).
-  bytes tx_blinding_nonce = 14;
-  // The compliance anchor (user tree root) for proof generation.
-  crypto.tct.v1.StateCommitment compliance_anchor = 15;
-  // The asset anchor (asset tree root) for proof generation.
-  crypto.tct.v1.StateCommitment asset_anchor = 16;
-  // Compliance Merkle path for proving user is in the compliance registry.
-  compliance.v1.MerklePath compliance_path = 17;
-  // Position of the user's compliance leaf in the compliance tree.
-  uint64 compliance_position = 18;
-  // Asset Merkle path for proving asset is in the asset registry.
-  compliance.v1.MerklePath asset_path = 19;
-  // Position of the asset in the asset registry tree.
-  uint64 asset_position = 20;
-  // Indexed leaf data for IMT proof verification (value, next_index, next_value).
-  compliance.v1.IndexedLeafData asset_indexed_leaf = 21;
-  // Full compliance asset policy for regulated assets.
-  compliance.v1.AssetPolicy asset_policy = 30;
 }
 
 message ShieldedOutputPlan {
-  reserved 5, 6, 8, 11 to 13, 22 to 38;
-
-  // The value to send to this output.
   asset.v1.Value value = 1;
-  // The destination address to send it to.
   keys.v1.Address dest_address = 2;
-  // The rseed to use for the new note.
   bytes rseed = 3;
-  // The blinding factor to use for the value commitment.
   bytes value_blinding = 4;
-  // Target timestamp for compliance verification (Unix UTC seconds).
-  uint64 target_timestamp = 7;
-  // Whether the asset is regulated (requires compliance).
-  bool is_regulated = 9;
-  // Compliance leaf for ZK proof (recipient's registry entry).
-  compliance.v1.ComplianceLeaf compliance_leaf = 10;
-  // Shared transaction blinding nonce (same for spend and output in one transaction).
-  bytes tx_blinding_nonce = 14;
-  // The compliance anchor (user tree root) for proof generation.
-  crypto.tct.v1.StateCommitment compliance_anchor = 15;
-  // The asset anchor (asset tree root) for proof generation.
-  crypto.tct.v1.StateCommitment asset_anchor = 16;
-  // Compliance Merkle path for proving user is in the compliance registry.
-  compliance.v1.MerklePath compliance_path = 17;
-  // Position of the user's compliance leaf in the compliance tree.
-  uint64 compliance_position = 18;
-  // Asset Merkle path for proving asset is in the asset registry.
-  compliance.v1.MerklePath asset_path = 19;
-  // Position of the asset in the asset registry tree.
-  uint64 asset_position = 20;
-  // Indexed leaf data for IMT proof verification (value, next_index, next_value).
-  compliance.v1.IndexedLeafData asset_indexed_leaf = 21;
-  // Full compliance asset policy for regulated assets.
-  compliance.v1.AssetPolicy asset_policy = 39;
 }
 
 // Query operations for the shielded pool component.
@@ -543,7 +533,6 @@ service QueryService {
   // of the asset IDs array.
   rpc AssetMetadataByIds(AssetMetadataByIdsRequest) returns (stream AssetMetadataByIdsResponse);
 }
-
 
 // Requests information on an asset by asset id
 message AssetMetadataByIdRequest {
@@ -570,57 +559,42 @@ message AssetMetadataByIdsResponse {
   core.asset.v1.Metadata denom_metadata = 1;
 }
 
-// Metadata about the packet associated with the transfer.
-//
-// This allows identifying which specific packet is associated with the transfer.
-// Implicitly, both ports are going to be "transfer".
-message FungibleTokenTransferPacketMetadata {
-  // The identifier for the channel on *this* chain.
-  string channel = 1;
-  // Sequence number for the packet.
-  uint64 sequence = 2;
+message AssetWitness {
+  asset.v1.AssetId asset_id = 1;
+  crypto.tct.v1.StateCommitment root = 2;
+  compliance.v1.IndexedLeafData leaf = 3;
+  uint64 position = 4;
+  compliance.v1.MerklePath path = 5;
+  bool is_regulated = 6;
 }
 
-message EventOutboundFungibleTokenTransfer {
-  // The value being transferred out of the chain.
-  core.asset.v1.Value value = 1;
-  // The sending address on chain.
-  core.keys.v1.Address sender = 2;
-  // The receiving address, which we don't assume anything about.
-  string receiver = 3;
-  FungibleTokenTransferPacketMetadata meta = 4;
+message UserWitness {
+  compliance.v1.ComplianceLeaf leaf = 1;
+  uint64 position = 2;
+  compliance.v1.MerklePath path = 3;
 }
 
-message EventOutboundFungibleTokenRefund {
-  enum Reason {
-    // No particular reason.
-    REASON_UNSPECIFIED = 0;
-    // The transfer timed out.
-    REASON_TIMEOUT = 1;
-    // The transfer was acknowledged with an error.
-    REASON_ERROR = 2;
-  }
-
-  // The value being refunded.
-  core.asset.v1.Value value = 1;
-  // The sender being refunded.
-  core.keys.v1.Address sender = 2;
-  // The address that attempted to receive the funds.
-  string receiver = 3;
-  // Why the refund is happening.
-  Reason reason = 4;
-  // This will be the metadata for the packet for the transfer being refunded.
-  //
-  // This allows linking a refund to the transfer.
-  FungibleTokenTransferPacketMetadata meta = 5;
+message ActionWitness {
+  AssetWitness asset = 1;
+  crypto.tct.v1.StateCommitment user_root = 2;
+  UserWitness sender = 3;
+  compliance.v1.AssetPolicy policy = 4;
 }
 
-message EventInboundFungibleTokenTransfer {
-  // The value being transferred in.
-  core.asset.v1.Value value = 1;
-  // The sender on the counterparty chain.
-  string sender = 2;
-  // The receiver on this chain.
-  core.keys.v1.Address receiver = 3;
-  FungibleTokenTransferPacketMetadata meta = 4;
+message TransferContext {
+  ActionWitness witness = 1;
+  UserWitness recipient = 2;
+  uint64 timestamp = 4;
+  bytes nonce = 5;
+}
+
+message NoteReshapeContext {
+  ActionWitness witness = 1;
+  bytes nonce = 2;
+}
+
+message WithdrawalContext {
+  ActionWitness witness = 1;
+  uint64 timestamp = 2;
+  bytes nonce = 3;
 }

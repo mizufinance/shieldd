@@ -3,13 +3,15 @@ use std::convert::TryInto;
 use anyhow::{Context, Error};
 use decaf377_rdsa::{Signature, SpendAuth};
 use shieldd_sdk_asset::balance;
+use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 use crate::{
-    discovery::RoutingTag, HostWithdrawal, ShieldedIcs20WithdrawalChangeBody,
-    ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof, TransferInputBody,
+    discovery::RoutingTag, HostWithdrawal, ShieldedWithdrawalChangeBody,
+    ShieldedWithdrawalFamilyId, ShieldedWithdrawalProof, TransferInputBody, TransferProofContext,
+    VolumeAccumulatorPayload,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -18,30 +20,32 @@ use crate::{
     into = "pb::ShieldedHostWithdrawalBody"
 )]
 pub struct ShieldedHostWithdrawalBody {
-    pub family_id: ShieldedIcs20WithdrawalFamilyId,
+    pub family_id: ShieldedWithdrawalFamilyId,
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
     pub inputs: Vec<TransferInputBody>,
     pub withdrawal: HostWithdrawal,
-    pub change_output: ShieldedIcs20WithdrawalChangeBody,
+    pub change_output: ShieldedWithdrawalChangeBody,
     pub target_timestamp: u64,
     pub compliance_anchor: tct::StateCommitment,
     pub asset_anchor: tct::StateCommitment,
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
+    pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
+    pub volume_accumulator: VolumeAccumulatorPayload,
 }
 
 #[derive(Clone, Debug)]
 pub struct ShieldedHostWithdrawal {
     pub body: ShieldedHostWithdrawalBody,
     pub auth_sigs: Vec<Signature<SpendAuth>>,
-    pub proof: ShieldedIcs20WithdrawalProof,
+    pub proof: ShieldedWithdrawalProof,
 }
 
 impl ShieldedHostWithdrawalBody {
     pub fn validate_shape(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.family_id == ShieldedIcs20WithdrawalFamilyId::Canonical,
+            self.family_id == ShieldedWithdrawalFamilyId::Canonical,
             "shielded host withdrawal family must be canonical"
         );
         anyhow::ensure!(
@@ -51,6 +55,11 @@ impl ShieldedHostWithdrawalBody {
             self.family_id.input_count(),
             self.inputs.len()
         );
+        WithdrawalComplianceCiphertext::from_bytes(
+            &self.withdrawal_compliance_ciphertext.to_bytes(),
+        )?;
+        self.volume_accumulator
+            .validate(TransferProofContext::Ordinary)?;
         Ok(())
     }
 }
@@ -140,6 +149,11 @@ impl From<ShieldedHostWithdrawalBody> for pb::ShieldedHostWithdrawalBody {
             asset_anchor: Some(value.asset_anchor.into()),
             routing_tag: Some(value.routing_tag.into()),
             routing_parameter_set_id: value.routing_parameter_set_id.to_bytes().to_vec(),
+            withdrawal_compliance_ciphertext: value
+                .withdrawal_compliance_ciphertext
+                .to_bytes()
+                .to_vec(),
+            volume_accumulator: Some(value.volume_accumulator.into()),
         }
     }
 }
@@ -148,7 +162,7 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
     type Error = Error;
 
     fn try_from(value: pb::ShieldedHostWithdrawalBody) -> Result<Self, Self::Error> {
-        Ok(Self {
+        let body = Self {
             family_id: value.family_id.try_into()?,
             anchor: value
                 .anchor
@@ -201,7 +215,18 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
                     .map_err(|_| anyhow::anyhow!("routing parameter set id must be 32 bytes"))?,
             )
             .map_err(|_| anyhow::anyhow!("routing parameter set id must be canonical"))?,
-        })
+            withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext::from_bytes(
+                &value.withdrawal_compliance_ciphertext,
+            )
+            .context("malformed withdrawal compliance ciphertext")?,
+            volume_accumulator: value
+                .volume_accumulator
+                .ok_or_else(|| anyhow::anyhow!("missing volume accumulator payload"))?
+                .try_into()
+                .context("malformed volume accumulator payload")?,
+        };
+        body.validate_shape()?;
+        Ok(body)
     }
 }
 

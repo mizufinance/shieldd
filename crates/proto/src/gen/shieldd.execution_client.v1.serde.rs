@@ -1,193 +1,3 @@
-impl serde::Serialize for AppParametersRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.request.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.AppParametersRequest", len)?;
-        if let Some(v) = self.request.as_ref() {
-            struct_ser.serialize_field("request", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for AppParametersRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "request",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Request,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "request" => Ok(GeneratedField::Request),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = AppParametersRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.AppParametersRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AppParametersRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut request__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Request => {
-                            if request__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("request"));
-                            }
-                            request__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(AppParametersRequest {
-                    request: request__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.AppParametersRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for AppParametersResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.response.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.AppParametersResponse", len)?;
-        if let Some(v) = self.response.as_ref() {
-            struct_ser.serialize_field("response", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for AppParametersResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "response",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Response,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "response" => Ok(GeneratedField::Response),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = AppParametersResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.AppParametersResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AppParametersResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut response__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Response => {
-                            if response__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("response"));
-                            }
-                            response__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(AppParametersResponse {
-                    response: response__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.AppParametersResponse", FIELDS, GeneratedVisitor)
-    }
-}
 impl serde::Serialize for ApplyComplianceActionRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -338,6 +148,9 @@ impl serde::Serialize for ApplyComplianceActionResponse {
         if self.replayed {
             len += 1;
         }
+        if self.freeze_generation != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ApplyComplianceActionResponse", len)?;
         if let Some(v) = self.source.as_ref() {
             struct_ser.serialize_field("source", v)?;
@@ -355,6 +168,11 @@ impl serde::Serialize for ApplyComplianceActionResponse {
         if self.replayed {
             struct_ser.serialize_field("replayed", &self.replayed)?;
         }
+        if self.freeze_generation != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("freezeGeneration", ToString::to_string(&self.freeze_generation).as_str())?;
+        }
         struct_ser.end()
     }
 }
@@ -371,6 +189,8 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
             "current_status",
             "currentStatus",
             "replayed",
+            "freeze_generation",
+            "freezeGeneration",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -379,6 +199,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
             PreviousStatus,
             CurrentStatus,
             Replayed,
+            FreezeGeneration,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -405,6 +226,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
                             "previousStatus" | "previous_status" => Ok(GeneratedField::PreviousStatus),
                             "currentStatus" | "current_status" => Ok(GeneratedField::CurrentStatus),
                             "replayed" => Ok(GeneratedField::Replayed),
+                            "freezeGeneration" | "freeze_generation" => Ok(GeneratedField::FreezeGeneration),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -428,6 +250,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
                 let mut previous_status__ = None;
                 let mut current_status__ = None;
                 let mut replayed__ = None;
+                let mut freeze_generation__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Source => {
@@ -454,6 +277,14 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
                             }
                             replayed__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::FreezeGeneration => {
+                            if freeze_generation__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("freezeGeneration"));
+                            }
+                            freeze_generation__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -464,6 +295,7 @@ impl<'de> serde::Deserialize<'de> for ApplyComplianceActionResponse {
                     previous_status: previous_status__.unwrap_or_default(),
                     current_status: current_status__.unwrap_or_default(),
                     replayed: replayed__.unwrap_or_default(),
+                    freeze_generation: freeze_generation__.unwrap_or_default(),
                 })
             }
         }
@@ -660,196 +492,6 @@ impl<'de> serde::Deserialize<'de> for ArchivedNullifierProofResponse {
         deserializer.deserialize_struct("shieldd.execution_client.v1.ArchivedNullifierProofResponse", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for AssetMetadataByIdRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.request.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.AssetMetadataByIdRequest", len)?;
-        if let Some(v) = self.request.as_ref() {
-            struct_ser.serialize_field("request", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for AssetMetadataByIdRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "request",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Request,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "request" => Ok(GeneratedField::Request),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = AssetMetadataByIdRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.AssetMetadataByIdRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AssetMetadataByIdRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut request__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Request => {
-                            if request__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("request"));
-                            }
-                            request__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(AssetMetadataByIdRequest {
-                    request: request__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.AssetMetadataByIdRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for AssetMetadataByIdResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.response.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.AssetMetadataByIdResponse", len)?;
-        if let Some(v) = self.response.as_ref() {
-            struct_ser.serialize_field("response", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for AssetMetadataByIdResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "response",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Response,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "response" => Ok(GeneratedField::Response),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = AssetMetadataByIdResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.AssetMetadataByIdResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AssetMetadataByIdResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut response__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Response => {
-                            if response__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("response"));
-                            }
-                            response__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(AssetMetadataByIdResponse {
-                    response: response__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.AssetMetadataByIdResponse", FIELDS, GeneratedVisitor)
-    }
-}
 impl serde::Serialize for BeginBlockRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -942,7 +584,7 @@ impl<'de> serde::Deserialize<'de> for BeginBlockRequest {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1143,7 +785,7 @@ impl<'de> serde::Deserialize<'de> for CheckTxRequest {
                             if tx__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("tx"));
                             }
-                            tx__ = 
+                            tx__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1318,7 +960,7 @@ impl<'de> serde::Deserialize<'de> for CheckTxResponse {
                             if code__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("code"));
                             }
-                            code__ = 
+                            code__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1326,7 +968,7 @@ impl<'de> serde::Deserialize<'de> for CheckTxResponse {
                             if data__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("data"));
                             }
-                            data__ = 
+                            data__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1346,7 +988,7 @@ impl<'de> serde::Deserialize<'de> for CheckTxResponse {
                             if gas_wanted__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("gasWanted"));
                             }
-                            gas_wanted__ = 
+                            gas_wanted__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1354,7 +996,7 @@ impl<'de> serde::Deserialize<'de> for CheckTxResponse {
                             if gas_used__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("gasUsed"));
                             }
-                            gas_used__ = 
+                            gas_used__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1545,7 +1187,7 @@ impl<'de> serde::Deserialize<'de> for CommitResponse {
                             if root_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rootHash"));
                             }
-                            root_hash__ = 
+                            root_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1560,766 +1202,6 @@ impl<'de> serde::Deserialize<'de> for CommitResponse {
             }
         }
         deserializer.deserialize_struct("shieldd.execution_client.v1.CommitResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for CompactBlockRangeRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.request.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.CompactBlockRangeRequest", len)?;
-        if let Some(v) = self.request.as_ref() {
-            struct_ser.serialize_field("request", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for CompactBlockRangeRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "request",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Request,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "request" => Ok(GeneratedField::Request),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CompactBlockRangeRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.CompactBlockRangeRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockRangeRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut request__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Request => {
-                            if request__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("request"));
-                            }
-                            request__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(CompactBlockRangeRequest {
-                    request: request__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.CompactBlockRangeRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for CompactBlockRangeResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.response.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.CompactBlockRangeResponse", len)?;
-        if let Some(v) = self.response.as_ref() {
-            struct_ser.serialize_field("response", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for CompactBlockRangeResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "response",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Response,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "response" => Ok(GeneratedField::Response),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CompactBlockRangeResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.CompactBlockRangeResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockRangeResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut response__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Response => {
-                            if response__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("response"));
-                            }
-                            response__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(CompactBlockRangeResponse {
-                    response: response__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.CompactBlockRangeResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ComplianceAssetStatusRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.request.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ComplianceAssetStatusRequest", len)?;
-        if let Some(v) = self.request.as_ref() {
-            struct_ser.serialize_field("request", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "request",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Request,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "request" => Ok(GeneratedField::Request),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ComplianceAssetStatusRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.ComplianceAssetStatusRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ComplianceAssetStatusRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut request__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Request => {
-                            if request__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("request"));
-                            }
-                            request__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(ComplianceAssetStatusRequest {
-                    request: request__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.ComplianceAssetStatusRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ComplianceAssetStatusResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.response.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ComplianceAssetStatusResponse", len)?;
-        if let Some(v) = self.response.as_ref() {
-            struct_ser.serialize_field("response", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ComplianceAssetStatusResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "response",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Response,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "response" => Ok(GeneratedField::Response),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ComplianceAssetStatusResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.ComplianceAssetStatusResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ComplianceAssetStatusResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut response__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Response => {
-                            if response__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("response"));
-                            }
-                            response__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(ComplianceAssetStatusResponse {
-                    response: response__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.ComplianceAssetStatusResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ComplianceBatchMerkleProofsRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.request.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ComplianceBatchMerkleProofsRequest", len)?;
-        if let Some(v) = self.request.as_ref() {
-            struct_ser.serialize_field("request", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "request",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Request,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "request" => Ok(GeneratedField::Request),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ComplianceBatchMerkleProofsRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.ComplianceBatchMerkleProofsRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ComplianceBatchMerkleProofsRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut request__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Request => {
-                            if request__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("request"));
-                            }
-                            request__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(ComplianceBatchMerkleProofsRequest {
-                    request: request__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.ComplianceBatchMerkleProofsRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ComplianceBatchMerkleProofsResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.response.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ComplianceBatchMerkleProofsResponse", len)?;
-        if let Some(v) = self.response.as_ref() {
-            struct_ser.serialize_field("response", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ComplianceBatchMerkleProofsResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "response",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Response,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "response" => Ok(GeneratedField::Response),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ComplianceBatchMerkleProofsResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.ComplianceBatchMerkleProofsResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ComplianceBatchMerkleProofsResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut response__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Response => {
-                            if response__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("response"));
-                            }
-                            response__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(ComplianceBatchMerkleProofsResponse {
-                    response: response__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.ComplianceBatchMerkleProofsResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ComplianceUserLeafRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.request.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ComplianceUserLeafRequest", len)?;
-        if let Some(v) = self.request.as_ref() {
-            struct_ser.serialize_field("request", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ComplianceUserLeafRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "request",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Request,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "request" => Ok(GeneratedField::Request),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ComplianceUserLeafRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.ComplianceUserLeafRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ComplianceUserLeafRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut request__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Request => {
-                            if request__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("request"));
-                            }
-                            request__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(ComplianceUserLeafRequest {
-                    request: request__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.ComplianceUserLeafRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ComplianceUserLeafResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.response.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.ComplianceUserLeafResponse", len)?;
-        if let Some(v) = self.response.as_ref() {
-            struct_ser.serialize_field("response", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for ComplianceUserLeafResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "response",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Response,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "response" => Ok(GeneratedField::Response),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ComplianceUserLeafResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.ComplianceUserLeafResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ComplianceUserLeafResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut response__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Response => {
-                            if response__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("response"));
-                            }
-                            response__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(ComplianceUserLeafResponse {
-                    response: response__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.ComplianceUserLeafResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for DeliverTxRequest {
@@ -2404,7 +1286,7 @@ impl<'de> serde::Deserialize<'de> for DeliverTxRequest {
                             if tx__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("tx"));
                             }
-                            tx__ = 
+                            tx__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2589,7 +1471,7 @@ impl<'de> serde::Deserialize<'de> for DeliverTxResponse {
                             if code__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("code"));
                             }
-                            code__ = 
+                            code__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2597,7 +1479,7 @@ impl<'de> serde::Deserialize<'de> for DeliverTxResponse {
                             if data__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("data"));
                             }
-                            data__ = 
+                            data__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2617,7 +1499,7 @@ impl<'de> serde::Deserialize<'de> for DeliverTxResponse {
                             if gas_wanted__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("gasWanted"));
                             }
-                            gas_wanted__ = 
+                            gas_wanted__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2625,7 +1507,7 @@ impl<'de> serde::Deserialize<'de> for DeliverTxResponse {
                             if gas_used__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("gasUsed"));
                             }
-                            gas_used__ = 
+                            gas_used__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2897,7 +1779,7 @@ impl<'de> serde::Deserialize<'de> for DepositResponse {
                             if deposit_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("depositId"));
                             }
-                            deposit_id__ = 
+                            deposit_id__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2996,7 +1878,7 @@ impl<'de> serde::Deserialize<'de> for EndBlockRequest {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3796,7 +2678,7 @@ impl<'de> serde::Deserialize<'de> for GetCommittedStateResponse {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3804,7 +2686,7 @@ impl<'de> serde::Deserialize<'de> for GetCommittedStateResponse {
                             if root_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rootHash"));
                             }
-                            root_hash__ = 
+                            root_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3939,7 +2821,7 @@ impl<'de> serde::Deserialize<'de> for HostSource {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ = 
+                            height__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3947,7 +2829,7 @@ impl<'de> serde::Deserialize<'de> for HostSource {
                             if tx_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("txHash"));
                             }
-                            tx_hash__ = 
+                            tx_hash__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3955,7 +2837,7 @@ impl<'de> serde::Deserialize<'de> for HostSource {
                             if msg_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("msgIndex"));
                             }
-                            msg_index__ = 
+                            msg_index__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3963,7 +2845,7 @@ impl<'de> serde::Deserialize<'de> for HostSource {
                             if tx_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("txIndex"));
                             }
-                            tx_index__ = 
+                            tx_index__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4280,196 +3162,6 @@ impl<'de> serde::Deserialize<'de> for InitGenesisResponse {
         deserializer.deserialize_struct("shieldd.execution_client.v1.InitGenesisResponse", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for KeyValueRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.request.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.KeyValueRequest", len)?;
-        if let Some(v) = self.request.as_ref() {
-            struct_ser.serialize_field("request", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for KeyValueRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "request",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Request,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "request" => Ok(GeneratedField::Request),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = KeyValueRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.KeyValueRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<KeyValueRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut request__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Request => {
-                            if request__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("request"));
-                            }
-                            request__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(KeyValueRequest {
-                    request: request__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.KeyValueRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for KeyValueResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.response.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.KeyValueResponse", len)?;
-        if let Some(v) = self.response.as_ref() {
-            struct_ser.serialize_field("response", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for KeyValueResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "response",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Response,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "response" => Ok(GeneratedField::Response),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = KeyValueResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.KeyValueResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<KeyValueResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut response__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Response => {
-                            if response__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("response"));
-                            }
-                            response__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(KeyValueResponse {
-                    response: response__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.KeyValueResponse", FIELDS, GeneratedVisitor)
-    }
-}
 impl serde::Serialize for RollbackRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -4612,6 +3304,289 @@ impl<'de> serde::Deserialize<'de> for RollbackResponse {
             }
         }
         deserializer.deserialize_struct("shieldd.execution_client.v1.RollbackResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for SeizeNoteRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.source.is_some() {
+            len += 1;
+        }
+        if self.seizure.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.SeizeNoteRequest", len)?;
+        if let Some(v) = self.source.as_ref() {
+            struct_ser.serialize_field("source", v)?;
+        }
+        if let Some(v) = self.seizure.as_ref() {
+            struct_ser.serialize_field("seizure", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for SeizeNoteRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "source",
+            "seizure",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Source,
+            Seizure,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "source" => Ok(GeneratedField::Source),
+                            "seizure" => Ok(GeneratedField::Seizure),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = SeizeNoteRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.execution_client.v1.SeizeNoteRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SeizeNoteRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut source__ = None;
+                let mut seizure__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Source => {
+                            if source__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("source"));
+                            }
+                            source__ = map_.next_value()?;
+                        }
+                        GeneratedField::Seizure => {
+                            if seizure__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("seizure"));
+                            }
+                            seizure__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(SeizeNoteRequest {
+                    source: source__,
+                    seizure: seizure__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.execution_client.v1.SeizeNoteRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for SeizeNoteResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.source.is_some() {
+            len += 1;
+        }
+        if self.replayed {
+            len += 1;
+        }
+        if self.withdrawal.is_some() {
+            len += 1;
+        }
+        if self.current_status != 0 {
+            len += 1;
+        }
+        if self.freeze_generation != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.SeizeNoteResponse", len)?;
+        if let Some(v) = self.source.as_ref() {
+            struct_ser.serialize_field("source", v)?;
+        }
+        if self.replayed {
+            struct_ser.serialize_field("replayed", &self.replayed)?;
+        }
+        if let Some(v) = self.withdrawal.as_ref() {
+            struct_ser.serialize_field("withdrawal", v)?;
+        }
+        if self.current_status != 0 {
+            let v = super::super::core::component::compliance::v1::UserAssetStatus::try_from(self.current_status)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.current_status)))?;
+            struct_ser.serialize_field("currentStatus", &v)?;
+        }
+        if self.freeze_generation != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("freezeGeneration", ToString::to_string(&self.freeze_generation).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for SeizeNoteResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "source",
+            "replayed",
+            "withdrawal",
+            "current_status",
+            "currentStatus",
+            "freeze_generation",
+            "freezeGeneration",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Source,
+            Replayed,
+            Withdrawal,
+            CurrentStatus,
+            FreezeGeneration,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "source" => Ok(GeneratedField::Source),
+                            "replayed" => Ok(GeneratedField::Replayed),
+                            "withdrawal" => Ok(GeneratedField::Withdrawal),
+                            "currentStatus" | "current_status" => Ok(GeneratedField::CurrentStatus),
+                            "freezeGeneration" | "freeze_generation" => Ok(GeneratedField::FreezeGeneration),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = SeizeNoteResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.execution_client.v1.SeizeNoteResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SeizeNoteResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut source__ = None;
+                let mut replayed__ = None;
+                let mut withdrawal__ = None;
+                let mut current_status__ = None;
+                let mut freeze_generation__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Source => {
+                            if source__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("source"));
+                            }
+                            source__ = map_.next_value()?;
+                        }
+                        GeneratedField::Replayed => {
+                            if replayed__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("replayed"));
+                            }
+                            replayed__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Withdrawal => {
+                            if withdrawal__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("withdrawal"));
+                            }
+                            withdrawal__ = map_.next_value()?;
+                        }
+                        GeneratedField::CurrentStatus => {
+                            if current_status__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("currentStatus"));
+                            }
+                            current_status__ = Some(map_.next_value::<super::super::core::component::compliance::v1::UserAssetStatus>()? as i32);
+                        }
+                        GeneratedField::FreezeGeneration => {
+                            if freeze_generation__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("freezeGeneration"));
+                            }
+                            freeze_generation__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(SeizeNoteResponse {
+                    source: source__,
+                    replayed: replayed__.unwrap_or_default(),
+                    withdrawal: withdrawal__,
+                    current_status: current_status__.unwrap_or_default(),
+                    freeze_generation: freeze_generation__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.execution_client.v1.SeizeNoteResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for UnfreezeUserAsset {

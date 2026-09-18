@@ -12,7 +12,7 @@ use crate::{
         action_handler::{note_reshape, shielded_withdrawal},
         AssetRegistryRead as _, StateReadExt as _,
     },
-    ShieldedHostWithdrawal, ShieldedIcs20WithdrawalProofPublic,
+    ShieldedHostWithdrawal, ShieldedWithdrawalProofPublic,
 };
 
 pub fn shielded_host_withdrawal_verify_auth_sigs(
@@ -30,7 +30,7 @@ pub fn shielded_host_withdrawal_verify_auth_sigs(
 pub fn shielded_host_withdrawal_extract_public(
     action: &ShieldedHostWithdrawal,
     context: &TransactionContext,
-) -> Result<ShieldedIcs20WithdrawalProofPublic> {
+) -> Result<ShieldedWithdrawalProofPublic> {
     shielded_withdrawal::extract_public(
         shielded_withdrawal::ProofPublicData {
             family_id: action.body.family_id,
@@ -44,6 +44,8 @@ pub fn shielded_host_withdrawal_extract_public(
             withdrawal_effect_hash: action.body.withdrawal.effect_hash(),
             routing_tag: action.body.routing_tag,
             routing_parameter_set_id: action.body.routing_parameter_set_id,
+            withdrawal_compliance_ciphertext: &action.body.withdrawal_compliance_ciphertext,
+            volume_accumulator: &action.body.volume_accumulator,
         },
         context,
     )
@@ -52,7 +54,7 @@ pub fn shielded_host_withdrawal_extract_public(
 
 pub fn shielded_host_withdrawal_to_batch_item(
     action: &ShieldedHostWithdrawal,
-    public: ShieldedIcs20WithdrawalProofPublic,
+    public: ShieldedWithdrawalProofPublic,
 ) -> Result<BatchItem> {
     action.proof.to_batch_item(&public)
 }
@@ -98,6 +100,7 @@ pub async fn shielded_host_withdrawal_execute_verified<S: StateWrite>(
         action.body.target_timestamp,
     )
     .await?;
+    shielded_withdrawal::validate_volume(&state, &action.body.volume_accumulator).await?;
 
     note_reshape::execute_proof_bound_effects(
         &mut state,
@@ -106,7 +109,8 @@ pub async fn shielded_host_withdrawal_execute_verified<S: StateWrite>(
         |input| input.nullifier,
         |output| &output.note_payload,
     )
-    .await
+    .await?;
+    shielded_withdrawal::execute_volume(&mut state, &action.body.volume_accumulator).await
 }
 
 #[async_trait]

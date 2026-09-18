@@ -9,7 +9,6 @@ use decaf377::Fr;
 use decaf377_rdsa::{Binding, Signature, VerificationKey, VerificationKeyBytes};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
-use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{AddressView, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{
     core::transaction::v1::{self as pbt},
@@ -18,8 +17,7 @@ use shieldd_sdk_proto::{
 use shieldd_sdk_sct::nullifier_generation::{HistoricalNullifierProof, NullifierWindow};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::{
-    Note, NoteReshape, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
-    ShieldedIcs20WithdrawalView, Transfer,
+    Note, NoteReshape, ShieldedHostWithdrawal, ShieldedHostWithdrawalView, Transfer,
 };
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_tct::StateCommitment;
@@ -86,13 +84,7 @@ impl TransactionBody {
                         .iter()
                         .map(|input| (input.nullifier, input.history_required)),
                 ),
-                Action::ShieldedIcs20Withdrawal(action) => inputs.extend(
-                    action
-                        .body
-                        .inputs
-                        .iter()
-                        .map(|input| (input.nullifier, input.history_required)),
-                ),
+
                 Action::ShieldedHostWithdrawal(action) => inputs.extend(
                     action
                         .body
@@ -295,10 +287,8 @@ impl Transaction {
             .map(|action| match action {
                 Action::Transfer(_)
                 | Action::NoteReshape(_)
-                | Action::ShieldedIcs20Withdrawal(_)
                 | Action::ShieldedHostWithdrawal(_) => 1,
-                Action::IbcRelay(_)
-                | Action::ComplianceRegisterAsset(_)
+                Action::ComplianceRegisterAsset(_)
                 | Action::ComplianceRegisterUser(_)
                 | Action::AggregateBundle(_) => 0,
             })
@@ -355,12 +345,7 @@ impl Transaction {
                         )
                     })
                 }
-                Action::ShieldedIcs20Withdrawal(withdrawal) => Some((
-                    withdrawal.body.change_output.note_payload.clone(),
-                    withdrawal.body.change_output.ovk_wrapped_key.clone(),
-                    withdrawal.body.change_output.wrapped_memo_key.clone(),
-                    withdrawal.body.balance_commitment,
-                )),
+
                 Action::ShieldedHostWithdrawal(withdrawal) => Some((
                     withdrawal.body.change_output.note_payload.clone(),
                     withdrawal.body.change_output.ovk_wrapped_key.clone(),
@@ -443,25 +428,7 @@ impl Transaction {
                         fvk,
                     )?;
                 }
-                Action::ShieldedIcs20Withdrawal(withdrawal) => {
-                    let output = &withdrawal.body.change_output;
-                    let ovk_wrapped_key = output.ovk_wrapped_key.clone();
-                    let commitment = output.note_payload.note_commitment;
-                    let epk = &output.note_payload.ephemeral_key;
-                    let cv = withdrawal.body.balance_commitment;
-                    let shared_secret =
-                        Note::decrypt_key(ovk_wrapped_key, commitment, cv, fvk.outgoing(), epk);
 
-                    match shared_secret {
-                        Ok(shared_secret) => {
-                            result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
-                        }
-                        Err(_) => {
-                            let shared_secret = fvk.incoming().key_agreement_with(epk)?;
-                            result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
-                        }
-                    }
-                }
                 Action::ShieldedHostWithdrawal(withdrawal) => {
                     let output = &withdrawal.body.change_output;
                     let ovk_wrapped_key = output.ovk_wrapped_key.clone();
@@ -481,8 +448,7 @@ impl Transaction {
                         }
                     }
                 }
-                Action::IbcRelay(_)
-                | Action::ComplianceRegisterAsset(_)
+                Action::ComplianceRegisterAsset(_)
                 | Action::ComplianceRegisterUser(_)
                 | Action::AggregateBundle(_) => {}
             }
@@ -512,7 +478,6 @@ impl Transaction {
                 &action_view,
                 ActionView::Transfer(_)
                     | ActionView::NoteReshape(_)
-                    | ActionView::ShieldedIcs20Withdrawal(_)
                     | ActionView::ShieldedHostWithdrawal(_)
             ) && memo_plaintext.is_none()
             {
@@ -579,16 +544,6 @@ impl Transaction {
         self.transaction_body.actions.iter()
     }
 
-    pub fn ibc_actions(&self) -> impl Iterator<Item = &IbcRelay> {
-        self.actions().filter_map(|action| {
-            if let Action::IbcRelay(ibc_action) = action {
-                Some(ibc_action)
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn transfers(&self) -> impl Iterator<Item = &Transfer> {
         self.actions().filter_map(|action| {
             if let Action::Transfer(transfer) = action {
@@ -635,12 +590,7 @@ impl Transaction {
                     .iter()
                     .map(|input| input.nullifier)
                     .collect(),
-                Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal
-                    .body
-                    .inputs
-                    .iter()
-                    .map(|input| input.nullifier)
-                    .collect(),
+
                 Action::ShieldedHostWithdrawal(withdrawal) => withdrawal
                     .body
                     .inputs
@@ -671,10 +621,9 @@ impl Transaction {
             let action_count = match action {
                 Action::Transfer(transfer) => transfer.body.inputs.len(),
                 Action::NoteReshape(note_reshape) => note_reshape.body.inputs.len(),
-                Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.body.inputs.len(),
+
                 Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.body.inputs.len(),
-                Action::IbcRelay(_)
-                | Action::ComplianceRegisterAsset(_)
+                Action::ComplianceRegisterAsset(_)
                 | Action::ComplianceRegisterUser(_)
                 | Action::AggregateBundle(_) => 0,
             };
@@ -698,6 +647,9 @@ impl Transaction {
                     .outputs
                     .iter()
                     .map(|output| Some(output.note_payload.note_commitment))
+                    .chain(std::iter::once(Some(
+                        transfer.body.volume_accumulator.commitment,
+                    )))
                     .collect::<Vec<_>>(),
                 Action::NoteReshape(note_reshape) => note_reshape
                     .body
@@ -705,9 +657,7 @@ impl Transaction {
                     .iter()
                     .map(|output| Some(output.note_payload.note_commitment))
                     .collect::<Vec<_>>(),
-                Action::ShieldedIcs20Withdrawal(withdrawal) => vec![Some(
-                    withdrawal.body.change_output.note_payload.note_commitment,
-                )],
+
                 Action::ShieldedHostWithdrawal(withdrawal) => vec![Some(
                     withdrawal.body.change_output.note_payload.note_commitment,
                 )],
@@ -846,11 +796,7 @@ fn payload_key_from_view(action_view: &ActionView) -> Option<&PayloadKey> {
         ActionView::Transfer(TransferView::Opaque { .. }) => None,
         ActionView::NoteReshape(NoteReshapeView::Visible { payload_key, .. }) => Some(payload_key),
         ActionView::NoteReshape(NoteReshapeView::Opaque { .. }) => None,
-        ActionView::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView::Visible {
-            payload_key,
-            ..
-        }) => Some(payload_key),
-        ActionView::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView::Opaque { .. }) => None,
+
         ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Visible {
             payload_key,
             ..
@@ -864,13 +810,35 @@ fn payload_key_from_view(action_view: &ActionView) -> Option<&PayloadKey> {
 mod tests {
     use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
     use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
     use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
-    use shieldd_sdk_keys::Address;
     use shieldd_sdk_proto::DomainType as _;
     use shieldd_sdk_sct::Nullifier;
-    use shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN;
+    use shieldd_sdk_shielded_pool::{
+        backref::ENCRYPTED_BACKREF_LEN, note::NOTE_CIPHERTEXT_BYTES, RecoveryCapsule,
+    };
 
     use super::{Action, Transaction, TransactionBody};
+
+    fn recovery_capsule(seed: u64) -> RecoveryCapsule {
+        RecoveryCapsule {
+            epk: decaf377::Element::GENERATOR * decaf377::Fr::from(seed),
+            c2: decaf377::Fq::from(seed + 1),
+            salt: decaf377::Fq::from(seed + 2),
+            key_confirmation: decaf377::Fq::from(seed + 3),
+            encrypted_amount: decaf377::Fq::from(seed + 4),
+            encrypted_note_blinding: decaf377::Fq::from(seed + 5),
+        }
+    }
+
+    fn withdrawal_compliance_ciphertext(seed: u64) -> WithdrawalComplianceCiphertext {
+        WithdrawalComplianceCiphertext {
+            epk: decaf377::Element::GENERATOR * decaf377::Fr::from(seed),
+            c2: decaf377::Fq::from(seed + 1),
+            key_confirmation: decaf377::Fq::from(seed + 2),
+            encrypted_sender_address: [0u8; 96],
+        }
+    }
 
     #[test]
     fn canonical_decode_accepts_exact_encoding_and_rejects_unknown_fields() {
@@ -940,7 +908,10 @@ mod tests {
                                 5u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([6u8; 32]),
-                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([7u8; 144]),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
+                                [7u8; NOTE_CIPHERTEXT_BYTES],
+                            ),
+                            recovery_capsule: Some(recovery_capsule(7)),
                         },
                         wrapped_memo_key: WrappedMemoKey([8u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([9u8; 48]),
@@ -953,7 +924,10 @@ mod tests {
                                 50u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([60u8; 32]),
-                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([70u8; 144]),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
+                                [70u8; NOTE_CIPHERTEXT_BYTES],
+                            ),
+                            recovery_capsule: Some(recovery_capsule(70)),
                         },
                         wrapped_memo_key: WrappedMemoKey([80u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([90u8; 48]),
@@ -966,6 +940,9 @@ mod tests {
                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(12u64)),
                 routing: Default::default(),
                 routing_parameter_set_id: decaf377::Fq::from(0u64),
+                volume_accumulator:
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
+                proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
             },
             auth_sigs: vec![[17u8; 64].into(), [0u8; 64].into()],
             proof: shieldd_sdk_shielded_pool::TransferProof::default(),
@@ -987,7 +964,7 @@ mod tests {
             tx.spent_nullifiers().count(),
             "zero-allocation count must match the canonical iterator"
         );
-        assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 2);
+        assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 3);
 
         assert!(
             tx.transaction_body.validate_nullifier_history().is_err(),
@@ -1037,7 +1014,7 @@ mod tests {
         );
         assert_eq!(
             fee_funded_tx.state_commitments().collect::<Vec<_>>().len(),
-            4
+            5
         );
     }
 
@@ -1072,7 +1049,10 @@ mod tests {
                             300u64,
                         )),
                         ephemeral_key: decaf377_ka::Public([3u8; 32]),
-                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 144]),
+                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
+                            [4u8; NOTE_CIPHERTEXT_BYTES],
+                        ),
+                        recovery_capsule: Some(recovery_capsule(4)),
                     },
                     wrapped_memo_key: WrappedMemoKey([5u8; 48]),
                     ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
@@ -1144,7 +1124,10 @@ mod tests {
                                     ),
                                     ephemeral_key: decaf377_ka::Public([7u8; 32]),
                                     encrypted_note:
-                                        shieldd_sdk_shielded_pool::NoteCiphertext([8u8; 144]),
+                                        shieldd_sdk_shielded_pool::NoteCiphertext(
+                                            [8u8; NOTE_CIPHERTEXT_BYTES],
+                                        ),
+                                    recovery_capsule: Some(recovery_capsule(8)),
                                 },
                                 wrapped_memo_key: WrappedMemoKey([9u8; 48]),
                                 ovk_wrapped_key: OvkWrappedKey([10u8; 48]),
@@ -1181,8 +1164,9 @@ mod tests {
                                         ),
                                         ephemeral_key: decaf377_ka::Public([17u8; 32]),
                                         encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
-                                            [18u8; 144],
+                                            [18u8; NOTE_CIPHERTEXT_BYTES],
                                         ),
+                                        recovery_capsule: Some(recovery_capsule(18)),
                                     },
                                     wrapped_memo_key: WrappedMemoKey([19u8; 48]),
                                     ovk_wrapped_key: OvkWrappedKey([20u8; 48]),
@@ -1199,11 +1183,11 @@ mod tests {
                         auth_sigs: vec![[21u8; 64].into()],
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
                     }),
-                    Action::ShieldedIcs20Withdrawal(
-                        shieldd_sdk_shielded_pool::ShieldedIcs20Withdrawal {
-                            body: shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalBody {
+                    Action::ShieldedHostWithdrawal(
+                        shieldd_sdk_shielded_pool::ShieldedHostWithdrawal {
+                            body: shieldd_sdk_shielded_pool::ShieldedHostWithdrawalBody {
                                 family_id:
-                                    shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId::Canonical,
+                                    shieldd_sdk_shielded_pool::ShieldedWithdrawalFamilyId::Canonical,
                                 anchor: shieldd_sdk_tct::Tree::default().root(),
                                 balance_commitment: Balance::default().commit(decaf377::Fr::from(22u64)),
                                 inputs: vec![
@@ -1234,20 +1218,14 @@ mod tests {
                                         history_required: false,
                                     },
                                 ],
-                                withdrawal: shieldd_sdk_shielded_pool::Ics20Withdrawal {
-                                    amount: 1u64.into(),
-                                    denom: BASE_ASSET_DENOM.clone(),
-                                    destination_chain_address: "cosmos1deadbeef".to_string(),
-                                    return_address: Address::dummy(&mut rand_core::OsRng),
-                                    timeout_height: ibc_types::core::client::Height::new(0, 10)
-                                        .expect("valid timeout height"),
-                                    timeout_time: 1,
-                                    source_channel: ibc_types::core::channel::ChannelId::new(7),
-                                    ics20_memo: String::new(),
-                                    use_transparent_address: false,
+                                withdrawal: shieldd_sdk_shielded_pool::HostWithdrawal {
+                                    value: Value { amount: 1u64.into(), asset_id: BASE_ASSET_DENOM.id() },
+                                    destination: shieldd_sdk_shielded_pool::HostWithdrawalDestination::Transfer(
+                                        shieldd_sdk_shielded_pool::HostTransfer { recipient: "bank1destination".to_owned() }
+                                    ),
                                 },
                                 change_output:
-                                    shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalChangeBody {
+                                    shieldd_sdk_shielded_pool::ShieldedWithdrawalChangeBody {
                                         note_payload: shieldd_sdk_shielded_pool::NotePayload {
                                             note_commitment: shieldd_sdk_tct::StateCommitment(
                                                 decaf377::Fq::from(27u64),
@@ -1255,8 +1233,9 @@ mod tests {
                                             ephemeral_key: decaf377_ka::Public([28u8; 32]),
                                             encrypted_note:
                                                 shieldd_sdk_shielded_pool::NoteCiphertext(
-                                                    [29u8; 144],
+                                                    [29u8; NOTE_CIPHERTEXT_BYTES],
                                                 ),
+                                            recovery_capsule: Some(recovery_capsule(29)),
                                         },
                                         wrapped_memo_key: WrappedMemoKey([30u8; 48]),
                                         ovk_wrapped_key: OvkWrappedKey([31u8; 48]),
@@ -1268,9 +1247,13 @@ mod tests {
                                 asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(33u64)),
                                 routing_tag: Default::default(),
                                 routing_parameter_set_id: decaf377::Fq::from(0u64),
+                                withdrawal_compliance_ciphertext:
+                                    withdrawal_compliance_ciphertext(36),
+                                volume_accumulator:
+                                    shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                             },
                             auth_sigs: vec![[34u8; 64].into(), [35u8; 64].into()],
-                            proof: shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalProof::default(),
+                            proof: shieldd_sdk_shielded_pool::ShieldedWithdrawalProof::default(),
                         },
                     ),
                 ],

@@ -567,7 +567,7 @@ fn format_compliance_identity(plaintext: &[u8]) -> Result<String> {
 
 fn request_scalar(request_id: &str) -> Fr {
     let mut hasher = Sha512::new();
-    hasher.update(b"bankd-orbis-audit-reader-v2");
+    hasher.update(b"bankd-orbis-audit-reader");
     hasher.update(request_id.as_bytes());
     let mut scalar = Fr::from_le_bytes_mod_order(&hasher.finalize());
     if scalar == Fr::from(0u64) {
@@ -654,12 +654,6 @@ mod tests {
         let first = request_scalar("request-1");
         assert_eq!(first, request_scalar("request-1"));
         assert_ne!(first, request_scalar("request-2"));
-    }
-
-    #[test]
-    fn reversed_window_is_observable_before_network_work() {
-        let window = TimestampRange { start: 20, end: 10 };
-        assert!(window.start > window.end);
     }
 
     #[test]

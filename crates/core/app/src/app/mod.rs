@@ -1,25 +1,24 @@
 #[cfg(any(test, feature = "benchmark-helpers"))]
 mod aggregate_diagnostics;
+mod batch_input;
+mod candidate;
+mod delivery;
 mod host;
+mod lifecycle;
+pub use batch_input::{BatchCandidate, BatchPreparation, BatchVerdict, PreparedBatch};
 mod preconsensus;
-mod validation_support;
 
 pub use self::host::{
     HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostExecution,
-    HostExecutionPhase, HostExecutionResponse, HostTxResponse, HostWithdrawal,
+    HostExecutionPhase, HostExecutionResponse, HostNoteSeizureResult, HostTxResponse,
+    HostWithdrawal,
 };
 #[cfg(any(test, feature = "fuzzing"))]
 pub use self::preconsensus::decode_batch_item_for_fuzz;
 pub use self::preconsensus::{
-    CheckTxProfile, PrepareProposalProfile, ProcessProposalProfile, ProposalArtifactSidecar,
-    ProposalArtifactSidecarRecord, ProposalArtifactSidecarRecordEntry,
+    ProposalArtifactSidecar, ProposalArtifactSidecarRecord, ProposalArtifactSidecarRecordEntry,
 };
-pub use self::validation_support::{
-    candidate_digest_from_hashes, sidecar_commitment, CandidateEnvelope, EnvelopeValidationResult,
-    ValidationNullifierCache, ValidationProfile, ValidationRejectReason, ValidationStageVerdict,
-    ValidationVerdict, MAX_VALIDATION_ACTIONS_PER_TX, MAX_VALIDATION_NULLIFIERS_PER_BLOCK,
-    MAX_VALIDATION_NULLIFIERS_PER_TX, MAX_VALIDATION_TX_COUNT,
-};
+pub use candidate::{candidate_digest_from_hashes, sidecar_commitment, CandidateEnvelope};
 
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::sync::Arc;
@@ -31,10 +30,10 @@ use async_trait::async_trait;
 use cnidarium::{ArcStateDeltaExt, Snapshot, StateDelta, StateRead, StateWrite, Storage};
 use cnidarium_component::Component;
 use decaf377::{Bls12_377, Fq};
-use ibc_types::core::connection::ChainId;
 use jmt::RootHash;
 use prost::bytes::Bytes;
 use prost::Message as _;
+#[cfg(any(test, feature = "benchmark-helpers"))]
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_compact_block::{
     component::{CompactBlockManager, RoutingManager as _},
@@ -47,20 +46,16 @@ use shieldd_sdk_fee::component::{
     clear_block_fee_price_cache, FeeComponent, FeePay as _, StateReadExt as _, StateWriteExt as _,
 };
 use shieldd_sdk_fee::{Fee, Gas, GasPrices};
-use shieldd_sdk_ibc::component::Ibc;
-use shieldd_sdk_ibc::StateReadExt as _;
 use shieldd_sdk_proof_aggregation::{
-    aggregate_family_profiled, app_verify_accepted_join_projection_core, app_verify_family_code,
+    aggregate_family, app_verify_accepted_join_projection_core, app_verify_family_code,
     app_verify_family_count_core, app_verify_join_acceptance_core, app_verify_plan_identity_core,
     app_verify_plan_ids_core, app_verify_plan_padding_core, app_verify_preflight_core,
-    app_verify_reduce_core, app_verify_shipping_call_from_parts, pad_items_to_power_of_two,
-    prepare_verify_inputs, srs_id, verify_shipping_family_aggregate_profiled_status,
-    AggregateBuildBackendProfile, AggregateBundle, AggregateStatement,
-    AggregateVerificationProfile, AppVerifyAcceptedJoinProjectionError, AppVerifyCallId,
-    AppVerifyCallResult, AppVerifyExpectedCall, AppVerifyPlanError,
-    AppVerifyPlannerIndexedExecutedRecord, AppVerifyPreflightError, AppVerifyReductionError,
-    AppVerifyShippingCall, DevSrs, FamilyAggregate, ProofFamilyId, ShippingAggregateVerification,
-    AGGREGATE_PROTOCOL_VERSION,
+    app_verify_reduce_core, pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
+    verify_shipping_family_aggregate, AggregateBundle, AggregateStatement,
+    AppVerifyAcceptedJoinProjectionError, AppVerifyCallId, AppVerifyCallResult,
+    AppVerifyExpectedCall, AppVerifyPlanError, AppVerifyPlannerIndexedExecutedRecord,
+    AppVerifyPreflightError, AppVerifyReductionError, AppVerifyShippingCall, DevSrs,
+    FamilyAggregate, ProofFamilyId, ShippingAggregateVerification, AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::{
     batch::{self, BatchItem, VerifiedBatchItem},
@@ -78,43 +73,41 @@ use shieldd_sdk_sct::epoch::Epoch;
 use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::component::{
     note_reshape_check_stateless_and_extract, shielded_host_withdrawal_check_stateless_and_extract,
-    shielded_ics20_withdrawal_check_stateless_and_extract, transfer_check_stateless_and_extract,
-    NoteManager as _, ShieldedPool, StateReadExt as _, StateWriteExt as _,
+    transfer_check_stateless_and_extract, NoteManager as _, ShieldedPool, StateReadExt as _,
+    StateWriteExt as _,
 };
+use shieldd_sdk_shielded_pool::VolumeNullifier;
 use shieldd_sdk_transaction::gas::GasCost as _;
 use shieldd_sdk_transaction::{
     Action, FeeFunding, Transaction, TransactionBody, TransactionParameters,
 };
 use shieldd_sdk_txhash::TransactionContext;
 use tendermint::abci::{self, Event};
-use tendermint::v0_37::abci::{request, response};
-use tendermint::{account, block, chain, AppHash, Hash, Time};
+use tendermint::Time;
 use tracing::{instrument, Instrument};
 
 use crate::action_handler::transaction::{
-    check_and_execute_profiled, check_historical_with_context,
-    prepare_candidate_read_blocking_profiled, prepare_candidate_read_profiled,
-    supports_parallel_prepare, HistoricalCheckContext, PreparedCandidateRead,
+    append_transaction_audit_effects, check_and_execute, check_historical_with_context,
+    prepare_candidate_read, prepare_candidate_read_blocking, supports_parallel_prepare,
+    verify_historical_nullifier_proof, HistoricalCheckContext, PreparedCandidateRead,
 };
 use crate::action_handler::AppActionHandler;
 use crate::block_tx_indexing::BlockTxIndexingMode;
 use crate::genesis::AppState;
 
+use crate::metrics;
 use crate::params::AppParameters;
 use crate::stateless_cache::{
     CacheEntry, HistoricalValidationStamp, StatelessCache, TxArtifact, VerifiedTxArtifact,
 };
-use crate::{metrics, ShielddHost};
 use sha2::Digest as _;
-#[cfg(feature = "benchmark-helpers")]
-use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
 
 pub mod state_key;
 
 /// The inter-block state being written to by the application.
 type InterBlockState = Arc<StateDelta<Snapshot>>;
 
-/// The maximum size of a CometBFT block payload (1MB)
+/// The default maximum batch payload size (1 MB)
 pub const MAX_BLOCK_TXS_PAYLOAD_BYTES: usize = 1024 * 1024;
 
 /// The maximum size of a single individual transaction (96KB).
@@ -130,17 +123,19 @@ pub const MAX_TRANSACTION_ACTION_COUNT: usize = 512;
 pub const MAX_TRANSACTION_NULLIFIER_COUNT: usize = 256;
 
 /// The maximum number of proof-bound nullifiers in one block.
-pub const MAX_BLOCK_NULLIFIER_COUNT: usize = 32_768;
-
-/// The maximum size of the evidence portion of a block (30KB).
-pub const MAX_EVIDENCE_SIZE_BYTES: usize = 30 * 1024;
+pub const MAX_BLOCK_NULLIFIER_COUNT: usize =
+    shieldd_sdk_sct::component::tree::MAX_NULLIFIERS_PER_BLOCK;
 
 fn extract_fee_funding_proof_item(
     fee_funding: &FeeFunding,
     context: &TransactionContext,
 ) -> Result<BatchItem> {
-    transfer_check_stateless_and_extract(&fee_funding.transfer, context)
-        .context("fee funding transfer stateless extraction failed")
+    transfer_check_stateless_and_extract(
+        &fee_funding.transfer,
+        context,
+        shieldd_sdk_shielded_pool::TransferProofContext::FeeFunding,
+    )
+    .context("fee funding transfer stateless extraction failed")
 }
 
 const MAX_PADDED_PROOF_COUNT: usize = 32_768;
@@ -206,12 +201,10 @@ fn action_family_id(action: &Action) -> Option<ProofFamilyId> {
         Action::NoteReshape(note_reshape) => {
             Some(ProofFamilyId::NoteReshape(note_reshape.body.family_id))
         }
-        Action::ShieldedIcs20Withdrawal(withdrawal) => Some(
-            ProofFamilyId::ShieldedIcs20Withdrawal(withdrawal.body.family_id),
-        ),
-        Action::ShieldedHostWithdrawal(withdrawal) => Some(ProofFamilyId::ShieldedIcs20Withdrawal(
-            withdrawal.body.family_id,
-        )),
+
+        Action::ShieldedHostWithdrawal(withdrawal) => {
+            Some(ProofFamilyId::ShieldedWithdrawal(withdrawal.body.family_id))
+        }
         _ => None,
     }
 }
@@ -222,7 +215,7 @@ fn proof_verification_key_for_family(
     match family_id {
         ProofFamilyId::Transfer => shieldd_sdk_proof_params::transfer_proof_verification_key(),
         ProofFamilyId::NoteReshape(family_id) => family_id.proof_verification_key(),
-        ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.proof_verification_key(),
+        ProofFamilyId::ShieldedWithdrawal(family_id) => family_id.proof_verification_key(),
     }
 }
 
@@ -230,7 +223,7 @@ fn deployed_key_for_family(family_id: ProofFamilyId) -> DeployedProofKey {
     match family_id {
         ProofFamilyId::Transfer => DeployedProofKey::Transfer,
         ProofFamilyId::NoteReshape(family_id) => family_id.deployed_proof_key(),
-        ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.deployed_proof_key(),
+        ProofFamilyId::ShieldedWithdrawal(family_id) => family_id.deployed_proof_key(),
     }
 }
 
@@ -238,7 +231,7 @@ fn proof_family_label(family_id: ProofFamilyId) -> &'static str {
     match family_id {
         ProofFamilyId::Transfer => shieldd_sdk_shielded_pool::TRANSFER_PROOF_LABEL,
         ProofFamilyId::NoteReshape(family_id) => family_id.label(),
-        ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.label(),
+        ProofFamilyId::ShieldedWithdrawal(family_id) => family_id.label(),
     }
 }
 
@@ -246,7 +239,7 @@ fn proof_family_batch_verify_stage(family_id: ProofFamilyId) -> &'static str {
     match family_id {
         ProofFamilyId::Transfer => "transfer_batch_verify",
         ProofFamilyId::NoteReshape(_) => "note_reshape_batch_verify",
-        ProofFamilyId::ShieldedIcs20Withdrawal(_) => "shielded_ics20_withdrawal_batch_verify",
+        ProofFamilyId::ShieldedWithdrawal(_) => "shielded_withdrawal_batch_verify",
     }
 }
 
@@ -334,81 +327,27 @@ pub(crate) fn benchmark_zero_timestamp_allowed() -> bool {
     aggregate_diagnostics::zero_timestamp_allowed()
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-struct VerifiedStatefulTxBreakdown {
-    check_historical_ms: f64,
-    checktx_fast_context_load_ms: f64,
-    checktx_fast_read_queue_wait_ms: f64,
-    checktx_fast_read_blocking_total_ms: f64,
-    checktx_fast_prepare_join_wall_ms: f64,
-    checktx_fast_apply_wall_ms: f64,
-    get_block_height_ms: f64,
-    clone_tx_ms: f64,
-    proto_convert_ms: f64,
-    put_block_transaction_ms: f64,
-    tx_log_read_ms: f64,
-    tx_log_encode_ms: f64,
-    tx_log_put_raw_ms: f64,
-    begin_state_tx_ms: f64,
-    index_tx_ms: f64,
-    check_and_execute_ms: f64,
-    set_source_ms: f64,
-    pay_fee_ms: f64,
-    action_execute_ms: f64,
-    read_local_precheck_ms: f64,
-    read_lookup_wait_or_join_ms: f64,
-    read_historical_check_ms: f64,
-    read_nullifier_wait_ms: f64,
-    read_anchor_cache_wait_ms: f64,
-    spend_action_execute_ms: f64,
-    spend_nullifier_check_ms: f64,
-    spend_nullifier_tx_local_scan_ms: f64,
-    spend_nullifier_block_log_lookup_ms: f64,
-    spend_nullifier_committed_check_ms: f64,
-    spend_nullifier_enqueue_ms: f64,
-    spend_nullifier_stage_ms: f64,
-    spend_nullifier_merge_ms: f64,
-    nullifier_lookup_count: usize,
-    output_action_execute_ms: f64,
-    output_add_note_payload_ms: f64,
-    read_anchor_validation_ms: f64,
-    read_committed_nullifier_ms: f64,
-    read_effects_build_ms: f64,
-    candidate_read_wall_ms: f64,
-    serial_apply_wall_ms: f64,
-    serial_same_block_conflict_ms: f64,
-    serial_nullifier_insert_ms: f64,
-    proposal_nullifier_lookup_write_ms: f64,
-    proposal_pending_nullifier_stage_ms: f64,
-    serial_sct_append_ms: f64,
-    serial_event_emit_ms: f64,
-    serial_fee_apply_ms: f64,
-    other_action_execute_ms: f64,
-    apply_ms: f64,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct BlockTxIndexWriteProfile {
-    tx_log_read_ms: f64,
-    tx_log_encode_ms: f64,
-    tx_log_put_raw_ms: f64,
-}
-
-#[derive(Default)]
 struct PrepareBlockLocalState {
     seen_nullifiers: BTreeSet<Nullifier>,
-    staged_nullifiers: Vec<(Nullifier, CommitmentSource)>,
+    seen_volume_nullifiers: BTreeSet<VolumeNullifier>,
+    remaining_nullifier_capacity: usize,
+}
+
+impl Default for PrepareBlockLocalState {
+    fn default() -> Self {
+        Self {
+            seen_nullifiers: BTreeSet::new(),
+            seen_volume_nullifiers: BTreeSet::new(),
+            remaining_nullifier_capacity: MAX_BLOCK_NULLIFIER_COUNT,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 #[cfg(any(test, feature = "benchmark-helpers"))]
 struct BenchBlockContext {
-    height: block::Height,
+    height: u64,
     time: Time,
-    chain_id: chain::Id,
-    proposer_address: account::Id,
-    next_validators_hash: Hash,
-    app_hash: AppHash,
 }
 
 #[derive(Clone)]
@@ -450,57 +389,6 @@ impl Candidate {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
-pub struct AggregateBuildProfile {
-    pub merge_items_ms: f64,
-    pub setup_ms: f64,
-    pub padding_ms: f64,
-    pub collect_proofs_ms: f64,
-    pub backend_core_ms: f64,
-    pub backend_point_extract_ms: f64,
-    pub backend_prepared_srs_ms: f64,
-    pub backend_commitment_key_extract_ms: f64,
-    pub backend_commitment_ms: f64,
-    pub backend_com_a_ms: f64,
-    pub backend_com_b_ms: f64,
-    pub backend_com_c_ms: f64,
-    pub backend_pairing_normalize_batch_ms: f64,
-    pub backend_pairing_prepare_ms: f64,
-    pub backend_pairing_miller_loop_ms: f64,
-    pub backend_pairing_final_exponentiation_ms: f64,
-    pub backend_randomizer_ms: f64,
-    pub backend_structured_scalar_ms: f64,
-    pub backend_weighted_b_ms: f64,
-    pub backend_ip_ab_ms: f64,
-    pub backend_agg_c_ms: f64,
-    pub backend_ck_2_r_inv_ms: f64,
-    pub backend_consistency_check_ms: f64,
-    pub backend_tipp_mipp_ms: f64,
-    pub backend_tipp_mipp_gipa_ms: f64,
-    pub backend_tipp_mipp_gipa_commit_l_ms: f64,
-    pub backend_tipp_mipp_gipa_commit_r_ms: f64,
-    pub backend_tipp_mipp_gipa_challenge_ms: f64,
-    pub backend_tipp_mipp_gipa_rescale_m1_ms: f64,
-    pub backend_tipp_mipp_gipa_rescale_m2_ms: f64,
-    pub backend_tipp_mipp_gipa_rescale_m3_ms: f64,
-    pub backend_tipp_mipp_gipa_rescale_r_ms: f64,
-    pub backend_tipp_mipp_gipa_rescale_ck1_ms: f64,
-    pub backend_tipp_mipp_gipa_rescale_ck2_ms: f64,
-    pub backend_tipp_mipp_transcript_inverse_ms: f64,
-    pub backend_tipp_mipp_final_bridge_ms: f64,
-    pub backend_tipp_mipp_kzg_challenge_ms: f64,
-    pub backend_tipp_mipp_kzg_coefficient_build_ms: f64,
-    pub backend_tipp_mipp_kzg_eval_quotient_ms: f64,
-    pub backend_tipp_mipp_kzg_opening_msm_ms: f64,
-    pub backend_tipp_mipp_kzg_opening_ck_v_ms: f64,
-    pub backend_tipp_mipp_kzg_opening_ck_w_ms: f64,
-    pub proof_serialize_ms: f64,
-    pub bundle_tx_build_ms: f64,
-    pub spend_ms: f64,
-    pub output_ms: f64,
-    pub other_ms: f64,
-}
-
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[cfg(any(test, feature = "benchmark-helpers"))]
 pub struct ExecutionBlockProfile {
@@ -510,221 +398,6 @@ pub struct ExecutionBlockProfile {
     pub end_block_ms: f64,
     pub commit_ms: f64,
     pub execute_tx_ms: f64,
-    pub begin_state_tx_ms: f64,
-    pub index_tx_ms: f64,
-    pub get_block_height_ms: f64,
-    pub clone_tx_ms: f64,
-    pub proto_convert_ms: f64,
-    pub put_block_transaction_ms: f64,
-    pub tx_log_read_ms: f64,
-    pub tx_log_encode_ms: f64,
-    pub tx_log_put_raw_ms: f64,
-    pub check_and_execute_ms: f64,
-    pub set_source_ms: f64,
-    pub pay_fee_ms: f64,
-    pub action_execute_ms: f64,
-    pub read_local_precheck_ms: f64,
-    pub read_lookup_wait_or_join_ms: f64,
-    pub read_historical_check_ms: f64,
-    pub read_nullifier_wait_ms: f64,
-    pub read_anchor_cache_wait_ms: f64,
-    pub spend_action_execute_ms: f64,
-    pub spend_nullifier_check_ms: f64,
-    pub spend_nullifier_tx_local_scan_ms: f64,
-    pub spend_nullifier_block_log_lookup_ms: f64,
-    pub spend_nullifier_committed_check_ms: f64,
-    pub spend_nullifier_enqueue_ms: f64,
-    pub spend_nullifier_stage_ms: f64,
-    pub spend_nullifier_merge_ms: f64,
-    pub nullifier_lookup_count: usize,
-    pub output_action_execute_ms: f64,
-    pub output_add_note_payload_ms: f64,
-    pub other_action_execute_ms: f64,
-    pub apply_ms: f64,
-}
-
-impl AggregateBuildProfile {
-    fn add_family_time(&mut self, family_id: ProofFamilyId, elapsed_ms: f64) {
-        match family_id {
-            ProofFamilyId::Transfer
-            | ProofFamilyId::NoteReshape(_)
-            | ProofFamilyId::ShieldedIcs20Withdrawal(_) => self.other_ms += elapsed_ms,
-        }
-    }
-
-    fn apply_backend_build_profile(&mut self, backend: &AggregateBuildBackendProfile) {
-        self.collect_proofs_ms = backend.collect_proofs_ms;
-        self.backend_core_ms = backend.backend_aggregate_ms;
-        self.backend_point_extract_ms = backend.backend_point_extract_ms;
-        self.backend_prepared_srs_ms = backend.backend_prepared_srs_ms;
-        self.backend_commitment_key_extract_ms = backend.backend_commitment_key_extract_ms;
-        self.backend_commitment_ms = backend.backend_commitment_ms;
-        self.backend_com_a_ms = backend.backend_com_a_ms;
-        self.backend_com_b_ms = backend.backend_com_b_ms;
-        self.backend_com_c_ms = backend.backend_com_c_ms;
-        self.backend_pairing_normalize_batch_ms = backend.backend_pairing_normalize_batch_ms;
-        self.backend_pairing_prepare_ms = backend.backend_pairing_prepare_ms;
-        self.backend_pairing_miller_loop_ms = backend.backend_pairing_miller_loop_ms;
-        self.backend_pairing_final_exponentiation_ms =
-            backend.backend_pairing_final_exponentiation_ms;
-        self.backend_randomizer_ms = backend.backend_randomizer_ms;
-        self.backend_structured_scalar_ms = backend.backend_structured_scalar_ms;
-        self.backend_weighted_b_ms = backend.backend_weighted_b_ms;
-        self.backend_ip_ab_ms = backend.backend_ip_ab_ms;
-        self.backend_agg_c_ms = backend.backend_agg_c_ms;
-        self.backend_ck_2_r_inv_ms = backend.backend_ck_2_r_inv_ms;
-        self.backend_consistency_check_ms = backend.backend_consistency_check_ms;
-        self.backend_tipp_mipp_ms = backend.backend_tipp_mipp_ms;
-        self.backend_tipp_mipp_gipa_ms = backend.backend_tipp_mipp_gipa_ms;
-        self.backend_tipp_mipp_gipa_commit_l_ms = backend.backend_tipp_mipp_gipa_commit_l_ms;
-        self.backend_tipp_mipp_gipa_commit_r_ms = backend.backend_tipp_mipp_gipa_commit_r_ms;
-        self.backend_tipp_mipp_gipa_challenge_ms = backend.backend_tipp_mipp_gipa_challenge_ms;
-        self.backend_tipp_mipp_gipa_rescale_m1_ms = backend.backend_tipp_mipp_gipa_rescale_m1_ms;
-        self.backend_tipp_mipp_gipa_rescale_m2_ms = backend.backend_tipp_mipp_gipa_rescale_m2_ms;
-        self.backend_tipp_mipp_gipa_rescale_m3_ms = backend.backend_tipp_mipp_gipa_rescale_m3_ms;
-        self.backend_tipp_mipp_gipa_rescale_r_ms = backend.backend_tipp_mipp_gipa_rescale_r_ms;
-        self.backend_tipp_mipp_gipa_rescale_ck1_ms = backend.backend_tipp_mipp_gipa_rescale_ck1_ms;
-        self.backend_tipp_mipp_gipa_rescale_ck2_ms = backend.backend_tipp_mipp_gipa_rescale_ck2_ms;
-        self.backend_tipp_mipp_transcript_inverse_ms =
-            backend.backend_tipp_mipp_transcript_inverse_ms;
-        self.backend_tipp_mipp_final_bridge_ms = backend.backend_tipp_mipp_final_bridge_ms;
-        self.backend_tipp_mipp_kzg_challenge_ms = backend.backend_tipp_mipp_kzg_challenge_ms;
-        self.backend_tipp_mipp_kzg_coefficient_build_ms =
-            backend.backend_tipp_mipp_kzg_coefficient_build_ms;
-        self.backend_tipp_mipp_kzg_eval_quotient_ms =
-            backend.backend_tipp_mipp_kzg_eval_quotient_ms;
-        self.backend_tipp_mipp_kzg_opening_msm_ms = backend.backend_tipp_mipp_kzg_opening_msm_ms;
-        self.backend_tipp_mipp_kzg_opening_ck_v_ms = backend.backend_tipp_mipp_kzg_opening_ck_v_ms;
-        self.backend_tipp_mipp_kzg_opening_ck_w_ms = backend.backend_tipp_mipp_kzg_opening_ck_w_ms;
-        self.proof_serialize_ms = backend.serialize_ms;
-    }
-
-    pub fn merge(&mut self, other: &AggregateBuildProfile) {
-        self.merge_items_ms += other.merge_items_ms;
-        self.setup_ms += other.setup_ms;
-        self.padding_ms += other.padding_ms;
-        self.collect_proofs_ms += other.collect_proofs_ms;
-        self.backend_core_ms += other.backend_core_ms;
-        self.backend_point_extract_ms += other.backend_point_extract_ms;
-        self.backend_prepared_srs_ms += other.backend_prepared_srs_ms;
-        self.backend_commitment_key_extract_ms += other.backend_commitment_key_extract_ms;
-        self.backend_commitment_ms += other.backend_commitment_ms;
-        self.backend_com_a_ms += other.backend_com_a_ms;
-        self.backend_com_b_ms += other.backend_com_b_ms;
-        self.backend_com_c_ms += other.backend_com_c_ms;
-        self.backend_pairing_normalize_batch_ms += other.backend_pairing_normalize_batch_ms;
-        self.backend_pairing_prepare_ms += other.backend_pairing_prepare_ms;
-        self.backend_pairing_miller_loop_ms += other.backend_pairing_miller_loop_ms;
-        self.backend_pairing_final_exponentiation_ms +=
-            other.backend_pairing_final_exponentiation_ms;
-        self.backend_randomizer_ms += other.backend_randomizer_ms;
-        self.backend_structured_scalar_ms += other.backend_structured_scalar_ms;
-        self.backend_weighted_b_ms += other.backend_weighted_b_ms;
-        self.backend_ip_ab_ms += other.backend_ip_ab_ms;
-        self.backend_agg_c_ms += other.backend_agg_c_ms;
-        self.backend_ck_2_r_inv_ms += other.backend_ck_2_r_inv_ms;
-        self.backend_consistency_check_ms += other.backend_consistency_check_ms;
-        self.backend_tipp_mipp_ms += other.backend_tipp_mipp_ms;
-        self.backend_tipp_mipp_gipa_ms += other.backend_tipp_mipp_gipa_ms;
-        self.backend_tipp_mipp_gipa_commit_l_ms += other.backend_tipp_mipp_gipa_commit_l_ms;
-        self.backend_tipp_mipp_gipa_commit_r_ms += other.backend_tipp_mipp_gipa_commit_r_ms;
-        self.backend_tipp_mipp_gipa_challenge_ms += other.backend_tipp_mipp_gipa_challenge_ms;
-        self.backend_tipp_mipp_gipa_rescale_m1_ms += other.backend_tipp_mipp_gipa_rescale_m1_ms;
-        self.backend_tipp_mipp_gipa_rescale_m2_ms += other.backend_tipp_mipp_gipa_rescale_m2_ms;
-        self.backend_tipp_mipp_gipa_rescale_m3_ms += other.backend_tipp_mipp_gipa_rescale_m3_ms;
-        self.backend_tipp_mipp_gipa_rescale_r_ms += other.backend_tipp_mipp_gipa_rescale_r_ms;
-        self.backend_tipp_mipp_gipa_rescale_ck1_ms += other.backend_tipp_mipp_gipa_rescale_ck1_ms;
-        self.backend_tipp_mipp_gipa_rescale_ck2_ms += other.backend_tipp_mipp_gipa_rescale_ck2_ms;
-        self.backend_tipp_mipp_transcript_inverse_ms +=
-            other.backend_tipp_mipp_transcript_inverse_ms;
-        self.backend_tipp_mipp_final_bridge_ms += other.backend_tipp_mipp_final_bridge_ms;
-        self.backend_tipp_mipp_kzg_challenge_ms += other.backend_tipp_mipp_kzg_challenge_ms;
-        self.backend_tipp_mipp_kzg_coefficient_build_ms +=
-            other.backend_tipp_mipp_kzg_coefficient_build_ms;
-        self.backend_tipp_mipp_kzg_eval_quotient_ms += other.backend_tipp_mipp_kzg_eval_quotient_ms;
-        self.backend_tipp_mipp_kzg_opening_msm_ms += other.backend_tipp_mipp_kzg_opening_msm_ms;
-        self.backend_tipp_mipp_kzg_opening_ck_v_ms += other.backend_tipp_mipp_kzg_opening_ck_v_ms;
-        self.backend_tipp_mipp_kzg_opening_ck_w_ms += other.backend_tipp_mipp_kzg_opening_ck_w_ms;
-        self.proof_serialize_ms += other.proof_serialize_ms;
-        self.bundle_tx_build_ms += other.bundle_tx_build_ms;
-        self.spend_ms += other.spend_ms;
-        self.output_ms += other.output_ms;
-        self.other_ms += other.other_ms;
-    }
-
-    pub fn scale(&mut self, factor: f64) {
-        self.merge_items_ms *= factor;
-        self.setup_ms *= factor;
-        self.padding_ms *= factor;
-        self.collect_proofs_ms *= factor;
-        self.backend_core_ms *= factor;
-        self.backend_point_extract_ms *= factor;
-        self.backend_prepared_srs_ms *= factor;
-        self.backend_commitment_key_extract_ms *= factor;
-        self.backend_commitment_ms *= factor;
-        self.backend_com_a_ms *= factor;
-        self.backend_com_b_ms *= factor;
-        self.backend_com_c_ms *= factor;
-        self.backend_pairing_normalize_batch_ms *= factor;
-        self.backend_pairing_prepare_ms *= factor;
-        self.backend_pairing_miller_loop_ms *= factor;
-        self.backend_pairing_final_exponentiation_ms *= factor;
-        self.backend_randomizer_ms *= factor;
-        self.backend_structured_scalar_ms *= factor;
-        self.backend_weighted_b_ms *= factor;
-        self.backend_ip_ab_ms *= factor;
-        self.backend_agg_c_ms *= factor;
-        self.backend_ck_2_r_inv_ms *= factor;
-        self.backend_consistency_check_ms *= factor;
-        self.backend_tipp_mipp_ms *= factor;
-        self.backend_tipp_mipp_gipa_ms *= factor;
-        self.backend_tipp_mipp_gipa_commit_l_ms *= factor;
-        self.backend_tipp_mipp_gipa_commit_r_ms *= factor;
-        self.backend_tipp_mipp_gipa_challenge_ms *= factor;
-        self.backend_tipp_mipp_gipa_rescale_m1_ms *= factor;
-        self.backend_tipp_mipp_gipa_rescale_m2_ms *= factor;
-        self.backend_tipp_mipp_gipa_rescale_m3_ms *= factor;
-        self.backend_tipp_mipp_gipa_rescale_r_ms *= factor;
-        self.backend_tipp_mipp_gipa_rescale_ck1_ms *= factor;
-        self.backend_tipp_mipp_gipa_rescale_ck2_ms *= factor;
-        self.backend_tipp_mipp_transcript_inverse_ms *= factor;
-        self.backend_tipp_mipp_final_bridge_ms *= factor;
-        self.backend_tipp_mipp_kzg_challenge_ms *= factor;
-        self.backend_tipp_mipp_kzg_coefficient_build_ms *= factor;
-        self.backend_tipp_mipp_kzg_eval_quotient_ms *= factor;
-        self.backend_tipp_mipp_kzg_opening_msm_ms *= factor;
-        self.backend_tipp_mipp_kzg_opening_ck_v_ms *= factor;
-        self.backend_tipp_mipp_kzg_opening_ck_w_ms *= factor;
-        self.proof_serialize_ms *= factor;
-        self.bundle_tx_build_ms *= factor;
-        self.spend_ms *= factor;
-        self.output_ms *= factor;
-        self.other_ms *= factor;
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct AggregateVerifyProfile {
-    total_ms: f64,
-    expected_segments_ms: f64,
-    prepare_inputs_ms: f64,
-    backend_deserialize_ms: f64,
-    backend_challenge_ms: f64,
-    backend_tipp_mipp_ms: f64,
-    backend_public_input_fold_ms: f64,
-    backend_ppe_ms: f64,
-    backend_core_total_ms: f64,
-}
-
-impl AggregateVerifyProfile {
-    fn merge_backend_profile(&mut self, backend: &AggregateVerificationProfile) {
-        self.backend_deserialize_ms += backend.deserialize_ms;
-        self.backend_challenge_ms += backend.challenge_ms;
-        self.backend_tipp_mipp_ms += backend.tipp_mipp_ms;
-        self.backend_public_input_fold_ms += backend.public_input_fold_ms;
-        self.backend_ppe_ms += backend.ppe_ms;
-        self.backend_core_total_ms += backend.core_total_ms;
-    }
 }
 
 #[derive(Clone)]
@@ -762,7 +435,7 @@ struct AggregateVerifyPlan {
 }
 
 #[derive(Clone)]
-struct AggregateVerifyProfiledCallOutcome {
+struct AggregateVerifyCallOutcome {
     id: AggregateVerifyCallId,
     shipping_verification: ShippingAggregateVerification,
     items: Vec<BatchItem>,
@@ -788,7 +461,7 @@ fn require_no_rejected_joined_calls(rejected_calls: Vec<AppVerifyCallId>) -> Res
     Ok(())
 }
 
-impl AggregateVerifyProfiledCallOutcome {
+impl AggregateVerifyCallOutcome {
     fn result(&self) -> Result<AggregateVerifyCallResult> {
         let shipping_result = self.shipping_verification.shipping_result();
         anyhow::ensure!(
@@ -855,28 +528,6 @@ pub(crate) struct CachedProposalAggregate {
     proposal_txs_digest: [u8; 32],
     proposal_segment_tx_count: Option<usize>,
     bundle_tx_bytes: Option<Bytes>,
-    tail_tx_count: usize,
-}
-
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
-pub struct ArtifactBuildBreakdown {
-    pub precheck_ms: f64,
-    pub action_extract_ms: f64,
-    pub action_auth_sig_ms: f64,
-    pub action_extract_public_ms: f64,
-    pub action_to_batch_item_ms: f64,
-    pub batch_verify_ms: f64,
-}
-
-impl ArtifactBuildBreakdown {
-    pub fn merge(&mut self, other: &ArtifactBuildBreakdown) {
-        self.precheck_ms += other.precheck_ms;
-        self.action_extract_ms += other.action_extract_ms;
-        self.action_auth_sig_ms += other.action_auth_sig_ms;
-        self.action_extract_public_ms += other.action_extract_public_ms;
-        self.action_to_batch_item_ms += other.action_to_batch_item_ms;
-        self.batch_verify_ms += other.batch_verify_ms;
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -927,8 +578,6 @@ impl BlockSctAppendLog {
         state: &S,
         payloads: Vec<StatePayload>,
     ) -> Result<Vec<(shieldd_sdk_tct::Position, StatePayload)>> {
-        #[cfg(feature = "benchmark-helpers")]
-        let reserve_start = Instant::now();
         if payloads.is_empty() {
             return Ok(Vec::new());
         }
@@ -945,17 +594,22 @@ impl BlockSctAppendLog {
             }
         };
 
+        let used_in_block = base_position.commitment() as u64 + self.next_offset;
+        anyhow::ensure!(
+            used_in_block.saturating_add(payloads.len() as u64)
+                <= shieldd_sdk_sct::component::tree::SCT_BLOCK_COMMITMENT_CAPACITY as u64,
+            "SCT block commitment capacity exceeded"
+        );
         let base_position_u64: u64 = base_position.into();
-        let start = base_position_u64 + self.next_offset;
+        let start = base_position_u64
+            .checked_add(self.next_offset)
+            .context("SCT position overflow while reserving block commitments")?;
         let mut positioned = Vec::with_capacity(payloads.len());
         for (offset, payload) in payloads.into_iter().enumerate() {
             let position = shieldd_sdk_tct::Position::from(start + offset as u64);
             positioned.push((position, payload));
         }
         self.next_offset += positioned.len() as u64;
-
-        #[cfg(feature = "benchmark-helpers")]
-        record_inbound_stage(InboundStage::DeferredSctReserve, reserve_start.elapsed());
 
         Ok(positioned)
     }
@@ -998,90 +652,39 @@ impl App {
     #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn benchmark_block_context(&self) -> Result<BenchBlockContext> {
         let next_height = self.state.get_block_height().await?.saturating_add(1);
-        let height = block::Height::try_from(next_height)
-            .context("converting execution benchmark height")?;
-        let current_time = self.state.get_current_block_timestamp().await?;
-        let time = current_time
+        let time = self
+            .state
+            .get_current_block_timestamp()
+            .await?
             .checked_add(Duration::from_secs(1))
-            .unwrap_or(current_time);
-        let chain_id = chain::Id::try_from(self.state.get_chain_id().await?)
-            .context("parsing execution benchmark chain id")?;
-        let base_snapshot = self.committed_snapshot.clone();
-        let app_hash = AppHash::try_from(base_snapshot.root_hash().await?.0.to_vec())
-            .context("converting execution benchmark app hash")?;
-
+            .context("execution benchmark timestamp overflow")?;
         Ok(BenchBlockContext {
-            height,
+            height: next_height,
             time,
-            chain_id,
-            proposer_address: account::Id::new([0u8; 20]),
-            next_validators_hash: Hash::None,
-            app_hash,
         })
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    fn begin_block_request_from_context(context: &BenchBlockContext) -> request::BeginBlock {
-        request::BeginBlock {
-            hash: Hash::None,
-            header: block::Header {
-                version: block::header::Version { block: 11, app: 1 },
-                chain_id: context.chain_id.clone(),
-                height: context.height,
-                time: context.time,
-                last_block_id: None,
-                last_commit_hash: None,
-                data_hash: None,
-                validators_hash: context.next_validators_hash,
-                next_validators_hash: context.next_validators_hash,
-                consensus_hash: Hash::None,
-                app_hash: context.app_hash.clone(),
-                last_results_hash: None,
-                evidence_hash: None,
-                proposer_address: context.proposer_address,
-            },
-            last_commit_info: abci::types::CommitInfo {
-                round: 0u8.into(),
-                votes: Vec::new(),
-            },
-            byzantine_validators: Vec::new(),
-        }
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
     fn process_proposal_request_from_envelope(
         context: &BenchBlockContext,
         envelope: &CandidateEnvelope,
-    ) -> request::ProcessProposal {
+    ) -> BatchCandidate {
         let mut txs = envelope
             .txs
             .iter()
             .cloned()
             .map(Bytes::from)
             .collect::<Vec<_>>();
-        if let Some(bundle_tx_bytes) = &envelope.aggregate_bundle_tx_bytes {
-            txs.push(Bytes::from(bundle_tx_bytes.clone()));
+        if let Some(bundle) = &envelope.aggregate_bundle_tx_bytes {
+            txs.push(Bytes::from(bundle.clone()));
         }
-
-        request::ProcessProposal {
-            txs,
-            proposed_last_commit: None,
-            misbehavior: Vec::new(),
-            hash: Hash::None,
+        BatchCandidate {
             height: context.height,
-            time: context.time,
-            next_validators_hash: context.next_validators_hash,
-            proposer_address: context.proposer_address,
+            txs,
         }
-    }
-
-    fn ensure_user_tx_has_no_unsupported_internal_actions(tx: &Transaction) -> Result<()> {
-        let _ = tx;
-        Ok(())
     }
 
     pub(crate) fn ensure_user_tx_has_no_internal_actions(tx: &Transaction) -> Result<()> {
-        Self::ensure_user_tx_has_no_unsupported_internal_actions(tx)?;
         anyhow::ensure!(
             !tx.contains_aggregate_bundle_action(),
             "Aggregate bundle actions are not permitted in user-submitted transactions"
@@ -1097,9 +700,9 @@ impl App {
                 .map(|spec| ProofFamilyId::NoteReshape(spec.id)),
         );
         family_ids.extend(
-            shieldd_sdk_shielded_pool::SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS
+            shieldd_sdk_shielded_pool::SHIELDED_WITHDRAWAL_FAMILY_SPECS
                 .into_iter()
-                .map(|spec| ProofFamilyId::ShieldedIcs20Withdrawal(spec.id)),
+                .map(|spec| ProofFamilyId::ShieldedWithdrawal(spec.id)),
         );
         family_ids
     }
@@ -1227,203 +830,6 @@ impl App {
         }
     }
 
-    fn accumulate_prepare_candidate_profile(
-        profile: &mut PrepareProposalProfile,
-        execution_profile: &VerifiedStatefulTxBreakdown,
-    ) {
-        profile.stateful_filter_check_historical_ms += execution_profile.check_historical_ms;
-        profile.stateful_filter_get_block_height_ms += execution_profile.get_block_height_ms;
-        profile.stateful_filter_clone_tx_ms += execution_profile.clone_tx_ms;
-        profile.stateful_filter_proto_convert_ms += execution_profile.proto_convert_ms;
-        profile.stateful_filter_put_block_transaction_ms +=
-            execution_profile.put_block_transaction_ms;
-        profile.stateful_filter_begin_state_tx_ms += execution_profile.begin_state_tx_ms;
-        profile.stateful_filter_index_tx_ms += execution_profile.index_tx_ms;
-        profile.stateful_filter_check_and_execute_ms += execution_profile.check_and_execute_ms;
-        profile.stateful_filter_set_source_ms += execution_profile.set_source_ms;
-        profile.stateful_filter_pay_fee_ms += execution_profile.pay_fee_ms;
-        profile.stateful_filter_action_execute_ms += execution_profile.action_execute_ms;
-        profile.stateful_filter_read_local_precheck_ms += execution_profile.read_local_precheck_ms;
-        profile.stateful_filter_read_lookup_wait_or_join_ms +=
-            execution_profile.read_lookup_wait_or_join_ms;
-        profile.stateful_filter_read_historical_check_ms +=
-            execution_profile.read_historical_check_ms;
-        profile.stateful_filter_read_nullifier_wait_ms += execution_profile.read_nullifier_wait_ms;
-        profile.stateful_filter_read_anchor_cache_wait_ms +=
-            execution_profile.read_anchor_cache_wait_ms;
-        profile.stateful_filter_spend_action_execute_ms +=
-            execution_profile.spend_action_execute_ms;
-        profile.stateful_filter_spend_nullifier_check_ms +=
-            execution_profile.spend_nullifier_check_ms;
-        profile.stateful_filter_spend_nullifier_tx_local_scan_ms +=
-            execution_profile.spend_nullifier_tx_local_scan_ms;
-        profile.stateful_filter_spend_nullifier_block_log_lookup_ms +=
-            execution_profile.spend_nullifier_block_log_lookup_ms;
-        profile.stateful_filter_spend_nullifier_committed_check_ms +=
-            execution_profile.spend_nullifier_committed_check_ms;
-        profile.stateful_filter_spend_nullifier_enqueue_ms +=
-            execution_profile.spend_nullifier_enqueue_ms;
-        profile.stateful_filter_spend_nullifier_stage_ms +=
-            execution_profile.spend_nullifier_stage_ms;
-        profile.stateful_filter_spend_nullifier_merge_ms +=
-            execution_profile.spend_nullifier_merge_ms;
-        profile.stateful_filter_nullifier_lookup_count += execution_profile.nullifier_lookup_count;
-        profile.stateful_filter_output_action_execute_ms +=
-            execution_profile.output_action_execute_ms;
-        profile.stateful_filter_output_add_note_payload_ms +=
-            execution_profile.output_add_note_payload_ms;
-        profile.stateful_filter_read_anchor_validation_ms +=
-            execution_profile.read_anchor_validation_ms;
-        profile.stateful_filter_read_committed_nullifier_ms +=
-            execution_profile.read_committed_nullifier_ms;
-        profile.stateful_filter_read_effects_build_ms += execution_profile.read_effects_build_ms;
-        profile.stateful_filter_candidate_effects_build_ms +=
-            execution_profile.read_effects_build_ms;
-        profile.stateful_filter_serial_apply_wall_ms += execution_profile.serial_apply_wall_ms;
-        profile.stateful_filter_serial_same_block_conflict_ms +=
-            execution_profile.serial_same_block_conflict_ms;
-        profile.stateful_filter_serial_state_delta_apply_ms += execution_profile.apply_ms;
-        profile.stateful_filter_serial_nullifier_insert_ms +=
-            execution_profile.serial_nullifier_insert_ms;
-        profile.stateful_filter_proposal_nullifier_lookup_write_ms +=
-            execution_profile.proposal_nullifier_lookup_write_ms;
-        profile.stateful_filter_proposal_pending_nullifier_stage_ms +=
-            execution_profile.proposal_pending_nullifier_stage_ms;
-        profile.stateful_filter_serial_sct_append_ms += execution_profile.serial_sct_append_ms;
-        profile.stateful_filter_serial_event_emit_ms += execution_profile.serial_event_emit_ms;
-        profile.stateful_filter_serial_fee_apply_ms += execution_profile.serial_fee_apply_ms;
-        profile.stateful_filter_other_action_execute_ms +=
-            execution_profile.other_action_execute_ms;
-        profile.stateful_filter_apply_ms += execution_profile.apply_ms;
-    }
-
-    fn emit_stateful_filter_breakdown(
-        candidate_tx_count: usize,
-        included_candidate_count: usize,
-        profile: &PrepareProposalProfile,
-    ) {
-        tracing::info!(
-            candidate_tx_count,
-            included_candidate_count,
-            stateful_filter_execute_ms = profile.stateful_filter_execute_ms,
-            stateful_filter_check_historical_ms = profile.stateful_filter_check_historical_ms,
-            stateful_filter_check_and_execute_ms = profile.stateful_filter_check_and_execute_ms,
-            read_local_precheck_ms = profile.stateful_filter_read_local_precheck_ms,
-            read_lookup_wait_or_join_ms = profile.stateful_filter_read_lookup_wait_or_join_ms,
-            read_historical_check_ms = profile.stateful_filter_read_historical_check_ms,
-            read_nullifier_wait_ms = profile.stateful_filter_read_nullifier_wait_ms,
-            read_anchor_cache_wait_ms = profile.stateful_filter_read_anchor_cache_wait_ms,
-            read_task_dispatch_ms = profile.stateful_filter_read_task_dispatch_ms,
-            stateful_filter_spend_nullifier_committed_check_ms =
-                profile.stateful_filter_spend_nullifier_committed_check_ms,
-            nullifier_lookup_count = profile.stateful_filter_nullifier_lookup_count,
-            stateful_filter_spend_nullifier_check_ms =
-                profile.stateful_filter_spend_nullifier_check_ms,
-            stateful_filter_output_action_execute_ms =
-                profile.stateful_filter_output_action_execute_ms,
-            stateful_filter_apply_ms = profile.stateful_filter_apply_ms,
-            parallel_read_wall_ms = profile.stateful_filter_parallel_read_wall_ms,
-            parallel_read_sum_candidate_ms = profile.stateful_filter_parallel_read_sum_candidate_ms,
-            parallel_read_tasks_spawned = profile.stateful_filter_parallel_read_tasks_spawned,
-            parallel_read_max_inflight = profile.stateful_filter_parallel_read_max_inflight,
-            parallel_read_configured_concurrency =
-                profile.stateful_filter_parallel_read_configured_concurrency,
-            parallel_read_effective_parallelism =
-                if profile.stateful_filter_parallel_read_wall_ms > 0.0 {
-                    profile.stateful_filter_parallel_read_sum_candidate_ms
-                        / profile.stateful_filter_parallel_read_wall_ms
-                } else {
-                    0.0
-                },
-            anchor_cache_hits = profile.stateful_filter_anchor_cache_hits,
-            anchor_cache_misses = profile.stateful_filter_anchor_cache_misses,
-            anchor_unique_pairs = profile.stateful_filter_anchor_unique_pairs,
-            claimed_anchor_cache_hits = profile.stateful_filter_claimed_anchor_cache_hits,
-            claimed_anchor_cache_misses = profile.stateful_filter_claimed_anchor_cache_misses,
-            claimed_anchor_unique_values = profile.stateful_filter_claimed_anchor_unique_values,
-            read_anchor_validation_ms = profile.stateful_filter_read_anchor_validation_ms,
-            read_committed_nullifier_ms = profile.stateful_filter_read_committed_nullifier_ms,
-            read_effects_build_ms = profile.stateful_filter_read_effects_build_ms,
-            candidate_read_wall_ms = profile.stateful_filter_candidate_read_wall_ms,
-            candidate_effects_build_ms = profile.stateful_filter_candidate_effects_build_ms,
-            serial_apply_wall_ms = profile.stateful_filter_serial_apply_wall_ms,
-            serial_same_block_conflict_ms = profile.stateful_filter_serial_same_block_conflict_ms,
-            serial_state_delta_apply_ms = profile.stateful_filter_serial_state_delta_apply_ms,
-            serial_nullifier_insert_ms = profile.stateful_filter_serial_nullifier_insert_ms,
-            proposal_nullifier_lookup_write_ms =
-                profile.stateful_filter_proposal_nullifier_lookup_write_ms,
-            proposal_pending_nullifier_stage_ms =
-                profile.stateful_filter_proposal_pending_nullifier_stage_ms,
-            serial_sct_append_ms = profile.stateful_filter_serial_sct_append_ms,
-            serial_event_emit_ms = profile.stateful_filter_serial_event_emit_ms,
-            serial_fee_apply_ms = profile.stateful_filter_serial_fee_apply_ms,
-            candidate_read_wall_ms_per_tx = if included_candidate_count > 0 {
-                profile.stateful_filter_candidate_read_wall_ms / included_candidate_count as f64
-            } else {
-                0.0
-            },
-            serial_apply_wall_ms_per_tx = if included_candidate_count > 0 {
-                profile.stateful_filter_serial_apply_wall_ms / included_candidate_count as f64
-            } else {
-                0.0
-            },
-            "stateful_filter_breakdown"
-        );
-    }
-
-    pub(crate) fn emit_checktx_breakdown(profile: &CheckTxProfile) {
-        tracing::info!(
-            checktx_total_wall_ms = profile.checktx_total_wall_ms,
-            checktx_cache_lookup_ms = profile.checktx_cache_lookup_ms,
-            checktx_stateless_phase_wall_ms = profile.checktx_stateless_phase_wall_ms,
-            checktx_execute_fast_wall_ms = profile.checktx_execute_fast_wall_ms,
-            checktx_fast_prepare_join_wall_ms = profile.checktx_fast_prepare_join_wall_ms,
-            checktx_fast_apply_wall_ms = profile.checktx_fast_apply_wall_ms,
-            decode_tx_ms = profile.decode_tx_ms,
-            stateless_artifact_queue_wait_ms = profile.stateless_artifact_queue_wait_ms,
-            stateless_task_join_wall_ms = profile.stateless_task_join_wall_ms,
-            stateless_artifact_blocking_total_ms = profile.stateless_artifact_blocking_total_ms,
-            stateless_artifact_ms = profile.stateless_artifact_ms,
-            stateless_initial_cache_insert_ms = profile.stateless_initial_cache_insert_ms,
-            stateless_historical_stamp_ms = profile.stateless_historical_stamp_ms,
-            stateless_historical_mark_ms = profile.stateless_historical_mark_ms,
-            stateless_final_cache_insert_ms = profile.stateless_final_cache_insert_ms,
-            stateless_artifact_precheck_ms = profile.stateless_artifact_precheck_ms,
-            stateless_artifact_action_extract_ms = profile.stateless_artifact_action_extract_ms,
-            stateless_artifact_action_auth_sig_ms = profile.stateless_artifact_action_auth_sig_ms,
-            stateless_artifact_action_extract_public_ms =
-                profile.stateless_artifact_action_extract_public_ms,
-            stateless_artifact_action_to_batch_item_ms =
-                profile.stateless_artifact_action_to_batch_item_ms,
-            stateless_artifact_batch_verify_ms = profile.stateless_artifact_batch_verify_ms,
-            checktx_fast_context_load_ms = profile.checktx_fast_context_load_ms,
-            checktx_fast_read_queue_wait_ms = profile.checktx_fast_read_queue_wait_ms,
-            checktx_fast_read_blocking_total_ms = profile.checktx_fast_read_blocking_total_ms,
-            check_historical_ms = profile.check_historical_ms,
-            execute_ms = profile.execute_ms,
-            execute_check_and_execute_ms = profile.execute_check_and_execute_ms,
-            execute_read_local_precheck_ms = profile.execute_read_local_precheck_ms,
-            execute_read_lookup_wait_or_join_ms = profile.execute_read_lookup_wait_or_join_ms,
-            execute_read_historical_check_ms = profile.execute_read_historical_check_ms,
-            execute_read_nullifier_wait_ms = profile.execute_read_nullifier_wait_ms,
-            execute_read_anchor_cache_wait_ms = profile.execute_read_anchor_cache_wait_ms,
-            execute_spend_nullifier_committed_check_ms =
-                profile.execute_spend_nullifier_committed_check_ms,
-            execute_nullifier_lookup_count = profile.execute_nullifier_lookup_count,
-            execute_pay_fee_ms = profile.execute_pay_fee_ms,
-            execute_apply_ms = profile.execute_apply_ms,
-            checktx_candidate_read_wall_ms = profile.checktx_candidate_read_wall_ms,
-            checktx_candidate_effects_build_ms = profile.checktx_candidate_effects_build_ms,
-            checktx_serial_apply_wall_ms = profile.checktx_serial_apply_wall_ms,
-            checktx_serial_nullifier_insert_ms = profile.checktx_serial_nullifier_insert_ms,
-            checktx_serial_sct_append_ms = profile.checktx_serial_sct_append_ms,
-            checktx_serial_event_emit_ms = profile.checktx_serial_event_emit_ms,
-            checktx_serial_fee_apply_ms = profile.checktx_serial_fee_apply_ms,
-            cache_hit_count = profile.cache_hit_count,
-            "checktx_breakdown"
-        );
-    }
-
     fn apply_checktx_fee_with_context<S: cnidarium::StateWrite>(
         state: &mut S,
         gas_used: Gas,
@@ -1460,7 +866,7 @@ impl App {
             tip: Some(tip.into()),
         });
 
-        state.raw_accumulate_base_fee_and_tip(base_fee, tip);
+        state.accumulate_fees(base_fee.amount(), tip.amount());
         Ok(())
     }
 
@@ -1504,32 +910,28 @@ impl App {
     ) -> Result<(
         BTreeMap<ProofFamilyId, Vec<BatchItem>>,
         Vec<Arc<TxArtifact>>,
-        ArtifactBuildBreakdown,
     )> {
         use cnidarium_component::ActionHandler as _;
-        use shieldd_sdk_shielded_pool::component::Ics20Transfer;
 
         let mut proof_items = Self::empty_proof_items();
         let mut artifacts = Vec::with_capacity(txs.len());
-        let mut profile = ArtifactBuildBreakdown::default();
 
         for tx in txs {
-            let precheck_start = Instant::now();
             Self::ensure_user_tx_has_no_internal_actions(tx)?;
             crate::action_handler::transaction::validate_transaction_envelope(tx)?;
-            profile.precheck_ms += precheck_start.elapsed().as_secs_f64() * 1000.0;
 
             let context = tx.context();
             let mut tx_proof_items = Self::empty_proof_items();
 
-            let action_extract_start = Instant::now();
             for action in tx.actions() {
                 match action {
                     Action::Transfer(transfer) => {
-                        let t1 = Instant::now();
-                        let item = transfer_check_stateless_and_extract(transfer, &context)
-                            .context("transfer stateless extraction failed")?;
-                        profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
+                        let item = transfer_check_stateless_and_extract(
+                            transfer,
+                            &context,
+                            shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
+                        )
+                        .context("transfer stateless extraction failed")?;
                         let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                             .expect("transfer has a proof family");
 
@@ -1542,33 +944,13 @@ impl App {
                         tx_family_items.push(item.clone());
                         family_items.push(item);
                     }
-                    Action::ShieldedIcs20Withdrawal(withdrawal) => {
-                        let t1 = Instant::now();
-                        let item = shielded_ics20_withdrawal_check_stateless_and_extract(
-                            withdrawal, &context,
-                        )
-                        .context("shielded ICS-20 withdrawal stateless extraction failed")?;
-                        profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-                        let family_id =
-                            action_family_id(&Action::ShieldedIcs20Withdrawal(withdrawal.clone()))
-                                .expect("shielded ICS-20 withdrawal has a proof family");
 
-                        tx_proof_items
-                            .get_mut(&family_id)
-                            .expect("shielded ICS-20 withdrawal family exists")
-                            .push(item.clone());
-                        proof_items
-                            .get_mut(&family_id)
-                            .expect("shielded ICS-20 withdrawal family exists")
-                            .push(item);
-                    }
                     Action::ShieldedHostWithdrawal(withdrawal) => {
-                        let t1 = Instant::now();
                         let item = shielded_host_withdrawal_check_stateless_and_extract(
                             withdrawal, &context,
                         )
                         .context("shielded host withdrawal stateless extraction failed")?;
-                        profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
+
                         let family_id =
                             action_family_id(&Action::ShieldedHostWithdrawal(withdrawal.clone()))
                                 .expect("shielded host withdrawal has a proof family");
@@ -1583,10 +965,9 @@ impl App {
                             .push(item);
                     }
                     Action::NoteReshape(note_reshape) => {
-                        let t1 = Instant::now();
                         let item = note_reshape_check_stateless_and_extract(note_reshape, &context)
                             .context("note reshape stateless extraction failed")?;
-                        profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
+
                         let family_id =
                             action_family_id(&Action::NoteReshape(note_reshape.clone()))
                                 .expect("note reshape has a proof family");
@@ -1600,13 +981,7 @@ impl App {
                             .expect("note reshape family exists")
                             .push(item);
                     }
-                    Action::IbcRelay(action) => {
-                        action
-                            .clone()
-                            .with_handler::<Ics20Transfer, ShielddHost>()
-                            .check_stateless(())
-                            .await?
-                    }
+
                     Action::ComplianceRegisterAsset(action) => action.check_stateless(()).await?,
                     Action::ComplianceRegisterUser(action) => action.check_stateless(()).await?,
                     Action::AggregateBundle(_) => {
@@ -1616,9 +991,9 @@ impl App {
             }
             if let Some(fee_funding) = &tx.transaction_body.fee_funding {
                 let transfer = &fee_funding.transfer;
-                let t1 = Instant::now();
+
                 let item = extract_fee_funding_proof_item(fee_funding, &context)?;
-                profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
+
                 let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                     .expect("fee funding transfer has a proof family");
 
@@ -1631,7 +1006,6 @@ impl App {
                     .expect("fee funding transfer family exists")
                     .push(item);
             }
-            profile.action_extract_ms += action_extract_start.elapsed().as_secs_f64() * 1000.0;
 
             let mut anchor_pairs = HashSet::new();
             let mut spend_nullifiers = Vec::new();
@@ -1643,14 +1017,7 @@ impl App {
                         spend_nullifiers
                             .extend(transfer.body.inputs.iter().map(|input| input.nullifier));
                     }
-                    Action::ShieldedIcs20Withdrawal(withdrawal) => {
-                        anchor_pairs.insert((
-                            withdrawal.body.compliance_anchor,
-                            withdrawal.body.asset_anchor,
-                        ));
-                        spend_nullifiers
-                            .extend(withdrawal.body.inputs.iter().map(|input| input.nullifier));
-                    }
+
                     Action::ShieldedHostWithdrawal(withdrawal) => {
                         anchor_pairs.insert((
                             withdrawal.body.compliance_anchor,
@@ -1692,44 +1059,42 @@ impl App {
             }));
         }
 
-        Ok((proof_items, artifacts, profile))
+        Ok((proof_items, artifacts))
     }
 
-    async fn build_tx_artifacts_profiled(
-        txs: &[Arc<Transaction>],
-    ) -> Result<(Vec<Arc<VerifiedTxArtifact>>, ArtifactBuildBreakdown)> {
+    async fn build_tx_artifacts(txs: &[Arc<Transaction>]) -> Result<Vec<Arc<VerifiedTxArtifact>>> {
         if txs.is_empty() {
-            return Ok((Vec::new(), ArtifactBuildBreakdown::default()));
+            return Ok(Vec::new());
         }
 
-        let (proof_items, artifacts, mut profile) =
+        let (proof_items, artifacts) =
             Self::collect_consensus_proof_items_with_artifacts(txs).await?;
-        let batch_verify_start = Instant::now();
+
         let capabilities = Self::independently_verify_proof_families(proof_items).await?;
         let artifacts = Self::attach_verified_capabilities(artifacts, capabilities)?;
-        profile.batch_verify_ms = batch_verify_start.elapsed().as_secs_f64() * 1000.0;
-        Ok((artifacts, profile))
+
+        Ok(artifacts)
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    async fn build_tx_artifacts_extracted_profiled(
+    async fn build_tx_artifacts_extracted(
         txs: &[Arc<Transaction>],
-    ) -> Result<(Vec<Arc<TxArtifact>>, ArtifactBuildBreakdown)> {
+    ) -> Result<Vec<Arc<TxArtifact>>> {
         if txs.is_empty() {
-            return Ok((Vec::new(), ArtifactBuildBreakdown::default()));
+            return Ok(Vec::new());
         }
 
-        let (_proof_items, artifacts, profile) =
+        let (_proof_items, artifacts) =
             Self::collect_consensus_proof_items_with_artifacts(txs).await?;
-        Ok((artifacts, profile))
+        Ok(artifacts)
     }
 
     async fn build_tx_artifacts_for_stage(
         stage: &'static str,
         txs: &[Arc<Transaction>],
-    ) -> Result<(Vec<Arc<VerifiedTxArtifact>>, ArtifactBuildBreakdown)> {
+    ) -> Result<Vec<Arc<VerifiedTxArtifact>>> {
         let start = Instant::now();
-        let result = Self::build_tx_artifacts_profiled(txs).await;
+        let result = Self::build_tx_artifacts(txs).await;
         Self::record_artifact_build(stage, txs.len(), start.elapsed(), result.is_ok());
         result
     }
@@ -1737,13 +1102,12 @@ impl App {
     async fn build_tx_artifact_for_stage(
         stage: &'static str,
         tx: Arc<Transaction>,
-    ) -> Result<(Arc<VerifiedTxArtifact>, ArtifactBuildBreakdown)> {
-        let (mut artifacts, profile) =
+    ) -> Result<Arc<VerifiedTxArtifact>> {
+        let mut artifacts =
             Self::build_tx_artifacts_for_stage(stage, std::slice::from_ref(&tx)).await?;
         artifacts
             .pop()
             .context("single verified transaction artifact missing")
-            .map(|artifact| (artifact, profile))
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
@@ -1752,49 +1116,31 @@ impl App {
         txs: &[Arc<Transaction>],
     ) -> Result<Vec<Arc<TxArtifact>>> {
         let start = Instant::now();
-        let result = Self::build_tx_artifacts_extracted_profiled(txs).await;
+        let result = Self::build_tx_artifacts_extracted(txs).await;
         Self::record_artifact_build(stage, txs.len(), start.elapsed(), result.is_ok());
-        let (artifacts, _) = result?;
+        let artifacts = result?;
         Ok(artifacts)
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn build_tx_artifacts_extracted_profiled_public(
-        stage: &'static str,
-        txs: &[Arc<Transaction>],
-    ) -> Result<(Vec<Arc<TxArtifact>>, ArtifactBuildBreakdown)> {
-        let start = Instant::now();
-        let result = Self::build_tx_artifacts_extracted_profiled(txs).await;
-        Self::record_artifact_build(stage, txs.len(), start.elapsed(), result.is_ok());
-        result
     }
 
     async fn verify_tx_artifacts_for_stage(
         stage: &'static str,
         artifacts: &[Arc<TxArtifact>],
-    ) -> Result<(Vec<Arc<VerifiedTxArtifact>>, ArtifactBuildBreakdown)> {
+    ) -> Result<Vec<Arc<VerifiedTxArtifact>>> {
         let start = Instant::now();
         let proof_items = Self::merge_artifact_proof_items(artifacts);
         let result = Self::independently_verify_proof_families(proof_items).await;
         Self::record_artifact_build(stage, artifacts.len(), start.elapsed(), result.is_ok());
         let capabilities = result?;
         let verified = Self::attach_verified_capabilities(artifacts.to_vec(), capabilities)?;
-        Ok((
-            verified,
-            ArtifactBuildBreakdown {
-                batch_verify_ms: start.elapsed().as_secs_f64() * 1000.0,
-                ..Default::default()
-            },
-        ))
+        Ok(verified)
     }
 
     /// Runs Groth16 batch verification across multiple pre-extracted artifacts in one call.
     /// Amortizes the MSM cost across all proofs in the slice.
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn batch_verify_artifacts_for_bench(artifacts: &[Arc<TxArtifact>]) -> Result<f64> {
-        let (_, breakdown) =
-            Self::verify_tx_artifacts_for_stage("checktx_strict_bench_batched", artifacts).await?;
-        Ok(breakdown.batch_verify_ms)
+    pub async fn batch_verify_artifacts_for_bench(artifacts: &[Arc<TxArtifact>]) -> Result<()> {
+        Self::verify_tx_artifacts_for_stage("bench_batch", artifacts).await?;
+        Ok(())
     }
 
     async fn independently_verify_proof_families(
@@ -1888,7 +1234,7 @@ impl App {
         match family_id {
             ProofFamilyId::Transfer
             | ProofFamilyId::NoteReshape(_)
-            | ProofFamilyId::ShieldedIcs20Withdrawal(_) => AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
+            | ProofFamilyId::ShieldedWithdrawal(_) => AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
         }
     }
 
@@ -1991,18 +1337,14 @@ impl App {
     async fn build_family_aggregates_for_artifacts(
         artifacts: &[Arc<TxArtifact>],
         segment_index: usize,
-    ) -> Result<(Vec<FamilyAggregate>, AggregateBuildProfile)> {
-        let merge_start = Instant::now();
+    ) -> Result<Vec<FamilyAggregate>> {
         let proof_items = Self::merge_artifact_proof_items(artifacts);
         if Self::total_artifact_proof_count(artifacts) == 0 {
-            return Ok((Vec::new(), AggregateBuildProfile::default()));
+            return Ok(Vec::new());
         }
 
-        let mut profile = AggregateBuildProfile::default();
-        profile.merge_items_ms = merge_start.elapsed().as_secs_f64() * 1000.0;
-        let srs_start = Instant::now();
         let srs = shipping_srs()?;
-        profile.setup_ms = srs_start.elapsed().as_secs_f64() * 1000.0;
+
         let mut aggregate_tasks = Vec::new();
         let debug_entries = Self::aggregate_debug_families(artifacts);
 
@@ -2013,9 +1355,9 @@ impl App {
             }
 
             let real_count = items.len() as u32;
-            let padding_start = Instant::now();
+
             let padded_items = pad_items_to_power_of_two(&items, MAX_PADDED_PROOF_COUNT)?;
-            profile.padding_ms += padding_start.elapsed().as_secs_f64() * 1000.0;
+
             let padded_count = padded_items.len() as u32;
             let srs_for_task = srs.clone();
             let padded_public_inputs = padded_items
@@ -2050,28 +1392,20 @@ impl App {
             );
 
             aggregate_tasks.push(tokio::task::spawn_blocking(
-                move || -> Result<(FamilyAggregate, AggregateBuildProfile, f64)> {
-                    let family_start = Instant::now();
-                    let (aggregate_proof, backend_profile) = aggregate_family_profiled(
+                move || -> Result<FamilyAggregate> {
+                    let aggregate_proof = aggregate_family(
                         &statement,
                         proof_verification_key_for_family(family_id),
                         &padded_items,
                         &srs_for_task,
                     )?;
 
-                    let mut family_profile = AggregateBuildProfile::default();
-                    family_profile.apply_backend_build_profile(&backend_profile);
-
-                    Ok((
-                        FamilyAggregate {
-                            family_id,
-                            real_count,
-                            padded_count,
-                            aggregate_proof,
-                        },
-                        family_profile,
-                        family_start.elapsed().as_secs_f64() * 1000.0,
-                    ))
+                    Ok(FamilyAggregate {
+                        family_id,
+                        real_count,
+                        padded_count,
+                        aggregate_proof,
+                    })
                 },
             ));
         }
@@ -2080,9 +1414,7 @@ impl App {
         let mut first_error = None;
         for task in aggregate_tasks {
             match task.await {
-                Ok(Ok((family, family_profile, family_elapsed_ms))) => {
-                    profile.add_family_time(family.family_id, family_elapsed_ms);
-                    profile.merge(&family_profile);
+                Ok(Ok(family)) => {
                     families.push(family);
                 }
                 Ok(Err(error)) => {
@@ -2102,46 +1434,45 @@ impl App {
             return Err(error);
         }
 
-        Ok((families, profile))
+        Ok(families)
     }
 
     async fn build_segmented_family_aggregates_for_artifacts(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_count: usize,
-    ) -> Result<(Vec<FamilyAggregate>, Vec<usize>, AggregateBuildProfile)> {
+    ) -> Result<(Vec<FamilyAggregate>, Vec<usize>)> {
         if artifacts.is_empty() {
-            return Ok((Vec::new(), Vec::new(), AggregateBuildProfile::default()));
+            return Ok((Vec::new(), Vec::new()));
         }
 
         let mut families = Vec::new();
         let mut segment_tx_counts = Vec::new();
-        let mut profile = AggregateBuildProfile::default();
 
         for (segment_index, artifact_segment) in artifacts.chunks(segment_tx_count).enumerate() {
-            let (segment_families, segment_profile) =
+            let segment_families =
                 Self::build_family_aggregates_for_artifacts(artifact_segment, segment_index)
                     .await?;
             if !artifact_segment.is_empty() {
                 segment_tx_counts.push(artifact_segment.len());
             }
-            profile.merge(&segment_profile);
+
             families.extend(segment_families);
         }
 
-        Ok((families, segment_tx_counts, profile))
+        Ok((families, segment_tx_counts))
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn build_exact_segmented_family_aggregates_for_artifacts(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_counts: &[usize],
-    ) -> Result<(Vec<FamilyAggregate>, Vec<usize>, AggregateBuildProfile)> {
+    ) -> Result<(Vec<FamilyAggregate>, Vec<usize>)> {
         if artifacts.is_empty() {
             anyhow::ensure!(
                 segment_tx_counts.is_empty(),
                 "empty artifacts must not provide segment counts"
             );
-            return Ok((Vec::new(), Vec::new(), AggregateBuildProfile::default()));
+            return Ok((Vec::new(), Vec::new()));
         }
 
         anyhow::ensure!(
@@ -2156,7 +1487,7 @@ impl App {
         );
 
         let mut families = Vec::new();
-        let mut profile = AggregateBuildProfile::default();
+
         let mut next_start = 0usize;
         let mut next_segment = 0usize;
         let mut segment_tasks = tokio::task::JoinSet::new();
@@ -2173,13 +1504,12 @@ impl App {
                 let artifact_segment = artifacts[next_start..end].to_vec();
                 let segment_index = next_segment;
                 segment_tasks.spawn(async move {
-                    let (segment_families, segment_profile) =
-                        Self::build_family_aggregates_for_artifacts(
-                            &artifact_segment,
-                            segment_index,
-                        )
-                        .await?;
-                    Ok::<_, anyhow::Error>((segment_index, segment_families, segment_profile))
+                    let segment_families = Self::build_family_aggregates_for_artifacts(
+                        &artifact_segment,
+                        segment_index,
+                    )
+                    .await?;
+                    Ok::<_, anyhow::Error>((segment_index, segment_families))
                 });
                 next_start = end;
                 next_segment += 1;
@@ -2189,9 +1519,8 @@ impl App {
                 continue;
             };
             match result {
-                Ok(Ok((segment_index, segment_families, segment_profile))) => {
-                    ordered_segment_results[segment_index] =
-                        Some((segment_families, segment_profile));
+                Ok(Ok((segment_index, segment_families))) => {
+                    ordered_segment_results[segment_index] = Some(segment_families);
                 }
                 Ok(Err(error)) => {
                     if first_error.is_none() {
@@ -2211,27 +1540,24 @@ impl App {
         }
 
         for segment_result in ordered_segment_results {
-            let (segment_families, segment_profile) =
-                segment_result.context("missing aggregate segment result")?;
-            profile.merge(&segment_profile);
+            let segment_families = segment_result.context("missing aggregate segment result")?;
+
             families.extend(segment_families);
         }
 
-        Ok((families, segment_tx_counts.to_vec(), profile))
+        Ok((families, segment_tx_counts.to_vec()))
     }
 
     async fn build_aggregate_bundle_from_families(
         &self,
         families: Vec<FamilyAggregate>,
-    ) -> Result<(Option<Bytes>, f64, f64)> {
+    ) -> Result<Option<Bytes>> {
         if families.is_empty() {
-            return Ok((None, 0.0, 0.0));
+            return Ok(None);
         }
 
-        let srs_start = Instant::now();
         let srs = shipping_srs()?;
-        let setup_ms = srs_start.elapsed().as_secs_f64() * 1000.0;
-        let tx_build_start = Instant::now();
+
         let bundle_tx = self
             .build_aggregate_bundle_tx(AggregateBundle {
                 version: AGGREGATE_PROTOCOL_VERSION,
@@ -2239,13 +1565,8 @@ impl App {
                 families,
             })
             .await?;
-        let tx_build_ms = tx_build_start.elapsed().as_secs_f64() * 1000.0;
 
-        Ok((
-            Some(Bytes::from(bundle_tx.encode_to_vec())),
-            setup_ms,
-            tx_build_ms,
-        ))
+        Ok(Some(Bytes::from(bundle_tx.encode_to_vec())))
     }
 
     pub(crate) fn ensure_aggregate_bundle_tx_shape(tx: &Transaction) -> Result<&AggregateBundle> {
@@ -2430,14 +1751,14 @@ impl App {
             }
 
             let prepared_inputs = prepare_verify_inputs(&items, MAX_PADDED_PROOF_COUNT)?;
-            let shipping_call = app_verify_shipping_call_from_parts(
-                core_id,
-                app_verify_family_code(aggregate.family_id),
-                items.len(),
-                aggregate.real_count,
-                prepared_inputs.padded_count,
-                aggregate.padded_count,
-            );
+            let shipping_call = shieldd_sdk_proof_aggregation::AppVerifyShippingCall {
+                id: core_id,
+                bundle_family: app_verify_family_code(aggregate.family_id),
+                expected_real_count: items.len(),
+                bundle_real_count: aggregate.real_count,
+                expected_padded_count: prepared_inputs.padded_count,
+                bundle_padded_count: aggregate.padded_count,
+            };
             match app_verify_plan_padding_core(
                 shipping_call.id,
                 shipping_call.expected_padded_count,
@@ -2500,15 +1821,15 @@ impl App {
 
     fn execute_aggregate_verify_call(
         call: AggregateVerifyCall,
-    ) -> Result<AggregateVerifyProfiledCallOutcome> {
-        let shipping_verification = verify_shipping_family_aggregate_profiled_status(
+    ) -> Result<AggregateVerifyCallOutcome> {
+        let shipping_verification = verify_shipping_family_aggregate(
             call.shipping_call,
             &call.statement,
             proof_verification_key_for_family(call.id.family_id),
             &call.aggregate.aggregate_proof,
             &call.srs,
         )?;
-        Ok(AggregateVerifyProfiledCallOutcome {
+        Ok(AggregateVerifyCallOutcome {
             id: call.id,
             shipping_verification,
             items: call.items,
@@ -2621,172 +1942,140 @@ impl App {
         bundle: &AggregateBundle,
         segment_tx_counts: Option<&[usize]>,
     ) -> Result<Vec<Arc<VerifiedTxArtifact>>> {
-        let (_profile, result) = Self::verify_aggregate_bundle_for_artifacts_raw_profiled(
+        let srs = shipping_srs_for_id(&bundle.srs_id)?;
+        let segment_ranges = Self::validate_aggregate_verify_plan_inputs(
             artifacts,
             bundle,
             segment_tx_counts,
-        )
-        .await;
-        result
-    }
+            &srs,
+        )?;
 
-    async fn verify_aggregate_bundle_for_artifacts_raw_profiled(
-        artifacts: &[Arc<TxArtifact>],
-        bundle: &AggregateBundle,
-        segment_tx_counts: Option<&[usize]>,
-    ) -> (AggregateVerifyProfile, Result<Vec<Arc<VerifiedTxArtifact>>>) {
-        let verify_start = Instant::now();
-        let mut profile = AggregateVerifyProfile::default();
-        let result: Result<Vec<Arc<VerifiedTxArtifact>>> = async {
-            let srs = shipping_srs_for_id(&bundle.srs_id)?;
-            let segment_ranges = Self::validate_aggregate_verify_plan_inputs(
-                artifacts,
-                bundle,
-                segment_tx_counts,
-                &srs,
-            )?;
+        let expected_segments =
+            Self::expected_aggregate_verify_segments(artifacts, &segment_ranges);
 
-            let expected_segments_start = Instant::now();
-            let expected_segments =
-                Self::expected_aggregate_verify_segments(artifacts, &segment_ranges);
-            profile.expected_segments_ms = expected_segments_start.elapsed().as_secs_f64() * 1000.0;
+        let plan_result = Self::plan_aggregate_bundle_verification(bundle, expected_segments, srs);
 
-            let prepare_inputs_start = Instant::now();
-            let plan_result =
-                Self::plan_aggregate_bundle_verification(bundle, expected_segments, srs);
-            profile.prepare_inputs_ms = prepare_inputs_start.elapsed().as_secs_f64() * 1000.0;
-            let plan = plan_result?;
+        let plan = plan_result?;
 
-            let expected_call_ids = plan.calls.iter().map(|call| call.id).collect::<Vec<_>>();
-            let mut pending_calls = VecDeque::from(plan.calls);
-            let mut verify_tasks = tokio::task::JoinSet::new();
-            let mut outcomes = Vec::with_capacity(pending_calls.len());
-            let mut first_error = None;
-            while !pending_calls.is_empty() || !verify_tasks.is_empty() {
-                while verify_tasks.len() < MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS {
-                    let Some(call) = pending_calls.pop_front() else {
-                        break;
-                    };
-                    maybe_write_aggregate_debug_dump(
-                        "verify",
-                        call.id.segment_index,
-                        call.id.family_index,
-                        call.id.family_id,
-                        &call.debug_rows,
-                        &call.padded_public_inputs,
-                        Some(&call.aggregate),
-                    );
-                    verify_tasks.spawn_blocking(move || Self::execute_aggregate_verify_call(call));
-                }
-                let Some(task) = verify_tasks.join_next().await else {
-                    continue;
+        let expected_call_ids = plan.calls.iter().map(|call| call.id).collect::<Vec<_>>();
+        let mut pending_calls = VecDeque::from(plan.calls);
+        let mut verify_tasks = tokio::task::JoinSet::new();
+        let mut outcomes = Vec::with_capacity(pending_calls.len());
+        let mut first_error = None;
+        while !pending_calls.is_empty() || !verify_tasks.is_empty() {
+            while verify_tasks.len() < MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS {
+                let Some(call) = pending_calls.pop_front() else {
+                    break;
                 };
-                match task {
-                    Ok(Ok(outcome)) => outcomes.push(outcome),
-                    Ok(Err(error)) => {
-                        if first_error.is_none() {
-                            first_error = Some(error);
-                        }
+                maybe_write_aggregate_debug_dump(
+                    "verify",
+                    call.id.segment_index,
+                    call.id.family_index,
+                    call.id.family_id,
+                    &call.debug_rows,
+                    &call.padded_public_inputs,
+                    Some(&call.aggregate),
+                );
+                verify_tasks.spawn_blocking(move || Self::execute_aggregate_verify_call(call));
+            }
+            let Some(task) = verify_tasks.join_next().await else {
+                continue;
+            };
+            match task {
+                Ok(Ok(outcome)) => outcomes.push(outcome),
+                Ok(Err(error)) => {
+                    if first_error.is_none() {
+                        first_error = Some(error);
                     }
-                    Err(error) => {
-                        if first_error.is_none() {
-                            first_error = Some(anyhow::anyhow!(
-                                "aggregate verification task panicked: {error}"
-                            ));
-                        }
+                }
+                Err(error) => {
+                    if first_error.is_none() {
+                        first_error = Some(anyhow::anyhow!(
+                            "aggregate verification task panicked: {error}"
+                        ));
                     }
                 }
             }
-            if let Some(error) = first_error {
-                return Err(error);
-            }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
+        }
 
-            let expected_core_ids = expected_call_ids
-                .iter()
-                .copied()
-                .map(aggregate_verify_app_call_id)
-                .collect::<Vec<_>>();
-            let joined_records = outcomes
-                .into_iter()
-                .map(|outcome| {
-                    let shipping_result = outcome.shipping_verification.shipping_result();
-                    let authenticated_id = shipping_result.input.call.id;
-                    let executed_id = shipping_result.result.id;
-                    let accepted = shipping_result.result.accepted;
-                    let observation = outcome.shipping_verification.shipping_observation();
-                    AppVerifyPlannerIndexedExecutedRecord {
-                        planner_id: aggregate_verify_app_call_id(outcome.id),
-                        authenticated_id,
-                        executed_id,
-                        accepted,
-                        observation,
-                        executed: outcome,
-                    }
-                })
-                .collect::<Vec<_>>();
-            let joined_projection =
-                match app_verify_accepted_join_projection_core(expected_core_ids, joined_records) {
-                    Ok(projection) => projection,
-                    Err(AppVerifyAcceptedJoinProjectionError::OutcomeCountMismatch {
+        let expected_core_ids = expected_call_ids
+            .iter()
+            .copied()
+            .map(aggregate_verify_app_call_id)
+            .collect::<Vec<_>>();
+        let joined_records = outcomes
+            .into_iter()
+            .map(|outcome| {
+                let shipping_result = outcome.shipping_verification.shipping_result();
+                let authenticated_id = shipping_result.input.call.id;
+                let executed_id = shipping_result.result.id;
+                let accepted = shipping_result.result.accepted;
+                let observation = outcome.shipping_verification.shipping_observation();
+                AppVerifyPlannerIndexedExecutedRecord {
+                    planner_id: aggregate_verify_app_call_id(outcome.id),
+                    authenticated_id,
+                    executed_id,
+                    accepted,
+                    observation,
+                    executed: outcome,
+                }
+            })
+            .collect::<Vec<_>>();
+        let joined_projection =
+            match app_verify_accepted_join_projection_core(expected_core_ids, joined_records) {
+                Ok(projection) => projection,
+                Err(AppVerifyAcceptedJoinProjectionError::OutcomeCountMismatch {
+                    expected,
+                    actual,
+                }) => {
+                    anyhow::bail!(
+                        "aggregate verification outcome count mismatch: expected {}, got {}",
                         expected,
-                        actual,
-                    }) => {
-                        anyhow::bail!(
-                            "aggregate verification outcome count mismatch: expected {}, got {}",
-                            expected,
-                            actual
-                        );
-                    }
-                    Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { .. }) => {
-                        anyhow::bail!(
+                        actual
+                    );
+                }
+                Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { .. }) => {
+                    anyhow::bail!(
                         "aggregate verification result identity does not match its planned call"
                     );
-                    }
-                    Err(AppVerifyAcceptedJoinProjectionError::OutcomeOrderMismatch {
-                        position,
-                    }) => {
-                        anyhow::bail!(
-                            "aggregate verification outcome order mismatch at planner position {}",
-                            position
-                        );
-                    }
-                };
-            let rejected_calls = joined_projection.rejected_calls;
-            let outcomes = joined_projection
-                .records
-                .into_iter()
-                .map(|record| record.executed)
-                .collect::<Vec<_>>();
-            let results = outcomes
-                .iter()
-                .map(AggregateVerifyProfiledCallOutcome::result)
-                .collect::<Result<Vec<_>>>()?;
-            let reduction = Self::reduce_aggregate_verify_outcomes(&expected_call_ids, results)?;
-            for outcome in &outcomes {
-                profile.merge_backend_profile(&outcome.shipping_verification.profile);
-            }
-            reduction.acceptance_result()?;
-            require_no_rejected_joined_calls(rejected_calls)?;
+                }
+                Err(AppVerifyAcceptedJoinProjectionError::OutcomeOrderMismatch { position }) => {
+                    anyhow::bail!(
+                        "aggregate verification outcome order mismatch at planner position {}",
+                        position
+                    );
+                }
+            };
+        let rejected_calls = joined_projection.rejected_calls;
+        let outcomes = joined_projection
+            .records
+            .into_iter()
+            .map(|record| record.executed)
+            .collect::<Vec<_>>();
+        let results = outcomes
+            .iter()
+            .map(AggregateVerifyCallOutcome::result)
+            .collect::<Result<Vec<_>>>()?;
+        let reduction = Self::reduce_aggregate_verify_outcomes(&expected_call_ids, results)?;
+        reduction.acceptance_result()?;
+        require_no_rejected_joined_calls(rejected_calls)?;
 
-            let mut capabilities = BTreeMap::<ProofFamilyId, VecDeque<VerifiedBatchItem>>::new();
-            for outcome in outcomes {
-                let family_id = outcome.id.family_id;
-                let verified = outcome
-                    .shipping_verification
-                    .verified_statement_capabilities(
-                        family_id,
-                        deployed_key_for_family(family_id),
-                        &outcome.items,
-                    )?;
-                capabilities.entry(family_id).or_default().extend(verified);
-            }
-            Self::attach_verified_capabilities(artifacts.to_vec(), capabilities)
+        let mut capabilities = BTreeMap::<ProofFamilyId, VecDeque<VerifiedBatchItem>>::new();
+        for outcome in outcomes {
+            let family_id = outcome.id.family_id;
+            let verified = outcome
+                .shipping_verification
+                .verified_statement_capabilities(
+                    family_id,
+                    deployed_key_for_family(family_id),
+                    &outcome.items,
+                )?;
+            capabilities.entry(family_id).or_default().extend(verified);
         }
-        .await;
-
-        profile.total_ms = verify_start.elapsed().as_secs_f64() * 1000.0;
-
-        (profile, result)
+        Self::attach_verified_capabilities(artifacts.to_vec(), capabilities)
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
@@ -2809,17 +2098,17 @@ impl App {
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn process_candidate_envelope_profiled(
+    pub async fn process_candidate_envelope(
         &mut self,
         envelope: &CandidateEnvelope,
         stateless_cache: Option<&StatelessCache>,
-    ) -> Result<(response::ProcessProposal, ProcessProposalProfile)> {
+    ) -> Result<BatchVerdict> {
         let context = self.benchmark_block_context().await?;
         let proposal = Self::process_proposal_request_from_envelope(&context, envelope);
         let sidecar = ProposalArtifactSidecar::from_record(envelope.sidecar.clone());
 
         Ok(self
-            .process_proposal_v2_profiled(proposal, stateless_cache, Some(&sidecar), false)
+            .validate_batch(proposal, stateless_cache, Some(&sidecar), false)
             .await)
     }
 
@@ -2830,7 +2119,10 @@ impl App {
         storage: Storage,
     ) -> Result<ExecutionBlockProfile> {
         let context = self.benchmark_block_context().await?;
-        let begin_block = Self::begin_block_request_from_context(&context);
+        let begin_block = cnidarium_component::BlockContext {
+            height: context.height,
+            time: context.time,
+        };
         let mut profile = ExecutionBlockProfile {
             block_tx_count: envelope.block_tx_count,
             ..Default::default()
@@ -2851,8 +2143,7 @@ impl App {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let (extracted_artifacts, _) =
-            Self::build_tx_artifacts_extracted_profiled(&decoded_txs).await?;
+        let extracted_artifacts = Self::build_tx_artifacts_extracted(&decoded_txs).await?;
         let verified_artifacts = if extracted_artifacts
             .iter()
             .any(|artifact| artifact.total_proof_count != 0)
@@ -2880,53 +2171,13 @@ impl App {
         let deliver_txs_start = Instant::now();
         for artifact in verified_artifacts {
             let execute_tx_start = Instant::now();
-            let (_events, execute_profile) = self
-                .execute_tx_checked_historical_profiled(artifact)
-                .await?;
+            let _events = self.execute_tx_checked_historical(artifact).await?;
             profile.execute_tx_ms += execute_tx_start.elapsed().as_secs_f64() * 1000.0;
-            profile.begin_state_tx_ms += execute_profile.begin_state_tx_ms;
-            profile.index_tx_ms += execute_profile.index_tx_ms;
-            profile.get_block_height_ms += execute_profile.get_block_height_ms;
-            profile.clone_tx_ms += execute_profile.clone_tx_ms;
-            profile.proto_convert_ms += execute_profile.proto_convert_ms;
-            profile.put_block_transaction_ms += execute_profile.put_block_transaction_ms;
-            profile.tx_log_read_ms += execute_profile.tx_log_read_ms;
-            profile.tx_log_encode_ms += execute_profile.tx_log_encode_ms;
-            profile.tx_log_put_raw_ms += execute_profile.tx_log_put_raw_ms;
-            profile.check_and_execute_ms += execute_profile.check_and_execute_ms;
-            profile.set_source_ms += execute_profile.set_source_ms;
-            profile.pay_fee_ms += execute_profile.pay_fee_ms;
-            profile.action_execute_ms += execute_profile.action_execute_ms;
-            profile.read_local_precheck_ms += execute_profile.read_local_precheck_ms;
-            profile.read_lookup_wait_or_join_ms += execute_profile.read_lookup_wait_or_join_ms;
-            profile.read_historical_check_ms += execute_profile.read_historical_check_ms;
-            profile.read_nullifier_wait_ms += execute_profile.read_nullifier_wait_ms;
-            profile.read_anchor_cache_wait_ms += execute_profile.read_anchor_cache_wait_ms;
-            profile.spend_action_execute_ms += execute_profile.spend_action_execute_ms;
-            profile.spend_nullifier_check_ms += execute_profile.spend_nullifier_check_ms;
-            profile.spend_nullifier_tx_local_scan_ms +=
-                execute_profile.spend_nullifier_tx_local_scan_ms;
-            profile.spend_nullifier_block_log_lookup_ms +=
-                execute_profile.spend_nullifier_block_log_lookup_ms;
-            profile.spend_nullifier_committed_check_ms +=
-                execute_profile.spend_nullifier_committed_check_ms;
-            profile.spend_nullifier_enqueue_ms += execute_profile.spend_nullifier_enqueue_ms;
-            profile.spend_nullifier_stage_ms += execute_profile.spend_nullifier_stage_ms;
-            profile.spend_nullifier_merge_ms += execute_profile.spend_nullifier_merge_ms;
-            profile.nullifier_lookup_count += execute_profile.nullifier_lookup_count;
-            profile.output_action_execute_ms += execute_profile.output_action_execute_ms;
-            profile.output_add_note_payload_ms += execute_profile.output_add_note_payload_ms;
-            profile.other_action_execute_ms += execute_profile.other_action_execute_ms;
-            profile.apply_ms += execute_profile.apply_ms;
         }
         profile.deliver_txs_wall_ms = deliver_txs_start.elapsed().as_secs_f64() * 1000.0;
 
-        let end_block = request::EndBlock {
-            height: i64::try_from(context.height.value())
-                .context("converting execution benchmark end_block height")?,
-        };
         let end_block_start = Instant::now();
-        let _events = self.end_block(&end_block).await;
+        let _events = self.end_block(context.height).await;
         profile.end_block_ms = end_block_start.elapsed().as_secs_f64() * 1000.0;
 
         let commit_start = Instant::now();
@@ -2937,11 +2188,11 @@ impl App {
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
+    pub async fn build_exact_segmented_aggregate_bundle_for_artifacts_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_counts: &[usize],
-    ) -> Result<(AggregateBundle, Vec<usize>, AggregateBuildProfile)> {
-        let (families, segment_tx_counts, profile) =
+    ) -> Result<(AggregateBundle, Vec<usize>)> {
+        let (families, segment_tx_counts) =
             Self::build_exact_segmented_family_aggregates_for_artifacts(
                 artifacts,
                 segment_tx_counts,
@@ -2955,13 +2206,12 @@ impl App {
                 families,
             },
             segment_tx_counts,
-            profile,
         ))
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
     pub fn candidate_envelope_from_prepared_proposal_public(
-        prepared: &response::PrepareProposal,
+        prepared: &PreparedBatch,
         sidecar: &ProposalArtifactSidecar,
         source_builder_label: impl Into<String>,
     ) -> Result<CandidateEnvelope> {
@@ -3021,6 +2271,43 @@ impl App {
         Ok(())
     }
 
+    fn ensure_unique_volume_nullifiers_from_artifacts(artifacts: &[Arc<TxArtifact>]) -> Result<()> {
+        let mut seen = HashSet::new();
+        for artifact in artifacts {
+            for action in artifact.tx.actions() {
+                let payload = match action {
+                    Action::Transfer(transfer) => {
+                        anyhow::ensure!(
+                            transfer.body.proof_context
+                                == shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
+                            "body transfer must use ordinary proof context"
+                        );
+                        Some(&transfer.body.volume_accumulator)
+                    }
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+
+                    _ => None,
+                };
+                if let Some(payload) = payload {
+                    anyhow::ensure!(
+                        seen.insert(payload.scoped_nullifier()),
+                        "duplicate daily volume nullifier in proposal"
+                    );
+                }
+            }
+            if let Some(fee_funding) = &artifact.tx.transaction_body.fee_funding {
+                anyhow::ensure!(
+                    fee_funding.transfer.body.proof_context
+                        == shieldd_sdk_shielded_pool::TransferProofContext::FeeFunding,
+                    "fee funding transfer must use fee-funding proof context"
+                );
+            }
+        }
+        Ok(())
+    }
+
     async fn precheck_compliance_anchors_dedup_from_artifacts(
         &self,
         artifacts: &[Arc<TxArtifact>],
@@ -3050,12 +2337,7 @@ impl App {
                         unique_pairs
                             .insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
                     }
-                    Action::ShieldedIcs20Withdrawal(withdrawal) => {
-                        unique_pairs.insert((
-                            withdrawal.body.compliance_anchor,
-                            withdrawal.body.asset_anchor,
-                        ));
-                    }
+
                     Action::ShieldedHostWithdrawal(withdrawal) => {
                         unique_pairs.insert((
                             withdrawal.body.compliance_anchor,
@@ -3076,23 +2358,18 @@ impl App {
         Ok(())
     }
 
-    async fn prepare_proposal_batched_profiled(
+    async fn prepare_proposal_batched(
         &mut self,
         proposal_height: u64,
         txs: Vec<Bytes>,
         max_proposal_size_bytes: u64,
         stateless_cache: Option<&StatelessCache>,
         allow_oversized_proposal: bool,
-    ) -> Result<(
-        Vec<Bytes>,
-        PrepareProposalProfile,
-        Option<ProposalArtifactSidecar>,
-    )> {
+    ) -> Result<(Vec<Bytes>, Option<ProposalArtifactSidecar>)> {
         let mut candidates = Vec::new();
         let mut proposal_size_bytes = 0u64;
-        let mut profile = PrepareProposalProfile::default();
+        let mut assembly_attempts = 0;
 
-        let candidate_scan_start = Instant::now();
         for tx_bytes in txs {
             let transaction_size = tx_bytes.len() as u64;
             let total_with_tx = proposal_size_bytes.saturating_add(transaction_size);
@@ -3147,18 +2424,19 @@ impl App {
                 data: CandidateData::Decoded(tx),
             });
         }
-        profile.candidate_scan_ms = candidate_scan_start.elapsed().as_secs_f64() * 1000.0;
 
         if candidates.is_empty() {
-            return Ok((Vec::new(), profile, None));
+            return Ok((Vec::new(), None));
         }
 
         // Fast precheck: reject duplicate spends before heavier verification.
-        let nullifier_dedup_start = Instant::now();
+
         let mut seen_nullifiers = HashSet::new();
+        let mut seen_volume_nullifiers = HashSet::new();
         let mut deduped = Vec::with_capacity(candidates.len());
         for candidate in candidates {
             let mut tx_nullifiers = HashSet::new();
+            let mut tx_volume_nullifiers = HashSet::new();
             let mut duplicate = false;
 
             for nullifier in candidate.tx().spent_nullifiers() {
@@ -3168,24 +2446,47 @@ impl App {
                 }
             }
 
+            for action in candidate.tx().actions() {
+                let payload = match action {
+                    Action::Transfer(transfer) => Some(&transfer.body.volume_accumulator),
+                    Action::ShieldedHostWithdrawal(withdrawal) => {
+                        Some(&withdrawal.body.volume_accumulator)
+                    }
+
+                    _ => None,
+                };
+                if let Some(payload) = payload {
+                    let scoped = payload.scoped_nullifier();
+                    if !tx_volume_nullifiers.insert(scoped)
+                        || seen_volume_nullifiers.contains(&scoped)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+            }
+
             if duplicate {
                 continue;
             }
             if !block_nullifier_count_allowed(
-                seen_nullifiers.len().saturating_add(tx_nullifiers.len()),
+                seen_nullifiers
+                    .len()
+                    .saturating_add(seen_volume_nullifiers.len())
+                    .saturating_add(tx_nullifiers.len())
+                    .saturating_add(tx_volume_nullifiers.len()),
             ) {
                 break;
             }
 
             seen_nullifiers.extend(tx_nullifiers);
+            seen_volume_nullifiers.extend(tx_volume_nullifiers);
             deduped.push(candidate);
         }
-        profile.nullifier_dedup_ms = nullifier_dedup_start.elapsed().as_secs_f64() * 1000.0;
 
         let deduped_txs: Vec<Arc<Transaction>> = deduped.iter().map(|c| c.tx().clone()).collect();
-        let anchor_precheck_start = Instant::now();
+
         self.precheck_compliance_anchors_dedup(&deduped_txs).await?;
-        profile.anchor_precheck_ms = anchor_precheck_start.elapsed().as_secs_f64() * 1000.0;
 
         let cache_miss_txs = deduped
             .iter()
@@ -3206,13 +2507,9 @@ impl App {
             .collect::<Vec<_>>();
 
         if !cache_miss_txs.is_empty() {
-            let artifact_fill_start = Instant::now();
-            let (miss_artifacts, artifact_profile) =
+            let miss_artifacts =
                 Self::build_tx_artifacts_for_stage("prepare_proposal", &cache_miss_txs).await?;
             let mut miss_artifacts = miss_artifacts.into_iter();
-            profile.artifact_fill_precheck_ms = artifact_profile.precheck_ms;
-            profile.artifact_fill_action_extract_ms = artifact_profile.action_extract_ms;
-            profile.artifact_fill_batch_verify_ms = artifact_profile.batch_verify_ms;
 
             for candidate in &mut deduped {
                 if matches!(candidate.data, CandidateData::Decoded(_)) {
@@ -3225,22 +2522,18 @@ impl App {
                     candidate.data = CandidateData::VerifiedArtifact(artifact);
                 }
             }
-            profile.artifact_fill_ms = artifact_fill_start.elapsed().as_secs_f64() * 1000.0;
         }
 
         if !extracted_cache_hits.is_empty() {
-            let verify_start = Instant::now();
             let extracted_artifacts = extracted_cache_hits
                 .iter()
                 .map(|(_, artifact)| artifact.clone())
                 .collect::<Vec<_>>();
-            let (verified_artifacts, verify_profile) = Self::verify_tx_artifacts_for_stage(
+            let verified_artifacts = Self::verify_tx_artifacts_for_stage(
                 "prepare_proposal_upgrade",
                 &extracted_artifacts,
             )
             .await?;
-            profile.artifact_fill_ms += verify_start.elapsed().as_secs_f64() * 1000.0;
-            profile.artifact_fill_batch_verify_ms += verify_profile.batch_verify_ms;
 
             if let Some(cache) = stateless_cache {
                 for ((raw_tx, _), artifact) in extracted_cache_hits.iter().zip(&verified_artifacts)
@@ -3263,23 +2556,19 @@ impl App {
 
         let historical_context = HistoricalCheckContext::load(Arc::as_ref(&self.state)).await?;
         let deduped_candidate_count = deduped.len();
-        let stateful_filter_start = Instant::now();
+
         let included_candidates = if deduped_candidate_count > 1
             && deduped
                 .iter()
                 .all(|candidate| supports_parallel_prepare(candidate.tx()))
         {
-            self.execute_prepare_candidates_parallel_profiled(
-                deduped,
-                historical_context.clone(),
-                &mut profile,
-            )
-            .await?
+            self.execute_prepare_candidates_parallel(deduped, historical_context.clone())
+                .await?
         } else {
             let mut included_candidates = Vec::new();
             for candidate in deduped {
-                if let Ok((_, execution_profile)) = self
-                    .execute_prepare_candidate_profiled(
+                if let Ok(_) = self
+                    .execute_prepare_candidate(
                         candidate
                             .verified_artifact()
                             .expect("prepare candidate must be proof verified"),
@@ -3287,42 +2576,28 @@ impl App {
                     )
                     .await
                 {
-                    Self::accumulate_prepare_candidate_profile(&mut profile, &execution_profile);
-                    if execution_profile.check_historical_ms == 0.0 {
-                        profile.historical_validation_reuse_count += 1;
-                    }
                     included_candidates.push(candidate);
                 }
             }
             included_candidates
         };
-        profile.stateful_filter_execute_ms = stateful_filter_start.elapsed().as_secs_f64() * 1000.0;
-        Self::emit_stateful_filter_breakdown(
-            deduped_candidate_count,
-            included_candidates.len(),
-            &profile,
-        );
 
         if self.block_tx_indexing_mode == BlockTxIndexingMode::DeferredBatch {
-            let deferred_index_flush_start = Instant::now();
             self.flush_deferred_block_transactions().await?;
-            profile.deferred_index_flush_ms =
-                deferred_index_flush_start.elapsed().as_secs_f64() * 1000.0;
         }
 
         if included_candidates.is_empty() {
-            return Ok((Vec::new(), profile, None));
+            return Ok((Vec::new(), None));
         }
 
         #[derive(Clone)]
         struct ProposalAssemblyResult {
             prefix_len: usize,
             bundle_tx_bytes: Option<Bytes>,
-            tail_tx_count: usize,
+
             sidecar: ProposalArtifactSidecar,
         }
 
-        let prefix_select_start = Instant::now();
         let included_prefix_payload_bytes = included_candidates
             .iter()
             .scan(0u64, |total, candidate| {
@@ -3330,7 +2605,6 @@ impl App {
                 Some(*total)
             })
             .collect::<Vec<_>>();
-        profile.proposal_prefix_select_ms = prefix_select_start.elapsed().as_secs_f64() * 1000.0;
 
         let max_payload_prefix_len = if allow_oversized_proposal {
             included_candidates.len()
@@ -3341,7 +2615,7 @@ impl App {
             )
         };
         if max_payload_prefix_len == 0 {
-            return Ok((Vec::new(), profile, None));
+            return Ok((Vec::new(), None));
         }
 
         let chain_id = self.state.get_chain_id().await?;
@@ -3349,7 +2623,7 @@ impl App {
         let mut best_result: Option<ProposalAssemblyResult> = None;
         let mut fallback_used = false;
 
-        while current_prefix_len > 0 && profile.proposal_assemble_attempts < 2 {
+        while current_prefix_len > 0 && assembly_attempts < 2 {
             let selected_candidates = &included_candidates[..current_prefix_len];
             let selected_artifacts: Vec<Arc<TxArtifact>> = selected_candidates
                 .iter()
@@ -3373,8 +2647,6 @@ impl App {
                     && cached.proposal_txs_digest == proposal_txs_digest
                     && cached.proposal_segment_tx_count == self.proposal_segment_tx_count
                 {
-                    profile.aggregate_retry_cache_hits += 1;
-                    let sidecar_build_start = Instant::now();
                     let sidecar = ProposalArtifactSidecar::build(
                         &selected_artifacts,
                         current_prefix_len,
@@ -3383,8 +2655,7 @@ impl App {
                             self.proposal_segment_tx_count,
                         ),
                     )?;
-                    profile.sidecar_build_ms +=
-                        sidecar_build_start.elapsed().as_secs_f64() * 1000.0;
+
                     tracing::info!(
                         height = proposal_height,
                         included_tx_count = current_prefix_len,
@@ -3394,13 +2665,12 @@ impl App {
                     best_result = Some(ProposalAssemblyResult {
                         prefix_len: current_prefix_len,
                         bundle_tx_bytes: cached.bundle_tx_bytes.clone(),
-                        tail_tx_count: cached.tail_tx_count,
+
                         sidecar,
                     });
                     break;
                 }
             }
-            profile.aggregate_retry_cache_misses += 1;
 
             if !allow_oversized_proposal {
                 let family_estimates =
@@ -3416,7 +2686,7 @@ impl App {
                 .min(current_prefix_len);
 
                 if estimated_prefix_len == 0 {
-                    return Ok((Vec::new(), profile, None));
+                    return Ok((Vec::new(), None));
                 }
 
                 if estimated_prefix_len < current_prefix_len {
@@ -3425,50 +2695,32 @@ impl App {
                 }
             }
 
-            profile.proposal_assemble_attempts += 1;
-            let aggregate_start = Instant::now();
-            let (families, segment_tx_counts, aggregate_profile) =
+            assembly_attempts += 1;
+
+            let (families, segment_tx_counts) =
                 if let Some(segment_tx_count) = self.proposal_segment_tx_count {
-                    let (segment_families, segment_tx_counts, segment_profile) =
+                    let (segment_families, segment_tx_counts) =
                         Self::build_segmented_family_aggregates_for_artifacts(
                             &selected_artifacts,
                             segment_tx_count,
                         )
                         .await?;
-                    (segment_families, segment_tx_counts, segment_profile)
+                    (segment_families, segment_tx_counts)
                 } else {
-                    let (families, aggregate_profile) =
+                    let families =
                         Self::build_family_aggregates_for_artifacts(&selected_artifacts, 0).await?;
                     let segment_tx_counts = if !selected_artifacts.is_empty() {
                         vec![selected_artifacts.len()]
                     } else {
                         Vec::new()
                     };
-                    (families, segment_tx_counts, aggregate_profile)
+                    (families, segment_tx_counts)
                 };
-            let tail_aggregate_ms = aggregate_start.elapsed().as_secs_f64() * 1000.0;
-            profile.tail_aggregate_ms += tail_aggregate_ms;
-            profile.total_aggregate_ms += tail_aggregate_ms;
-            profile.aggregate_merge_items_ms += aggregate_profile.merge_items_ms;
-            profile.aggregate_setup_ms += aggregate_profile.setup_ms;
-            profile.aggregate_padding_ms += aggregate_profile.padding_ms;
-            profile.aggregate_collect_proofs_ms += aggregate_profile.collect_proofs_ms;
-            profile.aggregate_backend_core_ms += aggregate_profile.backend_core_ms;
-            profile.aggregate_proof_serialize_ms += aggregate_profile.proof_serialize_ms;
-            profile.aggregate_bundle_tx_build_ms += aggregate_profile.bundle_tx_build_ms;
-            profile.aggregate_spend_ms += aggregate_profile.spend_ms;
-            profile.aggregate_output_ms += aggregate_profile.output_ms;
-            profile.aggregate_other_ms += aggregate_profile.other_ms;
 
-            let bundle_assemble_start = Instant::now();
             let bundle_result = self.build_aggregate_bundle_from_families(families).await;
-            let bundle_assemble_ms = bundle_assemble_start.elapsed().as_secs_f64() * 1000.0;
-            profile.bundle_assemble_ms += bundle_assemble_ms;
 
             match bundle_result {
-                Ok((bundle_tx_bytes, bundle_setup_ms, bundle_tx_build_ms)) => {
-                    profile.aggregate_setup_ms += bundle_setup_ms;
-                    profile.aggregate_bundle_tx_build_ms += bundle_tx_build_ms;
+                Ok(bundle_tx_bytes) => {
                     let actual_bundle_bytes = bundle_tx_bytes
                         .as_ref()
                         .map(|bytes| bytes.len())
@@ -3481,7 +2733,7 @@ impl App {
                         .saturating_add(actual_bundle_bytes as u64);
 
                     tracing::info!(
-                        attempt_index = profile.proposal_assemble_attempts,
+                        attempt_index = assembly_attempts,
                         candidate_prefix_len = current_prefix_len,
                         payload_bytes_before_bundle =
                             included_prefix_payload_bytes[current_prefix_len - 1],
@@ -3491,14 +2743,10 @@ impl App {
                         max_proposal_size_bytes,
                         oversize = !allow_oversized_proposal
                             && proposal_size_bytes >= max_proposal_size_bytes,
-                        aggregate_spend_ms = aggregate_profile.spend_ms,
-                        aggregate_output_ms = aggregate_profile.output_ms,
-                        aggregate_other_ms = aggregate_profile.other_ms,
                         "prepare_proposal_assembly_attempt"
                     );
 
                     if !allow_oversized_proposal && proposal_size_bytes >= max_proposal_size_bytes {
-                        profile.proposal_oversize_retry_count += 1;
                         if fallback_used {
                             tracing::warn!(
                                 candidate_prefix_len = current_prefix_len,
@@ -3528,7 +2776,7 @@ impl App {
                         }
 
                         tracing::warn!(
-                            attempt_index = profile.proposal_assemble_attempts,
+                            attempt_index = assembly_attempts,
                             previous_prefix_len = current_prefix_len,
                             fallback_prefix_len,
                             actual_bundle_bytes,
@@ -3539,19 +2787,17 @@ impl App {
                         fallback_used = true;
                         current_prefix_len = fallback_prefix_len;
                     } else {
-                        let sidecar_build_start = Instant::now();
                         let sidecar = ProposalArtifactSidecar::build(
                             &selected_artifacts,
                             selected_candidates.len(),
                             segment_tx_counts,
                         )?;
-                        profile.sidecar_build_ms +=
-                            sidecar_build_start.elapsed().as_secs_f64() * 1000.0;
+
                         let cached_bundle_tx_bytes = bundle_tx_bytes.clone();
                         best_result = Some(ProposalAssemblyResult {
                             prefix_len: current_prefix_len,
                             bundle_tx_bytes,
-                            tail_tx_count: selected_candidates.len(),
+
                             sidecar,
                         });
                         self.aggregate_retry_cache = Some(CachedProposalAggregate {
@@ -3560,15 +2806,13 @@ impl App {
                             proposal_txs_digest,
                             proposal_segment_tx_count: self.proposal_segment_tx_count,
                             bundle_tx_bytes: cached_bundle_tx_bytes,
-                            tail_tx_count: selected_candidates.len(),
                         });
                         break;
                     }
                 }
                 Err(err) if err.to_string().contains("padded proof count") => {
-                    profile.proposal_oversize_retry_count += 1;
                     tracing::warn!(
-                        attempt_index = profile.proposal_assemble_attempts,
+                        attempt_index = assembly_attempts,
                         candidate_prefix_len = current_prefix_len,
                         error = %err,
                         "prepare_proposal padded proof count exceeded during assembly"
@@ -3580,8 +2824,6 @@ impl App {
         }
 
         if let Some(best_result) = best_result {
-            profile.tail_tx_count = best_result.tail_tx_count;
-
             let mut included_txs = included_candidates[..best_result.prefix_len]
                 .iter()
                 .map(|candidate| candidate.bytes.clone())
@@ -3589,10 +2831,10 @@ impl App {
             if let Some(bundle_tx_bytes) = best_result.bundle_tx_bytes {
                 included_txs.push(bundle_tx_bytes);
             }
-            return Ok((included_txs, profile, Some(best_result.sidecar)));
+            return Ok((included_txs, Some(best_result.sidecar)));
         }
 
-        Ok((Vec::new(), profile, None))
+        Ok((Vec::new(), None))
     }
 
     /// Constructs a new application, using the provided [`Snapshot`].
@@ -3627,11 +2869,7 @@ impl App {
         self.checktx_shared_context = Some(context);
     }
 
-    pub(crate) fn set_aggregate_retry_cache(&mut self, cache: Option<CachedProposalAggregate>) {
-        self.aggregate_retry_cache = cache;
-    }
-
-    /// Override the proposer aggregate segment size. Production default is 128.
+    /// Override the proposer aggregate segment size. Production default is 200.
     pub fn set_proposal_segment_tx_count(&mut self, segment_tx_count: Option<usize>) {
         self.proposal_segment_tx_count = segment_tx_count;
     }
@@ -3646,10 +2884,6 @@ impl App {
             None if tx_count > 0 => vec![tx_count],
             None => Vec::new(),
         }
-    }
-
-    pub(crate) fn aggregate_retry_cache(&self) -> Option<CachedProposalAggregate> {
-        self.aggregate_retry_cache.clone()
     }
 
     /// Returns whether the application is ready to start.
@@ -3691,57 +2925,12 @@ impl App {
         events
     }
 
-    pub async fn init_chain(&mut self, app_state: &AppState) {
-        let mut state_tx = self
-            .state
-            .try_begin_transaction()
-            .expect("state Arc should not be referenced elsewhere");
-        match app_state {
-            AppState::Content(genesis) => {
-                state_tx.put_chain_id(genesis.chain_id.clone());
-                Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
-                ShieldedPool::init_chain(&mut state_tx, Some(&genesis.shielded_pool_content)).await;
-                Ibc::init_chain(&mut state_tx, Some(&genesis.ibc_content)).await;
-                FeeComponent::init_chain(&mut state_tx, Some(&genesis.fee_content)).await;
-                // Initialize compliance component with empty trees for anchor tracking.
-                // Unregulated assets don't need registration (proven via non-membership).
-                Compliance::init_chain(&mut state_tx, Some(&genesis.compliance_content)).await;
-
-                state_tx
-                    .finish_block()
-                    .await
-                    .expect("must be able to finish compact block");
-            }
-            AppState::Checkpoint(_) => {
-                ShieldedPool::init_chain(&mut state_tx, None).await;
-                Ibc::init_chain(&mut state_tx, None).await;
-                FeeComponent::init_chain(&mut state_tx, None).await;
-                Compliance::init_chain(&mut state_tx, None).await;
-            }
-        };
-
-        // Note that `init_chain` can not emit any events, and we do not want to
-        // work around this as it violates the design principle that events are changes
-        // to initial data.
-        //
-        // This means that indexers are responsible for parsing genesis data and bootstrapping
-        // their initial state before processing chronological events.
-        //
-        // See: https://github.com/mizufinance/shieldd/pull/4449#discussion_r1636868800
-
-        state_tx.apply();
-    }
-
-    async fn prepare_proposal_impl_profiled(
+    pub async fn prepare_batch(
         &mut self,
-        mut proposal: request::PrepareProposal,
+        mut proposal: BatchPreparation,
         stateless_cache: Option<&StatelessCache>,
         allow_oversized_proposal: bool,
-    ) -> (
-        response::PrepareProposal,
-        PrepareProposalProfile,
-        Option<ProposalArtifactSidecar>,
-    ) {
+    ) -> (PreparedBatch, Option<ProposalArtifactSidecar>) {
         let num_candidate_txs = proposal.txs.len();
         truncate_prepare_candidates(&mut proposal.txs);
         tracing::debug!(
@@ -3749,14 +2938,10 @@ impl App {
             num_candidate_txs
         );
 
-        // This is a node controlled parameter that is different from the homonymous
-        // mempool's `max_tx_bytes`. Comet will send us raw proposals that exceed this
-        // limit, presuming that a subset of those transactions will be shed.
-        // More context in https://github.com/cometbft/cometbft/blob/v0.37.5/spec/abci/abci%2B%2B_app_requirements.md
         let max_proposal_size_bytes = prepare_proposal_payload_limit(proposal.max_tx_bytes);
-        let (included_txs, profile, sidecar) = match self
-            .prepare_proposal_batched_profiled(
-                proposal.height.value() as u64,
+        let (included_txs, sidecar) = match self
+            .prepare_proposal_batched(
+                proposal.height,
                 proposal.txs,
                 max_proposal_size_bytes,
                 stateless_cache,
@@ -3767,187 +2952,48 @@ impl App {
             Ok(result) => result,
             Err(e) => {
                 tracing::warn!(?e, "prepare_proposal failed, returning an empty proposal");
-                (Vec::new(), PrepareProposalProfile::default(), None)
+                (Vec::new(), None)
             }
         };
 
-        // The evidence payload is validated by Comet, we can lean on three guarantees:
-        // 1. The total payload is bound by `MAX_EVIDENCE_SIZE_BYTES`
-        // 2. Expired evidence is filtered
-        // 3. Evidence is valid.
         tracing::debug!(
             "finished processing PrepareProposal, including {}/{} candidate transactions",
             included_txs.len(),
             num_candidate_txs
         );
-        if profile.total_aggregate_ms > 0.0 {
-            tracing::info!(
-                candidate_tx_count = num_candidate_txs,
-                included_tx_count = included_txs.len(),
-                proposal_assemble_attempts = profile.proposal_assemble_attempts,
-                proposal_oversize_retry_count = profile.proposal_oversize_retry_count,
-                aggregate_retry_cache_hits = profile.aggregate_retry_cache_hits,
-                aggregate_retry_cache_misses = profile.aggregate_retry_cache_misses,
-                proposal_segment_tx_count = self.proposal_segment_tx_count,
-                proposal_segment_count = sidecar
-                    .as_ref()
-                    .map(|sidecar| sidecar.segment_tx_counts.len())
-                    .unwrap_or(0),
-                sidecar_bytes = sidecar
-                    .as_ref()
-                    .map(|sidecar| sidecar.encoded_bytes)
-                    .unwrap_or(0),
-                aggregate_merge_items_ms = profile.aggregate_merge_items_ms,
-                aggregate_setup_ms = profile.aggregate_setup_ms,
-                aggregate_padding_ms = profile.aggregate_padding_ms,
-                aggregate_collect_proofs_ms = profile.aggregate_collect_proofs_ms,
-                aggregate_backend_core_ms = profile.aggregate_backend_core_ms,
-                aggregate_proof_serialize_ms = profile.aggregate_proof_serialize_ms,
-                aggregate_bundle_tx_build_ms = profile.aggregate_bundle_tx_build_ms,
-                aggregate_spend_ms = profile.aggregate_spend_ms,
-                aggregate_output_ms = profile.aggregate_output_ms,
-                aggregate_other_ms = profile.aggregate_other_ms,
-                tail_aggregate_ms = profile.tail_aggregate_ms,
-                bundle_assemble_ms = profile.bundle_assemble_ms,
-                total_aggregate_ms = profile.total_aggregate_ms,
-                "prepare_proposal_aggregate_profile"
-            );
-        }
-        tracing::info!(
-            candidate_scan_ms = profile.candidate_scan_ms,
-            nullifier_dedup_ms = profile.nullifier_dedup_ms,
-            anchor_precheck_ms = profile.anchor_precheck_ms,
-            artifact_fill_ms = profile.artifact_fill_ms,
-            artifact_fill_batch_verify_ms = profile.artifact_fill_batch_verify_ms,
-            stateful_filter_execute_ms = profile.stateful_filter_execute_ms,
-            candidate_read_wall_ms = profile.stateful_filter_candidate_read_wall_ms,
-            candidate_effects_build_ms = profile.stateful_filter_candidate_effects_build_ms,
-            serial_apply_wall_ms = profile.stateful_filter_serial_apply_wall_ms,
-            serial_same_block_conflict_ms = profile.stateful_filter_serial_same_block_conflict_ms,
-            serial_state_delta_apply_ms = profile.stateful_filter_serial_state_delta_apply_ms,
-            serial_nullifier_insert_ms = profile.stateful_filter_serial_nullifier_insert_ms,
-            proposal_nullifier_lookup_write_ms =
-                profile.stateful_filter_proposal_nullifier_lookup_write_ms,
-            proposal_pending_nullifier_stage_ms =
-                profile.stateful_filter_proposal_pending_nullifier_stage_ms,
-            serial_sct_append_ms = profile.stateful_filter_serial_sct_append_ms,
-            serial_event_emit_ms = profile.stateful_filter_serial_event_emit_ms,
-            serial_fee_apply_ms = profile.stateful_filter_serial_fee_apply_ms,
-            deferred_index_flush_ms = profile.deferred_index_flush_ms,
-            proposal_prefix_select_ms = profile.proposal_prefix_select_ms,
-            sidecar_build_ms = profile.sidecar_build_ms,
-            bundle_assemble_ms = profile.bundle_assemble_ms,
-            total_aggregate_ms = profile.total_aggregate_ms,
-            aggregate_merge_items_ms = profile.aggregate_merge_items_ms,
-            aggregate_collect_proofs_ms = profile.aggregate_collect_proofs_ms,
-            aggregate_backend_core_ms = profile.aggregate_backend_core_ms,
-            aggregate_proof_serialize_ms = profile.aggregate_proof_serialize_ms,
-            aggregate_bundle_tx_build_ms = profile.aggregate_bundle_tx_build_ms,
-            candidate_read_wall_ms_per_tx = if !included_txs.is_empty() {
-                profile.stateful_filter_candidate_read_wall_ms / included_txs.len() as f64
-            } else {
-                0.0
-            },
-            serial_apply_wall_ms_per_tx = if !included_txs.is_empty() {
-                profile.stateful_filter_serial_apply_wall_ms / included_txs.len() as f64
-            } else {
-                0.0
-            },
-            aggregate_total_ms_per_tx = if !included_txs.is_empty() {
-                profile.total_aggregate_ms / included_txs.len() as f64
-            } else {
-                0.0
-            },
-            proposal_assemble_attempts = profile.proposal_assemble_attempts,
-            proposal_oversize_retry_count = profile.proposal_oversize_retry_count,
-            tail_tx_count = profile.tail_tx_count,
-            proposal_segment_tx_count = self.proposal_segment_tx_count,
-            proposal_segment_count = sidecar
-                .as_ref()
-                .map(|sidecar| sidecar.segment_tx_counts.len())
-                .unwrap_or(0),
-            sidecar_bytes = sidecar
-                .as_ref()
-                .map(|sidecar| sidecar.encoded_bytes)
-                .unwrap_or(0),
-            "prepare_proposal_runtime_profile"
-        );
 
-        (
-            response::PrepareProposal { txs: included_txs },
-            profile,
-            sidecar,
-        )
-    }
-
-    pub async fn prepare_proposal_v2_profiled(
-        &mut self,
-        proposal: request::PrepareProposal,
-        stateless_cache: Option<&StatelessCache>,
-        allow_oversized_proposal: bool,
-    ) -> (
-        response::PrepareProposal,
-        PrepareProposalProfile,
-        Option<ProposalArtifactSidecar>,
-    ) {
-        self.prepare_proposal_impl_profiled(proposal, stateless_cache, allow_oversized_proposal)
-            .await
+        (PreparedBatch { txs: included_txs }, sidecar)
     }
 
     #[instrument(skip_all, ret, level = "debug")]
-    async fn process_proposal_impl_profiled(
+    pub async fn validate_batch(
         &mut self,
-        proposal: request::ProcessProposal,
+        proposal: BatchCandidate,
         stateless_cache: Option<&StatelessCache>,
         synthetic_sidecar: Option<&ProposalArtifactSidecar>,
         allow_oversized_proposal: bool,
-    ) -> (response::ProcessProposal, ProcessProposalProfile) {
-        tracing::debug!(
-            height = proposal.height.value(),
-            proposer = ?proposal.proposer_address,
-            proposal_hash = ?proposal.hash,
-            "processing proposal"
-        );
+    ) -> BatchVerdict {
+        tracing::debug!(height = proposal.height, "processing proposal");
 
-        let mut profile = ProcessProposalProfile::default();
-        let proposal_height = proposal.height.value();
-        let proposal_hash = proposal.hash.to_string();
+        let proposal_height = proposal.height;
         macro_rules! reject_process_proposal {
             ($reason:literal) => {{
                 tracing::warn!(
                     height = proposal_height,
-                    proposal_hash = %proposal_hash,
                     reason = $reason,
                     "process_proposal_reject_reason"
                 );
-                return (response::ProcessProposal::Reject, profile);
+                return BatchVerdict::Reject;
             }};
             ($reason:literal, $($field:tt)*) => {{
                 tracing::warn!(
                     height = proposal_height,
-                    proposal_hash = %proposal_hash,
                     reason = $reason,
                     $($field)*,
                     "process_proposal_reject_reason"
                 );
-                return (response::ProcessProposal::Reject, profile);
+                return BatchVerdict::Reject;
             }};
-        }
-
-        let mut evidence_buffer: Vec<u8> = Vec::with_capacity(MAX_EVIDENCE_SIZE_BYTES);
-        let mut bytes_tracker = 0usize;
-
-        for evidence in proposal.misbehavior {
-            evidence_buffer.clear();
-            let proto_evidence: tendermint_proto::v0_37::abci::Misbehavior = evidence.into();
-            let evidence_size = match proto_evidence.encode(&mut evidence_buffer) {
-                Ok(_) => evidence_buffer.len(),
-                Err(_) => reject_process_proposal!("misbehavior_encode_failed"),
-            };
-            bytes_tracker = bytes_tracker.saturating_add(evidence_size);
-            if bytes_tracker > MAX_EVIDENCE_SIZE_BYTES {
-                reject_process_proposal!("misbehavior_bytes_exceeded", bytes_tracker);
-            }
         }
 
         enum UserTxData {
@@ -3981,8 +3027,6 @@ impl App {
         let mut total_txs_payload_size = 0usize;
         let mut user_txs = Vec::with_capacity(proposal_tx_count);
         let mut bundle_tx: Option<Arc<Transaction>> = None;
-        let lookup_start = Instant::now();
-        let mut decode_classify_ms = 0.0f64;
 
         for (index, tx_bytes) in proposal.txs.into_iter().enumerate() {
             let tx_size = tx_bytes.len();
@@ -4009,8 +3053,7 @@ impl App {
                     }
                     Some(CacheEntry::FullyVerified(artifact)) => {
                         Self::record_artifact_reuse("process_proposal");
-                        profile.artifact_hit_count += 1;
-                        profile.warm_reuse_count += 1;
+
                         user_txs.push(UserTx {
                             hash: tx_hash,
                             raw_tx: tx_bytes.clone(),
@@ -4022,8 +3065,7 @@ impl App {
                     }
                     Some(CacheEntry::Extracted(artifact)) => {
                         Self::record_artifact_reuse("process_proposal");
-                        profile.artifact_hit_count += 1;
-                        profile.warm_reuse_count += 1;
+
                         user_txs.push(UserTx {
                             hash: tx_hash,
                             raw_tx: tx_bytes.clone(),
@@ -4037,14 +3079,12 @@ impl App {
                 }
             }
 
-            let decode_start = Instant::now();
             let tx = match Transaction::decode_canonical(tx_bytes.as_ref()) {
                 Ok(tx) => Arc::new(tx),
                 Err(_) => reject_process_proposal!("tx_decode_failed", index),
             };
 
             if tx.is_aggregate_bundle_tx() {
-                decode_classify_ms += decode_start.elapsed().as_secs_f64() * 1000.0;
                 if index + 1 != proposal_tx_count {
                     reject_process_proposal!("aggregate_bundle_not_last", index, proposal_tx_count);
                 }
@@ -4062,9 +3102,7 @@ impl App {
             {
                 reject_process_proposal!("user_tx_contains_internal_actions", index);
             }
-            decode_classify_ms += decode_start.elapsed().as_secs_f64() * 1000.0;
 
-            profile.artifact_miss_count += 1;
             user_txs.push(UserTx {
                 hash: tx_hash,
                 raw_tx: tx_bytes,
@@ -4073,11 +3111,8 @@ impl App {
                 extracted_cache_hit: false,
             });
         }
-        profile.artifact_lookup_ms = lookup_start.elapsed().as_secs_f64() * 1000.0;
-        profile.tx_decode_classify_ms = decode_classify_ms;
 
         if !user_txs.is_empty() {
-            let sidecar_load_start = Instant::now();
             let mut sidecar_hits = Vec::new();
             let mut raw_miss_txs = Vec::new();
 
@@ -4095,12 +3130,9 @@ impl App {
                     }
                 }
             }
-            profile.cold_sidecar_load_ms = sidecar_load_start.elapsed().as_secs_f64() * 1000.0;
-            profile.cold_sidecar_bytes = synthetic_sidecar.map(|s| s.encoded_bytes).unwrap_or(0);
 
             if let Some(sidecar) = synthetic_sidecar {
                 if !sidecar_hits.is_empty() {
-                    let sidecar_decode_start = Instant::now();
                     for (index, encoded_entry, tx) in sidecar_hits {
                         let artifact = match sidecar.decode_artifact(
                             user_txs[index].hash,
@@ -4112,14 +3144,11 @@ impl App {
                         };
                         user_txs[index].data = UserTxData::ExtractedArtifact(artifact);
                     }
-                    profile.cold_sidecar_decode_ms =
-                        sidecar_decode_start.elapsed().as_secs_f64() * 1000.0;
                 }
             }
 
             if !raw_miss_txs.is_empty() {
-                let reconstruction_start = Instant::now();
-                let (miss_artifacts, artifact_profile) =
+                let miss_artifacts =
                     match Self::build_tx_artifacts_for_stage("process_proposal", &raw_miss_txs)
                         .await
                     {
@@ -4127,11 +3156,6 @@ impl App {
                         Err(_) => reject_process_proposal!("artifact_reconstruction_failed"),
                     };
                 let mut miss_artifacts = miss_artifacts.into_iter();
-                profile.cold_reconstruction_ms =
-                    reconstruction_start.elapsed().as_secs_f64() * 1000.0;
-                profile.cold_reconstruction_precheck_ms = artifact_profile.precheck_ms;
-                profile.cold_reconstruction_action_extract_ms = artifact_profile.action_extract_ms;
-                profile.cold_reconstruction_batch_verify_ms = artifact_profile.batch_verify_ms;
 
                 for user_tx in &mut user_txs {
                     if matches!(user_tx.data, UserTxData::Decoded(_)) {
@@ -4154,18 +3178,26 @@ impl App {
             .collect::<Vec<_>>();
         let block_nullifier_count = artifacts
             .iter()
-            .map(|artifact| artifact.spend_nullifiers.len())
+            .map(|artifact| {
+                artifact.spend_nullifiers.len()
+                    + artifact
+                        .tx
+                        .actions()
+                        .filter(|action| matches!(action, Action::Transfer(_)))
+                        .count()
+            })
             .sum::<usize>();
         if !block_nullifier_count_allowed(block_nullifier_count) {
             reject_process_proposal!("block_nullifier_count_exceeded", block_nullifier_count);
         }
-        let nullifier_dedup_start = Instant::now();
+
         if Self::ensure_unique_spend_nullifiers_from_artifacts(&artifacts).is_err() {
             reject_process_proposal!("duplicate_spend_nullifiers");
         }
-        profile.nullifier_dedup_ms = nullifier_dedup_start.elapsed().as_secs_f64() * 1000.0;
+        if Self::ensure_unique_volume_nullifiers_from_artifacts(&artifacts).is_err() {
+            reject_process_proposal!("duplicate_volume_nullifiers");
+        }
 
-        let anchor_recheck_start = Instant::now();
         if self
             .precheck_compliance_anchors_dedup_from_artifacts(&artifacts)
             .await
@@ -4173,7 +3205,6 @@ impl App {
         {
             reject_process_proposal!("anchor_recheck_failed");
         }
-        profile.anchor_recheck_ms = anchor_recheck_start.elapsed().as_secs_f64() * 1000.0;
 
         let total_proofs = Self::total_artifact_proof_count(&artifacts);
         let mut aggregate_verify_task: Option<
@@ -4210,7 +3241,6 @@ impl App {
             Err(_) => reject_process_proposal!("historical_context_load_failed"),
         };
 
-        let aggregate_verify_start = Instant::now();
         let verified_artifacts = if let Some(aggregate_verify_task) = aggregate_verify_task {
             match aggregate_verify_task.await {
                 Ok(Ok(verified)) => verified,
@@ -4227,7 +3257,6 @@ impl App {
                 Err(_) => reject_process_proposal!("zero_proof_capability_construction_failed"),
             }
         };
-        profile.aggregate_verify_ms = aggregate_verify_start.elapsed().as_secs_f64() * 1000.0;
 
         if let Some(cache) = stateless_cache {
             for (user_tx, artifact) in user_txs.iter().zip(&verified_artifacts) {
@@ -4242,1195 +3271,173 @@ impl App {
             }
         }
 
-        let stateful_replay_start = Instant::now();
         for artifact in verified_artifacts {
-            let execution_profile = match self
-                .deliver_tx_with_verified_stateless_profiled(artifact, Some(&historical_context))
+            match self
+                .deliver_tx_with_verified_stateless(artifact, Some(&historical_context))
                 .await
             {
-                Ok((_, execution_profile)) => execution_profile,
+                Ok(_) => {}
                 Err(_) => reject_process_proposal!("stateful_replay_failed"),
             };
-            profile.stateful_replay_check_historical_ms += execution_profile.check_historical_ms;
-            profile.stateful_replay_get_block_height_ms += execution_profile.get_block_height_ms;
-            profile.stateful_replay_clone_tx_ms += execution_profile.clone_tx_ms;
-            profile.stateful_replay_proto_convert_ms += execution_profile.proto_convert_ms;
-            profile.stateful_replay_put_block_transaction_ms +=
-                execution_profile.put_block_transaction_ms;
-            profile.stateful_replay_begin_state_tx_ms += execution_profile.begin_state_tx_ms;
-            profile.stateful_replay_index_tx_ms += execution_profile.index_tx_ms;
-            profile.stateful_replay_check_and_execute_ms += execution_profile.check_and_execute_ms;
-            profile.stateful_replay_set_source_ms += execution_profile.set_source_ms;
-            profile.stateful_replay_pay_fee_ms += execution_profile.pay_fee_ms;
-            profile.stateful_replay_action_execute_ms += execution_profile.action_execute_ms;
-            profile.stateful_replay_spend_action_execute_ms +=
-                execution_profile.spend_action_execute_ms;
-            profile.stateful_replay_spend_nullifier_check_ms +=
-                execution_profile.spend_nullifier_check_ms;
-            profile.stateful_replay_spend_nullifier_tx_local_scan_ms +=
-                execution_profile.spend_nullifier_tx_local_scan_ms;
-            profile.stateful_replay_spend_nullifier_block_log_lookup_ms +=
-                execution_profile.spend_nullifier_block_log_lookup_ms;
-            profile.stateful_replay_spend_nullifier_committed_check_ms +=
-                execution_profile.spend_nullifier_committed_check_ms;
-            profile.stateful_replay_spend_nullifier_enqueue_ms +=
-                execution_profile.spend_nullifier_enqueue_ms;
-            profile.stateful_replay_spend_nullifier_stage_ms +=
-                execution_profile.spend_nullifier_stage_ms;
-            profile.stateful_replay_spend_nullifier_merge_ms +=
-                execution_profile.spend_nullifier_merge_ms;
-            profile.stateful_replay_output_action_execute_ms +=
-                execution_profile.output_action_execute_ms;
-            profile.stateful_replay_output_add_note_payload_ms +=
-                execution_profile.output_add_note_payload_ms;
-            profile.stateful_replay_other_action_execute_ms +=
-                execution_profile.other_action_execute_ms;
-            profile.stateful_replay_apply_ms += execution_profile.apply_ms;
         }
-        profile.stateful_replay_execute_ms = stateful_replay_start.elapsed().as_secs_f64() * 1000.0;
 
         if self.block_tx_indexing_mode == BlockTxIndexingMode::DeferredBatch {
-            let deferred_index_flush_start = Instant::now();
             if self.flush_deferred_block_transactions().await.is_err() {
                 reject_process_proposal!("deferred_index_flush_failed");
             }
-            profile.deferred_index_flush_ms =
-                deferred_index_flush_start.elapsed().as_secs_f64() * 1000.0;
         }
 
-        (response::ProcessProposal::Accept, profile)
+        BatchVerdict::Accept
     }
 
-    #[instrument(skip_all, ret, level = "debug")]
-    async fn process_proposal_impl(
-        &mut self,
-        proposal: request::ProcessProposal,
-        stateless_cache: Option<&StatelessCache>,
-    ) -> response::ProcessProposal {
-        self.process_proposal_impl_profiled(proposal, stateless_cache, None, false)
-            .await
-            .0
-    }
-
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn process_proposal_v2(
-        &mut self,
-        proposal: request::ProcessProposal,
-        stateless_cache: Option<&StatelessCache>,
-    ) -> response::ProcessProposal {
-        self.process_proposal_impl(proposal, stateless_cache).await
-    }
-
-    pub async fn process_proposal_v2_profiled(
-        &mut self,
-        proposal: request::ProcessProposal,
-        stateless_cache: Option<&StatelessCache>,
-        synthetic_sidecar: Option<&ProposalArtifactSidecar>,
-        allow_oversized_proposal: bool,
-    ) -> (response::ProcessProposal, ProcessProposalProfile) {
-        self.process_proposal_impl_profiled(
-            proposal,
-            stateless_cache,
-            synthetic_sidecar,
-            allow_oversized_proposal,
-        )
-        .await
-    }
-
-    pub async fn process_proposal(
-        &mut self,
-        proposal: request::ProcessProposal,
-        stateless_cache: Option<&StatelessCache>,
-    ) -> response::ProcessProposal {
-        self.process_proposal_v2(proposal, stateless_cache).await
-    }
-
-    pub async fn begin_block(&mut self, begin_block: &request::BeginBlock) -> Vec<abci::Event> {
-        self.pending_sct_append_log.clear();
-        let mut state_tx = StateDelta::new(self.state.clone());
-
-        clear_block_fee_price_cache(&mut state_tx);
-
-        // Run each of the begin block handlers for each component, in sequence:
-        let mut arc_state_tx = Arc::new(state_tx);
-        Sct::begin_block(&mut arc_state_tx, begin_block).await;
-        ShieldedPool::begin_block(&mut arc_state_tx, begin_block).await;
-        Ibc::begin_block::<ShielddHost, StateDelta<Arc<StateDelta<cnidarium::Snapshot>>>>(
-            &mut arc_state_tx,
-            begin_block,
-        )
-        .await;
-        FeeComponent::begin_block(&mut arc_state_tx, begin_block).await;
-
-        let state_tx = Arc::try_unwrap(arc_state_tx)
-            .expect("components did not retain copies of shared state");
-
-        self.apply(state_tx)
-    }
-
-    /// Wrapper function for [`Self::deliver_tx`] that decodes from bytes.
-    ///
-    /// When a `StatelessCache` is provided, anchor-independent tx artifacts are
-    /// indexed by SHA-256 and bound to the complete raw tx bytes. Cache hits
-    /// skip decode + stateless proof work entirely; misses build the artifact
-    /// once while running historical checks in parallel.
-    async fn deliver_tx_bytes_impl(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: Option<&StatelessCache>,
-    ) -> Result<Vec<abci::Event>> {
-        let (events, _) = self
-            .deliver_tx_bytes_impl_profiled(tx_bytes, stateless_cache)
-            .await?;
-        Ok(events)
-    }
-
-    async fn deliver_tx_bytes_impl_profiled(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: Option<&StatelessCache>,
-    ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
-        let total_start = Instant::now();
-        let mut profile = CheckTxProfile::default();
-        anyhow::ensure!(
-            transaction_size_allowed(tx_bytes.len()),
-            "transaction size {} exceeds maximum {}",
-            tx_bytes.len(),
-            MAX_TRANSACTION_SIZE_BYTES
-        );
-        if let Some(cache) = stateless_cache {
-            let cache_lookup_start = Instant::now();
-            let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
-            let cache_entry = cache.get(&hash, tx_bytes);
-            profile.checktx_cache_lookup_ms = cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
-            match cache_entry {
-                Some(CacheEntry::FullyVerified(artifact)) => {
-                    tracing::debug!("stateless cache hit (valid)");
-                    Self::record_artifact_reuse("checktx");
-                    profile.cache_hit_count = 1;
-                    let skip_historical =
-                        artifact.has_matching_historical_validation(self.snapshot_version);
-                    let execute_fast_start = Instant::now();
-                    let (events, execute_profile) =
-                        if supports_parallel_prepare(artifact.tx().as_ref())
-                            && self.checktx_shared_context.is_some()
-                        {
-                            self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
-                                .await?
-                        } else {
-                            self.deliver_tx_with_verified_stateless_profiled(artifact, None)
-                                .await?
-                        };
-                    profile.checktx_execute_fast_wall_ms =
-                        execute_fast_start.elapsed().as_secs_f64() * 1000.0;
-                    profile.check_historical_ms = execute_profile.check_historical_ms;
-                    Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-                    profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((events, profile));
-                }
-                Some(CacheEntry::Extracted(extracted)) => {
-                    let (mut verified, verify_profile) = match Self::verify_tx_artifacts_for_stage(
-                        "checktx_cache_upgrade",
-                        std::slice::from_ref(&extracted),
-                    )
-                    .await
-                    {
-                        Ok(verified) => verified,
-                        Err(error) => {
-                            cache.insert_invalid(tx_bytes)?;
-                            return Err(error);
-                        }
-                    };
-                    let artifact = verified
-                        .pop()
-                        .context("verified cache-upgrade artifact missing")?;
-                    cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-                    profile.stateless_artifact_batch_verify_ms = verify_profile.batch_verify_ms;
-                    let skip_historical =
-                        artifact.has_matching_historical_validation(self.snapshot_version);
-                    let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
-                        && self.checktx_shared_context.is_some()
-                    {
-                        self.execute_checktx_fast_profiled(artifact, skip_historical)
-                            .await?
-                    } else {
-                        self.deliver_tx_with_verified_stateless_profiled(artifact, None)
-                            .await?
-                    };
-                    Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-                    profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((events, profile));
-                }
-                Some(CacheEntry::Invalid) => {
-                    anyhow::bail!("transaction previously failed stateless checks");
-                }
-                None => {
-                    let miss_start = Instant::now();
-                    let (events, miss_profile) = self
-                        .deliver_tx_with_stateless_extraction_caching_profiled(tx_bytes, cache)
-                        .await?;
-                    let mut miss_profile = miss_profile;
-                    miss_profile.checktx_stateless_phase_wall_ms =
-                        miss_start.elapsed().as_secs_f64() * 1000.0;
-                    miss_profile.checktx_cache_lookup_ms = profile.checktx_cache_lookup_ms;
-                    miss_profile.checktx_total_wall_ms =
-                        total_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((events, miss_profile));
-                }
-            }
-        }
-
-        let decode_start = Instant::now();
-        let tx = Arc::new(Transaction::decode_canonical(tx_bytes).context("decoding transaction")?);
-        profile.decode_tx_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
-        Self::ensure_user_tx_has_no_internal_actions(&tx)?;
-        let execute_fast_start = Instant::now();
-        let (events, uncached_profile) = self.deliver_tx_profiled(tx).await?;
-        profile = uncached_profile;
-        profile.decode_tx_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
-        profile.checktx_execute_fast_wall_ms = execute_fast_start.elapsed().as_secs_f64() * 1000.0;
-        profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
-        Ok((events, profile))
-    }
-
-    pub async fn deliver_tx_bytes_v1_profiled(
-        &mut self,
-        tx_bytes: &[u8],
-    ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
-        self.deliver_tx_bytes_impl_profiled(tx_bytes, None).await
-    }
-
-    /// Production and synthetic v2 path: use the shared artifact cache.
-    pub async fn deliver_tx_bytes_v2(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: Option<&StatelessCache>,
-    ) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_impl(tx_bytes, stateless_cache).await
-    }
-
-    pub async fn deliver_tx_bytes_v2_profiled(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: Option<&StatelessCache>,
-    ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
-        self.deliver_tx_bytes_impl_profiled(tx_bytes, stateless_cache)
-            .await
-    }
-
-    pub async fn deliver_tx_bytes(
-        &mut self,
-        tx_bytes: &[u8],
-        stateless_cache: Option<&StatelessCache>,
-    ) -> Result<Vec<abci::Event>> {
-        self.deliver_tx_bytes_v2(tx_bytes, stateless_cache).await
-    }
-
-    fn fill_checktx_execute_profile(
-        profile: &mut CheckTxProfile,
-        execute_profile: &VerifiedStatefulTxBreakdown,
-    ) {
-        profile.execute_get_block_height_ms = execute_profile.get_block_height_ms;
-        profile.checktx_fast_context_load_ms = execute_profile.checktx_fast_context_load_ms;
-        profile.checktx_fast_read_queue_wait_ms = execute_profile.checktx_fast_read_queue_wait_ms;
-        profile.checktx_fast_read_blocking_total_ms =
-            execute_profile.checktx_fast_read_blocking_total_ms;
-        profile.checktx_fast_prepare_join_wall_ms =
-            execute_profile.checktx_fast_prepare_join_wall_ms;
-        profile.checktx_fast_apply_wall_ms = execute_profile.checktx_fast_apply_wall_ms;
-        profile.execute_index_tx_ms = execute_profile.index_tx_ms;
-        profile.execute_check_and_execute_ms = execute_profile.check_and_execute_ms;
-        profile.execute_set_source_ms = execute_profile.set_source_ms;
-        profile.execute_pay_fee_ms = execute_profile.pay_fee_ms;
-        profile.execute_action_execute_ms = execute_profile.action_execute_ms;
-        profile.execute_read_local_precheck_ms = execute_profile.read_local_precheck_ms;
-        profile.execute_read_lookup_wait_or_join_ms = execute_profile.read_lookup_wait_or_join_ms;
-        profile.execute_read_historical_check_ms = execute_profile.read_historical_check_ms;
-        profile.execute_read_nullifier_wait_ms = execute_profile.read_nullifier_wait_ms;
-        profile.execute_read_anchor_cache_wait_ms = execute_profile.read_anchor_cache_wait_ms;
-        profile.execute_spend_action_execute_ms = execute_profile.spend_action_execute_ms;
-        profile.execute_spend_nullifier_check_ms = execute_profile.spend_nullifier_check_ms;
-        profile.execute_spend_nullifier_tx_local_scan_ms =
-            execute_profile.spend_nullifier_tx_local_scan_ms;
-        profile.execute_spend_nullifier_block_log_lookup_ms =
-            execute_profile.spend_nullifier_block_log_lookup_ms;
-        profile.execute_spend_nullifier_committed_check_ms =
-            execute_profile.spend_nullifier_committed_check_ms;
-        profile.execute_spend_nullifier_enqueue_ms = execute_profile.spend_nullifier_enqueue_ms;
-        profile.execute_spend_nullifier_stage_ms = execute_profile.spend_nullifier_stage_ms;
-        profile.execute_spend_nullifier_merge_ms = execute_profile.spend_nullifier_merge_ms;
-        profile.execute_nullifier_lookup_count = execute_profile.nullifier_lookup_count;
-        profile.execute_output_action_execute_ms = execute_profile.output_action_execute_ms;
-        profile.execute_output_add_note_payload_ms = execute_profile.output_add_note_payload_ms;
-        profile.execute_other_action_execute_ms = execute_profile.other_action_execute_ms;
-        profile.execute_apply_ms = execute_profile.apply_ms;
-        profile.checktx_candidate_read_wall_ms = execute_profile.candidate_read_wall_ms;
-        profile.checktx_candidate_effects_build_ms = execute_profile.read_effects_build_ms;
-        profile.checktx_serial_apply_wall_ms = execute_profile.serial_apply_wall_ms;
-        profile.checktx_serial_nullifier_insert_ms = execute_profile.serial_nullifier_insert_ms;
-        profile.checktx_serial_sct_append_ms = execute_profile.serial_sct_append_ms;
-        profile.checktx_serial_event_emit_ms = execute_profile.serial_event_emit_ms;
-        profile.checktx_serial_fee_apply_ms = execute_profile.serial_fee_apply_ms;
-        profile.execute_ms = execute_profile.begin_state_tx_ms
-            + execute_profile.index_tx_ms
-            + execute_profile.check_and_execute_ms
-            + execute_profile.apply_ms;
-    }
-
-    async fn deliver_tx_with_stateless_extraction_caching_profiled(
-        &mut self,
-        tx_bytes: &[u8],
-        cache: &StatelessCache,
-    ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
-        let mut profile = CheckTxProfile::default();
-        let decode_start = Instant::now();
-        let tx = Arc::new(Transaction::decode_canonical(tx_bytes).context("decoding transaction")?);
-        profile.decode_tx_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
-        Self::ensure_user_tx_has_no_internal_actions(&tx)?;
-        let supports_fast_path =
-            supports_parallel_prepare(tx.as_ref()) && self.checktx_shared_context.is_some();
-
-        if supports_fast_path {
-            let context_load_start = Instant::now();
-            let historical_context = self
-                .checktx_shared_context
-                .as_ref()
-                .map(|context| Arc::clone(&context.historical_check_context))
-                .ok_or_else(|| {
-                    anyhow::anyhow!("missing CheckTxSharedContext for fast CheckTx path")
-                })?;
-            let context_load_ms = context_load_start.elapsed().as_secs_f64() * 1000.0;
-            let snapshot = Arc::new(self.committed_snapshot.clone());
-            let tx_for_extract = tx.clone();
-            let tx_for_read = tx.clone();
-            let historical_context_for_read = historical_context.as_ref().clone();
-            let handle = tokio::runtime::Handle::current();
-            let span = tracing::Span::current();
-            let stateless_spawn_started = Instant::now();
-            let stateless = tokio::task::spawn_blocking(move || {
-                span.in_scope(|| {
-                    let queue_wait_ms = stateless_spawn_started.elapsed().as_secs_f64() * 1000.0;
-
-                    let artifact_start = Instant::now();
-                    let artifact_result = handle.block_on(async move {
-                        Self::build_tx_artifact_for_stage("checktx", tx_for_extract).await
-                    });
-                    let artifact_blocking_ms = artifact_start.elapsed().as_secs_f64() * 1000.0;
-
-                    (artifact_result, queue_wait_ms, artifact_blocking_ms)
-                })
-            });
-            let prepare_started = Instant::now();
-            let prepared = tokio::spawn(
-                async move {
-                    let prepared = prepare_candidate_read_profiled(
-                        tx_for_read,
-                        snapshot,
-                        historical_context_for_read,
-                        false,
-                    )
-                    .await;
-                    let wall_ms = prepare_started.elapsed().as_secs_f64() * 1000.0;
-                    (prepared, wall_ms)
-                }
-                .instrument(tracing::Span::current()),
-            );
-            let stateless_join_start = Instant::now();
-            let (artifact_result, stateless_artifact_queue_wait_ms, stateless_artifact_ms) =
-                stateless.await.context("waiting for extraction task")?;
-            profile.stateless_task_join_wall_ms =
-                stateless_join_start.elapsed().as_secs_f64() * 1000.0;
-            profile.stateless_artifact_queue_wait_ms = stateless_artifact_queue_wait_ms;
-            profile.stateless_artifact_blocking_total_ms = stateless_artifact_ms;
-            profile.stateless_artifact_ms = stateless_artifact_ms;
-
-            let initial_cache_insert_start = Instant::now();
-            match &artifact_result {
-                Ok((artifact, _)) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
-                Err(_) => cache.insert_invalid(tx_bytes)?,
-            }
-            profile.stateless_initial_cache_insert_ms =
-                initial_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
-
-            let (artifact, artifact_profile) = match artifact_result {
-                Ok(artifact) => artifact,
-                Err(error) => {
-                    prepared.abort();
-                    return Err(error).context("extract stateless failed");
-                }
-            };
-            profile.stateless_artifact_precheck_ms = artifact_profile.precheck_ms;
-            profile.stateless_artifact_action_extract_ms = artifact_profile.action_extract_ms;
-            profile.stateless_artifact_action_auth_sig_ms = artifact_profile.action_auth_sig_ms;
-            profile.stateless_artifact_action_extract_public_ms =
-                artifact_profile.action_extract_public_ms;
-            profile.stateless_artifact_action_to_batch_item_ms =
-                artifact_profile.action_to_batch_item_ms;
-            profile.stateless_artifact_batch_verify_ms = artifact_profile.batch_verify_ms;
-
-            let prepare_join_start = Instant::now();
-            let (prepared_result, fast_read_blocking_ms) = prepared
-                .await
-                .context("waiting for prepare fast checktx candidate task")?;
-            let prepare_join_wall_ms = prepare_join_start.elapsed().as_secs_f64() * 1000.0;
-            profile.checktx_fast_prepare_join_wall_ms = prepare_join_wall_ms;
-            let mut prepared = prepared_result.context("prepare fast checktx candidate failed")?;
-            prepared.checktx_fast_context_load_ms = context_load_ms;
-            prepared.checktx_fast_read_queue_wait_ms = 0.0;
-            prepared.checktx_fast_read_blocking_total_ms = fast_read_blocking_ms;
-
-            let historical_stamp_start = Instant::now();
-            let historical_stamp = self.current_historical_validation_stamp(artifact.tx());
-            profile.stateless_historical_stamp_ms =
-                historical_stamp_start.elapsed().as_secs_f64() * 1000.0;
-            let historical_mark_start = Instant::now();
-            let artifact = artifact.with_historical_validation_owned(historical_stamp);
-            profile.stateless_historical_mark_ms =
-                historical_mark_start.elapsed().as_secs_f64() * 1000.0;
-            let final_cache_insert_start = Instant::now();
-            cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-            profile.stateless_final_cache_insert_ms =
-                final_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
-
-            let execute_fast_start = Instant::now();
-            let (events, execute_profile) = self
-                .apply_prepared_checktx_profiled(artifact, prepared)
-                .await?;
-            profile.checktx_execute_fast_wall_ms =
-                execute_fast_start.elapsed().as_secs_f64() * 1000.0;
-            profile.check_historical_ms = execute_profile.check_historical_ms;
-            Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-            profile.checktx_fast_prepare_join_wall_ms = prepare_join_wall_ms;
-            return Ok((events, profile));
-        }
-
-        let tx2 = tx.clone();
-        let handle = tokio::runtime::Handle::current();
-        let span = tracing::Span::current();
-        let stateless_spawn_started = Instant::now();
-        let stateless = tokio::task::spawn_blocking(move || {
-            span.in_scope(|| {
-                let queue_wait_ms = stateless_spawn_started.elapsed().as_secs_f64() * 1000.0;
-                let start = Instant::now();
-                let result = handle.block_on(async move {
-                    Self::build_tx_artifact_for_stage("checktx", tx2).await
-                });
-                let blocking_total_ms = start.elapsed().as_secs_f64() * 1000.0;
-                (result, queue_wait_ms, blocking_total_ms)
-            })
-        });
-        let stateful = if supports_fast_path {
-            None
-        } else {
-            let tx2 = tx.clone();
-            let state2 = self.state.clone();
-            Some(tokio::spawn(
-                async move {
-                    let start = Instant::now();
-                    let result = tx2.check_historical(state2).await;
-                    (result, start.elapsed().as_secs_f64() * 1000.0)
-                }
-                .instrument(tracing::Span::current()),
-            ))
-        };
-
-        let stateless_join_start = Instant::now();
-        let (artifact_result, stateless_artifact_queue_wait_ms, stateless_artifact_ms) =
-            stateless.await.context("waiting for extraction task")?;
-        profile.stateless_task_join_wall_ms = stateless_join_start.elapsed().as_secs_f64() * 1000.0;
-        profile.stateless_artifact_queue_wait_ms = stateless_artifact_queue_wait_ms;
-        profile.stateless_artifact_blocking_total_ms = stateless_artifact_ms;
-        profile.stateless_artifact_ms = stateless_artifact_ms;
-        let initial_cache_insert_start = Instant::now();
-        match &artifact_result {
-            Ok((artifact, _)) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
-            Err(_) => cache.insert_invalid(tx_bytes)?,
-        }
-        profile.stateless_initial_cache_insert_ms =
-            initial_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
-        let (artifact, artifact_profile) = artifact_result.context("extract stateless failed")?;
-        profile.stateless_artifact_precheck_ms = artifact_profile.precheck_ms;
-        profile.stateless_artifact_action_extract_ms = artifact_profile.action_extract_ms;
-        profile.stateless_artifact_action_auth_sig_ms = artifact_profile.action_auth_sig_ms;
-        profile.stateless_artifact_action_extract_public_ms =
-            artifact_profile.action_extract_public_ms;
-        profile.stateless_artifact_action_to_batch_item_ms =
-            artifact_profile.action_to_batch_item_ms;
-        profile.stateless_artifact_batch_verify_ms = artifact_profile.batch_verify_ms;
-
-        let (events, execute_profile) = if supports_fast_path {
-            let historical_stamp_start = Instant::now();
-            let historical_stamp = self.current_historical_validation_stamp(artifact.tx());
-            profile.stateless_historical_stamp_ms =
-                historical_stamp_start.elapsed().as_secs_f64() * 1000.0;
-            let execute_fast_start = Instant::now();
-            let (events, execute_profile) = self
-                .execute_checktx_fast_profiled(artifact.clone(), false)
-                .await?;
-            profile.checktx_execute_fast_wall_ms =
-                execute_fast_start.elapsed().as_secs_f64() * 1000.0;
-            let historical_mark_start = Instant::now();
-            let artifact = artifact.with_historical_validation_owned(historical_stamp);
-            profile.stateless_historical_mark_ms =
-                historical_mark_start.elapsed().as_secs_f64() * 1000.0;
-            let final_cache_insert_start = Instant::now();
-            cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-            profile.stateless_final_cache_insert_ms =
-                final_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
-            profile.check_historical_ms = execute_profile.check_historical_ms;
-            (events, execute_profile)
-        } else {
-            let (stateful_result, check_historical_ms) = stateful
-                .expect("stateful task is present on the standard path")
-                .await
-                .context("waiting for check_stateful task")?;
-            profile.check_historical_ms = check_historical_ms;
-            stateful_result.context("check_stateful failed")?;
-
-            let historical_stamp_start = Instant::now();
-            let historical_stamp = self.current_historical_validation_stamp(artifact.tx());
-            profile.stateless_historical_stamp_ms =
-                historical_stamp_start.elapsed().as_secs_f64() * 1000.0;
-            let historical_mark_start = Instant::now();
-            let artifact = artifact.with_historical_validation_owned(historical_stamp);
-            profile.stateless_historical_mark_ms =
-                historical_mark_start.elapsed().as_secs_f64() * 1000.0;
-            let final_cache_insert_start = Instant::now();
-            cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-            profile.stateless_final_cache_insert_ms =
-                final_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
-
-            self.execute_tx_checked_historical_profiled(artifact)
-                .await?
-        };
-        Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-        Ok((events, profile))
-    }
-
-    async fn deliver_tx_profiled(
-        &mut self,
-        tx: Arc<Transaction>,
-    ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
-        let mut profile = CheckTxProfile::default();
-        if supports_parallel_prepare(tx.as_ref()) && self.checktx_shared_context.is_some() {
-            let tx2 = tx.clone();
-            let handle = tokio::runtime::Handle::current();
-            let span = tracing::Span::current();
-            let stateless_spawn_started = Instant::now();
-            let stateless = tokio::task::spawn_blocking(move || {
-                span.in_scope(|| {
-                    let queue_wait_ms = stateless_spawn_started.elapsed().as_secs_f64() * 1000.0;
-                    let start = Instant::now();
-                    let result = handle.block_on(async move {
-                        Self::build_tx_artifact_for_stage("checktx_uncached", tx2).await
-                    });
-                    let blocking_total_ms = start.elapsed().as_secs_f64() * 1000.0;
-                    (result, queue_wait_ms, blocking_total_ms)
-                })
-            });
-
-            let stateless_join_start = Instant::now();
-            let (stateless_result, stateless_artifact_queue_wait_ms, stateless_artifact_ms) =
-                stateless
-                    .await
-                    .context("waiting for check_stateless check tasks")?;
-            profile.stateless_task_join_wall_ms =
-                stateless_join_start.elapsed().as_secs_f64() * 1000.0;
-            profile.stateless_artifact_queue_wait_ms = stateless_artifact_queue_wait_ms;
-            profile.stateless_artifact_blocking_total_ms = stateless_artifact_ms;
-            profile.stateless_artifact_ms = stateless_artifact_ms;
-            let (artifact, artifact_profile) =
-                stateless_result.context("check_stateless failed")?;
-            profile.stateless_artifact_precheck_ms = artifact_profile.precheck_ms;
-            profile.stateless_artifact_action_extract_ms = artifact_profile.action_extract_ms;
-            profile.stateless_artifact_batch_verify_ms = artifact_profile.batch_verify_ms;
-
-            let execute_fast_start = Instant::now();
-            let (events, execute_profile) =
-                self.execute_checktx_fast_profiled(artifact, false).await?;
-            profile.checktx_execute_fast_wall_ms =
-                execute_fast_start.elapsed().as_secs_f64() * 1000.0;
-            profile.check_historical_ms = execute_profile.check_historical_ms;
-            Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-            return Ok((events, profile));
-        }
-
-        // Both stateful and stateless checks take the transaction as
-        // verification context.  The separate clone of the Arc<Transaction>
-        // means it can be passed through the whole tree of checks.
-        //
-        // We spawn tasks for each set of checks, to do CPU-bound stateless checks
-        // and I/O-bound stateful checks at the same time.
-        let tx2 = tx.clone();
-        let handle = tokio::runtime::Handle::current();
-        let span = tracing::Span::current();
-        let stateless_spawn_started = Instant::now();
-        let stateless = tokio::task::spawn_blocking(move || {
-            span.in_scope(|| {
-                let queue_wait_ms = stateless_spawn_started.elapsed().as_secs_f64() * 1000.0;
-                let start = Instant::now();
-                let result = handle.block_on(async move {
-                    Self::build_tx_artifact_for_stage("checktx_uncached", tx2).await
-                });
-                let blocking_total_ms = start.elapsed().as_secs_f64() * 1000.0;
-                (result, queue_wait_ms, blocking_total_ms)
-            })
-        });
-        let tx2 = tx.clone();
-        let state2 = self.state.clone();
-        let stateful = tokio::spawn(
-            async move {
-                let start = Instant::now();
-                let result = tx2.check_historical(state2).await;
-                (result, start.elapsed().as_secs_f64() * 1000.0)
-            }
-            .instrument(tracing::Span::current()),
-        );
-
-        let stateless_join_start = Instant::now();
-        let (stateless_result, stateless_artifact_queue_wait_ms, stateless_artifact_ms) = stateless
-            .await
-            .context("waiting for check_stateless check tasks")?;
-        profile.stateless_task_join_wall_ms = stateless_join_start.elapsed().as_secs_f64() * 1000.0;
-        profile.stateless_artifact_queue_wait_ms = stateless_artifact_queue_wait_ms;
-        profile.stateless_artifact_blocking_total_ms = stateless_artifact_ms;
-        profile.stateless_artifact_ms = stateless_artifact_ms;
-        let (artifact, artifact_profile) = stateless_result.context("check_stateless failed")?;
-        profile.stateless_artifact_precheck_ms = artifact_profile.precheck_ms;
-        profile.stateless_artifact_action_extract_ms = artifact_profile.action_extract_ms;
-        profile.stateless_artifact_batch_verify_ms = artifact_profile.batch_verify_ms;
-        let (stateful_result, check_historical_ms) =
-            stateful.await.context("waiting for check_stateful tasks")?;
-        profile.check_historical_ms = check_historical_ms;
-        stateful_result.context("check_stateful failed")?;
-
-        let (events, execute_profile) = self
-            .execute_tx_checked_historical_profiled(artifact)
-            .await?;
-        Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
-        Ok((events, profile))
-    }
-
-    async fn deliver_tx_with_verified_stateless_profiled(
-        &mut self,
-        artifact: Arc<VerifiedTxArtifact>,
-        historical_context: Option<&HistoricalCheckContext>,
-    ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
-        let tx = artifact.tx().clone();
-        let mut profile = VerifiedStatefulTxBreakdown::default();
-        let historical_start = Instant::now();
-        match historical_context {
-            Some(context) => {
-                check_historical_with_context(Arc::as_ref(&tx), self.state.clone(), context)
-                    .await
-                    .context("check_stateful failed")?
-            }
-            None => tx
-                .check_historical(self.state.clone())
-                .await
-                .context("check_stateful failed")?,
-        }
-        profile.check_historical_ms = historical_start.elapsed().as_secs_f64() * 1000.0;
-
-        let (events, execute_profile) = self
-            .execute_tx_checked_historical_profiled(artifact)
-            .await?;
-        profile.begin_state_tx_ms = execute_profile.begin_state_tx_ms;
-        profile.index_tx_ms = execute_profile.index_tx_ms;
-        profile.clone_tx_ms = execute_profile.clone_tx_ms;
-        profile.proto_convert_ms = execute_profile.proto_convert_ms;
-        profile.get_block_height_ms = execute_profile.get_block_height_ms;
-        profile.put_block_transaction_ms = execute_profile.put_block_transaction_ms;
-        profile.check_and_execute_ms = execute_profile.check_and_execute_ms;
-        profile.set_source_ms = execute_profile.set_source_ms;
-        profile.pay_fee_ms = execute_profile.pay_fee_ms;
-        profile.action_execute_ms = execute_profile.action_execute_ms;
-        profile.read_local_precheck_ms = execute_profile.read_local_precheck_ms;
-        profile.read_lookup_wait_or_join_ms = execute_profile.read_lookup_wait_or_join_ms;
-        profile.read_historical_check_ms = execute_profile.read_historical_check_ms;
-        profile.read_nullifier_wait_ms = execute_profile.read_nullifier_wait_ms;
-        profile.read_anchor_cache_wait_ms = execute_profile.read_anchor_cache_wait_ms;
-        profile.spend_action_execute_ms = execute_profile.spend_action_execute_ms;
-        profile.spend_nullifier_check_ms = execute_profile.spend_nullifier_check_ms;
-        profile.spend_nullifier_tx_local_scan_ms = execute_profile.spend_nullifier_tx_local_scan_ms;
-        profile.spend_nullifier_block_log_lookup_ms =
-            execute_profile.spend_nullifier_block_log_lookup_ms;
-        profile.spend_nullifier_committed_check_ms =
-            execute_profile.spend_nullifier_committed_check_ms;
-        profile.spend_nullifier_enqueue_ms = execute_profile.spend_nullifier_enqueue_ms;
-        profile.spend_nullifier_stage_ms = execute_profile.spend_nullifier_stage_ms;
-        profile.spend_nullifier_merge_ms = execute_profile.spend_nullifier_merge_ms;
-        profile.nullifier_lookup_count = execute_profile.nullifier_lookup_count;
-        profile.output_action_execute_ms = execute_profile.output_action_execute_ms;
-        profile.output_add_note_payload_ms = execute_profile.output_add_note_payload_ms;
-        profile.read_anchor_validation_ms = execute_profile.read_anchor_validation_ms;
-        profile.read_committed_nullifier_ms = execute_profile.read_committed_nullifier_ms;
-        profile.read_effects_build_ms = execute_profile.read_effects_build_ms;
-        profile.other_action_execute_ms = execute_profile.other_action_execute_ms;
-        profile.apply_ms = execute_profile.apply_ms;
-
-        Ok((events, profile))
-    }
-
-    async fn execute_prepare_candidate_profiled(
+    async fn execute_prepare_candidate(
         &mut self,
         artifact: Arc<VerifiedTxArtifact>,
         historical_context: &HistoricalCheckContext,
-    ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
+    ) -> Result<Vec<abci::Event>> {
         if artifact.has_matching_historical_validation(self.snapshot_version) {
-            return self.execute_tx_checked_historical_profiled(artifact).await;
+            return self.execute_tx_checked_historical(artifact).await;
         }
 
-        self.deliver_tx_with_verified_stateless_profiled(artifact, Some(historical_context))
+        self.deliver_tx_with_verified_stateless(artifact, Some(historical_context))
             .await
     }
 
-    async fn execute_checktx_fast_profiled(
-        &mut self,
-        artifact: Arc<VerifiedTxArtifact>,
-        skip_historical: bool,
-    ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
-        let tx = artifact.tx().clone();
-        let context_load_start = Instant::now();
-        let historical_context = self
-            .checktx_shared_context
-            .as_ref()
-            .map(|context| Arc::clone(&context.historical_check_context))
-            .ok_or_else(|| anyhow::anyhow!("missing CheckTxSharedContext for fast CheckTx path"))?;
-        let context_load_ms = context_load_start.elapsed().as_secs_f64() * 1000.0;
-        let snapshot = self.committed_snapshot.clone();
-        let tx_for_read = tx.clone();
-        let historical_context_for_read = historical_context.as_ref().clone();
-        let handle = tokio::runtime::Handle::current();
-        let prepare_join_start = Instant::now();
-        let blocking_started = Instant::now();
-        let prepared = tokio::task::spawn_blocking(move || {
-            let queue_wait_ms = blocking_started.elapsed().as_secs_f64() * 1000.0;
-            let read_started = Instant::now();
-            let prepared = prepare_candidate_read_blocking_profiled(
-                tx_for_read,
-                snapshot,
-                historical_context_for_read,
-                skip_historical,
-                handle,
-            );
-            let blocking_total_ms = read_started.elapsed().as_secs_f64() * 1000.0;
-            (prepared, queue_wait_ms, blocking_total_ms)
-        })
-        .await
-        .map_err(|e| anyhow::anyhow!("joining fast CheckTx prepare task: {e}"))?;
-        let prepare_join_wall_ms = prepare_join_start.elapsed().as_secs_f64() * 1000.0;
-        let (prepared, queue_wait_ms, blocking_total_ms) = prepared;
-        let mut prepared = prepared?;
-
-        prepared.checktx_fast_context_load_ms = context_load_ms;
-        prepared.checktx_fast_read_queue_wait_ms = queue_wait_ms;
-        prepared.checktx_fast_read_blocking_total_ms = blocking_total_ms;
-        let apply_start = Instant::now();
-        let result = self
-            .apply_prepared_checktx_profiled(artifact, prepared)
-            .await;
-        let apply_wall_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
-        let (events, mut profile) = result?;
-        profile.checktx_fast_prepare_join_wall_ms = prepare_join_wall_ms;
-        profile.checktx_fast_apply_wall_ms = apply_wall_ms;
-
-        Ok((events, profile))
-    }
-
-    async fn apply_prepared_checktx_profiled(
-        &mut self,
-        artifact: Arc<VerifiedTxArtifact>,
-        prepared: PreparedCandidateRead,
-    ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
-        let tx = artifact.tx().clone();
-        let serial_apply_start = Instant::now();
-        let mut profile = VerifiedStatefulTxBreakdown::default();
-        profile.check_historical_ms = prepared.check_historical_ms;
-        profile.checktx_fast_context_load_ms = prepared.checktx_fast_context_load_ms;
-        profile.checktx_fast_read_queue_wait_ms = prepared.checktx_fast_read_queue_wait_ms;
-        profile.checktx_fast_read_blocking_total_ms = prepared.checktx_fast_read_blocking_total_ms;
-        profile.action_execute_ms = prepared.execution_profile.action_execute_ms;
-        profile.read_local_precheck_ms = prepared.execution_profile.read_local_precheck_ms;
-        profile.read_lookup_wait_or_join_ms =
-            prepared.execution_profile.read_lookup_wait_or_join_ms;
-        profile.read_historical_check_ms = prepared.execution_profile.read_historical_check_ms;
-        profile.read_nullifier_wait_ms = prepared.execution_profile.read_nullifier_wait_ms;
-        profile.read_anchor_cache_wait_ms = prepared.execution_profile.read_anchor_cache_wait_ms;
-        profile.read_anchor_validation_ms = prepared.execution_profile.read_anchor_validation_ms;
-        profile.read_committed_nullifier_ms =
-            prepared.execution_profile.read_committed_nullifier_ms;
-        profile.read_effects_build_ms = prepared.execution_profile.read_effects_build_ms;
-        profile.candidate_read_wall_ms = prepared.read_wall_ms;
-        profile.nullifier_lookup_count = prepared.execution_profile.nullifier_lookup_count;
-        profile.spend_action_execute_ms = prepared.execution_profile.spend_action_execute_ms;
-        profile.spend_nullifier_check_ms = prepared.execution_profile.spend_nullifier_check_ms;
-        profile.spend_nullifier_committed_check_ms = prepared
-            .execution_profile
-            .spend_nullifier_committed_check_ms;
-        profile.output_action_execute_ms = prepared.execution_profile.output_action_execute_ms;
-        profile.output_add_note_payload_ms = prepared.execution_profile.output_add_note_payload_ms;
-
-        let begin_state_tx_start = Instant::now();
-        let mut state_tx = self
-            .state
-            .try_begin_transaction()
-            .expect("state Arc should be present and unique");
-        profile.begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
-
-        let index_start = Instant::now();
-        let mut deferred_transaction = None;
-        match self.block_tx_indexing_mode {
-            BlockTxIndexingMode::NoIndex => {}
-            BlockTxIndexingMode::PerTx => {
-                let get_block_height_start = Instant::now();
-                let height = state_tx.get_block_height().await?;
-                profile.get_block_height_ms =
-                    get_block_height_start.elapsed().as_secs_f64() * 1000.0;
-                let clone_tx_start = Instant::now();
-                let transaction = Arc::as_ref(&tx).clone();
-                profile.clone_tx_ms = clone_tx_start.elapsed().as_secs_f64() * 1000.0;
-                let proto_convert_start = Instant::now();
-                let proto_transaction = transaction.into();
-                profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                let put_block_transaction_start = Instant::now();
-                let index_write_profile = Self::append_block_transaction_to_state(
-                    &mut state_tx,
-                    height,
-                    proto_transaction,
-                )
-                .await
-                .context("storing transactions")?;
-                profile.put_block_transaction_ms =
-                    put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
-                profile.tx_log_read_ms = index_write_profile.tx_log_read_ms;
-                profile.tx_log_encode_ms = index_write_profile.tx_log_encode_ms;
-                profile.tx_log_put_raw_ms = index_write_profile.tx_log_put_raw_ms;
-            }
-            BlockTxIndexingMode::DeferredBatch => {
-                let get_block_height_start = Instant::now();
-                let _height = state_tx.get_block_height().await?;
-                profile.get_block_height_ms =
-                    get_block_height_start.elapsed().as_secs_f64() * 1000.0;
-                let clone_tx_start = Instant::now();
-                let transaction = Arc::as_ref(&tx).clone();
-                profile.clone_tx_ms = clone_tx_start.elapsed().as_secs_f64() * 1000.0;
-                let proto_convert_start = Instant::now();
-                let proto_transaction = transaction.into();
-                profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                deferred_transaction = Some(proto_transaction);
-            }
-        }
-        profile.index_tx_ms = index_start.elapsed().as_secs_f64() * 1000.0;
-
-        let check_and_execute_start = Instant::now();
-        let tx_id = tx.id();
-        let set_source_start = Instant::now();
-        state_tx.put_current_source(Some(tx_id.clone()));
-        profile.set_source_ms = set_source_start.elapsed().as_secs_f64() * 1000.0;
-
-        let pay_fee_start = Instant::now();
-        let gas_used = tx.gas_cost();
-        let fee = tx.transaction_body.transaction_parameters.fee;
-        if let Some(context) = self.checktx_shared_context.as_ref() {
-            Self::apply_checktx_fee_with_context(&mut state_tx, gas_used, fee, context)?;
-        } else {
-            state_tx.pay_fee(gas_used, fee).await?;
-        }
-        let pay_fee_ms = pay_fee_start.elapsed().as_secs_f64() * 1000.0;
-        profile.pay_fee_ms = pay_fee_ms;
-        profile.serial_fee_apply_ms = pay_fee_ms;
-
-        // CheckTx runs against an ephemeral per-transaction app fork. For the
-        // supported fast path, committed-state nullifier checks have already
-        // run in the read phase, and same-block conflict resolution is a
-        // proposer/block concern. However, the fast path still builds an app
-        // fork with concrete state for downstream consumers and tests, so the
-        // fork should reflect the same semantic spend set as the slow path.
-        let nullifier_insert_start = Instant::now();
-        state_tx
-            .nullify_all(&prepared.effects.spend_nullifiers, tx_id.clone().into())
-            .await?;
-        profile.serial_nullifier_insert_ms =
-            nullifier_insert_start.elapsed().as_secs_f64() * 1000.0;
-
-        for nullifier in &prepared.effects.spend_nullifiers {
-            let event_emit_start = Instant::now();
-            state_tx.record_proto(
-                shieldd_sdk_shielded_pool::event::EventNullifierSpent {
-                    nullifier: *nullifier,
-                }
-                .to_proto(),
-            );
-            let event_emit_ms = event_emit_start.elapsed().as_secs_f64() * 1000.0;
-            profile.serial_event_emit_ms += event_emit_ms;
-            profile.spend_nullifier_enqueue_ms += event_emit_ms;
-            profile.spend_action_execute_ms += event_emit_ms;
-        }
-
-        for payload in &prepared.effects.sct_payloads {
-            if let StatePayload::Note { note, .. } = payload {
-                let event_emit_start = Instant::now();
-                state_tx.record_proto(
-                    shieldd_sdk_shielded_pool::event::EventNoteCreated {
-                        note_commitment: note.note_commitment,
-                    }
-                    .to_proto(),
-                );
-                profile.serial_event_emit_ms += event_emit_start.elapsed().as_secs_f64() * 1000.0;
-            }
-        }
-
-        let sct_append_start = Instant::now();
-        if let Some(context) = self.checktx_shared_context.as_ref() {
-            let base_position_u64: u64 = context.sct_base_position.into();
-            for (offset, payload) in prepared.effects.sct_payloads.iter().enumerate() {
-                let commitment_event_start = Instant::now();
-                let position = shieldd_sdk_tct::Position::from(base_position_u64 + offset as u64);
-                state_tx.record_proto(shieldd_sdk_sct::event::commitment(
-                    *payload.commitment(),
-                    position,
-                    payload.source().clone(),
-                ));
-                profile.serial_event_emit_ms +=
-                    commitment_event_start.elapsed().as_secs_f64() * 1000.0;
-            }
-        } else {
-            let positioned_sct_payloads = self
-                .pending_sct_append_log
-                .reserve_positions(&state_tx, prepared.effects.sct_payloads.clone())
-                .await
-                .context("reserving deferred SCT positions")?;
-            for (position, payload) in &positioned_sct_payloads {
-                let commitment_event_start = Instant::now();
-                state_tx.record_proto(shieldd_sdk_sct::event::commitment(
-                    *payload.commitment(),
-                    *position,
-                    payload.source().clone(),
-                ));
-                profile.serial_event_emit_ms +=
-                    commitment_event_start.elapsed().as_secs_f64() * 1000.0;
-            }
-            self.pending_sct_append_log
-                .append_positioned(positioned_sct_payloads);
-        }
-        profile.serial_sct_append_ms = sct_append_start.elapsed().as_secs_f64() * 1000.0;
-
-        state_tx.stage_routing_actions(prepared.effects.routing_actions.clone());
-
-        profile.check_and_execute_ms = prepared.execution_profile.action_execute_ms
-            + check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
-
-        let apply_start = Instant::now();
-        let events = state_tx.apply().1;
-        profile.apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
-        if let Some(transaction) = deferred_transaction {
-            let put_block_transaction_start = Instant::now();
-            self.deferred_block_transactions.push(transaction);
-            profile.put_block_transaction_ms =
-                put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
-            profile.index_tx_ms += profile.put_block_transaction_ms;
-        }
-        profile.serial_apply_wall_ms = serial_apply_start.elapsed().as_secs_f64() * 1000.0;
-
-        Ok((events, profile))
-    }
-
-    async fn apply_prepared_prepare_candidate_profiled(
+    async fn apply_prepared_prepare_candidate(
         &mut self,
         artifact: Arc<VerifiedTxArtifact>,
         prepared: PreparedCandidateRead,
         block_state: &mut PrepareBlockLocalState,
-    ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
+    ) -> Result<Vec<abci::Event>> {
         let tx = artifact.tx().clone();
-        let serial_apply_start = Instant::now();
-        let conflict_check_start = Instant::now();
-        for nullifier in &prepared.effects.spend_nullifiers {
+        let proof_bound_nullifier_count = prepared
+            .spend_nullifiers
+            .len()
+            .saturating_add(prepared.volume_nullifiers.len());
+        anyhow::ensure!(
+            proof_bound_nullifier_count <= block_state.remaining_nullifier_capacity,
+            "proof-bound nullifier capacity exceeded by proposal"
+        );
+        for nullifier in &prepared.spend_nullifiers {
             anyhow::ensure!(
                 !block_state.seen_nullifiers.contains(nullifier),
                 "nullifier {} already spent earlier in this proposal",
                 nullifier
             );
         }
-        let serial_same_block_conflict_ms = conflict_check_start.elapsed().as_secs_f64() * 1000.0;
+        for scoped in &prepared.volume_nullifiers {
+            anyhow::ensure!(
+                !block_state.seen_volume_nullifiers.contains(scoped),
+                "daily volume nullifier {} for day {} already spent earlier in this proposal",
+                scoped.nullifier,
+                scoped.day_start
+            );
+        }
         // Prepared candidate reads only consult committed state, so they intentionally
         // remain blind to same-block conflicts. Serial apply is the sole resolver for
         // duplicate nullifiers within a single proposal.
 
-        let mut profile = VerifiedStatefulTxBreakdown::default();
-        profile.check_historical_ms = prepared.check_historical_ms;
-        profile.action_execute_ms = prepared.execution_profile.action_execute_ms;
-        profile.read_local_precheck_ms = prepared.execution_profile.read_local_precheck_ms;
-        profile.read_lookup_wait_or_join_ms =
-            prepared.execution_profile.read_lookup_wait_or_join_ms;
-        profile.read_historical_check_ms = prepared.execution_profile.read_historical_check_ms;
-        profile.read_nullifier_wait_ms = prepared.execution_profile.read_nullifier_wait_ms;
-        profile.read_anchor_cache_wait_ms = prepared.execution_profile.read_anchor_cache_wait_ms;
-        profile.read_anchor_validation_ms = prepared.execution_profile.read_anchor_validation_ms;
-        profile.read_committed_nullifier_ms =
-            prepared.execution_profile.read_committed_nullifier_ms;
-        profile.read_effects_build_ms = prepared.execution_profile.read_effects_build_ms;
-        profile.serial_same_block_conflict_ms = serial_same_block_conflict_ms;
-        profile.nullifier_lookup_count = prepared.execution_profile.nullifier_lookup_count;
-        profile.spend_action_execute_ms = prepared.execution_profile.spend_action_execute_ms;
-        profile.spend_nullifier_check_ms = prepared.execution_profile.spend_nullifier_check_ms;
-        profile.spend_nullifier_committed_check_ms = prepared
-            .execution_profile
-            .spend_nullifier_committed_check_ms;
-        profile.output_action_execute_ms = prepared.execution_profile.output_action_execute_ms;
-        profile.output_add_note_payload_ms = prepared.execution_profile.output_add_note_payload_ms;
-
-        let begin_state_tx_start = Instant::now();
         let mut state_tx = self
             .state
             .try_begin_transaction()
             .expect("state Arc should be present and unique");
-        profile.begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
 
-        let index_start = Instant::now();
         let mut deferred_transaction = None;
         match self.block_tx_indexing_mode {
             BlockTxIndexingMode::NoIndex => {}
             BlockTxIndexingMode::PerTx => {
-                let get_block_height_start = Instant::now();
                 let height = state_tx.get_block_height().await?;
-                profile.get_block_height_ms =
-                    get_block_height_start.elapsed().as_secs_f64() * 1000.0;
-                let clone_tx_start = Instant::now();
+
                 let transaction = Arc::as_ref(&tx).clone();
-                profile.clone_tx_ms = clone_tx_start.elapsed().as_secs_f64() * 1000.0;
-                let proto_convert_start = Instant::now();
+
                 let proto_transaction = transaction.into();
-                profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                let put_block_transaction_start = Instant::now();
-                let index_write_profile = Self::append_block_transaction_to_state(
-                    &mut state_tx,
-                    height,
-                    proto_transaction,
-                )
-                .await
-                .context("storing transactions")?;
-                profile.put_block_transaction_ms =
-                    put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
-                profile.tx_log_read_ms = index_write_profile.tx_log_read_ms;
-                profile.tx_log_encode_ms = index_write_profile.tx_log_encode_ms;
-                profile.tx_log_put_raw_ms = index_write_profile.tx_log_put_raw_ms;
+
+                Self::append_block_transaction_to_state(&mut state_tx, height, proto_transaction)
+                    .await
+                    .context("storing transactions")?;
             }
             BlockTxIndexingMode::DeferredBatch => {
-                let get_block_height_start = Instant::now();
                 let _height = state_tx.get_block_height().await?;
-                profile.get_block_height_ms =
-                    get_block_height_start.elapsed().as_secs_f64() * 1000.0;
-                let clone_tx_start = Instant::now();
+
                 let transaction = Arc::as_ref(&tx).clone();
-                profile.clone_tx_ms = clone_tx_start.elapsed().as_secs_f64() * 1000.0;
-                let proto_convert_start = Instant::now();
+
                 let proto_transaction = transaction.into();
-                profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
+
                 deferred_transaction = Some(proto_transaction);
             }
         }
-        profile.index_tx_ms = index_start.elapsed().as_secs_f64() * 1000.0;
 
-        let check_and_execute_start = Instant::now();
         let tx_id = tx.id();
-        let set_source_start = Instant::now();
-        state_tx.put_current_source(Some(tx_id.clone()));
-        profile.set_source_ms = set_source_start.elapsed().as_secs_f64() * 1000.0;
 
-        let pay_fee_start = Instant::now();
+        state_tx.put_current_source(Some(tx_id.clone()));
+
         let gas_used = tx.gas_cost();
         let fee = tx.transaction_body.transaction_parameters.fee;
         state_tx.pay_fee(gas_used, fee).await?;
-        let pay_fee_ms = pay_fee_start.elapsed().as_secs_f64() * 1000.0;
-        profile.pay_fee_ms = pay_fee_ms;
-        profile.serial_fee_apply_ms = pay_fee_ms;
 
-        let source: CommitmentSource = tx_id.clone().into();
-
-        for nullifier in &prepared.effects.spend_nullifiers {
-            let event_emit_start = Instant::now();
+        for scoped in &prepared.volume_nullifiers {
+            state_tx
+                .record_volume_nullifier(scoped.day_start, scoped.nullifier)
+                .await?;
+        }
+        for nullifier in &prepared.spend_nullifiers {
             state_tx.record_proto(
                 shieldd_sdk_shielded_pool::event::EventNullifierSpent {
                     nullifier: *nullifier,
                 }
                 .to_proto(),
             );
-            let event_emit_ms = event_emit_start.elapsed().as_secs_f64() * 1000.0;
-            profile.serial_event_emit_ms += event_emit_ms;
-            profile.spend_nullifier_enqueue_ms += event_emit_ms;
-            profile.spend_action_execute_ms += event_emit_ms;
         }
 
-        for payload in &prepared.effects.sct_payloads {
+        for payload in &prepared.sct_payloads {
             if let StatePayload::Note { note, .. } = payload {
-                let event_emit_start = Instant::now();
                 state_tx.record_proto(
                     shieldd_sdk_shielded_pool::event::EventNoteCreated {
                         note_commitment: note.note_commitment,
                     }
                     .to_proto(),
                 );
-                profile.serial_event_emit_ms += event_emit_start.elapsed().as_secs_f64() * 1000.0;
             }
         }
 
-        let sct_append_start = Instant::now();
         let positioned_sct_payloads = self
             .pending_sct_append_log
-            .reserve_positions(&state_tx, prepared.effects.sct_payloads.clone())
+            .reserve_positions(&state_tx, prepared.sct_payloads.clone())
             .await
             .context("reserving deferred SCT positions")?;
         for (position, payload) in &positioned_sct_payloads {
-            let commitment_event_start = Instant::now();
             state_tx.record_proto(shieldd_sdk_sct::event::commitment(
                 *payload.commitment(),
                 *position,
                 payload.source().clone(),
             ));
-            profile.serial_event_emit_ms += commitment_event_start.elapsed().as_secs_f64() * 1000.0;
         }
         self.pending_sct_append_log
             .append_positioned(positioned_sct_payloads);
-        profile.serial_sct_append_ms = sct_append_start.elapsed().as_secs_f64() * 1000.0;
 
-        state_tx.stage_routing_actions(prepared.effects.routing_actions.clone());
+        state_tx.stage_routing_actions(prepared.routing_actions.clone());
+        append_transaction_audit_effects(&mut state_tx, prepared.audit_effects.clone()).await?;
 
-        profile.check_and_execute_ms = prepared.execution_profile.action_execute_ms
-            + check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
-
-        let apply_start = Instant::now();
         let events = state_tx.apply().1;
-        profile.apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
-        if let Some(transaction) = deferred_transaction {
-            let put_block_transaction_start = Instant::now();
-            self.deferred_block_transactions.push(transaction);
-            profile.put_block_transaction_ms =
-                put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
-            profile.index_tx_ms += profile.put_block_transaction_ms;
-        }
-        profile.serial_apply_wall_ms = serial_apply_start.elapsed().as_secs_f64() * 1000.0;
 
-        block_state.staged_nullifiers.extend(
-            prepared
-                .effects
-                .spend_nullifiers
-                .iter()
-                .copied()
-                .map(|nullifier| (nullifier, source.clone())),
-        );
+        if let Some(transaction) = deferred_transaction {
+            self.deferred_block_transactions.push(transaction);
+        }
+        block_state.remaining_nullifier_capacity -= proof_bound_nullifier_count;
         block_state
             .seen_nullifiers
-            .extend(prepared.effects.spend_nullifiers.iter().copied());
+            .extend(prepared.spend_nullifiers.iter().copied());
+        block_state
+            .seen_volume_nullifiers
+            .extend(prepared.volume_nullifiers.iter().copied());
 
-        Ok((events, profile))
+        Ok(events)
     }
 
-    async fn execute_prepare_candidates_parallel_profiled(
+    async fn execute_prepare_candidates_parallel(
         &mut self,
         deduped: Vec<Candidate>,
         historical_context: HistoricalCheckContext,
-        profile: &mut PrepareProposalProfile,
     ) -> Result<Vec<Candidate>> {
         let concurrency = Self::prepare_proposal_filter_concurrency();
         if concurrency <= 1
@@ -5444,16 +3451,13 @@ impl App {
         let snapshot = Arc::new(self.committed_snapshot.clone());
         let mut tasks = tokio::task::JoinSet::new();
         let mut next_to_spawn = 0usize;
-        let mut max_inflight = 0usize;
-        let parallel_read_start = Instant::now();
-        let mut dispatch_overhead_ms = 0.0f64;
+
         let mut prepared_results = std::iter::repeat_with(|| None)
             .take(deduped.len())
             .collect::<Vec<_>>();
 
         while next_to_spawn < deduped.len() || !tasks.is_empty() {
             while next_to_spawn < deduped.len() && tasks.len() < concurrency {
-                let dispatch_start = Instant::now();
                 let tx = deduped[next_to_spawn].tx().clone();
                 let snapshot = snapshot.clone();
                 let context = historical_context.clone();
@@ -5463,7 +3467,7 @@ impl App {
                 });
                 let index = next_to_spawn;
                 tasks.spawn_blocking(move || {
-                    let result = prepare_candidate_read_blocking_profiled(
+                    let result = prepare_candidate_read_blocking(
                         tx,
                         Arc::as_ref(&snapshot).clone(),
                         context,
@@ -5472,13 +3476,11 @@ impl App {
                     );
                     (index, result)
                 });
-                dispatch_overhead_ms += dispatch_start.elapsed().as_secs_f64() * 1000.0;
+
                 next_to_spawn += 1;
-                max_inflight = max_inflight.max(tasks.len());
             }
 
             if let Some(joined) = tasks.join_next().await {
-                let dispatch_start = Instant::now();
                 let (index, result) = match joined {
                     Ok(result) => result,
                     Err(error) => {
@@ -5487,30 +3489,19 @@ impl App {
                     }
                 };
                 prepared_results[index] = Some(result);
-                dispatch_overhead_ms += dispatch_start.elapsed().as_secs_f64() * 1000.0;
             }
         }
 
-        profile.stateful_filter_parallel_read_wall_ms =
-            parallel_read_start.elapsed().as_secs_f64() * 1000.0;
-        profile.stateful_filter_candidate_read_wall_ms =
-            profile.stateful_filter_parallel_read_wall_ms;
-        profile.stateful_filter_read_task_dispatch_ms += dispatch_overhead_ms;
-        profile.stateful_filter_parallel_read_tasks_spawned = prepared_results.len();
-        profile.stateful_filter_parallel_read_max_inflight = max_inflight;
-        profile.stateful_filter_parallel_read_configured_concurrency = concurrency;
-        let (anchor_hits, anchor_misses, anchor_unique_pairs) =
-            historical_context.anchor_cache.stats();
-        profile.stateful_filter_anchor_cache_hits = anchor_hits;
-        profile.stateful_filter_anchor_cache_misses = anchor_misses;
-        profile.stateful_filter_anchor_unique_pairs = anchor_unique_pairs;
-        let (claimed_anchor_hits, claimed_anchor_misses, claimed_anchor_unique_values) =
-            historical_context.claimed_anchor_cache.stats();
-        profile.stateful_filter_claimed_anchor_cache_hits = claimed_anchor_hits;
-        profile.stateful_filter_claimed_anchor_cache_misses = claimed_anchor_misses;
-        profile.stateful_filter_claimed_anchor_unique_values = claimed_anchor_unique_values;
-
-        let mut block_state = PrepareBlockLocalState::default();
+        let durable_nullifier_count =
+            shieldd_sdk_sct::nullifier_tree::current_leaf_count(Arc::as_ref(&self.state)).await?;
+        let remaining_generation_capacity = shieldd_sdk_sct::indexed_nullifier_tree::CAPACITY
+            .saturating_sub(durable_nullifier_count);
+        let mut block_state = PrepareBlockLocalState {
+            remaining_nullifier_capacity: usize::try_from(remaining_generation_capacity)
+                .unwrap_or(usize::MAX)
+                .min(MAX_BLOCK_NULLIFIER_COUNT),
+            ..Default::default()
+        };
         let mut included_candidates = Vec::new();
         for (candidate, prepared_result) in deduped.into_iter().zip(prepared_results.into_iter()) {
             let Some(prepared_result) = prepared_result else {
@@ -5524,10 +3515,9 @@ impl App {
                     continue;
                 }
             };
-            let read_wall_ms = prepared.read_wall_ms;
 
             match self
-                .apply_prepared_prepare_candidate_profiled(
+                .apply_prepared_prepare_candidate(
                     candidate
                         .verified_artifact()
                         .expect("prepared candidate must be proof verified"),
@@ -5536,12 +3526,7 @@ impl App {
                 )
                 .await
             {
-                Ok((_, execution_profile)) => {
-                    Self::accumulate_prepare_candidate_profile(profile, &execution_profile);
-                    profile.stateful_filter_parallel_read_sum_candidate_ms += read_wall_ms;
-                    if execution_profile.check_historical_ms == 0.0 {
-                        profile.historical_validation_reuse_count += 1;
-                    }
+                Ok(_) => {
                     included_candidates.push(candidate);
                 }
                 Err(error) => {
@@ -5550,75 +3535,29 @@ impl App {
             }
         }
 
-        self.apply_prepare_proposal_nullifier_batch_profiled(
-            &block_state.staged_nullifiers,
-            profile,
-        )
-        .await?;
-
         Ok(included_candidates)
-    }
-
-    async fn apply_prepare_proposal_nullifier_batch_profiled(
-        &mut self,
-        entries: &[(Nullifier, CommitmentSource)],
-        profile: &mut PrepareProposalProfile,
-    ) -> Result<()> {
-        if entries.is_empty() {
-            return Ok(());
-        }
-
-        let serial_apply_start = Instant::now();
-        let begin_state_tx_start = Instant::now();
-        let mut state_tx = self
-            .state
-            .try_begin_transaction()
-            .expect("state Arc should be present and unique");
-        let begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
-
-        let insert_start = Instant::now();
-        let batch_profile = state_tx.nullify_proposal_batch(entries).await?;
-        let insert_total_ms = insert_start.elapsed().as_secs_f64() * 1000.0;
-
-        let apply_start = Instant::now();
-        let _events = state_tx.apply().1;
-        let apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
-
-        profile.stateful_filter_begin_state_tx_ms += begin_state_tx_ms;
-        profile.stateful_filter_serial_apply_wall_ms +=
-            serial_apply_start.elapsed().as_secs_f64() * 1000.0;
-        profile.stateful_filter_serial_nullifier_insert_ms += insert_total_ms;
-        profile.stateful_filter_proposal_nullifier_lookup_write_ms += batch_profile.lookup_write_ms;
-        profile.stateful_filter_proposal_pending_nullifier_stage_ms +=
-            batch_profile.pending_stage_ms;
-        profile.stateful_filter_serial_state_delta_apply_ms += apply_ms;
-        profile.stateful_filter_apply_ms += apply_ms;
-        Ok(())
     }
 
     async fn append_block_transaction_to_state<S>(
         state_tx: &mut S,
         height: u64,
         transaction: shieldd_sdk_proto::core::transaction::v1::Transaction,
-    ) -> Result<BlockTxIndexWriteProfile>
+    ) -> Result<()>
     where
         S: StateWrite + StateReadExt,
     {
-        let mut profile = BlockTxIndexWriteProfile::default();
-        let tx_log_read_start = Instant::now();
         let mut transactions_response = state_tx.transactions_by_height(height).await?;
-        profile.tx_log_read_ms = tx_log_read_start.elapsed().as_secs_f64() * 1000.0;
+
         transactions_response.transactions.push(transaction);
-        let tx_log_encode_start = Instant::now();
+
         let encoded = transactions_response.encode_to_vec();
-        profile.tx_log_encode_ms = tx_log_encode_start.elapsed().as_secs_f64() * 1000.0;
-        let tx_log_put_raw_start = Instant::now();
+
         state_tx.nonverifiable_put_raw(
-            state_key::cometbft_data::transactions_by_height(height).into(),
+            state_key::block_data::transactions_by_height(height).into(),
             encoded,
         );
-        profile.tx_log_put_raw_ms = tx_log_put_raw_start.elapsed().as_secs_f64() * 1000.0;
-        Ok(profile)
+
+        Ok(())
     }
 
     async fn materialize_pending_sct_append_log<S>(&mut self, state_tx: &mut S) -> Result<()>
@@ -5627,8 +3566,6 @@ impl App {
             + shieldd_sdk_sct::component::tree::SctManager
             + shieldd_sdk_shielded_pool::component::NoteManager,
     {
-        #[cfg(feature = "benchmark-helpers")]
-        let materialize_start = Instant::now();
         let entries = self.pending_sct_append_log.take_entries();
         if entries.is_empty() {
             return Ok(());
@@ -5636,6 +3573,7 @@ impl App {
 
         let mut note_payloads = state_tx.pending_note_payloads();
         let mut rolled_up_payloads = state_tx.pending_rolled_up_payloads();
+        let mut volume_accumulator_payloads = state_tx.pending_volume_accumulator_payloads();
         let mut last_position = None;
         let mut sct_entries = Vec::with_capacity(entries.len());
 
@@ -5658,15 +3596,14 @@ impl App {
                 StatePayload::RolledUp { commitment, .. } => {
                     rolled_up_payloads.push_back((position, commitment));
                 }
+                StatePayload::VolumeAccumulator { source, payload } => {
+                    volume_accumulator_payloads.push_back((position, *payload, source));
+                }
             }
         }
 
-        state_tx
-            .add_sct_commitments_at_positions(sct_entries)
-            .await?;
+        state_tx.finalize_sct_block_forget(sct_entries).await?;
 
-        #[cfg(feature = "benchmark-helpers")]
-        let pending_payload_start = Instant::now();
         state_tx.object_put(
             shieldd_sdk_shielded_pool::state_key::pending_notes(),
             note_payloads,
@@ -5675,15 +3612,9 @@ impl App {
             shieldd_sdk_shielded_pool::state_key::pending_rolled_up_payloads(),
             rolled_up_payloads,
         );
-        #[cfg(feature = "benchmark-helpers")]
-        record_inbound_stage(
-            InboundStage::DeferredSctPendingPayload,
-            pending_payload_start.elapsed(),
-        );
-        #[cfg(feature = "benchmark-helpers")]
-        record_inbound_stage(
-            InboundStage::DeferredSctMaterialize,
-            materialize_start.elapsed(),
+        state_tx.object_put(
+            shieldd_sdk_shielded_pool::state_key::pending_volume_accumulator_payloads(),
+            volume_accumulator_payloads,
         );
 
         Ok(())
@@ -5706,268 +3637,11 @@ impl App {
             .transactions
             .append(&mut self.deferred_block_transactions);
         state_tx.nonverifiable_put_raw(
-            state_key::cometbft_data::transactions_by_height(height).into(),
+            state_key::block_data::transactions_by_height(height).into(),
             transactions_response.encode_to_vec(),
         );
         state_tx.apply();
         Ok(())
-    }
-
-    async fn execute_tx_checked_historical_profiled(
-        &mut self,
-        artifact: Arc<VerifiedTxArtifact>,
-    ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
-        let tx = artifact.tx().clone();
-        let mut profile = VerifiedStatefulTxBreakdown::default();
-        // At this point, the stateful checks should have completed,
-        // leaving us with exclusive access to the Arc<State>.
-        let begin_state_tx_start = Instant::now();
-        let tx_id = tx.id();
-        let state_arc_strong_count = Arc::strong_count(&self.state);
-        let mut state_tx = self
-            .state
-            .try_begin_transaction()
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "CheckTx could not begin state transaction after historical checks: tx_id={}, action_count={}, state_arc_strong_count={}",
-                    tx_id,
-                    tx.actions().count(),
-                    state_arc_strong_count,
-                )
-            })?;
-        profile.begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
-
-        // Index the transaction:
-        let index_start = Instant::now();
-        let mut deferred_transaction = None;
-        match self.block_tx_indexing_mode {
-            BlockTxIndexingMode::NoIndex => {}
-            BlockTxIndexingMode::PerTx => {
-                let get_block_height_start = Instant::now();
-                let height = state_tx.get_block_height().await?;
-                profile.get_block_height_ms =
-                    get_block_height_start.elapsed().as_secs_f64() * 1000.0;
-                let clone_tx_start = Instant::now();
-                let transaction = Arc::as_ref(&tx).clone();
-                profile.clone_tx_ms = clone_tx_start.elapsed().as_secs_f64() * 1000.0;
-                let proto_convert_start = Instant::now();
-                let proto_transaction = transaction.into();
-                profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                let put_block_transaction_start = Instant::now();
-                let index_write_profile = Self::append_block_transaction_to_state(
-                    &mut state_tx,
-                    height,
-                    proto_transaction,
-                )
-                .await
-                .context("storing transactions")?;
-                profile.put_block_transaction_ms =
-                    put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
-                profile.tx_log_read_ms = index_write_profile.tx_log_read_ms;
-                profile.tx_log_encode_ms = index_write_profile.tx_log_encode_ms;
-                profile.tx_log_put_raw_ms = index_write_profile.tx_log_put_raw_ms;
-            }
-            BlockTxIndexingMode::DeferredBatch => {
-                let get_block_height_start = Instant::now();
-                let _height = state_tx.get_block_height().await?;
-                profile.get_block_height_ms =
-                    get_block_height_start.elapsed().as_secs_f64() * 1000.0;
-                let clone_tx_start = Instant::now();
-                let transaction = Arc::as_ref(&tx).clone();
-                profile.clone_tx_ms = clone_tx_start.elapsed().as_secs_f64() * 1000.0;
-                let proto_convert_start = Instant::now();
-                let proto_transaction = transaction.into();
-                profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                deferred_transaction = Some(proto_transaction);
-            }
-        }
-        profile.index_tx_ms = index_start.elapsed().as_secs_f64() * 1000.0;
-
-        let check_and_execute_start = Instant::now();
-        let execution_profile = check_and_execute_profiled(Arc::as_ref(&artifact), &mut state_tx)
-            .await
-            .context("executing transaction")?;
-        profile.check_and_execute_ms = check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
-        profile.set_source_ms = execution_profile.set_source_ms;
-        profile.pay_fee_ms = execution_profile.pay_fee_ms;
-        profile.action_execute_ms = execution_profile.action_execute_ms;
-        profile.read_local_precheck_ms = execution_profile.read_local_precheck_ms;
-        profile.read_lookup_wait_or_join_ms = execution_profile.read_lookup_wait_or_join_ms;
-        profile.read_historical_check_ms = execution_profile.read_historical_check_ms;
-        profile.read_nullifier_wait_ms = execution_profile.read_nullifier_wait_ms;
-        profile.read_anchor_cache_wait_ms = execution_profile.read_anchor_cache_wait_ms;
-        profile.spend_action_execute_ms = execution_profile.spend_action_execute_ms;
-        profile.spend_nullifier_check_ms = execution_profile.spend_nullifier_check_ms;
-        profile.spend_nullifier_tx_local_scan_ms =
-            execution_profile.spend_nullifier_tx_local_scan_ms;
-        profile.spend_nullifier_block_log_lookup_ms =
-            execution_profile.spend_nullifier_block_log_lookup_ms;
-        profile.spend_nullifier_committed_check_ms =
-            execution_profile.spend_nullifier_committed_check_ms;
-        profile.spend_nullifier_enqueue_ms = execution_profile.spend_nullifier_enqueue_ms;
-        profile.spend_nullifier_stage_ms = execution_profile.spend_nullifier_stage_ms;
-        profile.spend_nullifier_merge_ms = execution_profile.spend_nullifier_merge_ms;
-        profile.nullifier_lookup_count = execution_profile.nullifier_lookup_count;
-        profile.output_action_execute_ms = execution_profile.output_action_execute_ms;
-        profile.output_add_note_payload_ms = execution_profile.output_add_note_payload_ms;
-        profile.other_action_execute_ms = execution_profile.other_action_execute_ms;
-
-        // At this point, we've completed execution successfully with no errors,
-        // so we can apply the transaction to the State. Otherwise, we'd have
-        // bubbled up an error and dropped the StateTransaction.
-        let apply_start = Instant::now();
-        let events = state_tx.apply().1;
-        profile.apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
-        if let Some(transaction) = deferred_transaction {
-            let put_block_transaction_start = Instant::now();
-            self.deferred_block_transactions.push(transaction);
-            profile.put_block_transaction_ms =
-                put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
-            profile.index_tx_ms += profile.put_block_transaction_ms;
-        }
-
-        Ok((events, profile))
-    }
-
-    #[tracing::instrument(skip_all, fields(height = %end_block.height))]
-    pub async fn end_block(&mut self, end_block: &request::EndBlock) -> Vec<abci::Event> {
-        self.flush_deferred_block_transactions()
-            .await
-            .expect("must be able to flush deferred block transactions in end_block");
-        let mut state_tx = StateDelta::new(self.state.clone());
-        self.materialize_pending_sct_append_log(&mut state_tx)
-            .await
-            .expect("must be able to materialize deferred SCT payloads in end_block");
-
-        tracing::debug!("running app components' `end_block` hooks");
-        let mut arc_state_tx = Arc::new(state_tx);
-        Sct::end_block(&mut arc_state_tx, end_block).await;
-        ShieldedPool::end_block(&mut arc_state_tx, end_block).await;
-        Ibc::end_block(&mut arc_state_tx, end_block).await;
-        FeeComponent::end_block(&mut arc_state_tx, end_block).await;
-        Compliance::end_block(&mut arc_state_tx, end_block).await;
-        let mut state_tx = Arc::try_unwrap(arc_state_tx)
-            .expect("components did not retain copies of shared state");
-        tracing::debug!("finished app components' `end_block` hooks");
-
-        let current_height = state_tx
-            .get_block_height()
-            .await
-            .expect("able to get block height in end_block");
-        let current_epoch = state_tx
-            .get_current_epoch()
-            .await
-            .expect("able to get current epoch in end_block");
-
-        let is_end_epoch = current_epoch.is_scheduled_epoch_end(
-            current_height,
-            state_tx
-                .get_epoch_duration_parameter()
-                .await
-                .expect("able to get epoch duration in end_block"),
-        ) || state_tx.is_epoch_ending_early().await;
-
-        if is_end_epoch {
-            tracing::info!(%is_end_epoch, ?current_height, "ending epoch");
-
-            let mut arc_state_tx = Arc::new(state_tx);
-
-            Sct::end_epoch(&mut arc_state_tx)
-                .await
-                .expect("able to call end_epoch on Sct component");
-            Ibc::end_epoch(&mut arc_state_tx)
-                .await
-                .expect("able to call end_epoch on IBC component");
-            ShieldedPool::end_epoch(&mut arc_state_tx)
-                .await
-                .expect("able to call end_epoch on shielded pool component");
-            FeeComponent::end_epoch(&mut arc_state_tx)
-                .await
-                .expect("able to call end_epoch on Fee component");
-
-            let mut state_tx = Arc::try_unwrap(arc_state_tx)
-                .expect("components did not retain copies of shared state");
-
-            state_tx
-                .finish_epoch()
-                .await
-                .expect("must be able to finish compact block");
-
-            // set the epoch for the next block
-            shieldd_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
-                &mut state_tx,
-                current_height + 1,
-                Epoch {
-                    index: current_epoch.index + 1,
-                    start_height: current_height + 1,
-                },
-            );
-
-            self.apply(state_tx)
-        } else {
-            // set the epoch for the next block
-            shieldd_sdk_sct::component::clock::EpochManager::put_epoch_by_height(
-                &mut state_tx,
-                current_height + 1,
-                current_epoch,
-            );
-
-            state_tx
-                .finish_block()
-                .await
-                .expect("must be able to finish compact block");
-
-            self.apply(state_tx)
-        }
-    }
-
-    /// Commits the application state to persistent storage,
-    /// returning the new root hash and storage version.
-    ///
-    /// This method also resets `self` as if it were constructed
-    /// as an empty state over top of the newly written storage.
-    pub async fn commit(&mut self, storage: Storage) -> RootHash {
-        let commit_start = Instant::now();
-        let flush_start = Instant::now();
-        self.flush_deferred_block_transactions()
-            .await
-            .expect("must be able to flush deferred block transactions before commit");
-        let flush_ms = flush_start.elapsed().as_secs_f64() * 1000.0;
-        // We need to extract the State we've built up to commit it.  Fill in a dummy state.
-        let dummy_state = StateDelta::new(storage.latest_snapshot());
-        let state = Arc::try_unwrap(std::mem::replace(&mut self.state, Arc::new(dummy_state)))
-            .expect("we have exclusive ownership of the State at commit()");
-
-        // Commit the pending writes, clearing the state.
-        let storage_commit_start = Instant::now();
-        let jmt_root = storage
-            .commit(state)
-            .await
-            .expect("must be able to successfully commit to storage");
-        let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
-
-        tracing::debug!(?jmt_root, "finished committing state");
-
-        // Get the latest version of the state, now that we've committed it.
-        let snapshot_reset_start = Instant::now();
-        let latest_snapshot = storage.latest_snapshot();
-        self.snapshot_version = latest_snapshot.version();
-        self.committed_snapshot = latest_snapshot.clone();
-        self.state = Arc::new(StateDelta::new(latest_snapshot));
-        self.pending_sct_append_log.clear();
-        let snapshot_reset_ms = snapshot_reset_start.elapsed().as_secs_f64() * 1000.0;
-        let total_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
-        // Stall investigation: surface per-phase timing so we can identify
-        // which step in Commit is responsible when block production stalls
-        // (e.g. the 23s gap between EndBlock and Commit in CI).
-        tracing::info!(
-            commit_total_ms = total_ms,
-            commit_flush_deferred_ms = flush_ms,
-            commit_storage_commit_ms = storage_commit_ms,
-            commit_snapshot_reset_ms = snapshot_reset_ms,
-            "commit_phase_profile"
-        );
-        jmt_root
     }
 }
 
@@ -6002,18 +3676,12 @@ pub trait StateReadExt: StateRead {
         }
     }
 
-    /// Gets the chain revision number, from the chain ID
-    async fn get_revision_number(&self) -> Result<u64> {
-        let cid_str = self.get_chain_id().await?;
-
-        Ok(ChainId::from_string(&cid_str).version())
-    }
+    /// Gets the chain revision number from the chain ID.
 
     /// Returns the set of app parameters
     async fn get_app_params(&self) -> Result<AppParameters> {
         let chain_id = self.get_chain_id().await?;
         let compliance_params = self.get_compliance_params().await?;
-        let ibc_params = self.get_ibc_params().await?;
         let fee_params = self.get_fee_params().await?;
         let sct_params = self.get_sct_params().await?;
         let shielded_pool_params = self.get_shielded_pool_params().await?;
@@ -6022,7 +3690,6 @@ pub trait StateReadExt: StateRead {
             chain_id,
             compliance_params,
             fee_params,
-            ibc_params,
             sct_params,
             shielded_pool_params,
         })
@@ -6034,7 +3701,7 @@ pub trait StateReadExt: StateRead {
     ) -> Result<TransactionsByHeightResponse> {
         let transactions = match self
             .nonverifiable_get_raw(
-                state_key::cometbft_data::transactions_by_height(block_height).as_bytes(),
+                state_key::block_data::transactions_by_height(block_height).as_bytes(),
             )
             .await?
         {
@@ -6054,7 +3721,6 @@ impl<
         T: StateRead
             + shieldd_sdk_fee::component::StateReadExt
             + shieldd_sdk_sct::component::clock::EpochRead
-            + shieldd_sdk_ibc::component::StateReadExt
             + ?Sized,
     > StateReadExt for T
 {
@@ -6067,10 +3733,7 @@ pub trait StateWriteExt: StateWrite {
         self.put_raw(state_key::data::chain_id().into(), chain_id.into_bytes());
     }
 
-    /// Stores the transactions that occurred during a CometBFT block.
-    /// This is used to create a durable transaction log for clients to retrieve;
-    /// the CometBFT `get_block_by_height` RPC call will only return data for blocks
-    /// since the last checkpoint, so we need to store the transactions separately.
+    /// Appends a transaction to the durable block log consumed by host queries.
     async fn put_block_transaction(
         &mut self,
         height: u64,
@@ -6085,7 +3748,7 @@ pub trait StateWriteExt: StateWrite {
             .collect();
 
         self.nonverifiable_put_raw(
-            state_key::cometbft_data::transactions_by_height(height).into(),
+            state_key::block_data::transactions_by_height(height).into(),
             transactions_response.encode_to_vec(),
         );
         Ok(())
@@ -6095,2298 +3758,4 @@ pub trait StateWriteExt: StateWrite {
 impl<T: StateWrite + ?Sized> StateWriteExt for T {}
 
 #[cfg(test)]
-mod tests {
-    mod proof_acceptance_tests;
-
-    use std::collections::BTreeMap;
-    use std::ops::Deref;
-    use std::sync::Arc;
-
-    use anyhow::{anyhow, Context, Result};
-    use ark_ff::Zero;
-    use ark_serialize::CanonicalSerialize;
-    use cnidarium::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
-    use decaf377::{Fq, Fr};
-    use decaf377_rdsa as rdsa;
-    use futures::StreamExt as _;
-    use proptest::prelude::*;
-    use prost::bytes::Bytes;
-    use rand_core::OsRng;
-    use sha2::Digest as _;
-    use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
-    use shieldd_sdk_compact_block::StatePayload;
-    use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
-    use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
-    use shieldd_sdk_fee::Fee;
-    use shieldd_sdk_keys::{test_keys, Address};
-    use shieldd_sdk_mock_client::MockClient;
-    use shieldd_sdk_mock_consensus::TestNode;
-    use shieldd_sdk_num::Amount;
-    #[cfg(feature = "orbis-dev-srs")]
-    use shieldd_sdk_proof_aggregation::srs_id;
-    use shieldd_sdk_proof_aggregation::{
-        app_verify_family_code, app_verify_shipping_call_from_parts, AggregateBundle,
-        AppVerifyCallId, DevSrs, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
-        DEFAULT_DEV_SRS_ID,
-    };
-    use shieldd_sdk_proof_params::batch::BatchItem;
-    use shieldd_sdk_proto::DomainType;
-    use shieldd_sdk_sct::component::clock::{EpochManager as _, EpochRead as _};
-    use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _};
-    use shieldd_sdk_sct::component::StateWriteExt as _;
-    use shieldd_sdk_sct::epoch::Epoch;
-    use shieldd_sdk_sct::nullifier_generation::{
-        empty_history_head, NullifierWindow, PROTOCOL_VERSION,
-    };
-    use shieldd_sdk_sct::params::SctParameters;
-    use shieldd_sdk_sct::{CommitmentSource, Nullifier};
-    use shieldd_sdk_shielded_pool::component::NoteManager as _;
-    use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
-    use shieldd_sdk_shielded_pool::{
-        genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
-    };
-    use shieldd_sdk_tct as tct;
-    use shieldd_sdk_transaction::{
-        memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
-        plan::MemoPlan,
-        Action, Transaction, TransactionParameters, TransactionPlan,
-    };
-    use shieldd_sdk_txhash::AuthorizingData;
-    use tendermint::v0_37::abci::{request, response};
-    use tendermint::{account, block, Hash, Time};
-
-    use super::PrepareBlockLocalState;
-    use crate::action_handler::transaction::{
-        prepare_candidate_read_blocking_profiled, prepare_candidate_read_profiled,
-        supports_parallel_prepare, HistoricalCheckContext,
-    };
-
-    use crate::action_handler::AppActionHandler;
-    use crate::app::CheckTxSharedContext;
-    use crate::app::ProposalArtifactSidecar;
-    use crate::app::{candidate_digest_from_hashes, CandidateEnvelope};
-    use crate::genesis::{AppState, Content};
-    use crate::server::consensus::{Consensus, ConsensusService};
-    use crate::stateless_cache::{CacheEntry, StatelessCache, TxArtifact};
-    use crate::SUBSTORE_PREFIXES;
-
-    use super::{
-        AggregateBundleFamilyEstimate, App, BlockSctAppendLog, BlockTxIndexingMode, StateReadExt,
-        AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES, AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-    };
-
-    fn test_nullifier_window() -> NullifierWindow {
-        NullifierWindow {
-            protocol_version: PROTOCOL_VERSION,
-            current_generation: 0,
-            recent_position_floor: 0,
-            archived_generation_count: 0,
-            archived_history_head: empty_history_head(),
-        }
-    }
-
-    #[cfg(feature = "orbis-dev-srs")]
-    #[test]
-    fn orbis_dev_srs_selects_only_the_insecure_integration_fixture() -> Result<()> {
-        let srs = super::shipping_srs()?;
-        assert!(!srs.is_registered());
-        assert_eq!(srs_id(&srs), DEFAULT_DEV_SRS_ID);
-
-        let selected = super::shipping_srs_for_id(&DEFAULT_DEV_SRS_ID)?;
-        assert!(!selected.is_registered());
-        assert_eq!(srs_id(&selected), DEFAULT_DEV_SRS_ID);
-
-        let error = super::shipping_srs_for_id(&[0u8; 32])
-            .expect_err("integration fixture must reject every other SRS id");
-        assert!(error
-            .to_string()
-            .contains("Orbis integration SnarkPack SRS id mismatch"));
-
-        Ok(())
-    }
-
-    fn rolled_up_payload(value: u64) -> StatePayload {
-        StatePayload::RolledUp {
-            source: CommitmentSource::transaction(),
-            commitment: tct::StateCommitment(Fq::from(value)),
-        }
-    }
-
-    #[tokio::test]
-    async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let mut base_state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut base_state).await?;
-        let mut state = Arc::new(base_state);
-        let nullifier = Nullifier(Fq::from(71u64));
-        let source = CommitmentSource::Transaction {
-            id: Some([7u8; 32]),
-        };
-        let payload = shieldd_sdk_shielded_pool::NotePayload {
-            note_commitment: tct::StateCommitment(Fq::from(72u64)),
-            ..shieldd_sdk_shielded_pool::NotePayload::dummy()
-        };
-        let unrelated_effect_key = "fv/transaction/staged-effect".to_string();
-
-        let execution_result: Result<()> = async {
-            let mut state_tx = state
-                .try_begin_transaction()
-                .expect("test state must have unique ownership");
-            state_tx.put_block_height(42);
-            state_tx
-                .nullify_all(std::slice::from_ref(&nullifier), source.clone())
-                .await?;
-            state_tx.add_note_payload(payload, source).await;
-            state_tx.put_raw(unrelated_effect_key.clone(), vec![1u8]);
-
-            assert_eq!(
-                state_tx
-                    .pending_nullifiers()
-                    .iter()
-                    .copied()
-                    .collect::<Vec<_>>(),
-                vec![nullifier]
-            );
-            assert_eq!(state_tx.pending_note_payloads().len(), 1);
-            assert_eq!(
-                state_tx.get_raw(unrelated_effect_key.as_str()).await?,
-                Some(vec![1u8])
-            );
-
-            Err(anyhow!("later action failed"))
-        }
-        .await;
-
-        assert!(execution_result.is_err());
-        assert!(state.pending_nullifiers().is_empty());
-        assert!(state.pending_note_payloads().is_empty());
-        assert!(!shieldd_sdk_sct::nullifier_tree::is_spent(Arc::as_ref(&state), nullifier).await?);
-        assert_eq!(state.get_raw(unrelated_effect_key.as_str()).await?, None);
-
-        Ok(())
-    }
-
-    #[test]
-    fn proposal_tx_count_policy_is_fixed_at_boundary() {
-        let mut candidates = vec![Bytes::new(); super::MAX_BLOCK_TX_COUNT + 1];
-        super::truncate_prepare_candidates(&mut candidates);
-        assert_eq!(candidates.len(), super::MAX_BLOCK_TX_COUNT);
-        assert!(super::process_proposal_tx_count_allowed(
-            super::MAX_BLOCK_TX_COUNT
-        ));
-        assert!(!super::process_proposal_tx_count_allowed(
-            super::MAX_BLOCK_TX_COUNT + 1
-        ));
-    }
-
-    #[test]
-    fn proposal_payload_size_policy_is_fixed_at_boundary() {
-        assert_eq!(super::prepare_proposal_payload_limit(-1), 0);
-        assert_eq!(super::prepare_proposal_payload_limit(0), 0);
-        assert_eq!(
-            super::prepare_proposal_payload_limit(super::MAX_BLOCK_TXS_PAYLOAD_BYTES as i64),
-            super::MAX_BLOCK_TXS_PAYLOAD_BYTES as u64
-        );
-        assert_eq!(
-            super::prepare_proposal_payload_limit(super::MAX_BLOCK_TXS_PAYLOAD_BYTES as i64 + 1),
-            super::MAX_BLOCK_TXS_PAYLOAD_BYTES as u64
-        );
-        assert!(super::process_proposal_payload_size_allowed(
-            super::MAX_BLOCK_TXS_PAYLOAD_BYTES
-        ));
-        assert!(!super::process_proposal_payload_size_allowed(
-            super::MAX_BLOCK_TXS_PAYLOAD_BYTES + 1
-        ));
-    }
-
-    #[test]
-    fn proposal_nullifier_count_policy_is_fixed_at_boundary() {
-        assert!(super::block_nullifier_count_allowed(
-            super::MAX_BLOCK_NULLIFIER_COUNT
-        ));
-        assert!(!super::block_nullifier_count_allowed(
-            super::MAX_BLOCK_NULLIFIER_COUNT + 1
-        ));
-        assert!(!super::block_nullifier_count_allowed(usize::MAX));
-    }
-
-    #[test]
-    fn proposal_transaction_size_policy_is_fixed_at_boundary() {
-        assert!(super::transaction_size_allowed(
-            super::MAX_TRANSACTION_SIZE_BYTES
-        ));
-        assert!(!super::transaction_size_allowed(
-            super::MAX_TRANSACTION_SIZE_BYTES + 1
-        ));
-    }
-
-    #[test]
-    fn proof_worker_concurrency_is_bounded_for_all_hardware_sizes() {
-        assert_eq!(App::proof_family_ids().len(), 4);
-        assert_eq!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS, 2);
-        assert_eq!(super::MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS, 4);
-        assert!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS * App::proof_family_ids().len() <= 8);
-    }
-
-    #[tokio::test]
-    async fn structured_join_drain_waits_for_siblings_after_error() {
-        let sibling_finished = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let sibling_finished_for_task = sibling_finished.clone();
-        let mut tasks = tokio::task::JoinSet::new();
-        tasks.spawn(async { Err::<(), anyhow::Error>(anyhow!("injected early failure")) });
-        tasks.spawn_blocking(move || {
-            std::thread::sleep(std::time::Duration::from_millis(25));
-            sibling_finished_for_task.store(true, std::sync::atomic::Ordering::SeqCst);
-            Ok::<(), anyhow::Error>(())
-        });
-
-        let result = super::drain_joinset_results(&mut tasks, "injected task panic").await;
-        assert!(result.is_err());
-        assert!(
-            sibling_finished.load(std::sync::atomic::Ordering::SeqCst),
-            "drain must await sibling work before returning the first error"
-        );
-        assert!(tasks.is_empty());
-    }
-
-    #[tokio::test]
-    async fn oversized_checktx_bytes_reject_before_decode_or_cache() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let mut app = App::new(storage.latest_snapshot());
-        let cache = StatelessCache::new();
-        let maximum_transaction_size = super::MAX_TRANSACTION_SIZE_BYTES;
-        let oversized = vec![
-            0xff;
-            maximum_transaction_size
-                .checked_add(1)
-                .context("maximum transaction size must fit in usize")?
-        ];
-
-        let error = app
-            .deliver_tx_bytes(&oversized, Some(&cache))
-            .await
-            .expect_err("oversized CheckTx bytes must reject before decoding or cache admission");
-        assert_eq!(
-            error.to_string(),
-            format!(
-                "transaction size {} exceeds maximum {maximum_transaction_size}",
-                oversized.len()
-            ),
-            "oversized CheckTx rejection must come from the pre-decode size guard"
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<()> {
-        let action_anchor = tct::Tree::default().root();
-        let balance_commitment = shieldd_sdk_asset::Balance::default().commit(Fr::from(1u64));
-        let inputs = (0..8)
-            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
-                nullifier: Nullifier(Fq::from(10u64 + index)),
-                rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
-                    Fr::from(20u64 + index),
-                )),
-                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
-                    [u8::try_from(index + 1).expect("small index"); 48],
-                )
-                .expect("fixed-size encrypted backref"),
-                history_required: false,
-            })
-            .collect();
-        let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
-            body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
-                anchor: action_anchor,
-                balance_commitment,
-                inputs,
-                outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
-                    note_payload: shieldd_sdk_shielded_pool::NotePayload {
-                        note_commitment: tct::StateCommitment(Fq::from(30u64)),
-                        ..shieldd_sdk_shielded_pool::NotePayload::dummy()
-                    },
-                    wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([31u8; 48]),
-                    ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([32u8; 48]),
-                }],
-                routing_tag: Default::default(),
-                routing_parameter_set_id: Fq::from(0u64),
-                asset_anchor: tct::StateCommitment(Fq::from(0u64)),
-                compliance_anchor: tct::StateCommitment(Fq::from(0u64)),
-            },
-            auth_sigs: vec![[0u8; 64].into(); 8],
-            proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
-        };
-        let mut invalid_auth = Transaction {
-            transaction_body: shieldd_sdk_transaction::TransactionBody {
-                actions: vec![Action::NoteReshape(note_reshape)],
-                memo: Some(MemoCiphertext([0u8; MEMO_CIPHERTEXT_LEN_BYTES])),
-                nullifier_window: Some(test_nullifier_window()),
-                ..Default::default()
-            },
-            anchor: action_anchor,
-            ..Default::default()
-        };
-        let binding_signing_key = rdsa::SigningKey::<rdsa::Binding>::from(Fr::from(1u64));
-        invalid_auth.binding_sig =
-            binding_signing_key.sign_deterministic(invalid_auth.auth_hash().as_bytes());
-
-        let mut mismatched_anchor = invalid_auth.clone();
-        mismatched_anchor.anchor = tct::Root(tct::structure::Hash::new(Fq::from(987_654u64)));
-        let error = match App::build_tx_artifacts_extracted_for_stage_public(
-            "artifact_stateless_regression_anchor",
-            &[Arc::new(mismatched_anchor)],
-        )
-        .await
-        {
-            Ok(_) => panic!("artifact extraction must enforce action/context anchor equality"),
-            Err(error) => error,
-        };
-        assert!(
-            format!("{error:#}").contains("body anchor does not match transaction anchor"),
-            "unexpected anchor rejection: {error:#}"
-        );
-
-        let error = match App::build_tx_artifacts_extracted_for_stage_public(
-            "artifact_stateless_regression_auth",
-            &[Arc::new(invalid_auth)],
-        )
-        .await
-        {
-            Ok(_) => panic!("artifact extraction must verify spend authorization signatures"),
-            Err(error) => error,
-        };
-        assert!(
-            format!("{error:#}").contains("auth signature 0 failed to verify"),
-            "unexpected authorization rejection: {error:#}"
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn fee_funding_extraction_rejects_identity_randomized_key() {
-        let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
-        let identity_sk = rdsa::SigningKey::<rdsa::SpendAuth>::from(Fr::from(0u64));
-        transfer.body.inputs[0].rk = rdsa::VerificationKey::from(identity_sk.clone());
-        let different_message = b"different fee funding authorization hash";
-        assert_ne!(&different_message[..], context.effect_hash.as_ref());
-        transfer.auth_sigs[0] = identity_sk.sign_deterministic(different_message);
-        transfer.body.inputs[0]
-            .rk
-            .verify(context.effect_hash.as_ref(), &transfer.auth_sigs[0])
-            .expect("the pinned RDSA primitive admits identity keys across messages");
-        let fee_funding = shieldd_sdk_transaction::FeeFunding { transfer };
-
-        let error = match super::extract_fee_funding_proof_item(&fee_funding, &context) {
-            Ok(_) => panic!("fee funding must use the shared identity-RK rejection"),
-            Err(error) => error,
-        };
-        assert!(
-            format!("{error:#}").contains("randomized spend key 0 must not be identity"),
-            "unexpected rejection reason: {error:#}"
-        );
-    }
-
-    #[test]
-    fn consensus_acceptance_source_has_no_diagnostic_io() {
-        let sources = [
-            include_str!("mod.rs"),
-            include_str!("../server/consensus.rs"),
-            include_str!("../server/mempool.rs"),
-        ];
-        let forbidden = [
-            ["std", "::env"].concat(),
-            ["tokio", "::env"].concat(),
-            ["std", "::fs"].concat(),
-            ["tokio", "::fs"].concat(),
-            ["Open", "Options"].concat(),
-            ["File", "::create"].concat(),
-            ["create_dir", "_all"].concat(),
-            ["write", "_all"].concat(),
-        ];
-
-        for source in sources {
-            for token in &forbidden {
-                assert!(
-                    !source.contains(token),
-                    "consensus acceptance source contains forbidden diagnostic I/O token {token}"
-                );
-            }
-        }
-        assert!(include_str!("mod.rs").contains(
-            "#[cfg(any(test, feature = \"benchmark-helpers\"))]\nmod aggregate_diagnostics;"
-        ));
-        assert!(include_str!("../server.rs")
-            .contains("#[cfg(any(test, feature = \"benchmark-helpers\"))]\nmod diagnostics;"));
-    }
-
-    async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8]) -> Result<()>
-    where
-        S: StateRead + StateWrite + ?Sized,
-    {
-        let mut keys = Vec::new();
-        {
-            let stream = state.nonverifiable_prefix_raw(prefix);
-            futures::pin_mut!(stream);
-            while let Some(item) = stream.next().await {
-                let (key, _) = item?;
-                keys.push(key);
-            }
-        }
-        for key in keys {
-            state.nonverifiable_delete(key);
-        }
-        Ok(())
-    }
-
-    async fn setup_test_txs(
-        tx_count: usize,
-    ) -> Result<(TempStorage, TestNode<ConsensusService>, Vec<Vec<u8>>)> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-
-        let allocations: Vec<Allocation> = std::iter::repeat(Allocation {
-            raw_amount: 1_000_000u128.into(),
-            raw_denom: BASE_ASSET_DENOM.deref().base_denom().denom,
-            address: test_keys::ADDRESS_0.to_owned(),
-        })
-        .take(tx_count)
-        .collect();
-
-        let app_state_bytes = serde_json::to_vec(&AppState::Content(Content {
-            chain_id: TestNode::<()>::CHAIN_ID.to_string(),
-            shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
-                allocations,
-                ..Default::default()
-            },
-            ..Default::default()
-        }))?;
-
-        let consensus = Consensus::new(storage.as_ref().clone());
-        let initial_time = tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?;
-        let mut test_node = TestNode::builder()
-            .single_validator()
-            .app_state(app_state_bytes)
-            .with_initial_timestamp(initial_time)
-            .init_chain(consensus)
-            .await?;
-
-        test_node.block().execute().await?;
-
-        let client = Arc::new(
-            MockClient::new(test_keys::SPEND_KEY.clone())
-                .with_sync_to_storage(&storage)
-                .await?,
-        );
-
-        let notes: Vec<_> = client
-            .notes
-            .values()
-            .filter(|note| {
-                note.asset_id() == *BASE_ASSET_ID
-                    && note.address() == test_keys::ADDRESS_0.deref().clone()
-            })
-            .cloned()
-            .take(tx_count)
-            .collect();
-        let mut txs = Vec::with_capacity(tx_count);
-        for note in notes {
-            let spend = ShieldedInputPlan::new(
-                &mut OsRng,
-                note.clone(),
-                client
-                    .position(note.commit())
-                    .ok_or_else(|| anyhow!("note position was unknown to mock client"))?,
-            );
-            let send_amount = Amount::from(1u64);
-            let change_amount = note.amount() - send_amount;
-            let mut output = ShieldedOutputPlan::new(
-                &mut OsRng,
-                Value {
-                    amount: send_amount,
-                    asset_id: note.asset_id(),
-                },
-                test_keys::ADDRESS_1.deref().clone(),
-            );
-            let mut change = ShieldedOutputPlan::new(
-                &mut OsRng,
-                Value {
-                    amount: change_amount,
-                    asset_id: note.asset_id(),
-                },
-                note.address(),
-            );
-            for output in [&mut output, &mut change] {
-                output.asset_anchor = spend.asset_anchor;
-                output.compliance_anchor = spend.compliance_anchor;
-                output.target_timestamp = spend.target_timestamp;
-                output.is_regulated = spend.is_regulated;
-                output.tx_blinding_nonce = spend.tx_blinding_nonce;
-                output.asset_indexed_leaf = spend.asset_indexed_leaf.clone();
-                output.asset_path = spend.asset_path.clone();
-                output.asset_position = spend.asset_position;
-                output.asset_policy = spend.asset_policy.clone();
-            }
-            let mut plan = TransactionPlan {
-                actions: vec![TransferPlan::new(
-                    vec![spend.into()],
-                    vec![output.into(), change.into()],
-                    Fr::from(1u64),
-                )
-                .expect("valid transfer plan")
-                .into()],
-                memo: Some(MemoPlan::new(
-                    &mut OsRng,
-                    MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
-                )),
-                fee_funding: None,
-                transaction_parameters: TransactionParameters {
-                    chain_id: TestNode::<()>::CHAIN_ID.to_string(),
-                    ..Default::default()
-                },
-                nullifier_window: Some(test_nullifier_window()),
-            };
-
-            let tx = client
-                .witness_auth_build_with_compliance(&mut plan, storage.latest_snapshot())
-                .await?;
-            txs.push(tx.encode_to_vec());
-        }
-
-        Ok((storage, test_node, txs))
-    }
-
-    async fn candidate_envelope_from_fixture_txs(
-        storage: &TempStorage,
-        txs: &[Vec<u8>],
-    ) -> Result<CandidateEnvelope> {
-        let decoded = txs
-            .iter()
-            .enumerate()
-            .map(|(index, tx_bytes)| {
-                Transaction::decode(tx_bytes.as_slice())
-                    .map(Arc::new)
-                    .with_context(|| format!("decoding fixture tx ordinal {index}"))
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let (verified_artifacts, _profile) =
-            App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
-        let artifacts = verified_artifacts
-            .iter()
-            .map(|artifact| artifact.extracted())
-            .collect::<Vec<_>>();
-        let segment_tx_counts = vec![decoded.len()];
-        let (bundle, _segment_tx_counts, _aggregate_profile) =
-            App::build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
-                &artifacts,
-                &segment_tx_counts,
-            )
-            .await?;
-        let sidecar =
-            ProposalArtifactSidecar::build(&artifacts, decoded.len(), segment_tx_counts.clone())?;
-        let bundle_tx =
-            App::build_aggregate_bundle_tx_for_snapshot_public(storage.latest_snapshot(), bundle)
-                .await?;
-        let tx_hashes = txs
-            .iter()
-            .map(|tx_bytes| sha2::Sha256::digest(tx_bytes).into())
-            .collect::<Vec<[u8; 32]>>();
-
-        Ok(CandidateEnvelope {
-            txs: txs.to_vec(),
-            tx_hashes: tx_hashes.clone(),
-            aggregate_bundle_tx_bytes: Some(bundle_tx.encode_to_vec()),
-            sidecar: sidecar.to_record(),
-            segment_tx_counts,
-            block_tx_count: txs.len(),
-            total_payload_bytes: txs.iter().map(Vec::len).sum(),
-            candidate_digest: candidate_digest_from_hashes(&tx_hashes),
-            source_builder_label: "app_test".to_string(),
-        })
-    }
-
-    async fn aggregate_fixture(
-        tx_count: usize,
-    ) -> Result<(
-        TempStorage,
-        Vec<Arc<TxArtifact>>,
-        AggregateBundle,
-        Transaction,
-    )> {
-        let (storage, _node, txs) = setup_test_txs(tx_count).await?;
-        let decoded = txs
-            .iter()
-            .map(|tx_bytes| Transaction::decode(tx_bytes.as_slice()).map(Arc::new))
-            .collect::<Result<Vec<_>, _>>()?;
-        let (verified_artifacts, _profile) =
-            App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
-        let artifacts = verified_artifacts
-            .iter()
-            .map(|artifact| artifact.extracted())
-            .collect::<Vec<_>>();
-        let segment_tx_counts = vec![decoded.len()];
-        let (bundle, _, _) =
-            App::build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
-                &artifacts,
-                &segment_tx_counts,
-            )
-            .await?;
-        let bundle_tx = App::build_aggregate_bundle_tx_for_snapshot_public(
-            storage.latest_snapshot(),
-            bundle.clone(),
-        )
-        .await?;
-
-        Ok((storage, artifacts, bundle, bundle_tx))
-    }
-
-    fn aggregate_verify_test_item(family_id: ProofFamilyId, value: u64) -> BatchItem {
-        let arity = super::proof_verification_key_for_family(family_id)
-            .vk
-            .gamma_abc_g1
-            .len()
-            - 1;
-        BatchItem {
-            proof: ark_groth16::Proof {
-                a: Default::default(),
-                b: Default::default(),
-                c: Default::default(),
-            },
-            public_inputs: vec![Fq::from(value); arity],
-        }
-    }
-
-    fn aggregate_verify_test_artifact(entries: Vec<(ProofFamilyId, BatchItem)>) -> Arc<TxArtifact> {
-        let bundle = AggregateBundle {
-            version: AGGREGATE_PROTOCOL_VERSION,
-            srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
-            families: Vec::new(),
-        };
-        let total_proof_count = entries.len();
-        let mut proof_items = BTreeMap::new();
-        for (family_id, item) in entries {
-            proof_items
-                .entry(family_id)
-                .or_insert_with(Vec::new)
-                .push(item);
-        }
-        Arc::new(TxArtifact {
-            tx: Arc::new(aggregate_bundle_shape_test_tx(bundle, 5)),
-            proof_items,
-            spend_nullifiers: Vec::new(),
-            anchor_pairs: Vec::new(),
-            total_proof_count,
-            historical_validation: None,
-        })
-    }
-
-    #[test]
-    fn aggregate_expected_segments_preserve_segment_and_family_order() {
-        let transfer = ProofFamilyId::Transfer;
-        let note_reshape =
-            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne);
-        let artifacts = vec![
-            aggregate_verify_test_artifact(vec![
-                (note_reshape, aggregate_verify_test_item(note_reshape, 11)),
-                (transfer, aggregate_verify_test_item(transfer, 12)),
-            ]),
-            aggregate_verify_test_artifact(vec![
-                (transfer, aggregate_verify_test_item(transfer, 21)),
-                (note_reshape, aggregate_verify_test_item(note_reshape, 22)),
-            ]),
-        ];
-
-        let segments = App::expected_aggregate_verify_segments(
-            &artifacts,
-            &[
-                shieldd_sdk_proof_aggregation::AppVerifySegmentRange {
-                    segment_index: 0,
-                    start: 0,
-                    end: 1,
-                },
-                shieldd_sdk_proof_aggregation::AppVerifySegmentRange {
-                    segment_index: 1,
-                    start: 1,
-                    end: 2,
-                },
-            ],
-        );
-        let ids = segments
-            .iter()
-            .enumerate()
-            .map(|(order_index, segment)| super::AggregateVerifyCallId {
-                order_index,
-                segment_index: segment.segment_index,
-                family_index: segment.family_index,
-                family_id: segment.family_id,
-            })
-            .collect::<Vec<_>>();
-        assert_eq!(
-            ids,
-            vec![
-                super::AggregateVerifyCallId {
-                    order_index: 0,
-                    segment_index: 0,
-                    family_index: 0,
-                    family_id: transfer,
-                },
-                super::AggregateVerifyCallId {
-                    order_index: 1,
-                    segment_index: 0,
-                    family_index: 1,
-                    family_id: note_reshape,
-                },
-                super::AggregateVerifyCallId {
-                    order_index: 2,
-                    segment_index: 1,
-                    family_index: 0,
-                    family_id: transfer,
-                },
-                super::AggregateVerifyCallId {
-                    order_index: 3,
-                    segment_index: 1,
-                    family_index: 1,
-                    family_id: note_reshape,
-                },
-            ]
-        );
-        assert_eq!(segments[0].items[0].public_inputs[0], Fq::from(12u64));
-        assert_eq!(segments[1].items[0].public_inputs[0], Fq::from(11u64));
-        assert_eq!(segments[2].items[0].public_inputs[0], Fq::from(21u64));
-        assert_eq!(segments[3].items[0].public_inputs[0], Fq::from(22u64));
-    }
-
-    #[test]
-    fn aggregate_verify_planner_preserves_segment_order_and_checks_counts() -> Result<()> {
-        let family_id = ProofFamilyId::Transfer;
-        let expected_segments = vec![
-            super::AggregateExpectedVerifySegment {
-                segment_index: 0,
-                family_index: 0,
-                family_id,
-                items: vec![aggregate_verify_test_item(family_id, 1)],
-                debug_rows: Vec::new(),
-            },
-            super::AggregateExpectedVerifySegment {
-                segment_index: 1,
-                family_index: 0,
-                family_id,
-                items: vec![aggregate_verify_test_item(family_id, 2)],
-                debug_rows: Vec::new(),
-            },
-        ];
-        let bundle = AggregateBundle {
-            version: AGGREGATE_PROTOCOL_VERSION,
-            srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
-            families: vec![
-                FamilyAggregate {
-                    family_id,
-                    real_count: 1,
-                    padded_count: 1,
-                    aggregate_proof: vec![1],
-                },
-                FamilyAggregate {
-                    family_id,
-                    real_count: 1,
-                    padded_count: 1,
-                    aggregate_proof: vec![2],
-                },
-            ],
-        };
-
-        let plan = App::plan_aggregate_bundle_verification(
-            &bundle,
-            expected_segments.clone(),
-            shieldd_sdk_proof_aggregation::DevSrs::default(),
-        )?;
-        assert_eq!(
-            plan.calls.iter().map(|call| call.id).collect::<Vec<_>>(),
-            vec![
-                super::AggregateVerifyCallId {
-                    order_index: 0,
-                    segment_index: 0,
-                    family_index: 0,
-                    family_id,
-                },
-                super::AggregateVerifyCallId {
-                    order_index: 1,
-                    segment_index: 1,
-                    family_index: 0,
-                    family_id,
-                },
-            ]
-        );
-        assert_eq!(plan.calls[0].padded_public_inputs[0][0], Fq::from(1u64));
-        assert_eq!(plan.calls[1].padded_public_inputs[0][0], Fq::from(2u64));
-        assert_eq!(
-            plan.calls[0].shipping_call,
-            app_verify_shipping_call_from_parts(
-                AppVerifyCallId {
-                    order_index: 0,
-                    segment_index: 0,
-                    family_index: 0,
-                    family: app_verify_family_code(family_id),
-                },
-                app_verify_family_code(family_id),
-                1,
-                1,
-                1,
-                1,
-            )
-        );
-
-        let mut missing_family = bundle.clone();
-        missing_family.families.pop();
-        let family_count_error = App::plan_aggregate_bundle_verification(
-            &missing_family,
-            expected_segments.clone(),
-            shieldd_sdk_proof_aggregation::DevSrs::default(),
-        )
-        .err()
-        .expect("missing family must reject");
-        assert!(family_count_error
-            .to_string()
-            .contains("aggregate bundle family count mismatch"));
-
-        let mut wrong_order = bundle.clone();
-        wrong_order.families[0].family_id =
-            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne);
-        let order_error = App::plan_aggregate_bundle_verification(
-            &wrong_order,
-            expected_segments.clone(),
-            shieldd_sdk_proof_aggregation::DevSrs::default(),
-        )
-        .err()
-        .expect("wrong family order must reject");
-        assert!(order_error
-            .to_string()
-            .contains("aggregate family ordering mismatch"));
-
-        let mut wrong_real_count = bundle.clone();
-        wrong_real_count.families[0].real_count = 2;
-        let real_count_error = App::plan_aggregate_bundle_verification(
-            &wrong_real_count,
-            expected_segments.clone(),
-            shieldd_sdk_proof_aggregation::DevSrs::default(),
-        )
-        .err()
-        .expect("wrong real count must reject");
-        assert!(real_count_error
-            .to_string()
-            .contains("aggregate real_count mismatch"));
-
-        let mut wrong_padded_count = bundle;
-        wrong_padded_count.families[1].padded_count = 2;
-        let padded_count_error = App::plan_aggregate_bundle_verification(
-            &wrong_padded_count,
-            expected_segments,
-            shieldd_sdk_proof_aggregation::DevSrs::default(),
-        )
-        .err()
-        .expect("wrong padded count must reject");
-        assert!(padded_count_error
-            .to_string()
-            .contains("aggregate padded_count mismatch"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn aggregate_verify_plan_header_rejects_incomplete_segment_coverage() {
-        let bundle = AggregateBundle {
-            version: AGGREGATE_PROTOCOL_VERSION,
-            srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
-            families: Vec::new(),
-        };
-        let tx = aggregate_bundle_shape_test_tx(bundle.clone(), 5);
-        let artifact = Arc::new(TxArtifact {
-            tx: Arc::new(tx),
-            proof_items: BTreeMap::new(),
-            spend_nullifiers: Vec::new(),
-            anchor_pairs: Vec::new(),
-            total_proof_count: 1,
-            historical_validation: None,
-        });
-
-        let error = App::validate_aggregate_verify_plan_inputs(
-            &[artifact],
-            &bundle,
-            Some(&[0]),
-            &DevSrs::default(),
-        )
-        .expect_err("incomplete segment coverage must reject");
-        assert!(error
-            .to_string()
-            .contains("aggregate segment coverage mismatch"));
-    }
-
-    #[test]
-    fn aggregate_verify_reducer_is_order_independent_and_rejects_exact_calls() -> Result<()> {
-        let family_id = ProofFamilyId::Transfer;
-        let expected = vec![
-            super::AggregateVerifyCallId {
-                order_index: 0,
-                segment_index: 0,
-                family_index: 0,
-                family_id,
-            },
-            super::AggregateVerifyCallId {
-                order_index: 1,
-                segment_index: 1,
-                family_index: 0,
-                family_id,
-            },
-        ];
-
-        let reduction = App::reduce_aggregate_verify_outcomes(
-            &expected,
-            vec![
-                super::AggregateVerifyCallResult {
-                    id: expected[1],
-                    accepted: true,
-                },
-                super::AggregateVerifyCallResult {
-                    id: expected[0],
-                    accepted: true,
-                },
-            ],
-        )?;
-        reduction.acceptance_result()?;
-
-        let rejected = App::reduce_aggregate_verify_outcomes(
-            &expected,
-            vec![
-                super::AggregateVerifyCallResult {
-                    id: expected[0],
-                    accepted: true,
-                },
-                super::AggregateVerifyCallResult {
-                    id: expected[1],
-                    accepted: false,
-                },
-            ],
-        )?;
-        let rejection = rejected
-            .acceptance_result()
-            .expect_err("one rejected call must reject the bundle");
-        assert!(rejection
-            .to_string()
-            .contains("segment=1 family_index=0 family=Transfer"));
-
-        let duplicate_error = App::reduce_aggregate_verify_outcomes(
-            &expected,
-            vec![
-                super::AggregateVerifyCallResult {
-                    id: expected[0],
-                    accepted: true,
-                },
-                super::AggregateVerifyCallResult {
-                    id: expected[0],
-                    accepted: true,
-                },
-            ],
-        )
-        .expect_err("duplicate outcomes must reject");
-        assert!(duplicate_error
-            .to_string()
-            .contains("aggregate verification outcome identity mismatch"));
-
-        let missing_error = App::reduce_aggregate_verify_outcomes(
-            &expected,
-            vec![super::AggregateVerifyCallResult {
-                id: expected[0],
-                accepted: true,
-            }],
-        )
-        .expect_err("missing outcomes must reject");
-        assert!(missing_error
-            .to_string()
-            .contains("aggregate verification outcome count mismatch"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn aggregate_verify_join_rejection_guard_is_fail_closed() -> Result<()> {
-        super::require_no_rejected_joined_calls(Vec::new())?;
-
-        let rejected = AppVerifyCallId {
-            order_index: 3,
-            segment_index: 5,
-            family_index: 7,
-            family: app_verify_family_code(ProofFamilyId::Transfer),
-        };
-        let error = super::require_no_rejected_joined_calls(vec![rejected])
-            .expect_err("a retained rejected join must fail after reducer acceptance");
-        assert!(error
-            .to_string()
-            .contains("join retained 1 rejected call(s)"));
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn aggregate_bundle_normal_and_profiled_verification_have_result_parity() -> Result<()> {
-        let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
-
-        let normal =
-            App::verify_aggregate_bundle_for_artifacts_raw(&artifacts, &bundle, Some(&[1])).await;
-        let (_profile, profiled) = App::verify_aggregate_bundle_for_artifacts_raw_profiled(
-            &artifacts,
-            &bundle,
-            Some(&[1]),
-        )
-        .await;
-        assert_eq!(normal.is_ok(), profiled.is_ok());
-        normal?;
-        profiled?;
-
-        let mut wrong_count = bundle;
-        wrong_count.families[0].real_count += 1;
-        let normal_error =
-            App::verify_aggregate_bundle_for_artifacts_raw(&artifacts, &wrong_count, Some(&[1]))
-                .await
-                .err()
-                .expect("normal verification must reject wrong counts");
-        let (_profile, profiled_result) = App::verify_aggregate_bundle_for_artifacts_raw_profiled(
-            &artifacts,
-            &wrong_count,
-            Some(&[1]),
-        )
-        .await;
-        let profiled_error = profiled_result
-            .err()
-            .expect("profiled verification must reject wrong counts");
-        assert_eq!(normal_error.to_string(), profiled_error.to_string());
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn async_verifier_outcome_retains_its_exact_shipping_input() -> Result<()> {
-        let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
-        let ranges = App::validate_aggregate_verify_plan_inputs(
-            &artifacts,
-            &bundle,
-            Some(&[1]),
-            &DevSrs::default(),
-        )?;
-        let expected_segments = App::expected_aggregate_verify_segments(&artifacts, &ranges);
-        let mut plan = App::plan_aggregate_bundle_verification(
-            &bundle,
-            expected_segments,
-            shieldd_sdk_proof_aggregation::DevSrs::default(),
-        )?;
-        let call = plan.calls.remove(0);
-        let expected_id = call.id;
-        let expected_shipping_call = call.shipping_call;
-        let expected_statement = call.statement.clone();
-        let expected_wrapped_proof = call.aggregate.aggregate_proof.clone();
-        let mut expected_padded_public_inputs =
-            Vec::with_capacity(expected_statement.padded_public_inputs().len());
-        for row in expected_statement.padded_public_inputs() {
-            let mut serialized_row = Vec::with_capacity(row.len());
-            for field in row {
-                let mut bytes = Vec::new();
-                field.serialize_compressed(&mut bytes)?;
-                serialized_row.push(bytes);
-            }
-            expected_padded_public_inputs.push(serialized_row);
-        }
-        let expected_public_input_arity = u32::try_from(
-            expected_padded_public_inputs
-                .first()
-                .context("aggregate statement must retain one padded public-input row")?
-                .len(),
-        )?;
-
-        let outcome = App::execute_aggregate_verify_call(call)?;
-        let shipping_result = outcome.shipping_verification.shipping_result();
-
-        assert_eq!(outcome.id, expected_id);
-        assert_eq!(shipping_result.input.call, expected_shipping_call);
-        assert_eq!(
-            shipping_result.input.protocol_version,
-            AGGREGATE_PROTOCOL_VERSION
-        );
-        assert_eq!(
-            shipping_result.input.family,
-            app_verify_family_code(expected_id.family_id)
-        );
-        assert_eq!(shipping_result.input.srs_id, expected_statement.srs_id());
-        assert_eq!(
-            shipping_result.input.vk_digest,
-            expected_statement.vk_digest()
-        );
-        assert_eq!(
-            shipping_result.input.real_count,
-            expected_statement.real_count()
-        );
-        assert_eq!(
-            shipping_result.input.padded_count,
-            expected_statement.padded_count()
-        );
-        assert_eq!(
-            shipping_result.input.public_input_arity,
-            expected_public_input_arity
-        );
-        assert_eq!(
-            shipping_result.input.padded_public_inputs,
-            expected_padded_public_inputs
-        );
-        assert_eq!(
-            shipping_result.input.canonical_statement_bytes,
-            expected_statement.canonical_bytes()
-        );
-        assert_eq!(
-            shipping_result.input.statement_digest,
-            expected_statement.statement_digest()
-        );
-        assert_eq!(
-            shipping_result.input.wrapped_proof_bytes,
-            expected_wrapped_proof
-        );
-        assert_eq!(
-            shipping_result.input.challenge_context,
-            expected_statement.challenge_context().as_bytes()
-        );
-        assert_eq!(
-            shipping_result.result.accepted,
-            outcome.shipping_verification.profile.accepted
-        );
-        assert_eq!(
-            outcome.result()?.accepted,
-            outcome.shipping_verification.profile.accepted
-        );
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn latest_snapshot_supports_parallel_reads() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let snapshot = storage.latest_snapshot();
-        let mut tasks = tokio::task::JoinSet::new();
-
-        for _ in 0..4 {
-            let snapshot = snapshot.clone();
-            tasks.spawn(async move {
-                let _ = snapshot.get_raw("parallel.snapshot.read").await?;
-                Ok::<(), anyhow::Error>(())
-            });
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            result??;
-        }
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn prepare_candidate_read_profiled_supports_unregulated_fixture_txs() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(2).await?;
-        let snapshot = Arc::new(storage.latest_snapshot());
-        let historical_context = HistoricalCheckContext::load(Arc::as_ref(&snapshot)).await?;
-
-        for tx_bytes in txs {
-            let tx = Arc::new(Transaction::decode(tx_bytes.as_slice())?);
-            assert!(
-                supports_parallel_prepare(Arc::as_ref(&tx)),
-                "fixture tx should stay on the supported transfer fast path"
-            );
-
-            let prepared = prepare_candidate_read_profiled(
-                tx.clone(),
-                snapshot.clone(),
-                historical_context.clone(),
-                false,
-            )
-            .await?;
-
-            assert_eq!(prepared.effects.spend_nullifiers.len(), 2);
-            assert_eq!(
-                prepared.effects.sct_payloads.len(),
-                2,
-                "fixture transfer should create receiver and change notes",
-            );
-        }
-
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn prepare_candidate_read_blocking_profiled_matches_async_fast_path() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(2).await?;
-        let snapshot = Arc::new(storage.latest_snapshot());
-        let historical_context = HistoricalCheckContext::load(Arc::as_ref(&snapshot)).await?;
-
-        for tx_bytes in txs {
-            let tx = Arc::new(Transaction::decode(tx_bytes.as_slice())?);
-            assert!(supports_parallel_prepare(Arc::as_ref(&tx)));
-
-            let prepared_async = prepare_candidate_read_profiled(
-                tx.clone(),
-                snapshot.clone(),
-                historical_context.clone(),
-                false,
-            )
-            .await?;
-            let tx_for_blocking = tx;
-            let snapshot_for_blocking = Arc::as_ref(&snapshot).clone();
-            let context_for_blocking = historical_context.clone();
-            let handle = tokio::runtime::Handle::current();
-            let prepared_blocking = tokio::task::spawn_blocking(move || {
-                prepare_candidate_read_blocking_profiled(
-                    tx_for_blocking,
-                    snapshot_for_blocking,
-                    context_for_blocking,
-                    false,
-                    handle,
-                )
-            })
-            .await??;
-
-            assert_eq!(
-                prepared_async.effects.spend_nullifiers,
-                prepared_blocking.effects.spend_nullifiers
-            );
-            assert_eq!(
-                prepared_async.effects.sct_payloads.len(),
-                prepared_blocking.effects.sct_payloads.len()
-            );
-            assert_eq!(
-                prepared_async
-                    .effects
-                    .sct_payloads
-                    .iter()
-                    .map(|payload| *payload.commitment())
-                    .collect::<Vec<_>>(),
-                prepared_blocking
-                    .effects
-                    .sct_payloads
-                    .iter()
-                    .map(|payload| *payload.commitment())
-                    .collect::<Vec<_>>()
-            );
-            assert_eq!(
-                prepared_async.execution_profile.nullifier_lookup_count,
-                prepared_blocking.execution_profile.nullifier_lookup_count
-            );
-        }
-
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn checktx_fast_path_matches_standard_path() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(1).await?;
-        let tx = Arc::new(Transaction::decode(
-            txs.first().expect("fixture transaction").as_slice(),
-        )?);
-        let (artifact, _) = App::build_tx_artifact_for_stage("app_test", tx.clone()).await?;
-        assert!(supports_parallel_prepare(Arc::as_ref(&tx)));
-        let shared_context =
-            Arc::new(CheckTxSharedContext::load(&storage.latest_snapshot()).await?);
-
-        let mut standard_app = App::new(storage.latest_snapshot());
-        tx.check_historical(standard_app.state.clone()).await?;
-        let (standard_events, standard_profile) = standard_app
-            .execute_tx_checked_historical_profiled(artifact.clone())
-            .await?;
-
-        let mut fast_app = App::new(storage.latest_snapshot());
-        fast_app.set_checktx_shared_context(shared_context);
-        let (fast_events, fast_profile) = fast_app
-            .execute_checktx_fast_profiled(artifact, false)
-            .await?;
-
-        let mut standard_rendered = standard_events
-            .iter()
-            .map(|event| format!("{event:?}"))
-            .collect::<Vec<_>>();
-        standard_rendered.sort();
-        let mut fast_rendered = fast_events
-            .iter()
-            .map(|event| format!("{event:?}"))
-            .collect::<Vec<_>>();
-        fast_rendered.sort();
-        assert_eq!(standard_rendered, fast_rendered);
-        assert!(
-            fast_profile.nullifier_lookup_count >= standard_profile.nullifier_lookup_count,
-            "fast path should not undercount nullifier checks"
-        );
-        assert!(
-            fast_profile.output_add_note_payload_ms >= 0.0,
-            "fast path should report a valid note-payload timing metric"
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn process_candidate_envelope_profiled_accepts_valid_fixture() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(2).await?;
-        let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
-        let mut app = App::new(storage.latest_snapshot());
-
-        let (verdict, _profile) = app
-            .process_candidate_envelope_profiled(&envelope, None)
-            .await?;
-        assert!(matches!(verdict, response::ProcessProposal::Accept));
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn ensure_aggregate_bundle_tx_shape_rejects_memo_fee_and_extra_action() -> Result<()> {
-        let (_storage, _artifacts, bundle, bundle_tx) = aggregate_fixture(1).await?;
-
-        let mut with_memo = bundle_tx.clone();
-        with_memo.transaction_body.memo = Some(MemoCiphertext([0; MEMO_CIPHERTEXT_LEN_BYTES]));
-        let memo_error =
-            App::ensure_aggregate_bundle_tx_shape(&with_memo).expect_err("memo must be rejected");
-        assert!(memo_error
-            .to_string()
-            .contains("aggregate bundle tx must not contain a memo"));
-
-        let mut with_fee = bundle_tx.clone();
-        with_fee.transaction_body.transaction_parameters.fee =
-            Fee::from_staking_token_amount(1u64.into());
-        let fee_error =
-            App::ensure_aggregate_bundle_tx_shape(&with_fee).expect_err("nonzero fee must fail");
-        assert!(fee_error
-            .to_string()
-            .contains("aggregate bundle tx must have zero fee"));
-
-        let mut with_extra_action = bundle_tx.clone();
-        with_extra_action
-            .transaction_body
-            .actions
-            .push(Action::AggregateBundle(bundle));
-        let shape_error = App::ensure_aggregate_bundle_tx_shape(&with_extra_action)
-            .expect_err("multiple actions must fail aggregate bundle shape validation");
-        assert!(shape_error
-            .to_string()
-            .contains("aggregate bundle tx must contain exactly one aggregate bundle action"));
-
-        Ok(())
-    }
-
-    fn aggregate_bundle_shape_test_tx(bundle: AggregateBundle, mode: u8) -> Transaction {
-        let mut tx = Transaction {
-            transaction_body: shieldd_sdk_transaction::TransactionBody {
-                actions: vec![Action::AggregateBundle(bundle.clone())],
-                transaction_parameters: TransactionParameters {
-                    expiry_height: 0,
-                    chain_id: "shieldd-test-chain".to_owned(),
-                    fee: Fee::default(),
-                },
-                fee_funding: None,
-                memo: None,
-                nullifier_window: None,
-                historical_nullifier_proofs: Vec::new(),
-            },
-            binding_sig: [0; 64].into(),
-            anchor: shieldd_sdk_tct::Root(shieldd_sdk_tct::structure::Hash::zero()),
-        };
-
-        match mode % 5 {
-            0 => tx.transaction_body.actions.clear(),
-            1 => {
-                tx.transaction_body.memo = Some(MemoCiphertext([0; MEMO_CIPHERTEXT_LEN_BYTES]));
-            }
-            2 => {
-                tx.transaction_body.transaction_parameters.fee =
-                    Fee::from_staking_token_amount(1u64.into());
-            }
-            3 => tx
-                .transaction_body
-                .actions
-                .push(Action::AggregateBundle(bundle)),
-            _ => {
-                let binding_signing_key = rdsa::SigningKey::from(Fr::zero());
-                let auth_hash = tx.transaction_body.auth_hash();
-                tx.binding_sig = binding_signing_key.sign_deterministic(auth_hash.as_bytes());
-            }
-        }
-
-        tx
-    }
-
-    proptest! {
-        #![proptest_config(ProptestConfig::with_cases(32))]
-
-        #[test]
-        fn ensure_aggregate_bundle_tx_shape_do_not_panic(
-            mode in 0u8..5,
-            version in any::<u32>(),
-            srs_id in prop::collection::vec(any::<u8>(), 0usize..=64),
-            aggregate_proof in prop::collection::vec(any::<u8>(), 0usize..=1024),
-            real_count in any::<u32>(),
-            padded_count in any::<u32>(),
-        ) {
-            let bundle = AggregateBundle {
-                version,
-                srs_id,
-                families: vec![shieldd_sdk_proof_aggregation::FamilyAggregate {
-                    family_id: ProofFamilyId::Transfer,
-                    real_count,
-                    padded_count,
-                    aggregate_proof,
-                }],
-            };
-            let tx = aggregate_bundle_shape_test_tx(bundle, mode);
-            let result = App::ensure_aggregate_bundle_tx_shape(&tx);
-
-            match mode % 5 {
-                0 | 3 => prop_assert!(
-                    result
-                        .expect_err("aggregate action shape mutation must reject")
-                        .to_string()
-                        .contains("exactly one aggregate bundle action")
-                ),
-                1 => prop_assert!(
-                    result
-                        .expect_err("memo mutation must reject")
-                        .to_string()
-                        .contains("must not contain a memo")
-                ),
-                2 => prop_assert!(
-                    result
-                        .expect_err("fee mutation must reject")
-                        .to_string()
-                        .contains("must have zero fee")
-                ),
-                _ => {
-                    let _ = result;
-                }
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn aggregate_bundle_verification_rejects_bad_version_srs_and_family_count() -> Result<()>
-    {
-        let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
-
-        let mut bad_version = bundle.clone();
-        bad_version.version += 1;
-        let version_error =
-            App::verify_aggregate_bundle_for_artifacts_raw_public(&artifacts, &bad_version, None)
-                .await
-                .expect_err("bad version must fail verification");
-        assert!(version_error
-            .to_string()
-            .contains("unsupported aggregate bundle version"));
-
-        let mut bad_srs = bundle.clone();
-        bad_srs.srs_id[0] ^= 0x01;
-        let srs_error =
-            App::verify_aggregate_bundle_for_artifacts_raw_public(&artifacts, &bad_srs, None)
-                .await
-                .expect_err("bad SRS id must fail verification");
-        assert!(srs_error
-            .to_string()
-            .contains("test/fuzz SnarkPack SRS id mismatch"));
-
-        let mut empty_families = bundle.clone();
-        empty_families.families.clear();
-        let empty_error = App::verify_aggregate_bundle_for_artifacts_raw_public(
-            &artifacts,
-            &empty_families,
-            None,
-        )
-        .await
-        .expect_err("empty family list must fail verification");
-        assert!(empty_error
-            .to_string()
-            .contains("aggregate bundle family count mismatch"));
-
-        let mut extra_family = bundle.clone();
-        extra_family.families.push(extra_family.families[0].clone());
-        let family_count_error =
-            App::verify_aggregate_bundle_for_artifacts_raw_public(&artifacts, &extra_family, None)
-                .await
-                .expect_err("extra family entries must fail verification");
-        assert!(family_count_error
-            .to_string()
-            .contains("aggregate bundle family count mismatch"));
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup() -> Result<()> {
-        let mut wrong_full_length_srs_id = DEFAULT_DEV_SRS_ID.to_vec();
-        wrong_full_length_srs_id[0] ^= 0x01;
-
-        for (srs_id, expected_error) in [
-            (vec![0; 3], "test/fuzz SnarkPack SRS id mismatch"),
-            (
-                wrong_full_length_srs_id,
-                "test/fuzz SnarkPack SRS id mismatch",
-            ),
-        ] {
-            let bundle = AggregateBundle {
-                version: AGGREGATE_PROTOCOL_VERSION,
-                srs_id,
-                families: vec![FamilyAggregate {
-                    family_id: ProofFamilyId::Transfer,
-                    real_count: 1,
-                    padded_count: 1,
-                    aggregate_proof: vec![0xaa, 0xbb],
-                }],
-            };
-            let tx = aggregate_bundle_shape_test_tx(bundle.clone(), 5);
-            let artifact = Arc::new(TxArtifact {
-                tx: Arc::new(tx),
-                proof_items: BTreeMap::new(),
-                spend_nullifiers: Vec::new(),
-                anchor_pairs: Vec::new(),
-                total_proof_count: 1,
-                historical_validation: None,
-            });
-
-            let started = std::time::Instant::now();
-            let (profile, result) =
-                App::verify_aggregate_bundle_for_artifacts_raw_profiled(&[artifact], &bundle, None)
-                    .await;
-            let elapsed = started.elapsed();
-            let error = result.err().expect("bad SRS id must fail before SRS setup");
-
-            assert!(error.to_string().contains(expected_error));
-            assert_eq!(profile.expected_segments_ms, 0.0);
-            assert!(
-                elapsed < std::time::Duration::from_millis(500),
-                "bad SRS id rejection took {elapsed:?}"
-            );
-        }
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn execute_validated_candidate_envelope_profiled_skips_proposal_validation() -> Result<()>
-    {
-        let (storage, _node, txs) = setup_test_txs(1).await?;
-        let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
-
-        let mut preflight_app = App::new(storage.latest_snapshot());
-        let (verdict, _profile) = preflight_app
-            .process_candidate_envelope_profiled(&envelope, None)
-            .await?;
-        assert!(matches!(verdict, response::ProcessProposal::Accept));
-
-        let mut execution_only = envelope.clone();
-        execution_only.tx_hashes.clear();
-        execution_only.candidate_digest = [0; 32];
-
-        let mut app = App::new(storage.latest_snapshot());
-        let profile = app
-            .execute_validated_candidate_envelope_profiled(
-                &execution_only,
-                storage.as_ref().clone(),
-            )
-            .await?;
-        assert_eq!(profile.block_tx_count, 1);
-        assert!(profile.deliver_txs_wall_ms > 0.0);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn checktx_shared_context_caches_historical_context_for_snapshot() -> Result<()> {
-        let (storage, _node, _txs) = setup_test_txs(1).await?;
-        let snapshot = storage.latest_snapshot();
-        let shared_context = CheckTxSharedContext::load(&snapshot).await?;
-        let direct_context = HistoricalCheckContext::load(&snapshot).await?;
-
-        assert_eq!(
-            shared_context.historical_check_context.chain_id,
-            direct_context.chain_id
-        );
-        assert_eq!(
-            shared_context.historical_check_context.block_height,
-            direct_context.block_height
-        );
-        assert_eq!(
-            shared_context.historical_check_context.block_timestamp,
-            direct_context.block_timestamp
-        );
-        assert_eq!(
-            shared_context
-                .historical_check_context
-                .discovery_grace_period_blocks,
-            direct_context.discovery_grace_period_blocks
-        );
-        assert_eq!(
-            shared_context
-                .historical_check_context
-                .previous_discovery_parameters,
-            direct_context.previous_discovery_parameters
-        );
-        assert_eq!(
-            shared_context
-                .historical_check_context
-                .current_discovery_parameters,
-            direct_context.current_discovery_parameters
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
-    async fn checktx_cache_hit_and_miss_match_for_supported_tx() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(1).await?;
-        let tx_bytes = txs.first().expect("fixture transaction").clone();
-        let cache = StatelessCache::new();
-        let shared_context =
-            Arc::new(CheckTxSharedContext::load(&storage.latest_snapshot()).await?);
-
-        let mut miss_app = App::new(storage.latest_snapshot());
-        miss_app.set_checktx_shared_context(shared_context.clone());
-        let (miss_events, miss_profile) = miss_app
-            .deliver_tx_bytes_impl_profiled(&tx_bytes, Some(&cache))
-            .await?;
-        assert_eq!(miss_profile.cache_hit_count, 0);
-
-        let mut hit_app = App::new(storage.latest_snapshot());
-        hit_app.set_checktx_shared_context(shared_context);
-        let (hit_events, hit_profile) = hit_app
-            .deliver_tx_bytes_impl_profiled(&tx_bytes, Some(&cache))
-            .await?;
-        assert_eq!(hit_profile.cache_hit_count, 1);
-        assert_eq!(miss_events, hit_events);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn prepared_reads_are_blind_to_same_block_nullifier_conflicts() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(1).await?;
-        let tx = Arc::new(Transaction::decode(
-            txs.first().expect("fixture transaction").as_slice(),
-        )?);
-        let (artifact, _) = App::build_tx_artifact_for_stage("app_test", tx.clone()).await?;
-        let snapshot = Arc::new(storage.latest_snapshot());
-        let historical_context = HistoricalCheckContext::load(Arc::as_ref(&snapshot)).await?;
-
-        let prepared_first = prepare_candidate_read_profiled(
-            tx.clone(),
-            snapshot.clone(),
-            historical_context.clone(),
-            false,
-        )
-        .await?;
-        let prepared_second =
-            prepare_candidate_read_profiled(tx.clone(), snapshot, historical_context, false)
-                .await?;
-
-        anyhow::ensure!(
-            prepared_first.execution_profile.nullifier_lookup_count > 0,
-            "fixture tx should exercise committed nullifier checks"
-        );
-        anyhow::ensure!(
-            prepared_second.execution_profile.nullifier_lookup_count > 0,
-            "fixture tx should exercise committed nullifier checks"
-        );
-
-        let mut app = App::new(storage.latest_snapshot());
-        let mut block_state = PrepareBlockLocalState::default();
-
-        app.apply_prepared_prepare_candidate_profiled(
-            artifact.clone(),
-            prepared_first,
-            &mut block_state,
-        )
-        .await?;
-        let err = app
-            .apply_prepared_prepare_candidate_profiled(artifact, prepared_second, &mut block_state)
-            .await
-            .expect_err("serial apply should resolve duplicate nullifiers in the same proposal");
-
-        assert!(
-            err.to_string()
-                .contains("already spent earlier in this proposal"),
-            "unexpected error: {err:#}"
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn batched_nullify_matches_repeated_nullify_and_preserves_pending_order() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let snapshot = storage.latest_snapshot();
-
-        let nullifiers = vec![
-            Nullifier(Fq::from(11u64)),
-            Nullifier(Fq::from(12u64)),
-            Nullifier(Fq::from(13u64)),
-        ];
-        let source = CommitmentSource::Transaction {
-            id: Some([7u8; 32]),
-        };
-
-        let mut repeated = StateDelta::new(snapshot.clone());
-        repeated.put_block_height(42);
-        for nullifier in &nullifiers {
-            repeated.nullify(*nullifier, source.clone()).await?;
-        }
-
-        let mut batched = StateDelta::new(snapshot);
-        batched.put_block_height(42);
-        batched.nullify_all(&nullifiers, source).await?;
-
-        assert_eq!(repeated.pending_nullifiers(), batched.pending_nullifiers());
-
-        for nullifier in &nullifiers {
-            assert_eq!(
-                repeated.is_nullifier_spent(*nullifier).await?,
-                batched.is_nullifier_spent(*nullifier).await?,
-            );
-        }
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn proposal_batch_nullify_matches_sequential_and_preserves_sources() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let snapshot = storage.latest_snapshot();
-
-        let entries = vec![
-            (
-                Nullifier(Fq::from(21u64)),
-                CommitmentSource::Transaction {
-                    id: Some([1u8; 32]),
-                },
-            ),
-            (
-                Nullifier(Fq::from(22u64)),
-                CommitmentSource::Transaction {
-                    id: Some([2u8; 32]),
-                },
-            ),
-            (
-                Nullifier(Fq::from(23u64)),
-                CommitmentSource::Transaction {
-                    id: Some([1u8; 32]),
-                },
-            ),
-        ];
-
-        let mut sequential = StateDelta::new(snapshot.clone());
-        sequential.put_block_height(42);
-        for (nullifier, source) in &entries {
-            sequential.nullify(*nullifier, source.clone()).await?;
-        }
-
-        let mut proposal_batch = StateDelta::new(snapshot);
-        proposal_batch.put_block_height(42);
-        let _profile = proposal_batch.nullify_proposal_batch(&entries).await?;
-
-        assert_eq!(
-            sequential.pending_nullifiers(),
-            proposal_batch.pending_nullifiers()
-        );
-
-        for (nullifier, _) in &entries {
-            assert_eq!(
-                sequential.is_nullifier_spent(*nullifier).await?,
-                proposal_batch.is_nullifier_spent(*nullifier).await?,
-            );
-        }
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn app_readiness_accepts_empty_pregenesis_state() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        assert!(App::is_ready(storage.latest_snapshot()).await);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn app_readiness_fails_on_corrupted_nullifier_tree_nv() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::insert_batch(&mut state, [Nullifier(Fq::from(91u64))])
-            .await?;
-        storage.commit(state).await?;
-        assert!(App::is_ready(storage.latest_snapshot()).await);
-
-        let mut corrupt = StateDelta::new(storage.latest_snapshot());
-        let tree = shieldd_sdk_sct::nullifier_tree::generation_state(&corrupt)
-            .await?
-            .current_tree;
-        let mut stream = corrupt.nonverifiable_prefix_raw(
-            &shieldd_sdk_sct::state_key::nullifier_generations::tree_node_prefix(tree),
-        );
-        let mut keys = Vec::new();
-        while let Some(item) = stream.next().await {
-            let (key, _) = item?;
-            keys.push(key);
-        }
-        drop(stream);
-        for key in keys {
-            corrupt.nonverifiable_delete(key);
-        }
-        storage.commit(corrupt).await?;
-
-        assert!(!App::is_ready(storage.latest_snapshot()).await);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn app_readiness_fails_on_corrupted_sct_nv() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
-        state.put_sct_params(SctParameters {
-            epoch_duration: 10,
-            sct_anchor_retention_blocks: 100,
-        });
-        state.put_block_height(1);
-        state.put_block_timestamp(1, Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?);
-        state.put_epoch_by_height(
-            1,
-            Epoch {
-                index: 0,
-                start_height: 0,
-            },
-        );
-
-        let mut tree = tct::Tree::new();
-        tree.insert(
-            tct::Witness::Forget,
-            tct::StateCommitment::try_from([11u8; 32])?,
-        )?;
-        let block_root = tree.end_block()?;
-        state.write_sct(1, tree, block_root, None).await;
-        storage.commit(state).await?;
-        assert!(App::is_ready(storage.latest_snapshot()).await);
-
-        let mut corrupt = StateDelta::new(storage.latest_snapshot());
-        delete_nv_prefix(
-            &mut corrupt,
-            shieldd_sdk_sct::state_key::tree::incremental_prefix().as_bytes(),
-        )
-        .await?;
-        storage.commit(corrupt).await?;
-
-        assert!(!App::is_ready(storage.latest_snapshot()).await);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn app_readiness_fails_on_corrupted_compliance_nv() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
-        state
-            .test_only_add_compliance_leaf(ComplianceLeaf::new(
-                Address::dummy(&mut rand::thread_rng()),
-                asset::Id(Fq::from(123u64)),
-            ))
-            .await?;
-        state
-            .test_only_register_asset(
-                asset::Id(Fq::from(456u64)),
-                AssetPolicy::simple(
-                    decaf377::Element::GENERATOR,
-                    u128::MAX,
-                    decaf377::Element::GENERATOR,
-                ),
-                true,
-            )
-            .await?;
-        storage.commit(state).await?;
-        assert!(App::is_ready(storage.latest_snapshot()).await);
-
-        let mut corrupt = StateDelta::new(storage.latest_snapshot());
-        delete_nv_prefix(
-            &mut corrupt,
-            shieldd_sdk_compliance::state_key::tree_storage::user_node_prefix().as_bytes(),
-        )
-        .await?;
-        storage.commit(corrupt).await?;
-
-        assert!(!App::is_ready(storage.latest_snapshot()).await);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn deferred_sct_log_reserves_contiguous_positions() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let snapshot = storage.latest_snapshot();
-        let mut log = BlockSctAppendLog::default();
-
-        let first = log
-            .reserve_positions(&snapshot, vec![rolled_up_payload(1), rolled_up_payload(2)])
-            .await?;
-        let second = log
-            .reserve_positions(&snapshot, vec![rolled_up_payload(3)])
-            .await?;
-
-        assert_eq!(first[0].0, tct::Position::from(0u64));
-        assert_eq!(first[1].0, tct::Position::from(1u64));
-        assert_eq!(second[0].0, tct::Position::from(2u64));
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn deferred_sct_log_materializes_into_tree_and_pending_payloads() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let mut app = App::new(storage.latest_snapshot());
-        let mut state_tx = StateDelta::new(app.state.clone());
-
-        app.pending_sct_append_log.append_positioned(vec![
-            (tct::Position::from(0u64), rolled_up_payload(10)),
-            (tct::Position::from(1u64), rolled_up_payload(11)),
-        ]);
-
-        app.materialize_pending_sct_append_log(&mut state_tx)
-            .await?;
-
-        let pending = state_tx.pending_rolled_up_payloads();
-        assert_eq!(pending.len(), 2);
-        assert_eq!(pending[0].0, tct::Position::from(0u64));
-        assert_eq!(pending[1].0, tct::Position::from(1u64));
-        assert_eq!(
-            state_tx.get_sct().await.position(),
-            Some(tct::Position::from(2u64))
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn deferred_sct_log_returns_error_on_position_drift() -> Result<()> {
-        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-        let mut app = App::new(storage.latest_snapshot());
-        let mut state_tx = StateDelta::new(app.state.clone());
-
-        state_tx
-            .add_sct_commitment(
-                tct::StateCommitment(Fq::from(99u64)),
-                CommitmentSource::transaction(),
-            )
-            .await?;
-        app.pending_sct_append_log
-            .append_positioned(vec![(tct::Position::from(0u64), rolled_up_payload(100))]);
-
-        let err = app
-            .materialize_pending_sct_append_log(&mut state_tx)
-            .await
-            .expect_err("position drift should return an explicit error");
-        assert!(err.to_string().contains("position drifted"));
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn checktx_no_index_does_not_record_tx_log_entries_on_app_fork() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(1).await?;
-        let tx_bytes = txs
-            .into_iter()
-            .next()
-            .expect("fixture should return one tx");
-
-        let mut app = App::new(storage.latest_snapshot());
-        app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
-        let cache = StatelessCache::new();
-        app.deliver_tx_bytes_v2(tx_bytes.as_slice(), Some(&cache))
-            .await?;
-
-        let height = app.state.get_block_height().await?;
-        let tx_log = app.state.transactions_by_height(height).await?;
-        assert!(
-            tx_log.transactions.is_empty(),
-            "checktx app fork should not stage tx-log entries in NoIndex mode"
-        );
-        assert!(
-            app.deferred_block_transactions.is_empty(),
-            "NoIndex mode should not accumulate deferred tx-log entries"
-        );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn deferred_batch_persists_full_tx_log_by_block_end() -> Result<()> {
-        let (storage, mut node, txs) = setup_test_txs(2).await?;
-        let expected_hashes = txs
-            .iter()
-            .map(|tx| hex::encode(sha2::Sha256::digest(tx.as_slice())))
-            .collect::<Vec<_>>();
-
-        node.block().with_data(txs).execute().await?;
-
-        let snapshot = storage.latest_snapshot();
-        let height = snapshot.get_block_height().await?;
-        let tx_log = snapshot.transactions_by_height(height).await?;
-        assert_eq!(tx_log.transactions.len(), 2);
-
-        let actual_hashes = tx_log
-            .transactions
-            .into_iter()
-            .map(Transaction::try_from)
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .map(|tx| hex::encode(sha2::Sha256::digest(tx.encode_to_vec().as_slice())))
-            .collect::<Vec<_>>();
-
-        assert_eq!(actual_hashes, expected_hashes);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn prepare_proposal_reuses_fully_verified_checktx_cache_entries() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(1).await?;
-        let tx_bytes = txs
-            .into_iter()
-            .next()
-            .expect("fixture should return one tx");
-        let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_slice()).into();
-        let cache = StatelessCache::new();
-
-        let mut mempool_app = App::new(storage.latest_snapshot());
-        mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
-        mempool_app
-            .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
-            .await?;
-
-        let extracted = match cache.get(&tx_hash, &tx_bytes) {
-            Some(CacheEntry::FullyVerified(artifact)) => artifact.extracted(),
-            _ => anyhow::bail!("expected fully verified cache entry after CheckTx"),
-        };
-        assert!(!extracted.proof_items.is_empty());
-        assert_eq!(
-            extracted
-                .historical_validation
-                .map(|stamp| stamp.snapshot_version),
-            Some(storage.latest_snapshot().version()),
-            "CheckTx should stamp the cache entry with the validated snapshot version"
-        );
-
-        let mut proposer = App::new(storage.latest_snapshot());
-        proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-        let proposal = request::PrepareProposal {
-            txs: vec![tx_bytes.clone().into()],
-            max_tx_bytes: 1024 * 1024,
-            local_last_commit: None,
-            misbehavior: Vec::new(),
-            height: block::Height::from(1u32),
-            time: Time::unix_epoch(),
-            next_validators_hash: Hash::None,
-            proposer_address: account::Id::new([0u8; 20]),
-        };
-
-        let (prepared, profile, _) = proposer
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
-            .await;
-        assert_eq!(
-            prepared.txs.len(),
-            2,
-            "proposal should include user tx plus aggregate bundle"
-        );
-        assert_eq!(
-            profile.historical_validation_reuse_count, 1,
-            "prepare_proposal should reuse the CheckTx historical validation on the same snapshot"
-        );
-
-        match cache.get(&tx_hash, &tx_bytes) {
-            Some(CacheEntry::FullyVerified(_)) => {}
-            _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
-        }
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn prepare_proposal_verifies_and_upgrades_extracted_cache_entry() -> Result<()> {
-        let (storage, _node, txs) = setup_test_txs(1).await?;
-        let tx_bytes = txs
-            .into_iter()
-            .next()
-            .expect("fixture should return one tx");
-        let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_slice()).into();
-        let cache = StatelessCache::new();
-
-        let tx = Arc::new(Transaction::decode_canonical(tx_bytes.as_slice())?);
-        let mut extracted = App::build_tx_artifacts_extracted_for_stage_public(
-            "test_extracted_seed",
-            std::slice::from_ref(&tx),
-        )
-        .await?;
-        let extracted = extracted
-            .pop()
-            .context("single extracted transaction artifact missing")?;
-        cache.insert_extracted(tx_bytes.as_slice(), extracted.clone())?;
-        assert!(!extracted.proof_items.is_empty());
-
-        let mut proposer = App::new(storage.latest_snapshot());
-        proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-        let proposal = request::PrepareProposal {
-            txs: vec![tx_bytes.clone().into()],
-            max_tx_bytes: 1024 * 1024,
-            local_last_commit: None,
-            misbehavior: Vec::new(),
-            height: block::Height::from(1u32),
-            time: Time::unix_epoch(),
-            next_validators_hash: Hash::None,
-            proposer_address: account::Id::new([0u8; 20]),
-        };
-
-        let (prepared, _profile, _) = proposer
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
-            .await;
-        assert_eq!(
-            prepared.txs.len(),
-            2,
-            "proposal should include the user transaction and aggregate bundle"
-        );
-
-        match cache.get(&tx_hash, tx_bytes.as_slice()) {
-            Some(CacheEntry::FullyVerified(_)) => {}
-            _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
-        }
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn prepare_proposal_does_not_reuse_stale_historical_validation_stamp() -> Result<()> {
-        let (storage, mut node, txs) = setup_test_txs(1).await?;
-        let tx_bytes = txs
-            .into_iter()
-            .next()
-            .expect("fixture should return one tx");
-        let cache = StatelessCache::new();
-
-        let mut mempool_app = App::new(storage.latest_snapshot());
-        mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
-        mempool_app
-            .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
-            .await?;
-
-        node.block().execute().await?;
-
-        let mut proposer = App::new(storage.latest_snapshot());
-        proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-        let proposal = request::PrepareProposal {
-            txs: vec![tx_bytes.into()],
-            max_tx_bytes: 1024 * 1024,
-            local_last_commit: None,
-            misbehavior: Vec::new(),
-            height: block::Height::from(2u32),
-            time: Time::unix_epoch(),
-            next_validators_hash: Hash::None,
-            proposer_address: account::Id::new([0u8; 20]),
-        };
-
-        let (prepared, profile, _) = proposer
-            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
-            .await;
-        assert_eq!(
-            prepared.txs.len(),
-            2,
-            "proposal should still include the user tx and aggregate bundle after re-validation"
-        );
-        assert_eq!(
-            profile.historical_validation_reuse_count, 0,
-            "prepare_proposal must re-run historical validation after the committed snapshot changes"
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn aggregate_bundle_size_estimate_is_monotonic() {
-        let chain_id = "shieldd-test";
-        let small = vec![
-            AggregateBundleFamilyEstimate {
-                family_id: ProofFamilyId::Transfer,
-                real_count: 8,
-                padded_count: 8,
-                aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-            },
-            AggregateBundleFamilyEstimate {
-                family_id: ProofFamilyId::NoteReshape(
-                    shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id,
-                ),
-                real_count: 8,
-                padded_count: 8,
-                aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-            },
-        ];
-        let large = vec![
-            AggregateBundleFamilyEstimate {
-                family_id: ProofFamilyId::Transfer,
-                real_count: 256,
-                padded_count: 256,
-                aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-            },
-            AggregateBundleFamilyEstimate {
-                family_id: ProofFamilyId::NoteReshape(
-                    shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id,
-                ),
-                real_count: 256,
-                padded_count: 256,
-                aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-            },
-        ];
-
-        let small_size = App::estimate_aggregate_bundle_tx_size_bytes(chain_id, &small);
-        let large_size = App::estimate_aggregate_bundle_tx_size_bytes(chain_id, &large);
-        assert!(
-            large_size >= small_size,
-            "larger family counts should not estimate a smaller bundle"
-        );
-    }
-
-    #[test]
-    fn selected_prefix_respects_reduced_target_size() {
-        let prefix_payload_bytes = vec![100_000, 250_000, 400_000, 550_000];
-        let bundle_bytes = 96_000usize;
-        let prefix_len = App::select_prefix_len_with_bundle_budget(
-            &prefix_payload_bytes,
-            600_000,
-            AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES,
-            bundle_bytes,
-        );
-
-        assert_eq!(prefix_len, 3);
-        assert!(
-            prefix_payload_bytes[prefix_len - 1] + bundle_bytes as u64
-                <= 600_000 - AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES
-        );
-    }
-
-    #[test]
-    fn fallback_prefix_drops_tail_after_exact_bundle_miss() {
-        let prefix_payload_bytes = vec![300_000, 600_000, 900_000];
-        let initial_prefix_len = App::select_prefix_len_with_bundle_budget(
-            &prefix_payload_bytes,
-            1_000_000,
-            AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES,
-            80_000,
-        );
-        assert_eq!(initial_prefix_len, 3);
-
-        let fallback_prefix_len = App::select_prefix_len_with_bundle_budget(
-            &prefix_payload_bytes,
-            1_000_000,
-            AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES,
-            140_000,
-        )
-        .min(initial_prefix_len.saturating_sub(1));
-
-        assert_eq!(fallback_prefix_len, 2);
-    }
-}
+mod tests;

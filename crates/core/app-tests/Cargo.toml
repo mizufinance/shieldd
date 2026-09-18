@@ -8,56 +8,28 @@ repository  = { workspace = true }
 license     = { workspace = true }
 description = "Tests for the Shieldd app"
 publish     = false
-# Disable auto-discovery so we can explicitly list tests
-autotests   = false
 
 [features]
 component = [
   "dep:cnidarium",
-  "dep:cnidarium-component",
   "shieldd-sdk-proto/cnidarium",
   "shieldd-sdk-compact-block/component",
-  "shieldd-sdk-fee/component",
-  "shieldd-sdk-ibc/component",
-  "shieldd-sdk-ibc/rpc",
   "shieldd-sdk-sct/component",
   "shieldd-sdk-shielded-pool/component",
   "dep:tonic",
-  "dep:tonic-reflection",
-  "dep:tonic-web"
-]
+  ]
 default = ["std", "component"]
-std     = ["ark-ff/std", "ibc-types/std"]
+std     = [ "ibc-types/std"]
 
 [dependencies]
 anyhow                           = { workspace = true }
-ark-ff                           = { workspace = true, default-features = false }
 async-trait                      = { workspace = true }
-base64                           = { workspace = true }
-bech32                           = { workspace = true }
-bincode                          = { workspace = true }
-bitvec                           = { workspace = true }
-blake2b_simd                     = { workspace = true }
-cfg-if                           = "1.0"
 cnidarium                        = { workspace = true, optional = true, features = ["migration", "rpc"], default-features = true }
-cnidarium-component              = { workspace = true, optional = true, default-features = true }
 decaf377                         = { workspace = true, default-features = true }
-decaf377-rdsa                    = { workspace = true }
-futures                          = { workspace = true }
-hex                              = { workspace = true }
-ibc-proto                        = { workspace = true, default-features = false, features = ["server"] }
 ibc-types                        = { workspace = true, default-features = false }
-ics23                            = { workspace = true }
-imbl                             = { workspace = true }
-jmt                              = { workspace = true }
-metrics                          = { workspace = true }
-once_cell                        = { workspace = true }
-parking_lot                      = { workspace = true }
 shieldd-sdk-asset               = { workspace = true, default-features = true }
 shieldd-sdk-app                 = { workspace = true, features = ["benchmark-helpers"], default-features = true }
 shieldd-sdk-compact-block           = { workspace = true, default-features = false }
-shieldd-sdk-fee                     = { workspace = true, default-features = false }
-shieldd-sdk-ibc                     = { workspace = true, features = ["benchmark-helpers"], default-features = false }
 shieldd-sdk-keys                    = { workspace = true, default-features = true }
 shieldd-sdk-num                     = { workspace = true, default-features = true }
 shieldd-sdk-compliance              = { workspace = true, default-features = false, features = ["test-helpers"] }
@@ -65,60 +37,20 @@ shieldd-sdk-proof-params            = { workspace = true, default-features = fal
 shieldd-sdk-proto                   = { workspace = true, default-features = true }
 shieldd-sdk-sct                     = { workspace = true, default-features = false }
 shieldd-sdk-shielded-pool           = { workspace = true, features = ["benchmark-helpers", "bundled-proving-keys"], default-features = false }
-shieldd-sdk-tct                     = { workspace = true, default-features = true }
 shieldd-sdk-test-subscriber         = { workspace = true }
-shieldd-sdk-tower-trace             = { workspace = true }
 shieldd-sdk-transaction             = { workspace = true, features = ["parallel"], default-features = true }
-shieldd-sdk-txhash                  = { workspace = true, default-features = true }
-prost                            = { workspace = true }
-rand_chacha                      = { workspace = true }
-regex                            = { workspace = true }
-serde                            = { workspace = true, features = ["derive"] }
-serde_json                       = { workspace = true }
-serde_unit_struct                = { workspace = true }
-serde_with                       = { workspace = true }
-sha2                             = { workspace = true }
-tempfile                         = { workspace = true }
 tendermint                       = { workspace = true }
-tendermint-light-client-verifier = { workspace = true }
-tendermint-proto                 = { workspace = true }
 tokio                            = { workspace = true, features = ["full", "tracing"] }
-tokio-util                       = { workspace = true }
 tonic                            = { workspace = true, optional = true }
-tonic-reflection                 = { workspace = true, optional = true }
-tonic-web                        = { workspace = true, optional = true }
-tower                            = { workspace = true, features = ["full"] }
-tower-abci                       = "0.11"
-tower-actor                      = "0.1.0"
-tower-service                    = { workspace = true }
 tracing                          = { workspace = true }
-url                              = { workspace = true }
 
 [dev-dependencies]
-axum-server                      = { workspace = true }
 camino                           = { workspace = true }
-ed25519-consensus                = { workspace = true }
 shieldd-sdk-mock-client             = { workspace = true }
-shieldd-sdk-mock-consensus          = { workspace = true }
-shieldd-sdk-proto                   = { workspace = true, features = ["box-grpc"] }
 shieldd-sdk-test-subscriber         = { workspace = true }
-shieldd-sdk-mock-tendermint-proxy   = { workspace = true }
 shieldd-sdk-view                    = { workspace = true }
-shieldd-sdk-wallet                  = { workspace = true }
-rand                             = { workspace = true }
-rand_chacha                      = { workspace = true }
 rand_core                        = { workspace = true }
 tap                              = { workspace = true }
-tempfile                         = { workspace = true }
-tendermint-config                = { workspace = true }
-tower-http                       = { workspace = true, features = ["cors"] }
-tracing-subscriber               = { workspace = true }
-url                              = { workspace = true }
-poseidon377                      = { workspace = true }
-ark-groth16                      = { workspace = true }
-ark-serialize                    = { workspace = true }
-ark-snark                        = { workspace = true }
-sha2                             = { workspace = true }
 
 # Enable the feature flags to get proving keys when running tests.
 [dev-dependencies.shieldd-sdk-proof-params]
@@ -126,47 +58,3 @@ workspace = true
 features = [
     "bundled-proving-keys",
 ]
-
-# Explicitly list tests to run. Tests not listed here are excluded.
-# Many tests need updates to use MockClient::witness_auth_build_with_compliance
-# for compliance anchor support. See CLAUDE.md for details.
-
-# Tests that don't use shielded input/output plans (no compliance anchor needed):
-[[test]]
-name = "app_blocktimes_increment"
-path = "tests/app_blocktimes_increment.rs"
-
-[[test]]
-name = "mock_consensus_can_send_a_sequence_of_empty_blocks"
-path = "tests/mock_consensus_can_send_a_sequence_of_empty_blocks.rs"
-
-# IBC proof verification test (uses IbcRelay action, not regulated):
-[[test]]
-name = "mock_consensus_block_proving"
-path = "tests/mock_consensus_block_proving.rs"
-
-# Tests updated to use compliance registration + witness_auth_build_with_compliance:
-# IBC transfer test with compliance setup:
-[[test]]
-name = "ics23_transfer"
-path = "tests/ics23_transfer.rs"
-
-[[test]]
-name = "ibc_vs_transfer_benchmark"
-path = "tests/ibc_vs_transfer_benchmark.rs"
-
-[[test]]
-name = "app_can_transfer_notes_and_detect_new_notes"
-path = "tests/app_can_transfer_notes_and_detect_new_notes.rs"
-
-[[test]]
-name = "compliance_diversifier_fix"
-path = "tests/compliance_diversifier_fix.rs"
-
-[[test]]
-name = "view_server_can_be_served_on_localhost"
-path = "tests/view_server_can_be_served_on_localhost.rs"
-
-[[test]]
-name = "app_can_sweep_a_collection_of_small_notes"
-path = "tests/app_can_sweep_a_collection_of_small_notes.rs"

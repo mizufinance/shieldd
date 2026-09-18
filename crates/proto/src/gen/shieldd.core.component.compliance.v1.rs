@@ -41,12 +41,24 @@ pub struct ComplianceLeaf {
     /// The asset ID this compliance leaf applies to.
     #[prost(message, optional, tag = "2")]
     pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-    /// Orbis scalar derived from the full canonical address bytes and verified at registration.
+    /// Ordinary-Orbis address capability for this asset's ring.
     #[prost(bytes = "vec", tag = "3")]
-    pub d: ::prost::alloc::vec::Vec<u8>,
+    pub capk: ::prost::alloc::vec::Vec<u8>,
+    /// Orbis ring public key evaluated on this address's diversified generator.
+    #[prost(bytes = "vec", tag = "4")]
+    pub rnk_dh_pk: ::prost::alloc::vec::Vec<u8>,
+    /// Poseidon commitment to the regulated nullifier key derivable by the wallet and daily_volume_limit Orbis.
+    #[prost(bytes = "vec", tag = "5")]
+    pub rnk_commitment: ::prost::alloc::vec::Vec<u8>,
     /// Current authorization state for this address and asset.
-    #[prost(enumeration = "UserAssetStatus", tag = "4")]
+    #[prost(enumeration = "UserAssetStatus", tag = "6")]
     pub status: i32,
+    /// Monotonic freeze generation. Zero until the first freeze.
+    #[prost(uint64, tag = "7")]
+    pub freeze_generation: u64,
+    /// Block height at which the current freeze generation began. Zero unless frozen or seized.
+    #[prost(uint64, tag = "8")]
+    pub frozen_since_height: u64,
 }
 impl ::prost::Name for ComplianceLeaf {
     const NAME: &'static str = "ComplianceLeaf";
@@ -70,9 +82,9 @@ pub struct MsgRegisterAsset {
     /// Issuer's detection key public (32 bytes, optional).
     #[prost(bytes = "vec", tag = "3")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Amount threshold for flagging (16 bytes, little-endian u128).
+    /// Daily undisclosed-volume limit (16-byte little-endian u128).
     #[prost(bytes = "vec", tag = "4")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     /// Direct IBC routes allowed for this regulated asset. Empty = IBC blocked.
     #[prost(message, repeated, tag = "5")]
     pub allowed_ibc_routes: ::prost::alloc::vec::Vec<IbcRoute>,
@@ -102,6 +114,11 @@ pub struct MsgRegisterAsset {
     /// External IBC origin for a regulated voucher asset, if any.
     #[prost(message, optional, tag = "13")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
+    /// Immutable authority key that authorizes note seizures for this asset.
+    #[prost(message, optional, tag = "14")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
 }
 impl ::prost::Name for MsgRegisterAsset {
     const NAME: &'static str = "MsgRegisterAsset";
@@ -123,7 +140,7 @@ pub struct AssetRegistrationGrantBody {
     #[prost(bytes = "vec", tag = "3")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "4")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, repeated, tag = "5")]
     pub allowed_ibc_routes: ::prost::alloc::vec::Vec<IbcRoute>,
     #[prost(bytes = "vec", tag = "6")]
@@ -144,6 +161,10 @@ pub struct AssetRegistrationGrantBody {
     pub valid_until_unix: u64,
     #[prost(message, optional, tag = "13")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
+    #[prost(message, optional, tag = "14")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
 }
 impl ::prost::Name for AssetRegistrationGrantBody {
     const NAME: &'static str = "AssetRegistrationGrantBody";
@@ -195,26 +216,6 @@ impl ::prost::Name for IbcAssetOrigin {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.IbcAssetOrigin".into()
-    }
-}
-/// Governance-controlled replacement of a regulated asset's IBC route policy.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpdateAssetIbcPolicy {
-    #[prost(message, optional, tag = "1")]
-    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-    #[prost(bytes = "vec", tag = "2")]
-    pub expected_route_policy_hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, repeated, tag = "3")]
-    pub allowed_ibc_routes: ::prost::alloc::vec::Vec<IbcRoute>,
-}
-impl ::prost::Name for UpdateAssetIbcPolicy {
-    const NAME: &'static str = "UpdateAssetIbcPolicy";
-    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compliance.v1.UpdateAssetIbcPolicy".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compliance.v1.UpdateAssetIbcPolicy".into()
     }
 }
 /// Chain-registrar authorization for an asset registration.
@@ -292,6 +293,9 @@ pub struct MsgRegisterUser {
     /// Grant authorizing this registration.
     #[prost(message, optional, tag = "2")]
     pub grant: ::core::option::Option<UserRegistrationGrant>,
+    /// Orbis daily_volume_limit certificate for the address-diversified ring public key.
+    #[prost(message, optional, tag = "3")]
+    pub capability_certificate: ::core::option::Option<OrbisCapabilityCertificate>,
 }
 impl ::prost::Name for MsgRegisterUser {
     const NAME: &'static str = "MsgRegisterUser";
@@ -301,6 +305,29 @@ impl ::prost::Name for MsgRegisterUser {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.MsgRegisterUser".into()
+    }
+}
+/// DailyVolumeLimit-Orbis attestation for an address-diversified ring public key.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OrbisCapabilityCertificate {
+    /// Chain on which this certificate may be used.
+    #[prost(string, tag = "1")]
+    pub chain_id: ::prost::alloc::string::String,
+    /// FROST group commitment R.
+    #[prost(bytes = "vec", tag = "2")]
+    pub r_point: ::prost::alloc::vec::Vec<u8>,
+    /// Canonical FROST response scalar z.
+    #[prost(bytes = "vec", tag = "3")]
+    pub response: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for OrbisCapabilityCertificate {
+    const NAME: &'static str = "OrbisCapabilityCertificate";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.OrbisCapabilityCertificate".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.OrbisCapabilityCertificate".into()
     }
 }
 /// A Merkle path in the Quad Merkle Tree (arity 4).
@@ -369,14 +396,16 @@ pub struct ComplianceAssetStatusResponse {
     #[prost(bool, tag = "3")]
     pub is_regulated: bool,
     /// Optional: Issuer's detection key public (32 bytes compressed point).
-    /// Present if the asset has a threshold policy.
+    /// Present if the asset has a daily volume policy.
     #[prost(bytes = "vec", tag = "4")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Amount threshold for flagging (16 bytes, little-endian u128).
-    /// Transfers at or above this amount are encrypted to issuer's DK instead of user's daily key.
+    /// Daily undisclosed-volume limit (16-byte little-endian u128).
+    /// Maximum accumulated undisclosed outgoing volume. A candidate above this
+    /// amount discloses only the current action to the issuer; equality remains
+    /// undisclosed. Compliance encryption uses per-action key material.
     /// u128::MAX means never flag.
     #[prost(bytes = "vec", tag = "5")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     /// Full asset policy for regulated assets.
     #[prost(message, optional, tag = "6")]
     pub asset_policy: ::core::option::Option<AssetPolicy>,
@@ -620,7 +649,7 @@ pub struct IndexedLeafData {
     #[prost(bytes = "vec", tag = "4")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "5")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "6")]
     pub route_policy_hash: ::prost::alloc::vec::Vec<u8>,
     /// Orbis-decided policy (RingData)
@@ -652,7 +681,7 @@ pub struct AssetPolicy {
     #[prost(bytes = "vec", tag = "1")]
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "2")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
+    pub daily_volume_limit: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, repeated, tag = "3")]
     pub allowed_ibc_routes: ::prost::alloc::vec::Vec<IbcRoute>,
     /// RingData
@@ -672,6 +701,10 @@ pub struct AssetPolicy {
     >,
     #[prost(message, optional, tag = "10")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
+    #[prost(message, optional, tag = "11")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
 }
 impl ::prost::Name for AssetPolicy {
     const NAME: &'static str = "AssetPolicy";
@@ -694,6 +727,9 @@ pub struct GenesisContent {
     >,
     #[prost(message, optional, tag = "3")]
     pub compliance_params: ::core::option::Option<ComplianceParameters>,
+    /// Active users that must exist before regulated genesis allocations are minted.
+    #[prost(message, repeated, tag = "4")]
+    pub user_registrations: ::prost::alloc::vec::Vec<GenesisUserRegistration>,
 }
 impl ::prost::Name for GenesisContent {
     const NAME: &'static str = "GenesisContent";
@@ -703,6 +739,24 @@ impl ::prost::Name for GenesisContent {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.GenesisContent".into()
+    }
+}
+/// Certified active user installed at genesis.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GenesisUserRegistration {
+    #[prost(message, optional, tag = "1")]
+    pub leaf: ::core::option::Option<ComplianceLeaf>,
+    #[prost(message, optional, tag = "2")]
+    pub capability_certificate: ::core::option::Option<OrbisCapabilityCertificate>,
+}
+impl ::prost::Name for GenesisUserRegistration {
+    const NAME: &'static str = "GenesisUserRegistration";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.GenesisUserRegistration".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.GenesisUserRegistration".into()
     }
 }
 /// Native asset registration configured at genesis.
@@ -718,6 +772,20 @@ pub struct NativeAssetRegistration {
     pub registration_authority_vk: ::core::option::Option<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
     >,
+    #[prost(message, optional, tag = "5")]
+    pub seizure_authority_vk: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+    >,
+    #[prost(bytes = "vec", tag = "6")]
+    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "7")]
+    pub ring_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub policy_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub permission: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub resource: ::prost::alloc::string::String,
 }
 impl ::prost::Name for NativeAssetRegistration {
     const NAME: &'static str = "NativeAssetRegistration";
@@ -727,6 +795,25 @@ impl ::prost::Name for NativeAssetRegistration {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.NativeAssetRegistration".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DleqProof {
+    #[prost(bytes = "vec", tag = "1")]
+    pub commitment_g: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub commitment_h: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub response: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for DleqProof {
+    const NAME: &'static str = "DleqProof";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.DleqProof".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.DleqProof".into()
     }
 }
 /// Emitted when a user is registered in the compliance tree.
@@ -813,27 +900,6 @@ impl ::prost::Name for EventAssetRegistered {
         "/shieldd.core.component.compliance.v1.EventAssetRegistered".into()
     }
 }
-/// Compliance metadata embedded in ICS-20 transfer memo field.
-/// Carries the spend ciphertext so the issuer can track regulated assets across IBC.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct IbcComplianceMetadata {
-    /// The compliance ciphertext from the transfer-side input bundle.
-    #[prost(bytes = "vec", tag = "1")]
-    pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
-    /// The asset ID being transferred.
-    #[prost(message, optional, tag = "7")]
-    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-}
-impl ::prost::Name for IbcComplianceMetadata {
-    const NAME: &'static str = "IbcComplianceMetadata";
-    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compliance.v1.IbcComplianceMetadata".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compliance.v1.IbcComplianceMetadata".into()
-    }
-}
 /// Emitted at end of block with the current compliance tree roots.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EventComplianceAnchor {
@@ -864,6 +930,7 @@ pub enum UserAssetStatus {
     Unspecified = 0,
     Active = 1,
     Frozen = 2,
+    Seized = 3,
 }
 impl UserAssetStatus {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -875,6 +942,7 @@ impl UserAssetStatus {
             Self::Unspecified => "USER_ASSET_STATUS_UNSPECIFIED",
             Self::Active => "USER_ASSET_STATUS_ACTIVE",
             Self::Frozen => "USER_ASSET_STATUS_FROZEN",
+            Self::Seized => "USER_ASSET_STATUS_SEIZED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -883,672 +951,8 @@ impl UserAssetStatus {
             "USER_ASSET_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
             "USER_ASSET_STATUS_ACTIVE" => Some(Self::Active),
             "USER_ASSET_STATUS_FROZEN" => Some(Self::Frozen),
+            "USER_ASSET_STATUS_SEIZED" => Some(Self::Seized),
             _ => None,
         }
-    }
-}
-/// Generated client implementations.
-#[cfg(feature = "rpc")]
-pub mod query_service_client {
-    #![allow(
-        unused_variables,
-        dead_code,
-        missing_docs,
-        clippy::wildcard_imports,
-        clippy::let_unit_value,
-    )]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    #[derive(Debug, Clone)]
-    pub struct QueryServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
-    }
-    impl QueryServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> QueryServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> QueryServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
-        {
-            QueryServiceClient::new(InterceptedService::new(inner, interceptor))
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// Limits the maximum size of a decoded message.
-        ///
-        /// Default: `4MB`
-        #[must_use]
-        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_decoding_message_size(limit);
-            self
-        }
-        /// Limits the maximum size of an encoded message.
-        ///
-        /// Default: `usize::MAX`
-        #[must_use]
-        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_encoding_message_size(limit);
-            self
-        }
-        /// Query the regulation status of a specific asset.
-        pub async fn compliance_asset_status(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ComplianceAssetStatusRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceAssetStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceAssetStatus",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.compliance.v1.QueryService",
-                        "ComplianceAssetStatus",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Query the current compliance tree anchors (roots).
-        /// These are needed by clients to generate valid compliance proofs.
-        pub async fn compliance_anchors(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ComplianceAnchorsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceAnchorsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceAnchors",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.compliance.v1.QueryService",
-                        "ComplianceAnchors",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Query the Merkle proofs needed for compliance ZK proofs.
-        /// Returns paths and positions for both user and asset trees.
-        pub async fn compliance_merkle_proofs(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ComplianceMerkleProofsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceMerkleProofsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceMerkleProofs",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.compliance.v1.QueryService",
-                        "ComplianceMerkleProofs",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Batch query for multiple (address, asset) pairs.
-        /// Returns all proofs in a single call, including anchors.
-        /// Use this for multi-spend transactions to avoid multiple round trips.
-        pub async fn compliance_batch_merkle_proofs(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ComplianceBatchMerkleProofsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceBatchMerkleProofsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceBatchMerkleProofs",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.compliance.v1.QueryService",
-                        "ComplianceBatchMerkleProofs",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Query a user's registered compliance leaf.
-        /// Returns the full leaf (including ACK) that was registered on-chain.
-        pub async fn compliance_user_leaf(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ComplianceUserLeafRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceUserLeafResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceUserLeaf",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.compliance.v1.QueryService",
-                        "ComplianceUserLeaf",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-    }
-}
-/// Generated server implementations.
-#[cfg(feature = "rpc")]
-pub mod query_service_server {
-    #![allow(
-        unused_variables,
-        dead_code,
-        missing_docs,
-        clippy::wildcard_imports,
-        clippy::let_unit_value,
-    )]
-    use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with QueryServiceServer.
-    #[async_trait]
-    pub trait QueryService: std::marker::Send + std::marker::Sync + 'static {
-        /// Query the regulation status of a specific asset.
-        async fn compliance_asset_status(
-            &self,
-            request: tonic::Request<super::ComplianceAssetStatusRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceAssetStatusResponse>,
-            tonic::Status,
-        >;
-        /// Query the current compliance tree anchors (roots).
-        /// These are needed by clients to generate valid compliance proofs.
-        async fn compliance_anchors(
-            &self,
-            request: tonic::Request<super::ComplianceAnchorsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceAnchorsResponse>,
-            tonic::Status,
-        >;
-        /// Query the Merkle proofs needed for compliance ZK proofs.
-        /// Returns paths and positions for both user and asset trees.
-        async fn compliance_merkle_proofs(
-            &self,
-            request: tonic::Request<super::ComplianceMerkleProofsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceMerkleProofsResponse>,
-            tonic::Status,
-        >;
-        /// Batch query for multiple (address, asset) pairs.
-        /// Returns all proofs in a single call, including anchors.
-        /// Use this for multi-spend transactions to avoid multiple round trips.
-        async fn compliance_batch_merkle_proofs(
-            &self,
-            request: tonic::Request<super::ComplianceBatchMerkleProofsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceBatchMerkleProofsResponse>,
-            tonic::Status,
-        >;
-        /// Query a user's registered compliance leaf.
-        /// Returns the full leaf (including ACK) that was registered on-chain.
-        async fn compliance_user_leaf(
-            &self,
-            request: tonic::Request<super::ComplianceUserLeafRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ComplianceUserLeafResponse>,
-            tonic::Status,
-        >;
-    }
-    #[derive(Debug)]
-    pub struct QueryServiceServer<T> {
-        inner: Arc<T>,
-        accept_compression_encodings: EnabledCompressionEncodings,
-        send_compression_encodings: EnabledCompressionEncodings,
-        max_decoding_message_size: Option<usize>,
-        max_encoding_message_size: Option<usize>,
-    }
-    impl<T> QueryServiceServer<T> {
-        pub fn new(inner: T) -> Self {
-            Self::from_arc(Arc::new(inner))
-        }
-        pub fn from_arc(inner: Arc<T>) -> Self {
-            Self {
-                inner,
-                accept_compression_encodings: Default::default(),
-                send_compression_encodings: Default::default(),
-                max_decoding_message_size: None,
-                max_encoding_message_size: None,
-            }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
-        where
-            F: tonic::service::Interceptor,
-        {
-            InterceptedService::new(Self::new(inner), interceptor)
-        }
-        /// Enable decompressing requests with the given encoding.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.accept_compression_encodings.enable(encoding);
-            self
-        }
-        /// Compress responses with the given encoding, if the client supports it.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.send_compression_encodings.enable(encoding);
-            self
-        }
-        /// Limits the maximum size of a decoded message.
-        ///
-        /// Default: `4MB`
-        #[must_use]
-        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
-            self.max_decoding_message_size = Some(limit);
-            self
-        }
-        /// Limits the maximum size of an encoded message.
-        ///
-        /// Default: `usize::MAX`
-        #[must_use]
-        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
-            self.max_encoding_message_size = Some(limit);
-            self
-        }
-    }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for QueryServiceServer<T>
-    where
-        T: QueryService,
-        B: Body + std::marker::Send + 'static,
-        B::Error: Into<StdError> + std::marker::Send + 'static,
-    {
-        type Response = http::Response<tonic::body::BoxBody>;
-        type Error = std::convert::Infallible;
-        type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<std::result::Result<(), Self::Error>> {
-            Poll::Ready(Ok(()))
-        }
-        fn call(&mut self, req: http::Request<B>) -> Self::Future {
-            match req.uri().path() {
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceAssetStatus" => {
-                    #[allow(non_camel_case_types)]
-                    struct ComplianceAssetStatusSvc<T: QueryService>(pub Arc<T>);
-                    impl<
-                        T: QueryService,
-                    > tonic::server::UnaryService<super::ComplianceAssetStatusRequest>
-                    for ComplianceAssetStatusSvc<T> {
-                        type Response = super::ComplianceAssetStatusResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::ComplianceAssetStatusRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as QueryService>::compliance_asset_status(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = ComplianceAssetStatusSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceAnchors" => {
-                    #[allow(non_camel_case_types)]
-                    struct ComplianceAnchorsSvc<T: QueryService>(pub Arc<T>);
-                    impl<
-                        T: QueryService,
-                    > tonic::server::UnaryService<super::ComplianceAnchorsRequest>
-                    for ComplianceAnchorsSvc<T> {
-                        type Response = super::ComplianceAnchorsResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::ComplianceAnchorsRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as QueryService>::compliance_anchors(&inner, request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = ComplianceAnchorsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceMerkleProofs" => {
-                    #[allow(non_camel_case_types)]
-                    struct ComplianceMerkleProofsSvc<T: QueryService>(pub Arc<T>);
-                    impl<
-                        T: QueryService,
-                    > tonic::server::UnaryService<super::ComplianceMerkleProofsRequest>
-                    for ComplianceMerkleProofsSvc<T> {
-                        type Response = super::ComplianceMerkleProofsResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::ComplianceMerkleProofsRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as QueryService>::compliance_merkle_proofs(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = ComplianceMerkleProofsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceBatchMerkleProofs" => {
-                    #[allow(non_camel_case_types)]
-                    struct ComplianceBatchMerkleProofsSvc<T: QueryService>(pub Arc<T>);
-                    impl<
-                        T: QueryService,
-                    > tonic::server::UnaryService<
-                        super::ComplianceBatchMerkleProofsRequest,
-                    > for ComplianceBatchMerkleProofsSvc<T> {
-                        type Response = super::ComplianceBatchMerkleProofsResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<
-                                super::ComplianceBatchMerkleProofsRequest,
-                            >,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as QueryService>::compliance_batch_merkle_proofs(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = ComplianceBatchMerkleProofsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/shieldd.core.component.compliance.v1.QueryService/ComplianceUserLeaf" => {
-                    #[allow(non_camel_case_types)]
-                    struct ComplianceUserLeafSvc<T: QueryService>(pub Arc<T>);
-                    impl<
-                        T: QueryService,
-                    > tonic::server::UnaryService<super::ComplianceUserLeafRequest>
-                    for ComplianceUserLeafSvc<T> {
-                        type Response = super::ComplianceUserLeafResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::ComplianceUserLeafRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as QueryService>::compliance_user_leaf(&inner, request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = ComplianceUserLeafSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                _ => {
-                    Box::pin(async move {
-                        let mut response = http::Response::new(empty_body());
-                        let headers = response.headers_mut();
-                        headers
-                            .insert(
-                                tonic::Status::GRPC_STATUS,
-                                (tonic::Code::Unimplemented as i32).into(),
-                            );
-                        headers
-                            .insert(
-                                http::header::CONTENT_TYPE,
-                                tonic::metadata::GRPC_CONTENT_TYPE,
-                            );
-                        Ok(response)
-                    })
-                }
-            }
-        }
-    }
-    impl<T> Clone for QueryServiceServer<T> {
-        fn clone(&self) -> Self {
-            let inner = self.inner.clone();
-            Self {
-                inner,
-                accept_compression_encodings: self.accept_compression_encodings,
-                send_compression_encodings: self.send_compression_encodings,
-                max_decoding_message_size: self.max_decoding_message_size,
-                max_encoding_message_size: self.max_encoding_message_size,
-            }
-        }
-    }
-    /// Generated gRPC service name
-    pub const SERVICE_NAME: &str = "shieldd.core.component.compliance.v1.QueryService";
-    impl<T> tonic::server::NamedService for QueryServiceServer<T> {
-        const NAME: &'static str = SERVICE_NAME;
     }
 }

@@ -138,6 +138,9 @@ pub struct Note {
     pub rseed: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
     pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
+    /// Commitment to the recovery capsule that can spend this exact note under seizure.
+    #[prost(bytes = "vec", tag = "4")]
+    pub recovery_commitment: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for Note {
     const NAME: &'static str = "Note";
@@ -157,6 +160,8 @@ pub struct NoteView {
     pub rseed: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
     pub address: ::core::option::Option<super::super::super::keys::v1::AddressView>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub recovery_commitment: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for NoteView {
     const NAME: &'static str = "NoteView";
@@ -169,7 +174,8 @@ impl ::prost::Name for NoteView {
     }
 }
 /// An encrypted note.
-/// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+/// 176 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed)
+/// + 32(recovery commitment) + 16(MAC) bytes.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteCiphertext {
     #[prost(bytes = "vec", tag = "1")]
@@ -185,6 +191,23 @@ impl ::prost::Name for NoteCiphertext {
         "/shieldd.core.component.shielded_pool.v1.NoteCiphertext".into()
     }
 }
+/// Fixed-shape capability ciphertext for amount and note blinding.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecoveryCapsule {
+    /// Canonical 192-byte encoding of epk and five Fq words.
+    #[prost(bytes = "vec", tag = "1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for RecoveryCapsule {
+    const NAME: &'static str = "RecoveryCapsule";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.RecoveryCapsule".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.RecoveryCapsule".into()
+    }
+}
 /// The body of an output description, including only the minimal
 /// data required to scan and process the output.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -198,9 +221,12 @@ pub struct NotePayload {
     #[prost(bytes = "vec", tag = "2")]
     pub ephemeral_key: ::prost::alloc::vec::Vec<u8>,
     /// An encryption of the newly created note.
-    /// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+    /// 176-byte authenticated encryption of the newly created note.
     #[prost(message, optional, tag = "3")]
     pub encrypted_note: ::core::option::Option<NoteCiphertext>,
+    /// Public recovery sidecar authenticated by note_commitment.
+    #[prost(message, optional, tag = "4")]
+    pub recovery_capsule: ::core::option::Option<RecoveryCapsule>,
 }
 impl ::prost::Name for NotePayload {
     const NAME: &'static str = "NotePayload";
@@ -244,20 +270,179 @@ impl ::prost::Name for ZkNoteReshapeProof {
         "/shieldd.core.component.shielded_pool.v1.ZKNoteReshapeProof".into()
     }
 }
-/// A Shieldd ZK shielded ICS-20 withdrawal proof.
+/// A Shieldd ZK shielded withdrawal proof.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ZkShieldedIcs20WithdrawalProof {
+pub struct ZkShieldedWithdrawalProof {
     #[prost(bytes = "vec", tag = "1")]
     pub inner: ::prost::alloc::vec::Vec<u8>,
 }
-impl ::prost::Name for ZkShieldedIcs20WithdrawalProof {
-    const NAME: &'static str = "ZKShieldedIcs20WithdrawalProof";
+impl ::prost::Name for ZkShieldedWithdrawalProof {
+    const NAME: &'static str = "ZKShieldedWithdrawalProof";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ZKShieldedIcs20WithdrawalProof".into()
+        "shieldd.core.component.shielded_pool.v1.ZKShieldedWithdrawalProof".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ZKShieldedIcs20WithdrawalProof".into()
+        "/shieldd.core.component.shielded_pool.v1.ZKShieldedWithdrawalProof".into()
+    }
+}
+/// A proof that one real note is consumed with its canonical compliance nullifier.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ZkNoteSeizureProof {
+    #[prost(bytes = "vec", tag = "1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for ZkNoteSeizureProof {
+    const NAME: &'static str = "ZKNoteSeizureProof";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.ZKNoteSeizureProof".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.ZKNoteSeizureProof".into()
+    }
+}
+/// Immutable facts signed by the asset's seizure authority.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoteSeizureAuthorizationBody {
+    #[prost(string, tag = "1")]
+    pub chain_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub note_commitment: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
+    #[prost(message, optional, tag = "4")]
+    pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
+    #[prost(message, optional, tag = "5")]
+    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
+    #[prost(message, optional, tag = "6")]
+    pub amount: ::core::option::Option<super::super::super::num::v1::Amount>,
+    #[prost(uint64, tag = "7")]
+    pub freeze_generation: u64,
+    #[prost(uint64, tag = "8")]
+    pub frozen_since_height: u64,
+    #[prost(message, optional, tag = "9")]
+    pub withdrawal: ::core::option::Option<HostWithdrawal>,
+    #[prost(uint64, tag = "11")]
+    pub expiry_height: u64,
+}
+impl ::prost::Name for NoteSeizureAuthorizationBody {
+    const NAME: &'static str = "NoteSeizureAuthorizationBody";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.NoteSeizureAuthorizationBody".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.NoteSeizureAuthorizationBody".into()
+    }
+}
+/// Canonical metadata for a future ACP-gated release of one recovery capsule.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CapsuleReleaseRequest {
+    #[prost(string, tag = "1")]
+    pub chain_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub ring_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub policy_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub permission: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub resource: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "6")]
+    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "7")]
+    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
+    #[prost(message, optional, tag = "8")]
+    pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
+    #[prost(bytes = "vec", tag = "9")]
+    pub capk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "10")]
+    pub note_commitment: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    #[prost(bytes = "vec", tag = "11")]
+    pub recovery_commitment: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "12")]
+    pub capsule_epk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "13")]
+    pub authority_instruction_commitment: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "14")]
+    pub expiry_height: u64,
+}
+impl ::prost::Name for CapsuleReleaseRequest {
+    const NAME: &'static str = "CapsuleReleaseRequest";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.CapsuleReleaseRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.CapsuleReleaseRequest".into()
+    }
+}
+/// A capsule-specific point and proof returned by a future Orbis release API.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CapsuleReleaseEvidence {
+    #[prost(bytes = "vec", tag = "1")]
+    pub release_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub recovered_point: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "3")]
+    pub proof: ::core::option::Option<super::super::compliance::v1::DleqProof>,
+}
+impl ::prost::Name for CapsuleReleaseEvidence {
+    const NAME: &'static str = "CapsuleReleaseEvidence";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.CapsuleReleaseEvidence".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.CapsuleReleaseEvidence".into()
+    }
+}
+/// Complete evidence needed to seize one note. It is submitted through the
+/// privileged host execution boundary rather than as a user transaction.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoteSeizure {
+    #[prost(message, optional, tag = "1")]
+    pub authorization: ::core::option::Option<NoteSeizureAuthorizationBody>,
+    #[prost(message, optional, tag = "2")]
+    pub authority_signature: ::core::option::Option<
+        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub anchor: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::MerkleRoot,
+    >,
+    #[prost(bool, tag = "4")]
+    pub history_required: bool,
+    #[prost(uint64, tag = "5")]
+    pub recent_position_floor: u64,
+    #[prost(message, optional, tag = "6")]
+    pub recovery_capsule: ::core::option::Option<RecoveryCapsule>,
+    #[prost(bytes = "vec", tag = "8")]
+    pub rnk_commitment: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "12")]
+    pub proof: ::core::option::Option<ZkNoteSeizureProof>,
+    #[prost(message, optional, tag = "13")]
+    pub nullifier_window: ::core::option::Option<super::super::sct::v1::NullifierWindow>,
+    #[prost(message, optional, tag = "14")]
+    pub historical_nullifier_proof: ::core::option::Option<
+        super::super::sct::v1::HistoricalNullifierProof,
+    >,
+    #[prost(message, optional, tag = "15")]
+    pub capsule_release: ::core::option::Option<CapsuleReleaseEvidence>,
+}
+impl ::prost::Name for NoteSeizure {
+    const NAME: &'static str = "NoteSeizure";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.NoteSeizure".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.NoteSeizure".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -304,7 +489,7 @@ pub struct TransferOutputBody {
     /// Compliance ciphertext encrypting created note details for the asset issuer.
     #[prost(bytes = "vec", tag = "4")]
     pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
-    /// Canonical 328-byte factored circuit metadata for the receiver output only.
+    /// Canonical 264-byte factored circuit metadata for the receiver output only.
     /// This field must never contain DH shared points or seed-opening material.
     #[prost(bytes = "vec", tag = "5")]
     pub compliance_metadata: ::prost::alloc::vec::Vec<u8>,
@@ -376,12 +561,18 @@ pub struct TransferBody {
     pub asset_anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
-    /// Fixed two-slot routing bundle; slot roles are private.
+    /// Fixed sender/receiver routing-tag bundle.
     #[prost(message, optional, tag = "7")]
     pub routing: ::core::option::Option<TransferRouting>,
     /// Poseidon identifier of the privately selected protocol parameter set.
     #[prost(bytes = "vec", tag = "8")]
     pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Fixed-shape daily undisclosed-volume accumulator payload.
+    #[prost(message, optional, tag = "9")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPayload>,
+    /// Public circuit context preventing fee funding from advancing an accumulator.
+    #[prost(enumeration = "TransferProofContext", tag = "10")]
+    pub proof_context: i32,
 }
 impl ::prost::Name for TransferBody {
     const NAME: &'static str = "TransferBody";
@@ -391,6 +582,68 @@ impl ::prost::Name for TransferBody {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.TransferBody".into()
+    }
+}
+/// Public transition material for one daily undisclosed-volume accumulator slot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VolumeAccumulatorPayload {
+    #[prost(message, optional, tag = "1")]
+    pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
+    #[prost(message, optional, tag = "2")]
+    pub commitment: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    /// OVK-encrypted fixed-width accumulator state (92-byte plaintext plus AEAD tag).
+    #[prost(bytes = "vec", tag = "3")]
+    pub encrypted_state: ::prost::alloc::vec::Vec<u8>,
+    /// UTC day start in Unix seconds. Used only to scope temporary nullifier storage.
+    #[prost(uint64, tag = "4")]
+    pub day_start: u64,
+}
+impl ::prost::Name for VolumeAccumulatorPayload {
+    const NAME: &'static str = "VolumeAccumulatorPayload";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPayload".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPayload".into()
+    }
+}
+/// Private planning state for the fixed accumulator slot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VolumeAccumulatorPlan {
+    #[prost(bool, tag = "1")]
+    pub use_real: bool,
+    #[prost(bool, tag = "2")]
+    pub starts_new_day: bool,
+    #[prost(uint64, tag = "3")]
+    pub day_start: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub subject: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub prior_volume: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub prior_blinding: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "7")]
+    pub prior_commitment: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    #[prost(uint64, tag = "8")]
+    pub prior_position: u64,
+    #[prost(bytes = "vec", tag = "9")]
+    pub successor_volume: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "10")]
+    pub successor_blinding: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for VolumeAccumulatorPlan {
+    const NAME: &'static str = "VolumeAccumulatorPlan";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPlan".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.VolumeAccumulatorPlan".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -470,6 +723,12 @@ pub struct TransferPlan {
     /// Protocol routing parameter set used to construct and prove the action.
     #[prost(message, optional, tag = "6")]
     pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
+    #[prost(message, optional, tag = "7")]
+    pub compliance: ::core::option::Option<TransferContext>,
+    #[prost(message, optional, tag = "8")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPlan>,
+    #[prost(enumeration = "TransferProofContext", tag = "9")]
+    pub proof_context: i32,
 }
 impl ::prost::Name for TransferPlan {
     const NAME: &'static str = "TransferPlan";
@@ -581,7 +840,7 @@ pub struct ShieldedHostWithdrawal {
     >,
     /// The proof that the withdrawal is well-formed.
     #[prost(message, optional, tag = "3")]
-    pub proof: ::core::option::Option<ZkShieldedIcs20WithdrawalProof>,
+    pub proof: ::core::option::Option<ZkShieldedWithdrawalProof>,
 }
 impl ::prost::Name for ShieldedHostWithdrawal {
     const NAME: &'static str = "ShieldedHostWithdrawal";
@@ -616,7 +875,7 @@ pub struct ShieldedHostWithdrawalBody {
     pub withdrawal: ::core::option::Option<HostWithdrawal>,
     /// The sender-owned change note or sender-owned zero-value dummy.
     #[prost(message, optional, tag = "6")]
-    pub change_output: ::core::option::Option<ShieldedIcs20WithdrawalChangeBody>,
+    pub change_output: ::core::option::Option<ShieldedWithdrawalChangeBody>,
     /// Target timestamp for compliance verification (Unix UTC seconds).
     #[prost(uint64, tag = "7")]
     pub target_timestamp: u64,
@@ -636,6 +895,11 @@ pub struct ShieldedHostWithdrawalBody {
     /// Poseidon identifier of the privately selected protocol parameter set.
     #[prost(bytes = "vec", tag = "11")]
     pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
+    /// Proof-bound encryption of the exact sender compliance address.
+    #[prost(bytes = "vec", tag = "12")]
+    pub withdrawal_compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "14")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPayload>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalBody {
     const NAME: &'static str = "ShieldedHostWithdrawalBody";
@@ -736,6 +1000,10 @@ pub struct ShieldedHostWithdrawalPlan {
     /// Protocol-wide routing parameters bound by the reused withdrawal proof.
     #[prost(message, optional, tag = "7")]
     pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
+    #[prost(message, optional, tag = "8")]
+    pub compliance: ::core::option::Option<WithdrawalContext>,
+    #[prost(message, optional, tag = "9")]
+    pub volume_accumulator: ::core::option::Option<VolumeAccumulatorPlan>,
 }
 impl ::prost::Name for ShieldedHostWithdrawalPlan {
     const NAME: &'static str = "ShieldedHostWithdrawalPlan";
@@ -748,7 +1016,7 @@ impl ::prost::Name for ShieldedHostWithdrawalPlan {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ShieldedIcs20WithdrawalChangeBody {
+pub struct ShieldedWithdrawalChangeBody {
     /// The minimal data required to scan and process the created change note.
     #[prost(message, optional, tag = "1")]
     pub note_payload: ::core::option::Option<NotePayload>,
@@ -759,195 +1027,14 @@ pub struct ShieldedIcs20WithdrawalChangeBody {
     #[prost(bytes = "vec", tag = "3")]
     pub ovk_wrapped_key: ::prost::alloc::vec::Vec<u8>,
 }
-impl ::prost::Name for ShieldedIcs20WithdrawalChangeBody {
-    const NAME: &'static str = "ShieldedIcs20WithdrawalChangeBody";
+impl ::prost::Name for ShieldedWithdrawalChangeBody {
+    const NAME: &'static str = "ShieldedWithdrawalChangeBody";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalChangeBody"
-            .into()
+        "shieldd.core.component.shielded_pool.v1.ShieldedWithdrawalChangeBody".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalChangeBody"
-            .into()
-    }
-}
-/// Withdraws shielded funds over ICS-20 while keeping shielded change in the same action.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ShieldedIcs20Withdrawal {
-    /// The effecting data of the withdrawal.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<ShieldedIcs20WithdrawalBody>,
-    /// The authorizing signatures for each consumed input.
-    #[prost(message, repeated, tag = "2")]
-    pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
-    >,
-    /// The proof that the withdrawal is well-formed.
-    #[prost(message, optional, tag = "3")]
-    pub proof: ::core::option::Option<ZkShieldedIcs20WithdrawalProof>,
-}
-impl ::prost::Name for ShieldedIcs20Withdrawal {
-    const NAME: &'static str = "ShieldedIcs20Withdrawal";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ShieldedIcs20Withdrawal".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ShieldedIcs20Withdrawal".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ShieldedIcs20WithdrawalBody {
-    /// The proving family this action uses.
-    #[prost(uint32, tag = "1")]
-    pub family_id: u32,
-    /// The state commitment tree anchor used during proof generation.
-    #[prost(message, optional, tag = "2")]
-    pub anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::MerkleRoot,
-    >,
-    /// A commitment to the net balance of the action.
-    #[prost(message, optional, tag = "3")]
-    pub balance_commitment: ::core::option::Option<
-        super::super::super::asset::v1::BalanceCommitment,
-    >,
-    /// The consumed notes.
-    #[prost(message, repeated, tag = "4")]
-    pub inputs: ::prost::alloc::vec::Vec<TransferInputBody>,
-    /// The embedded outbound ICS-20 withdrawal payload.
-    #[prost(message, optional, tag = "5")]
-    pub withdrawal: ::core::option::Option<super::super::ibc::v1::Ics20Withdrawal>,
-    /// The sender-owned change note or sender-owned zero-value dummy.
-    #[prost(message, optional, tag = "6")]
-    pub change_output: ::core::option::Option<ShieldedIcs20WithdrawalChangeBody>,
-    /// Target timestamp for compliance verification (Unix UTC seconds).
-    #[prost(uint64, tag = "7")]
-    pub target_timestamp: u64,
-    /// Compliance tree anchor (user tree root) used during proof generation.
-    #[prost(message, optional, tag = "8")]
-    pub compliance_anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    /// Asset tree anchor used during proof generation.
-    #[prost(message, optional, tag = "9")]
-    pub asset_anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    /// Sender routing tag, present even when the change output is dummy.
-    #[prost(message, optional, tag = "10")]
-    pub routing_tag: ::core::option::Option<RoutingTag>,
-    /// Poseidon identifier of the privately selected protocol parameter set.
-    #[prost(bytes = "vec", tag = "11")]
-    pub routing_parameter_set_id: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for ShieldedIcs20WithdrawalBody {
-    const NAME: &'static str = "ShieldedIcs20WithdrawalBody";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalBody".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalBody".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ShieldedIcs20WithdrawalView {
-    #[prost(
-        oneof = "shielded_ics20_withdrawal_view::ShieldedIcs20WithdrawalView",
-        tags = "1, 2"
-    )]
-    pub shielded_ics20_withdrawal_view: ::core::option::Option<
-        shielded_ics20_withdrawal_view::ShieldedIcs20WithdrawalView,
-    >,
-}
-/// Nested message and enum types in `ShieldedIcs20WithdrawalView`.
-pub mod shielded_ics20_withdrawal_view {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Visible {
-        #[prost(message, optional, tag = "1")]
-        pub withdrawal: ::core::option::Option<super::ShieldedIcs20Withdrawal>,
-        #[prost(message, repeated, tag = "2")]
-        pub spent_notes: ::prost::alloc::vec::Vec<super::NoteView>,
-        #[prost(message, optional, tag = "3")]
-        pub change_note: ::core::option::Option<super::NoteView>,
-        #[prost(message, optional, tag = "4")]
-        pub payload_key: ::core::option::Option<
-            super::super::super::super::keys::v1::PayloadKey,
-        >,
-    }
-    impl ::prost::Name for Visible {
-        const NAME: &'static str = "Visible";
-        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-        fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalView.Visible"
-                .into()
-        }
-        fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalView.Visible"
-                .into()
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Opaque {
-        #[prost(message, optional, tag = "1")]
-        pub withdrawal: ::core::option::Option<super::ShieldedIcs20Withdrawal>,
-    }
-    impl ::prost::Name for Opaque {
-        const NAME: &'static str = "Opaque";
-        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-        fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalView.Opaque"
-                .into()
-        }
-        fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalView.Opaque"
-                .into()
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum ShieldedIcs20WithdrawalView {
-        #[prost(message, tag = "1")]
-        Visible(Visible),
-        #[prost(message, tag = "2")]
-        Opaque(Opaque),
-    }
-}
-impl ::prost::Name for ShieldedIcs20WithdrawalView {
-    const NAME: &'static str = "ShieldedIcs20WithdrawalView";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalView".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalView".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ShieldedIcs20WithdrawalPlan {
-    /// The blinding factor to use for the net balance commitment.
-    #[prost(bytes = "vec", tag = "2")]
-    pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The shielded input plans fused into this withdrawal.
-    #[prost(message, repeated, tag = "4")]
-    pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
-    /// The sender-owned change output, if any.
-    #[prost(message, optional, tag = "5")]
-    pub change_output: ::core::option::Option<ShieldedOutputPlan>,
-    /// The embedded outbound ICS-20 withdrawal payload.
-    #[prost(message, optional, tag = "6")]
-    pub withdrawal: ::core::option::Option<super::super::ibc::v1::Ics20Withdrawal>,
-    /// Protocol routing parameter set used to construct and prove the action.
-    #[prost(message, optional, tag = "7")]
-    pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
-}
-impl ::prost::Name for ShieldedIcs20WithdrawalPlan {
-    const NAME: &'static str = "ShieldedIcs20WithdrawalPlan";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan".into()
+        "/shieldd.core.component.shielded_pool.v1.ShieldedWithdrawalChangeBody".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1152,6 +1239,8 @@ pub struct NoteReshapePlan {
     /// Protocol routing parameter set used to construct and prove the action.
     #[prost(message, optional, tag = "7")]
     pub routing_parameters: ::core::option::Option<DiscoveryParameters>,
+    #[prost(message, optional, tag = "8")]
+    pub compliance: ::core::option::Option<NoteReshapeContext>,
 }
 impl ::prost::Name for NoteReshapePlan {
     const NAME: &'static str = "NoteReshapePlan";
@@ -1199,64 +1288,14 @@ impl ::prost::Name for EventNoteCreated {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedInputPlan {
-    /// The plaintext note we plan to spend.
     #[prost(message, optional, tag = "1")]
     pub note: ::core::option::Option<Note>,
-    /// The position of the note we plan to spend.
     #[prost(uint64, tag = "2")]
     pub position: u64,
-    /// The randomizer to use for the spend.
     #[prost(bytes = "vec", tag = "3")]
     pub randomizer: ::prost::alloc::vec::Vec<u8>,
-    /// The blinding factor to use for the value commitment.
     #[prost(bytes = "vec", tag = "4")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// Target timestamp for compliance verification (Unix UTC seconds).
-    #[prost(uint64, tag = "7")]
-    pub target_timestamp: u64,
-    /// Whether the asset is regulated (requires compliance).
-    #[prost(bool, tag = "9")]
-    pub is_regulated: bool,
-    /// Compliance leaf for ZK proof (sender's registry entry).
-    #[prost(message, optional, tag = "10")]
-    pub compliance_leaf: ::core::option::Option<
-        super::super::compliance::v1::ComplianceLeaf,
-    >,
-    /// Shared transaction blinding nonce (same for spend and output in one transaction).
-    #[prost(bytes = "vec", tag = "14")]
-    pub tx_blinding_nonce: ::prost::alloc::vec::Vec<u8>,
-    /// The compliance anchor (user tree root) for proof generation.
-    #[prost(message, optional, tag = "15")]
-    pub compliance_anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    /// The asset anchor (asset tree root) for proof generation.
-    #[prost(message, optional, tag = "16")]
-    pub asset_anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    /// Compliance Merkle path for proving user is in the compliance registry.
-    #[prost(message, optional, tag = "17")]
-    pub compliance_path: ::core::option::Option<
-        super::super::compliance::v1::MerklePath,
-    >,
-    /// Position of the user's compliance leaf in the compliance tree.
-    #[prost(uint64, tag = "18")]
-    pub compliance_position: u64,
-    /// Asset Merkle path for proving asset is in the asset registry.
-    #[prost(message, optional, tag = "19")]
-    pub asset_path: ::core::option::Option<super::super::compliance::v1::MerklePath>,
-    /// Position of the asset in the asset registry tree.
-    #[prost(uint64, tag = "20")]
-    pub asset_position: u64,
-    /// Indexed leaf data for IMT proof verification (value, next_index, next_value).
-    #[prost(message, optional, tag = "21")]
-    pub asset_indexed_leaf: ::core::option::Option<
-        super::super::compliance::v1::IndexedLeafData,
-    >,
-    /// Full compliance asset policy for regulated assets.
-    #[prost(message, optional, tag = "30")]
-    pub asset_policy: ::core::option::Option<super::super::compliance::v1::AssetPolicy>,
 }
 impl ::prost::Name for ShieldedInputPlan {
     const NAME: &'static str = "ShieldedInputPlan";
@@ -1270,64 +1309,14 @@ impl ::prost::Name for ShieldedInputPlan {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedOutputPlan {
-    /// The value to send to this output.
     #[prost(message, optional, tag = "1")]
     pub value: ::core::option::Option<super::super::super::asset::v1::Value>,
-    /// The destination address to send it to.
     #[prost(message, optional, tag = "2")]
     pub dest_address: ::core::option::Option<super::super::super::keys::v1::Address>,
-    /// The rseed to use for the new note.
     #[prost(bytes = "vec", tag = "3")]
     pub rseed: ::prost::alloc::vec::Vec<u8>,
-    /// The blinding factor to use for the value commitment.
     #[prost(bytes = "vec", tag = "4")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// Target timestamp for compliance verification (Unix UTC seconds).
-    #[prost(uint64, tag = "7")]
-    pub target_timestamp: u64,
-    /// Whether the asset is regulated (requires compliance).
-    #[prost(bool, tag = "9")]
-    pub is_regulated: bool,
-    /// Compliance leaf for ZK proof (recipient's registry entry).
-    #[prost(message, optional, tag = "10")]
-    pub compliance_leaf: ::core::option::Option<
-        super::super::compliance::v1::ComplianceLeaf,
-    >,
-    /// Shared transaction blinding nonce (same for spend and output in one transaction).
-    #[prost(bytes = "vec", tag = "14")]
-    pub tx_blinding_nonce: ::prost::alloc::vec::Vec<u8>,
-    /// The compliance anchor (user tree root) for proof generation.
-    #[prost(message, optional, tag = "15")]
-    pub compliance_anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    /// The asset anchor (asset tree root) for proof generation.
-    #[prost(message, optional, tag = "16")]
-    pub asset_anchor: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    /// Compliance Merkle path for proving user is in the compliance registry.
-    #[prost(message, optional, tag = "17")]
-    pub compliance_path: ::core::option::Option<
-        super::super::compliance::v1::MerklePath,
-    >,
-    /// Position of the user's compliance leaf in the compliance tree.
-    #[prost(uint64, tag = "18")]
-    pub compliance_position: u64,
-    /// Asset Merkle path for proving asset is in the asset registry.
-    #[prost(message, optional, tag = "19")]
-    pub asset_path: ::core::option::Option<super::super::compliance::v1::MerklePath>,
-    /// Position of the asset in the asset registry tree.
-    #[prost(uint64, tag = "20")]
-    pub asset_position: u64,
-    /// Indexed leaf data for IMT proof verification (value, next_index, next_value).
-    #[prost(message, optional, tag = "21")]
-    pub asset_indexed_leaf: ::core::option::Option<
-        super::super::compliance::v1::IndexedLeafData,
-    >,
-    /// Full compliance asset policy for regulated assets.
-    #[prost(message, optional, tag = "39")]
-    pub asset_policy: ::core::option::Option<super::super::compliance::v1::AssetPolicy>,
 }
 impl ::prost::Name for ShieldedOutputPlan {
     const NAME: &'static str = "ShieldedOutputPlan";
@@ -1408,566 +1397,158 @@ impl ::prost::Name for AssetMetadataByIdsResponse {
         "/shieldd.core.component.shielded_pool.v1.AssetMetadataByIdsResponse".into()
     }
 }
-/// Metadata about the packet associated with the transfer.
-///
-/// This allows identifying which specific packet is associated with the transfer.
-/// Implicitly, both ports are going to be "transfer".
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FungibleTokenTransferPacketMetadata {
-    /// The identifier for the channel on *this* chain.
-    #[prost(string, tag = "1")]
-    pub channel: ::prost::alloc::string::String,
-    /// Sequence number for the packet.
-    #[prost(uint64, tag = "2")]
-    pub sequence: u64,
-}
-impl ::prost::Name for FungibleTokenTransferPacketMetadata {
-    const NAME: &'static str = "FungibleTokenTransferPacketMetadata";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.FungibleTokenTransferPacketMetadata"
-            .into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.FungibleTokenTransferPacketMetadata"
-            .into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventOutboundFungibleTokenTransfer {
-    /// The value being transferred out of the chain.
+pub struct AssetWitness {
     #[prost(message, optional, tag = "1")]
-    pub value: ::core::option::Option<super::super::super::asset::v1::Value>,
-    /// The sending address on chain.
+    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
     #[prost(message, optional, tag = "2")]
-    pub sender: ::core::option::Option<super::super::super::keys::v1::Address>,
-    /// The receiving address, which we don't assume anything about.
-    #[prost(string, tag = "3")]
-    pub receiver: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub meta: ::core::option::Option<FungibleTokenTransferPacketMetadata>,
-}
-impl ::prost::Name for EventOutboundFungibleTokenTransfer {
-    const NAME: &'static str = "EventOutboundFungibleTokenTransfer";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenTransfer"
-            .into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenTransfer"
-            .into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventOutboundFungibleTokenRefund {
-    /// The value being refunded.
-    #[prost(message, optional, tag = "1")]
-    pub value: ::core::option::Option<super::super::super::asset::v1::Value>,
-    /// The sender being refunded.
-    #[prost(message, optional, tag = "2")]
-    pub sender: ::core::option::Option<super::super::super::keys::v1::Address>,
-    /// The address that attempted to receive the funds.
-    #[prost(string, tag = "3")]
-    pub receiver: ::prost::alloc::string::String,
-    /// Why the refund is happening.
-    #[prost(enumeration = "event_outbound_fungible_token_refund::Reason", tag = "4")]
-    pub reason: i32,
-    /// This will be the metadata for the packet for the transfer being refunded.
-    ///
-    /// This allows linking a refund to the transfer.
-    #[prost(message, optional, tag = "5")]
-    pub meta: ::core::option::Option<FungibleTokenTransferPacketMetadata>,
-}
-/// Nested message and enum types in `EventOutboundFungibleTokenRefund`.
-pub mod event_outbound_fungible_token_refund {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum Reason {
-        /// No particular reason.
-        Unspecified = 0,
-        /// The transfer timed out.
-        Timeout = 1,
-        /// The transfer was acknowledged with an error.
-        Error = 2,
-    }
-    impl Reason {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "REASON_UNSPECIFIED",
-                Self::Timeout => "REASON_TIMEOUT",
-                Self::Error => "REASON_ERROR",
-            }
-        }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "REASON_UNSPECIFIED" => Some(Self::Unspecified),
-                "REASON_TIMEOUT" => Some(Self::Timeout),
-                "REASON_ERROR" => Some(Self::Error),
-                _ => None,
-            }
-        }
-    }
-}
-impl ::prost::Name for EventOutboundFungibleTokenRefund {
-    const NAME: &'static str = "EventOutboundFungibleTokenRefund";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenRefund".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.EventOutboundFungibleTokenRefund"
-            .into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventInboundFungibleTokenTransfer {
-    /// The value being transferred in.
-    #[prost(message, optional, tag = "1")]
-    pub value: ::core::option::Option<super::super::super::asset::v1::Value>,
-    /// The sender on the counterparty chain.
-    #[prost(string, tag = "2")]
-    pub sender: ::prost::alloc::string::String,
-    /// The receiver on this chain.
+    pub root: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
     #[prost(message, optional, tag = "3")]
-    pub receiver: ::core::option::Option<super::super::super::keys::v1::Address>,
-    #[prost(message, optional, tag = "4")]
-    pub meta: ::core::option::Option<FungibleTokenTransferPacketMetadata>,
+    pub leaf: ::core::option::Option<super::super::compliance::v1::IndexedLeafData>,
+    #[prost(uint64, tag = "4")]
+    pub position: u64,
+    #[prost(message, optional, tag = "5")]
+    pub path: ::core::option::Option<super::super::compliance::v1::MerklePath>,
+    #[prost(bool, tag = "6")]
+    pub is_regulated: bool,
 }
-impl ::prost::Name for EventInboundFungibleTokenTransfer {
-    const NAME: &'static str = "EventInboundFungibleTokenTransfer";
+impl ::prost::Name for AssetWitness {
+    const NAME: &'static str = "AssetWitness";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.EventInboundFungibleTokenTransfer"
-            .into()
+        "shieldd.core.component.shielded_pool.v1.AssetWitness".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.EventInboundFungibleTokenTransfer"
-            .into()
+        "/shieldd.core.component.shielded_pool.v1.AssetWitness".into()
     }
 }
-/// Generated client implementations.
-#[cfg(feature = "rpc")]
-pub mod query_service_client {
-    #![allow(
-        unused_variables,
-        dead_code,
-        missing_docs,
-        clippy::wildcard_imports,
-        clippy::let_unit_value,
-    )]
-    use tonic::codegen::*;
-    use tonic::codegen::http::Uri;
-    /// Query operations for the shielded pool component.
-    #[derive(Debug, Clone)]
-    pub struct QueryServiceClient<T> {
-        inner: tonic::client::Grpc<T>,
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UserWitness {
+    #[prost(message, optional, tag = "1")]
+    pub leaf: ::core::option::Option<super::super::compliance::v1::ComplianceLeaf>,
+    #[prost(uint64, tag = "2")]
+    pub position: u64,
+    #[prost(message, optional, tag = "3")]
+    pub path: ::core::option::Option<super::super::compliance::v1::MerklePath>,
+}
+impl ::prost::Name for UserWitness {
+    const NAME: &'static str = "UserWitness";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.UserWitness".into()
     }
-    impl QueryServiceClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> QueryServiceClient<T>
-    where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
-    {
-        pub fn new(inner: T) -> Self {
-            let inner = tonic::client::Grpc::new(inner);
-            Self { inner }
-        }
-        pub fn with_origin(inner: T, origin: Uri) -> Self {
-            let inner = tonic::client::Grpc::with_origin(inner, origin);
-            Self { inner }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> QueryServiceClient<InterceptedService<T, F>>
-        where
-            F: tonic::service::Interceptor,
-            T::ResponseBody: Default,
-            T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
-                >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
-        {
-            QueryServiceClient::new(InterceptedService::new(inner, interceptor))
-        }
-        /// Compress requests with the given encoding.
-        ///
-        /// This requires the server to support it otherwise it might respond with an
-        /// error.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.send_compressed(encoding);
-            self
-        }
-        /// Enable decompressing responses.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.inner = self.inner.accept_compressed(encoding);
-            self
-        }
-        /// Limits the maximum size of a decoded message.
-        ///
-        /// Default: `4MB`
-        #[must_use]
-        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_decoding_message_size(limit);
-            self
-        }
-        /// Limits the maximum size of an encoded message.
-        ///
-        /// Default: `usize::MAX`
-        #[must_use]
-        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
-            self.inner = self.inner.max_encoding_message_size(limit);
-            self
-        }
-        pub async fn asset_metadata_by_id(
-            &mut self,
-            request: impl tonic::IntoRequest<super::AssetMetadataByIdRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::AssetMetadataByIdResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.shielded_pool.v1.QueryService/AssetMetadataById",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.shielded_pool.v1.QueryService",
-                        "AssetMetadataById",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        /// Requests a stream of asset metadata, given an array of asset IDs. Responses
-        /// may be streamed in a different order from that of the asset IDs in the
-        /// request, and asset IDs unknown to the node will not receive any response
-        /// objects -- that is, the number of responses may be smaller than the length
-        /// of the asset IDs array.
-        pub async fn asset_metadata_by_ids(
-            &mut self,
-            request: impl tonic::IntoRequest<super::AssetMetadataByIdsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::AssetMetadataByIdsResponse>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.shielded_pool.v1.QueryService/AssetMetadataByIds",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.shielded_pool.v1.QueryService",
-                        "AssetMetadataByIds",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.UserWitness".into()
     }
 }
-/// Generated server implementations.
-#[cfg(feature = "rpc")]
-pub mod query_service_server {
-    #![allow(
-        unused_variables,
-        dead_code,
-        missing_docs,
-        clippy::wildcard_imports,
-        clippy::let_unit_value,
-    )]
-    use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with QueryServiceServer.
-    #[async_trait]
-    pub trait QueryService: std::marker::Send + std::marker::Sync + 'static {
-        async fn asset_metadata_by_id(
-            &self,
-            request: tonic::Request<super::AssetMetadataByIdRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::AssetMetadataByIdResponse>,
-            tonic::Status,
-        >;
-        /// Server streaming response type for the AssetMetadataByIds method.
-        type AssetMetadataByIdsStream: tonic::codegen::tokio_stream::Stream<
-                Item = std::result::Result<
-                    super::AssetMetadataByIdsResponse,
-                    tonic::Status,
-                >,
-            >
-            + std::marker::Send
-            + 'static;
-        /// Requests a stream of asset metadata, given an array of asset IDs. Responses
-        /// may be streamed in a different order from that of the asset IDs in the
-        /// request, and asset IDs unknown to the node will not receive any response
-        /// objects -- that is, the number of responses may be smaller than the length
-        /// of the asset IDs array.
-        async fn asset_metadata_by_ids(
-            &self,
-            request: tonic::Request<super::AssetMetadataByIdsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<Self::AssetMetadataByIdsStream>,
-            tonic::Status,
-        >;
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ActionWitness {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<AssetWitness>,
+    #[prost(message, optional, tag = "2")]
+    pub user_root: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::StateCommitment,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub sender: ::core::option::Option<UserWitness>,
+    #[prost(message, optional, tag = "4")]
+    pub policy: ::core::option::Option<super::super::compliance::v1::AssetPolicy>,
+}
+impl ::prost::Name for ActionWitness {
+    const NAME: &'static str = "ActionWitness";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.ActionWitness".into()
     }
-    /// Query operations for the shielded pool component.
-    #[derive(Debug)]
-    pub struct QueryServiceServer<T> {
-        inner: Arc<T>,
-        accept_compression_encodings: EnabledCompressionEncodings,
-        send_compression_encodings: EnabledCompressionEncodings,
-        max_decoding_message_size: Option<usize>,
-        max_encoding_message_size: Option<usize>,
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.ActionWitness".into()
     }
-    impl<T> QueryServiceServer<T> {
-        pub fn new(inner: T) -> Self {
-            Self::from_arc(Arc::new(inner))
-        }
-        pub fn from_arc(inner: Arc<T>) -> Self {
-            Self {
-                inner,
-                accept_compression_encodings: Default::default(),
-                send_compression_encodings: Default::default(),
-                max_decoding_message_size: None,
-                max_encoding_message_size: None,
-            }
-        }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
-        where
-            F: tonic::service::Interceptor,
-        {
-            InterceptedService::new(Self::new(inner), interceptor)
-        }
-        /// Enable decompressing requests with the given encoding.
-        #[must_use]
-        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.accept_compression_encodings.enable(encoding);
-            self
-        }
-        /// Compress responses with the given encoding, if the client supports it.
-        #[must_use]
-        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
-            self.send_compression_encodings.enable(encoding);
-            self
-        }
-        /// Limits the maximum size of a decoded message.
-        ///
-        /// Default: `4MB`
-        #[must_use]
-        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
-            self.max_decoding_message_size = Some(limit);
-            self
-        }
-        /// Limits the maximum size of an encoded message.
-        ///
-        /// Default: `usize::MAX`
-        #[must_use]
-        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
-            self.max_encoding_message_size = Some(limit);
-            self
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransferContext {
+    #[prost(message, optional, tag = "1")]
+    pub witness: ::core::option::Option<ActionWitness>,
+    #[prost(message, optional, tag = "2")]
+    pub recipient: ::core::option::Option<UserWitness>,
+    #[prost(uint64, tag = "4")]
+    pub timestamp: u64,
+    #[prost(bytes = "vec", tag = "5")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for TransferContext {
+    const NAME: &'static str = "TransferContext";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.TransferContext".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.TransferContext".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoteReshapeContext {
+    #[prost(message, optional, tag = "1")]
+    pub witness: ::core::option::Option<ActionWitness>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for NoteReshapeContext {
+    const NAME: &'static str = "NoteReshapeContext";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.NoteReshapeContext".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.NoteReshapeContext".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WithdrawalContext {
+    #[prost(message, optional, tag = "1")]
+    pub witness: ::core::option::Option<ActionWitness>,
+    #[prost(uint64, tag = "2")]
+    pub timestamp: u64,
+    #[prost(bytes = "vec", tag = "3")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for WithdrawalContext {
+    const NAME: &'static str = "WithdrawalContext";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.WithdrawalContext".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.WithdrawalContext".into()
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TransferProofContext {
+    Unspecified = 0,
+    Ordinary = 1,
+    FeeFunding = 2,
+}
+impl TransferProofContext {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TRANSFER_PROOF_CONTEXT_UNSPECIFIED",
+            Self::Ordinary => "TRANSFER_PROOF_CONTEXT_ORDINARY",
+            Self::FeeFunding => "TRANSFER_PROOF_CONTEXT_FEE_FUNDING",
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for QueryServiceServer<T>
-    where
-        T: QueryService,
-        B: Body + std::marker::Send + 'static,
-        B::Error: Into<StdError> + std::marker::Send + 'static,
-    {
-        type Response = http::Response<tonic::body::BoxBody>;
-        type Error = std::convert::Infallible;
-        type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<std::result::Result<(), Self::Error>> {
-            Poll::Ready(Ok(()))
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TRANSFER_PROOF_CONTEXT_UNSPECIFIED" => Some(Self::Unspecified),
+            "TRANSFER_PROOF_CONTEXT_ORDINARY" => Some(Self::Ordinary),
+            "TRANSFER_PROOF_CONTEXT_FEE_FUNDING" => Some(Self::FeeFunding),
+            _ => None,
         }
-        fn call(&mut self, req: http::Request<B>) -> Self::Future {
-            match req.uri().path() {
-                "/shieldd.core.component.shielded_pool.v1.QueryService/AssetMetadataById" => {
-                    #[allow(non_camel_case_types)]
-                    struct AssetMetadataByIdSvc<T: QueryService>(pub Arc<T>);
-                    impl<
-                        T: QueryService,
-                    > tonic::server::UnaryService<super::AssetMetadataByIdRequest>
-                    for AssetMetadataByIdSvc<T> {
-                        type Response = super::AssetMetadataByIdResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::AssetMetadataByIdRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as QueryService>::asset_metadata_by_id(&inner, request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = AssetMetadataByIdSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/shieldd.core.component.shielded_pool.v1.QueryService/AssetMetadataByIds" => {
-                    #[allow(non_camel_case_types)]
-                    struct AssetMetadataByIdsSvc<T: QueryService>(pub Arc<T>);
-                    impl<
-                        T: QueryService,
-                    > tonic::server::ServerStreamingService<
-                        super::AssetMetadataByIdsRequest,
-                    > for AssetMetadataByIdsSvc<T> {
-                        type Response = super::AssetMetadataByIdsResponse;
-                        type ResponseStream = T::AssetMetadataByIdsStream;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::ResponseStream>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::AssetMetadataByIdsRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as QueryService>::asset_metadata_by_ids(&inner, request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = AssetMetadataByIdsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.server_streaming(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                _ => {
-                    Box::pin(async move {
-                        let mut response = http::Response::new(empty_body());
-                        let headers = response.headers_mut();
-                        headers
-                            .insert(
-                                tonic::Status::GRPC_STATUS,
-                                (tonic::Code::Unimplemented as i32).into(),
-                            );
-                        headers
-                            .insert(
-                                http::header::CONTENT_TYPE,
-                                tonic::metadata::GRPC_CONTENT_TYPE,
-                            );
-                        Ok(response)
-                    })
-                }
-            }
-        }
-    }
-    impl<T> Clone for QueryServiceServer<T> {
-        fn clone(&self) -> Self {
-            let inner = self.inner.clone();
-            Self {
-                inner,
-                accept_compression_encodings: self.accept_compression_encodings,
-                send_compression_encodings: self.send_compression_encodings,
-                max_decoding_message_size: self.max_decoding_message_size,
-                max_encoding_message_size: self.max_encoding_message_size,
-            }
-        }
-    }
-    /// Generated gRPC service name
-    pub const SERVICE_NAME: &str = "shieldd.core.component.shielded_pool.v1.QueryService";
-    impl<T> tonic::server::NamedService for QueryServiceServer<T> {
-        const NAME: &'static str = SERVICE_NAME;
     }
 }

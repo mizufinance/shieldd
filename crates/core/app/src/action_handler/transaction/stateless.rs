@@ -8,10 +8,9 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
         .map(|action| match action {
             Action::Transfer(transfer) => transfer.body.outputs.len(),
             Action::NoteReshape(note_reshape) => note_reshape.body.outputs.len(),
-            Action::ShieldedIcs20Withdrawal(_) => 1,
+
             Action::ShieldedHostWithdrawal(_) => 1,
-            Action::IbcRelay(_)
-            | Action::ComplianceRegisterAsset(_)
+            Action::ComplianceRegisterAsset(_)
             | Action::ComplianceRegisterUser(_)
             | Action::AggregateBundle(_) => 0,
         })
@@ -111,6 +110,9 @@ mod tests {
                 asset_anchor: StateCommitment(decaf377::Fq::from(0u64)),
                 routing: Default::default(),
                 routing_parameter_set_id: Fq::from(0u64),
+                volume_accumulator:
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
+                proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
             },
             auth_sigs: Vec::new(),
             proof: TransferProof::default(),
@@ -203,6 +205,9 @@ mod tests {
                 asset_anchor: StateCommitment(Fq::from(0u64)),
                 routing: Default::default(),
                 routing_parameter_set_id: Fq::from(0u64),
+                volume_accumulator:
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
+                proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
             },
             auth_sigs: Vec::new(),
             proof: TransferProof::default(),

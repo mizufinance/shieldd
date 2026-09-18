@@ -2,12 +2,12 @@ use anyhow::Result;
 use ark_ff::Zero;
 use decaf377::Fr;
 use decaf377_rdsa as rdsa;
-#[cfg(all(feature = "parallel", any(unix, windows)))]
+#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
 use shieldd_sdk_keys::symmetric::PayloadKey;
-#[cfg(any(unix, windows))]
+#[cfg(all(feature = "prover", any(unix, windows)))]
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_txhash::{AuthorizingData, EffectingData};
-#[cfg(all(feature = "parallel", any(unix, windows)))]
+#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
 use tokio::sync::oneshot;
 
 use super::TransactionPlan;
@@ -176,47 +176,7 @@ impl TransactionPlan {
                         }
                     }
                 }
-                (
-                    ActionPlan::ShieldedIcs20Withdrawal(plan),
-                    Action::ShieldedIcs20Withdrawal(withdrawal),
-                ) => {
-                    plan.validate().map_err(|error| {
-                        anyhow::anyhow!(
-                            "invalid shielded ICS-20 withdrawal plan at action {action_index}: {error}"
-                        )
-                    })?;
-                    withdrawal.body.validate_shape().map_err(|error| {
-                        anyhow::anyhow!(
-                            "invalid shielded ICS-20 withdrawal shape at action {action_index}: {error}"
-                        )
-                    })?;
-                    anyhow::ensure!(
-                        plan.withdrawal.effect_hash() == withdrawal.body.withdrawal.effect_hash(),
-                        "shielded ICS-20 withdrawal payload at action {action_index} does not match plan"
-                    );
-                    anyhow::ensure!(
-                        withdrawal.auth_sigs.len()
-                            == withdrawal.body.family_id.auth_sig_count(),
-                        "shielded ICS-20 withdrawal action {action_index} expected {} authorization signature slots, got {}",
-                        withdrawal.body.family_id.auth_sig_count(),
-                        withdrawal.auth_sigs.len()
-                    );
-                    anyhow::ensure!(
-                        plan.spends.len() <= withdrawal.auth_sigs.len(),
-                        "shielded ICS-20 withdrawal action {action_index} has fewer authorization signature slots than real spends"
-                    );
-                    for (index, auth_sig) in withdrawal.auth_sigs.iter_mut().enumerate() {
-                        if index < plan.spends.len() {
-                            *auth_sig = spend_auths.next().ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "missing spend authorization for shielded ICS-20 withdrawal action {action_index} slot {index}"
-                                )
-                            })?;
-                        } else {
-                            *auth_sig = plan.synthetic_dummy_auth_sig(index, effect_hash.as_ref());
-                        }
-                    }
-                }
+
                 (
                     ActionPlan::ShieldedHostWithdrawal(plan),
                     Action::ShieldedHostWithdrawal(withdrawal),
@@ -259,10 +219,6 @@ impl TransactionPlan {
                         }
                     }
                 }
-                (ActionPlan::IbcAction(plan), Action::IbcRelay(action)) => anyhow::ensure!(
-                    plan.effect_hash() == action.effect_hash(),
-                    "IBC relay action {action_index} does not match plan"
-                ),
                 (
                     ActionPlan::ComplianceRegisterAsset(plan),
                     Action::ComplianceRegisterAsset(action),
@@ -346,13 +302,36 @@ impl TransactionPlan {
         Ok(transaction)
     }
 
-    #[cfg(any(unix, windows))]
+    #[cfg(all(feature = "prover", any(unix, windows)))]
+    fn initialize_provers(&self) -> Result<()> {
+        use shieldd_sdk_shielded_pool::gnark::{initialize_prover, ProverCapability};
+        for action in &self.actions {
+            match action {
+                ActionPlan::Transfer(_) => initialize_prover(ProverCapability::Transfer)?,
+                ActionPlan::NoteReshape(plan) => {
+                    initialize_prover(ProverCapability::NoteReshape(plan.family_id))?
+                }
+
+                ActionPlan::ShieldedHostWithdrawal(plan) => {
+                    initialize_prover(ProverCapability::Withdrawal(plan.family_id()))?
+                }
+                _ => {}
+            }
+        }
+        if self.fee_funding.is_some() {
+            initialize_prover(ProverCapability::Transfer)?;
+        }
+        Ok(())
+    }
+
+    #[cfg(all(feature = "prover", any(unix, windows)))]
     pub fn build(
         self,
         full_viewing_key: &FullViewingKey,
         witness_data: &WitnessData,
         auth_data: &AuthorizationData,
     ) -> Result<Transaction> {
+        self.initialize_provers()?;
         let recent_position_floor = self.recent_position_floor()?;
         let actions = self
             .actions
@@ -387,13 +366,14 @@ impl TransactionPlan {
         self.apply_auth_data(auth_data, tx)
     }
 
-    #[cfg(all(feature = "parallel", any(unix, windows)))]
+    #[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
     pub async fn build_concurrent(
         self,
         full_viewing_key: &FullViewingKey,
         witness_data: &WitnessData,
         auth_data: &AuthorizationData,
     ) -> Result<Transaction> {
+        self.initialize_provers()?;
         let recent_position_floor = self.recent_position_floor()?;
         let witness_data = std::sync::Arc::new(witness_data.clone());
 
@@ -446,6 +426,18 @@ impl TransactionPlan {
                 let (commitment, proof) = witness_note(spend)?;
                 state_commitment_proofs.insert(commitment, proof);
             }
+            let accumulator_commitment = match action {
+                ActionPlan::Transfer(plan) => plan.accumulator_prior_commitment(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.accumulator_prior_commitment(),
+
+                _ => None,
+            };
+            if let Some(commitment) = accumulator_commitment {
+                let proof = sct.witness(commitment).ok_or_else(|| {
+                    anyhow::anyhow!("volume accumulator commitment should exist in tree")
+                })?;
+                state_commitment_proofs.insert(commitment, proof);
+            }
         }
         if let Some(fee_funding) = &self.fee_funding {
             for spend in &fee_funding.transfer.spends {
@@ -462,7 +454,7 @@ impl TransactionPlan {
     }
 }
 
-#[cfg(all(feature = "parallel", any(unix, windows)))]
+#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
 struct ActionBuildScheduler {
     memo_key: Option<PayloadKey>,
     full_viewing_key: FullViewingKey,
@@ -470,7 +462,7 @@ struct ActionBuildScheduler {
     recent_position_floor: u64,
 }
 
-#[cfg(all(feature = "parallel", any(unix, windows)))]
+#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
 impl ActionBuildScheduler {
     fn new(
         memo_key: Option<PayloadKey>,
@@ -537,7 +529,7 @@ impl ActionBuildScheduler {
     }
 }
 
-#[cfg(all(feature = "parallel", any(unix, windows)))]
+#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
 enum PendingActionTask {
     Tokio(tokio::task::JoinHandle<Result<Action>>),
     Thread(oneshot::Receiver<Result<Action>>),

@@ -446,24 +446,22 @@ impl Unit {
 
     pub fn format_value(&self, value: Amount) -> String {
         let power_of_ten = Amount::from(10u128.pow(self.exponent().into()));
-        let v1 = value / power_of_ten;
-        let v2 = value % power_of_ten;
+        let integer = value / power_of_ten;
+        let fraction = value % power_of_ten;
 
-        // Pad `v2` to exponent digits.
-        let v2_str = format!(
+        // Pad the fractional component to exponent digits.
+        let fraction_string = format!(
             "{:0width$}",
-            u128::from(v2),
+            u128::from(fraction),
             width = self.exponent() as usize
         );
 
-        // For `v2`, there may be trailing zeros that should be stripped
-        // since they are after the decimal point.
-        let v2_stripped = v2_str.trim_end_matches('0');
+        let fraction_trimmed = fraction_string.trim_end_matches('0');
 
-        if v2 != Amount::zero() {
-            format!("{v1}.{v2_stripped}")
+        if fraction != Amount::zero() {
+            format!("{integer}.{fraction_trimmed}")
         } else {
-            format!("{v1}")
+            format!("{integer}")
         }
     }
 
@@ -478,27 +476,27 @@ impl Unit {
             // such that the rest of the logic is the same.
             let right = if split.len() > 1 { split[1] } else { "0" };
 
-            let v1 = left.parse::<u128>().map_err(|e| anyhow::anyhow!(e))?;
-            let mut v2 = right.parse::<u128>().map_err(|e| anyhow::anyhow!(e))?;
-            let v1_power_of_ten = 10u128.pow(self.exponent().into());
+            let integer = left.parse::<u128>().map_err(|e| anyhow::anyhow!(e))?;
+            let mut fraction = right.parse::<u128>().map_err(|e| anyhow::anyhow!(e))?;
+            let unit_scale = 10u128.pow(self.exponent().into());
 
-            if right.len() == (self.exponent() + 1) as usize && v2 == 0 {
-                // This stanza means that the value is the base unit. Simply return v1.
-                return Ok(v1.into());
+            if right.len() == (self.exponent() + 1) as usize && fraction == 0 {
+                // This stanza means that the value is the base unit.
+                return Ok(integer.into());
             } else if right.len() > self.exponent().into() {
                 anyhow::bail!("cannot represent this value");
             }
 
-            let v2_power_of_ten = 10u128.pow((self.exponent() - right.len() as u8).into());
-            v2 = v2
-                .checked_mul(v2_power_of_ten)
+            let fraction_scale = 10u128.pow((self.exponent() - right.len() as u8).into());
+            fraction = fraction
+                .checked_mul(fraction_scale)
                 .context("multiplication overflowed when applying right hand side exponent")?;
 
-            let v = v1
-                .checked_mul(v1_power_of_ten)
-                .and_then(|x| x.checked_add(v2));
+            let scaled = integer
+                .checked_mul(unit_scale)
+                .and_then(|value| value.checked_add(fraction));
 
-            if let Some(value) = v {
+            if let Some(value) = scaled {
                 Ok(value.into())
             } else {
                 anyhow::bail!("overflow!")
@@ -578,67 +576,17 @@ pub mod parse {
 mod ibc_transfer_path_tests {
     use crate::asset::denom_metadata::parse::ibc_transfer_path as p;
 
-    /// Noble USDC
-    /// transfer/channel-2/uusdc
     #[test]
-    fn single_hop_uusdc() {
-        let got = p("transfer/channel-2/uusdc");
-        assert_eq!(
-            got,
-            Some(("transfer/channel-2".to_string(), "uusdc".to_string()))
-        );
-    }
-
-    /// Beloved shitmos
-    /// transfer/channel-4/factory/osmo1q77cw0mmlluxu0wr29fcdd0tdnh78gzhkvhe4n6ulal9qvrtu43qtd0nh8/shitmos
-    #[test]
-    fn factory_shitmos() {
-        let got = p("transfer/channel-4/factory/osmo1q77cw0mmlluxu0wr29fcdd0tdnh78gzhkvhe4n6ulal9qvrtu43qtd0nh8/shitmos");
-        assert_eq!(
-            got,
-            Some((
-                "transfer/channel-4".to_string(),
-                "factory/osmo1q77cw0mmlluxu0wr29fcdd0tdnh78gzhkvhe4n6ulal9qvrtu43qtd0nh8/shitmos"
-                    .to_string()
-            ))
-        );
-    }
-
-    /// cw20:inj19vy83ne9tzta2yqynj8yg7dq9ghca6yqn9hyej  (NOT an IBC asset)
-    #[test]
-    fn cw20_filtered_out() {
-        let got = p("cw20:inj19vy83ne9tzta2yqynj8yg7dq9ghca6yqn9hyej");
-        assert_eq!(got, None);
-    }
-
-    /// Eureka asset
-    /// transfer/channel-0/transfer/08-wasm-1369/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
-    #[test]
-    fn multihop_wasm_evm_hex() {
-        let got = p(
-            "transfer/channel-0/transfer/08-wasm-1369/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-        );
-        assert_eq!(
-            got,
-            Some((
-                "transfer/channel-0/transfer/08-wasm-1369".to_string(),
-                "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string()
-            ))
-        );
-    }
-
-    /// Gamma pool
-    /// transfer/channel-4/gamm/pool/1402
-    #[test]
-    fn gamm_pool() {
-        let got = p("transfer/channel-4/gamm/pool/1402");
-        assert_eq!(
-            got,
-            Some((
-                "transfer/channel-4".to_string(),
-                "gamm/pool/1402".to_string()
-            ))
-        );
+    fn denom_traces() {
+        for (name, input, expected) in [
+            ("single_hop_uusdc", "transfer/channel-2/uusdc", Some(("transfer/channel-2", "uusdc"))),
+            ("factory_shitmos", "transfer/channel-4/factory/osmo1q77cw0mmlluxu0wr29fcdd0tdnh78gzhkvhe4n6ulal9qvrtu43qtd0nh8/shitmos", Some(("transfer/channel-4", "factory/osmo1q77cw0mmlluxu0wr29fcdd0tdnh78gzhkvhe4n6ulal9qvrtu43qtd0nh8/shitmos"))),
+            ("cw20_filtered_out", "cw20:inj19vy83ne9tzta2yqynj8yg7dq9ghca6yqn9hyej", None),
+            ("multihop_wasm_evm_hex", "transfer/channel-0/transfer/08-wasm-1369/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Some(("transfer/channel-0/transfer/08-wasm-1369", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"))),
+            ("gamm_pool", "transfer/channel-4/gamm/pool/1402", Some(("transfer/channel-4", "gamm/pool/1402"))),
+        ] {
+            assert_eq!(p(input), expected.map(|(path, denom)| (path.to_owned(), denom.to_owned())), "{name}");
+        }
     }
 }
 
@@ -685,11 +633,23 @@ mod tests {
           }
         "#;
 
-        let _metadata: super::Metadata = serde_json::from_str(SOME_COSMOS_JSON).unwrap();
-
-        // uncomment to see what our subset looks like
-        //let json2 = serde_json::to_string_pretty(&_metadata).unwrap();
-        //println!("{}", json2);
+        let metadata: super::Metadata = serde_json::from_str(SOME_COSMOS_JSON).unwrap();
+        let encoded = serde_json::to_value(&metadata).unwrap();
+        let original: serde_json::Value = serde_json::from_str(SOME_COSMOS_JSON).unwrap();
+        for field in ["base", "display", "name", "symbol", "description"] {
+            assert_eq!(encoded[field], original[field], "metadata field {field}");
+        }
+        let mut units = metadata
+            .units()
+            .into_iter()
+            .map(|unit| (unit.to_string(), unit.exponent()))
+            .collect::<Vec<_>>();
+        units.sort();
+        assert_eq!(
+            units,
+            vec![("adydx".to_owned(), 0), ("dydx".to_owned(), 18)]
+        );
+        assert_eq!(metadata.default_unit().to_string(), "dydx");
     }
 
     #[test]

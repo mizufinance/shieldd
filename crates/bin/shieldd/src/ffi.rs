@@ -39,6 +39,7 @@ const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
 const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
 const METHOD_QUERY_COMPACT_BLOCK_RANGE: u32 = 1_000_006;
+const METHOD_QUERY_NULLIFIER_WINDOW: u32 = 1_000_007;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Method {
@@ -61,6 +62,7 @@ enum Method {
     QueryComplianceUserLeaf,
     QueryKeyValue,
     QueryCompactBlockRange,
+    QueryNullifierWindow,
 }
 
 #[repr(C)]
@@ -187,6 +189,7 @@ impl TryFrom<u32> for Method {
             METHOD_QUERY_COMPLIANCE_USER_LEAF => Ok(Self::QueryComplianceUserLeaf),
             METHOD_QUERY_KEY_VALUE => Ok(Self::QueryKeyValue),
             METHOD_QUERY_COMPACT_BLOCK_RANGE => Ok(Self::QueryCompactBlockRange),
+            METHOD_QUERY_NULLIFIER_WINDOW => Ok(Self::QueryNullifierWindow),
             _ => Err(FfiError::invalid_argument(format!(
                 "unknown Shieldd method {method}"
             ))),
@@ -462,6 +465,11 @@ async fn dispatch(
                 .map_err(FfiError::service)?;
             encode_delimited(responses)
         }
+        Method::QueryNullifierWindow => service
+            .nullifier_window(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
     }
 }
 
@@ -502,10 +510,10 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::proto::v1::{KeyValueRequest, KeyValueResponse};
     use shieldd_sdk_app::genesis::{AppState, Content};
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_keys::test_keys::ADDRESS_0;
+    use shieldd_sdk_proto::cnidarium::v1::{KeyValueRequest, KeyValueResponse};
     use shieldd_sdk_proto::core::app::v1::{AppParametersRequest, AppParametersResponse};
     use shieldd_sdk_proto::core::component::compact_block::v1::{
         CompactBlockRangeRequest, CompactBlockRangeResponse,
@@ -515,7 +523,9 @@ mod tests {
         ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
         ComplianceBatchQuery, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
     };
-    use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
+    use shieldd_sdk_proto::core::component::sct::v1::{
+        ArchivedNullifierProofRequest, NullifierWindowRequest, NullifierWindowResponse,
+    };
     use shieldd_sdk_proto::core::component::shielded_pool::v1::{
         AssetMetadataByIdRequest, AssetMetadataByIdResponse,
     };
@@ -601,6 +611,7 @@ mod tests {
                 METHOD_QUERY_COMPACT_BLOCK_RANGE,
                 Method::QueryCompactBlockRange,
             ),
+            (METHOD_QUERY_NULLIFIER_WINDOW, Method::QueryNullifierWindow),
         ];
 
         for (id, method) in cases {
@@ -734,7 +745,7 @@ mod tests {
     }
 
     #[test]
-    fn historical_witness_call_requires_opt_in_storage() {
+    fn historical_witness_call_rejects_missing_nullifier() {
         let directory = tempfile::tempdir().expect("temporary database directory");
         let handle = open(directory.path());
         initialize(handle);
@@ -877,7 +888,6 @@ mod tests {
         assert_eq!(parameters.chain_id, "bankd-local");
         assert!(parameters.compliance_params.is_some());
         assert!(parameters.fee_params.is_some());
-        assert!(parameters.ibc_params.is_some());
         assert!(parameters.sct_params.is_some());
         assert!(parameters.shielded_pool_params.is_some());
         close(handle);
@@ -956,6 +966,20 @@ mod tests {
         );
         assert!(key_response.value.is_some());
         assert!(key_response.proof.is_none());
+
+        let nullifier_window: NullifierWindowResponse = call(
+            handle,
+            METHOD_QUERY_NULLIFIER_WINDOW,
+            NullifierWindowRequest {},
+        );
+        let window = nullifier_window
+            .window
+            .expect("initialized state contains a nullifier window");
+        assert_eq!(
+            window.protocol_version,
+            shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION
+        );
+        assert_eq!(window.current_generation, 0);
         close(handle);
     }
 

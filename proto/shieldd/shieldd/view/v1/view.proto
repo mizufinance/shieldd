@@ -5,7 +5,6 @@ package shieldd.view.v1;
 import "shieldd/core/app/v1/app.proto";
 import "shieldd/core/asset/v1/asset.proto";
 import "shieldd/core/component/fee/v1/fee.proto";
-import "shieldd/core/component/ibc/v1/ibc.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
 import "shieldd/core/keys/v1/keys.proto";
@@ -20,6 +19,7 @@ import "shieldd/core/component/compliance/v1/compliance.proto";
 // responsible for synchronizing and scanning the public chain state with one or
 // more full viewing keys.
 service ViewService {
+  rpc VolumeAccumulatorRecovery(VolumeAccumulatorRecoveryRequest) returns (VolumeAccumulatorRecoveryResponse);
   // Get current status of chain sync
   rpc Status(StatusRequest) returns (StatusResponse);
 
@@ -212,6 +212,7 @@ message BroadcastTransactionResponse {
 }
 
 message TransactionPlannerRequest {
+  reserved 60, 61;
   // The expiry height for the requested TransactionPlan
   uint64 expiry_height = 1;
 
@@ -223,8 +224,6 @@ message TransactionPlannerRequest {
 
   // Request contents
   repeated TransferOutput outputs = 20;
-  repeated shieldd.core.component.ibc.v1.IbcRelay ibc_relay_actions = 60;
-  repeated shieldd.core.component.ibc.v1.Ics20Withdrawal ics20_withdrawals = 61;
   repeated shieldd.core.component.shielded_pool.v1.HostWithdrawal host_withdrawals = 62;
 
   // Specifies either that the planner should compute fees automatically or that it should use a fixed fee amount.
@@ -240,6 +239,9 @@ message TransactionPlannerRequest {
 
   // The epoch of the transaction being planned.
   shieldd.core.component.sct.v1.Epoch epoch = 201;
+
+  // Voluntarily disclose outbound transfers instead of consuming the daily accumulator.
+  bool disclose_to_issuer = 202;
 
   // Request message subtypes
   message TransferOutput {
@@ -320,12 +322,12 @@ message StatusRequest {}
 
 // Returns the status of the view service and whether it is synchronized with the chain state.
 message StatusResponse {
-  // The height the view service has synchronized to so far when doing a full linear sync
-  uint64 full_sync_height = 1;
-  // The height the view service has synchronized to so far when doing a partial sync
-  uint64 partial_sync_height = 2;
+  // The height the view service has synchronized to so far
+  uint64 sync_height = 1;
   // Whether the view service is catching up with the chain state
   bool catching_up = 3;
+  // Consensus timestamp of the latest block known to the view service.
+  uint64 latest_block_timestamp = 4;
 }
 
 // Requests streaming updates on the sync height until the view service is synchronized.
@@ -335,10 +337,8 @@ message StatusStreamRequest {}
 message StatusStreamResponse {
   // The latest known block height
   uint64 latest_known_block_height = 1;
-  // The height the view service has synchronized to so far when doing a full linear sync
-  uint64 full_sync_height = 2;
-  // The height the view service has synchronized to so far when doing a partial sync
-  uint64 partial_sync_height = 3;
+  // The height the view service has synchronized to so far
+  uint64 sync_height = 2;
 }
 
 // A query for notes known by the view service.
@@ -428,10 +428,8 @@ message NullifierWindowResponse {
 message GasPricesRequest {}
 
 message GasPricesResponse {
-  // The current gas prices, in the preferred (native) token.
+  // The current base-asset gas prices.
   core.component.fee.v1.GasPrices gas_prices = 1;
-  // Other gas prices for other accepted tokens.
-  repeated core.component.fee.v1.GasPrices alt_gas_prices = 2;
 }
 
 // Requests the current note-discovery parameters from the view service.
@@ -554,8 +552,8 @@ message ComplianceAssetStatusResponse {
   bool is_regulated = 3;
   // Issuer's detection key public (32 bytes compressed point).
   bytes dk_pub = 4;
-  // Amount threshold for flagging (16 bytes, little-endian u128).
-  bytes threshold = 5;
+  // Daily undisclosed-volume limit (16-byte little-endian u128).
+  bytes daily_volume_limit = 5;
   // Full compliance asset policy for regulated assets.
   core.component.compliance.v1.AssetPolicy asset_policy = 6;
 }
@@ -648,4 +646,27 @@ message ComplianceBatchMerkleProofsResponse {
   bytes asset_anchor = 2;
   // Results for each query, in the same order as the request.
   repeated ComplianceMerkleProofsResponse results = 3;
+}
+
+message VolumeAccumulatorRecoveryRequest {
+  bytes subject = 1;
+  uint64 day_start = 2;
+}
+
+message VolumeAccumulatorRecoveryResponse {
+  message Complete {
+    bytes subject = 1;
+    uint64 day_start = 2;
+    bytes undisclosed_volume = 3;
+    bytes blinding = 4;
+    crypto.tct.v1.StateCommitment commitment = 5;
+    uint64 position = 6;
+  }
+  message Absent {}
+  message Incomplete {}
+  oneof outcome {
+    Absent absent = 1;
+    Complete complete = 2;
+    Incomplete incomplete = 3;
+  }
 }

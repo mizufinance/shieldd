@@ -14,29 +14,28 @@ use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
-    server::consensus::{Consensus, ConsensusService},
+    test_support::{TestHost, TEST_CHAIN_ID},
     APP_VERSION, SUBSTORE_PREFIXES,
 };
 use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
 use shieldd_sdk_compliance::{
-    genesis::NativeAssetRegistration, ComplianceLeaf, ComplianceRegistryWrite,
+    derive_regulated_nullifier_key,
+    genesis::{GenesisUserRegistration, NativeAssetRegistration},
+    structs::OrbisCapabilityCertificate,
+    ComplianceLeaf,
 };
 use shieldd_sdk_keys::test_keys;
 use shieldd_sdk_mock_client::MockClient;
-use shieldd_sdk_mock_consensus::TestNode;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_shielded_pool::{
-    genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
-};
+use shieldd_sdk_shielded_pool::{genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan};
 use shieldd_sdk_transaction::{
-    memo::MemoPlaintext, plan::MemoPlan, Transaction, TransactionParameters, TransactionPlan,
+    memo::MemoPlaintext, plan::MemoPlan, Transaction, TransactionParameters,
 };
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
-const POOL_SCHEMA_VERSION: u32 = 4;
-const POOL_TX_SHAPE: &str = "regulated-preconsensus-transfer-v4";
+const POOL_TX_SHAPE: &str = "regulated-preconsensus-transfer";
 const POOL_PROOF_FAMILY: &str = "transfer";
 const POOL_ACTION_SHAPE: &str = "one_spend_two_outputs_blank_memo";
 const POOL_REGULATED: bool = true;
@@ -50,7 +49,6 @@ pub struct ProofTxPool {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProofTxPoolMetadata {
-    pub schema_version: u32,
     pub created_at: u64,
     pub chain_id: String,
     pub tx_shape: String,
@@ -76,7 +74,7 @@ pub struct ProofTxPoolMetadata {
 
 pub async fn setup_proof_storage(
     n: usize,
-) -> anyhow::Result<(TempStorage, TestNode<ConsensusService>, Arc<MockClient>)> {
+) -> anyhow::Result<(TempStorage, TestHost, Arc<MockClient>)> {
     let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
 
     let allocations: Vec<Allocation> = std::iter::repeat(Allocation {
@@ -88,15 +86,56 @@ pub async fn setup_proof_storage(
     .collect();
 
     let authority_vk = VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
+    let native_asset = NativeAssetRegistration {
+        asset_id: *BASE_ASSET_ID,
+        is_regulated: true,
+        dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+        registration_authority_vk: Some(authority_vk),
+        seizure_authority_vk: Some(authority_vk),
+        ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+        ring_id: "test-ring".to_owned(),
+        policy_id: "test-policy".to_owned(),
+        permission: "read".to_owned(),
+        resource: "document".to_owned(),
+    };
+    let policy = native_asset.asset_policy()?;
+    let user_registrations = [
+        test_keys::ADDRESS_0.deref().clone(),
+        test_keys::ADDRESS_1.deref().clone(),
+    ]
+    .into_iter()
+    .map(|address| {
+        let rnk_dh_pk = address.diversified_generator().clone();
+        let rnk = derive_regulated_nullifier_key(
+            test_keys::FULL_VIEWING_KEY.incoming(),
+            &address,
+            *BASE_ASSET_ID,
+            decaf377::Element::GENERATOR,
+            rnk_dh_pk,
+        )?;
+        let leaf = ComplianceLeaf::registered_from_rnk(
+            address,
+            *BASE_ASSET_ID,
+            decaf377::Element::GENERATOR,
+            rnk_dh_pk,
+            rnk,
+        )?;
+        Ok(GenesisUserRegistration {
+            capability_certificate: OrbisCapabilityCertificate::sign_for_test(
+                TEST_CHAIN_ID,
+                &leaf,
+                &policy,
+                decaf377::Fr::from(1u64),
+            )?,
+            leaf,
+        })
+    })
+    .collect::<anyhow::Result<Vec<_>>>()?;
     let content = Content {
-        chain_id: TestNode::<()>::CHAIN_ID.to_string(),
+        chain_id: TEST_CHAIN_ID.to_string(),
         compliance_content: shieldd_sdk_compliance::genesis::Content {
-            native_assets: vec![NativeAssetRegistration {
-                asset_id: *BASE_ASSET_ID,
-                is_regulated: true,
-                dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
-                registration_authority_vk: Some(authority_vk),
-            }],
+            native_assets: vec![native_asset],
+            user_registrations,
             ..Default::default()
         },
         shielded_pool_content: shieldd_sdk_shielded_pool::genesis::Content {
@@ -105,30 +144,15 @@ pub async fn setup_proof_storage(
         },
         ..Default::default()
     };
-    let app_state_bytes = serde_json::to_vec(&AppState::Content(content))?;
-
-    let consensus = Consensus::new(storage.as_ref().clone());
     let initial_time = tendermint::Time::parse_from_rfc3339(SYNTHETIC_BENCHMARK_TIME_RFC3339)
         .context("parsing synthetic benchmark initial timestamp")?;
-    let mut test_node = TestNode::builder()
-        .single_validator()
-        .app_state(app_state_bytes)
-        .with_initial_timestamp(initial_time)
-        .init_chain(consensus)
-        .await?;
-
-    test_node.block().execute().await?;
-
-    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
-    for address in [
-        test_keys::ADDRESS_0.deref().clone(),
-        test_keys::ADDRESS_1.deref().clone(),
-    ] {
-        state
-            .test_only_add_compliance_leaf(ComplianceLeaf::new(address, *BASE_ASSET_ID))
-            .await?;
-    }
-    storage.commit(state).await?;
+    let mut test_node = TestHost::new(
+        storage.as_ref().clone(),
+        AppState::Content(content),
+        initial_time,
+    )
+    .await?;
+    test_node.execute(Vec::new()).await?;
 
     let client = Arc::new(
         MockClient::new(test_keys::SPEND_KEY.clone())
@@ -187,7 +211,7 @@ pub async fn build_proof_transactions(
             let spend = ShieldedInputPlan::new(&mut OsRng, note.clone(), position);
             let send_amount = Amount::from(1u64);
             let change_amount = note.amount() - send_amount;
-            let mut output = ShieldedOutputPlan::new(
+            let output = ShieldedOutputPlan::new(
                 &mut OsRng,
                 Value {
                     amount: send_amount,
@@ -195,7 +219,7 @@ pub async fn build_proof_transactions(
                 },
                 test_keys::ADDRESS_1.deref().clone(),
             );
-            let mut change = ShieldedOutputPlan::new(
+            let change = ShieldedOutputPlan::new(
                 &mut OsRng,
                 Value {
                     amount: change_amount,
@@ -203,24 +227,13 @@ pub async fn build_proof_transactions(
                 },
                 note.address(),
             );
-            for output in [&mut output, &mut change] {
-                output.asset_anchor = spend.asset_anchor;
-                output.compliance_anchor = spend.compliance_anchor;
-                output.target_timestamp = spend.target_timestamp;
-                output.is_regulated = spend.is_regulated;
-                output.tx_blinding_nonce = spend.tx_blinding_nonce;
-                output.asset_indexed_leaf = spend.asset_indexed_leaf.clone();
-                output.asset_path = spend.asset_path.clone();
-                output.asset_position = spend.asset_position;
-                output.asset_policy = spend.asset_policy.clone();
-            }
 
-            let mut plan = TransactionPlan {
-                actions: vec![TransferPlan::new(
-                    vec![spend.into()],
-                    vec![output.into(), change.into()],
-                    decaf377::Fr::from(1u64),
-                )?
+            let intent = shieldd_sdk_mock_client::TransactionIntent {
+                actions: vec![shieldd_sdk_mock_client::TransferIntent {
+                    spends: vec![spend.into()],
+                    outputs: vec![output.into(), change.into()],
+                    value_blinding: decaf377::Fr::from(1u64),
+                }
                 .into()],
                 fee_funding: None,
                 memo: Some(MemoPlan::new(
@@ -228,15 +241,14 @@ pub async fn build_proof_transactions(
                     MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
                 )),
                 transaction_parameters: TransactionParameters {
-                    chain_id: TestNode::<()>::CHAIN_ID.to_string(),
+                    chain_id: TEST_CHAIN_ID.to_string(),
                     ..Default::default()
                 },
                 nullifier_window: None,
             };
 
-            let tx = client
-                .witness_auth_build_with_compliance(&mut plan, snapshot)
-                .await?;
+            let plan = client.complete_intent(intent, snapshot).await?;
+            let tx = client.witness_auth_build(&plan).await?;
             Ok::<(usize, Vec<u8>), anyhow::Error>((ordinal, tx.encode_to_vec()))
         });
     }
@@ -329,9 +341,8 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
     let git_commit = git_commit();
     let git_tree_state = git_tree_state();
     let metadata = ProofTxPoolMetadata {
-        schema_version: POOL_SCHEMA_VERSION,
         created_at: unix_ts(),
-        chain_id: TestNode::<()>::CHAIN_ID.to_string(),
+        chain_id: TEST_CHAIN_ID.to_string(),
         tx_shape: POOL_TX_SHAPE.to_string(),
         tx_count: pool.txs.len(),
         shard_count,
@@ -362,12 +373,6 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
 
 pub fn load_proof_tx_pool(pool_dir: &Path) -> Result<(ProofTxPool, ProofTxPoolMetadata)> {
     let metadata = read_metadata(pool_dir)?;
-    anyhow::ensure!(
-        metadata.schema_version == POOL_SCHEMA_VERSION,
-        "unsupported proof pool schema_version={} expected={}",
-        metadata.schema_version,
-        POOL_SCHEMA_VERSION
-    );
     anyhow::ensure!(
         metadata.compatibility_fingerprint == compatibility_fingerprint(metadata.tx_count)?,
         "proof pool compatibility fingerprint mismatch"
@@ -480,8 +485,7 @@ fn validate_pool(txs: &[Arc<Vec<u8>>], expected_hashes: &[String]) -> Result<()>
 
 fn compatibility_fingerprint(tx_count: usize) -> Result<String> {
     let mut hasher = sha2::Sha256::new();
-    hasher.update(POOL_SCHEMA_VERSION.to_le_bytes());
-    hasher.update(TestNode::<()>::CHAIN_ID.as_bytes());
+    hasher.update(TEST_CHAIN_ID.as_bytes());
     hasher.update(POOL_TX_SHAPE.as_bytes());
     hasher.update(POOL_PROOF_FAMILY.as_bytes());
     hasher.update(POOL_ACTION_SHAPE.as_bytes());

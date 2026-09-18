@@ -3,28 +3,32 @@ use cnidarium::StateRead;
 use decaf377_rdsa::{Signature, SpendAuth};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
+use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_sct::component::source::SourceContext as _;
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, TransactionContext};
 
 use crate::{
-    component::action_handler::note_reshape, ShieldedIcs20WithdrawalChangeBody,
-    ShieldedIcs20WithdrawalChangePublic, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalProofPublic, TransferInputBody,
+    component::action_handler::note_reshape, ShieldedWithdrawalChangeBody,
+    ShieldedWithdrawalChangePublic, ShieldedWithdrawalFamilyId, ShieldedWithdrawalInputPublic,
+    ShieldedWithdrawalProofPublic, TransferInputBody,
 };
 
 pub(crate) struct ProofPublicData<'a> {
-    pub family_id: ShieldedIcs20WithdrawalFamilyId,
+    pub family_id: ShieldedWithdrawalFamilyId,
     pub balance_commitment: balance::Commitment,
     pub asset_anchor: tct::StateCommitment,
     pub compliance_anchor: tct::StateCommitment,
     pub target_timestamp: u64,
     pub inputs: &'a [TransferInputBody],
-    pub change_output: &'a ShieldedIcs20WithdrawalChangeBody,
+    pub change_output: &'a ShieldedWithdrawalChangeBody,
     pub outbound_value: Value,
     pub withdrawal_effect_hash: EffectHash,
     pub routing_tag: crate::discovery::RoutingTag,
     pub routing_parameter_set_id: decaf377::Fq,
+    pub withdrawal_compliance_ciphertext: &'a WithdrawalComplianceCiphertext,
+    pub volume_accumulator: &'a crate::VolumeAccumulatorPayload,
 }
 
 pub(crate) fn verify_auth_sigs(
@@ -39,7 +43,7 @@ pub(crate) fn verify_auth_sigs(
 pub(crate) fn extract_public(
     data: ProofPublicData<'_>,
     context: &TransactionContext,
-) -> Result<ShieldedIcs20WithdrawalProofPublic> {
+) -> Result<ShieldedWithdrawalProofPublic> {
     let (inputs, change_outputs) = note_reshape::extract_public_parts(
         data.inputs,
         std::slice::from_ref(data.change_output),
@@ -50,7 +54,7 @@ pub(crate) fn extract_public(
         .into_iter()
         .next()
         .expect("one change output was supplied");
-    let public = ShieldedIcs20WithdrawalProofPublic {
+    let public = ShieldedWithdrawalProofPublic {
         family_id: data.family_id,
         anchor: context.anchor,
         balance_commitment: data.balance_commitment,
@@ -60,24 +64,36 @@ pub(crate) fn extract_public(
         inputs: inputs
             .into_iter()
             .zip(data.inputs.iter())
-            .map(|(input, body_input)| ShieldedIcs20WithdrawalInputPublic {
+            .map(|(input, body_input)| ShieldedWithdrawalInputPublic {
                 nullifier: input.nullifier,
                 rk: input.rk,
                 history_required: body_input.history_required,
             })
             .collect(),
-        change_output: ShieldedIcs20WithdrawalChangePublic {
+        change_output: ShieldedWithdrawalChangePublic {
             note_commitment: change_output.note_commitment,
+            recovery_commitment: data
+                .change_output
+                .note_payload
+                .recovery_capsule
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("missing shielded withdrawal recovery capsule"))?
+                .commitment(),
         },
         outbound_asset_id: data.outbound_value.asset_id.0,
         outbound_amount: decaf377::Fq::from(data.outbound_value.amount),
-        withdrawal_effect_hash_limbs:
-            crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(
-                data.withdrawal_effect_hash.as_bytes(),
-            ),
+        withdrawal_effect_hash_limbs: crate::shielded_withdrawal::withdrawal_effect_hash_limbs(
+            data.withdrawal_effect_hash.as_bytes(),
+        ),
         routing_tag: data.routing_tag,
         routing_parameter_set_id: data.routing_parameter_set_id,
+        withdrawal_compliance_ciphertext: data.withdrawal_compliance_ciphertext.clone(),
         recent_position_floor: context.recent_position_floor,
+        volume_accumulator: crate::VolumeAccumulatorPublic {
+            nullifier: data.volume_accumulator.nullifier,
+            commitment: data.volume_accumulator.commitment,
+            day_start: data.volume_accumulator.day_start,
+        },
     };
     public.validate_shape()?;
     Ok(public)
@@ -100,4 +116,31 @@ pub(crate) async fn validate_compliance<S: StateRead>(
     shieldd_sdk_compliance::registry::check_timestamp_freshness(target_timestamp, block_unix)?;
 
     Ok(block_time)
+}
+
+pub(crate) async fn validate_volume<S: StateRead>(
+    state: &S,
+    payload: &crate::VolumeAccumulatorPayload,
+) -> Result<()> {
+    use crate::component::StateReadExt as _;
+    state
+        .check_volume_nullifier_unspent(payload.day_start, payload.nullifier)
+        .await
+}
+
+pub(crate) async fn execute_volume<S: cnidarium::StateWrite>(
+    state: &mut S,
+    payload: &crate::VolumeAccumulatorPayload,
+) -> Result<()> {
+    use crate::component::{NoteManager as _, StateWriteExt as _};
+    let source = state
+        .get_current_source()
+        .ok_or_else(|| anyhow::anyhow!("source should be set during withdrawal execution"))?;
+    state
+        .record_volume_nullifier(payload.day_start, payload.nullifier)
+        .await?;
+    state
+        .add_volume_accumulator_payload(payload.clone(), source.into())
+        .await;
+    Ok(())
 }

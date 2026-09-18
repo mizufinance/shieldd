@@ -7,43 +7,42 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/frontend/cs/r1cs"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/test"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
 type indexedLeafCommitmentCircuit struct {
-	Value           frontend.Variable
-	NextIndex       frontend.Variable
-	NextValue       frontend.Variable
-	DKPubX          frontend.Variable
-	DKPubY          frontend.Variable
-	Threshold       frontend.Variable
-	RoutePolicyHash frontend.Variable
-	RingPKX         frontend.Variable
-	RingPKY         frontend.Variable
-	RingIDHash      frontend.Variable
-	PolicyIDHash    frontend.Variable
-	PermissionHash  frontend.Variable
-	ResourceHash    frontend.Variable
+	Value            frontend.Variable
+	NextIndex        frontend.Variable
+	NextValue        frontend.Variable
+	DKPubX           frontend.Variable
+	DKPubY           frontend.Variable
+	DailyVolumeLimit frontend.Variable
+	RoutePolicyHash  frontend.Variable
+	RingPKX          frontend.Variable
+	RingPKY          frontend.Variable
+	RingIDHash       frontend.Variable
+	PolicyIDHash     frontend.Variable
+	PermissionHash   frontend.Variable
+	ResourceHash     frontend.Variable
 
 	Expected frontend.Variable `gnark:",public"`
 }
 
 func (c *indexedLeafCommitmentCircuit) Define(api frontend.API) error {
 	commitment, err := IndexedLeafCommitment(api, IndexedLeafInputs{
-		Value:           c.Value,
-		NextIndex:       c.NextIndex,
-		NextValue:       c.NextValue,
-		DKPub:           gnarkte.Point{X: c.DKPubX, Y: c.DKPubY},
-		Threshold:       c.Threshold,
-		RoutePolicyHash: c.RoutePolicyHash,
-		RingPK:          gnarkte.Point{X: c.RingPKX, Y: c.RingPKY},
-		RingIDHash:      c.RingIDHash,
-		PolicyIDHash:    c.PolicyIDHash,
-		PermissionHash:  c.PermissionHash,
-		ResourceHash:    c.ResourceHash,
+		Value:            c.Value,
+		NextIndex:        c.NextIndex,
+		NextValue:        c.NextValue,
+		DKPub:            gnarkte.Point{X: c.DKPubX, Y: c.DKPubY},
+		DailyVolumeLimit: c.DailyVolumeLimit,
+		RoutePolicyHash:  c.RoutePolicyHash,
+		RingPK:           gnarkte.Point{X: c.RingPKX, Y: c.RingPKY},
+		RingIDHash:       c.RingIDHash,
+		PolicyIDHash:     c.PolicyIDHash,
+		PermissionHash:   c.PermissionHash,
+		ResourceHash:     c.ResourceHash,
 	})
 	if err != nil {
 		return err
@@ -85,8 +84,8 @@ func syntheticIndexedLeafInputs(t *testing.T) IndexedLeafInputs {
 			X: primitives.MustBigInt(vectors.Decaf377CompanionCurve.GeneratorX),
 			Y: primitives.MustBigInt(vectors.Decaf377CompanionCurve.GeneratorY),
 		},
-		Threshold:       "5",
-		RoutePolicyHash: big.NewInt(33),
+		DailyVolumeLimit: "5",
+		RoutePolicyHash:  big.NewInt(33),
 		RingPK: gnarkte.Point{
 			X: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
 			Y: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
@@ -118,37 +117,6 @@ func quadPathAssignment(path [ComplianceQuadTreeDepth][3]*big.Int) [ComplianceQu
 	return out
 }
 
-func TestIndexedLeafCommitmentNativeMatchesQuadPath(t *testing.T) {
-	inputs := syntheticIndexedLeafInputs(t)
-	commitment, err := IndexedLeafCommitmentNative(inputs)
-	if err != nil {
-		t.Fatalf("compute indexed leaf commitment: %v", err)
-	}
-
-	path, position := syntheticQuadPath()
-	root, err := VerifyQuadPathNative(commitment, path, position)
-	if err != nil {
-		t.Fatalf("verify quad path natively: %v", err)
-	}
-	if root.Sign() == 0 {
-		t.Fatal("expected non-zero quad path root")
-	}
-}
-
-func TestIndexedLeafCommitmentCircuitCompiles(t *testing.T) {
-	_, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &indexedLeafCommitmentCircuit{})
-	if err != nil {
-		t.Fatalf("compile indexed leaf commitment circuit: %v", err)
-	}
-}
-
-func TestQuadPathCircuitCompiles(t *testing.T) {
-	_, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &quadPathCircuit{})
-	if err != nil {
-		t.Fatalf("compile quad path circuit: %v", err)
-	}
-}
-
 func TestIndexedLeafCircuitMatchesNativeCommitment(t *testing.T) {
 	inputs := syntheticIndexedLeafInputs(t)
 	commitment, err := IndexedLeafCommitmentNative(inputs)
@@ -157,20 +125,20 @@ func TestIndexedLeafCircuitMatchesNativeCommitment(t *testing.T) {
 	}
 
 	assignment := &indexedLeafCommitmentCircuit{
-		Value:           inputs.Value,
-		NextIndex:       inputs.NextIndex,
-		NextValue:       inputs.NextValue,
-		DKPubX:          inputs.DKPub.X,
-		DKPubY:          inputs.DKPub.Y,
-		Threshold:       inputs.Threshold,
-		RoutePolicyHash: inputs.RoutePolicyHash,
-		RingPKX:         inputs.RingPK.X,
-		RingPKY:         inputs.RingPK.Y,
-		RingIDHash:      inputs.RingIDHash,
-		PolicyIDHash:    inputs.PolicyIDHash,
-		PermissionHash:  inputs.PermissionHash,
-		ResourceHash:    inputs.ResourceHash,
-		Expected:        commitment.String(),
+		Value:            inputs.Value,
+		NextIndex:        inputs.NextIndex,
+		NextValue:        inputs.NextValue,
+		DKPubX:           inputs.DKPub.X,
+		DKPubY:           inputs.DKPub.Y,
+		DailyVolumeLimit: inputs.DailyVolumeLimit,
+		RoutePolicyHash:  inputs.RoutePolicyHash,
+		RingPKX:          inputs.RingPK.X,
+		RingPKY:          inputs.RingPK.Y,
+		RingIDHash:       inputs.RingIDHash,
+		PolicyIDHash:     inputs.PolicyIDHash,
+		PermissionHash:   inputs.PermissionHash,
+		ResourceHash:     inputs.ResourceHash,
+		Expected:         commitment.String(),
 	}
 
 	assert := test.NewAssert(t)

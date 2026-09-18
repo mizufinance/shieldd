@@ -1,137 +1,69 @@
-//! Shared integration testing facilities.
-
-// NB: these reëxports are shared and consumed by files in `tests/`.
+//! Direct host fixtures for integration tests.
 #[allow(unused_imports)]
-pub use {
-    self::{
-        temp_storage_ext::TempStorageExt, test_node_builder_ext::BuilderExt,
-        test_node_ext::TestNodeExt,
-    },
-    shieldd_sdk_test_subscriber::{set_tracing_subscriber, set_tracing_subscriber_with_env_filter},
-};
-
-use cnidarium::StateWrite;
-use shieldd_sdk_asset::asset;
-use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, ComplianceRegistryWrite};
-use shieldd_sdk_keys::Address;
-use shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan};
+pub use shieldd_sdk_test_subscriber::set_tracing_subscriber;
+#[allow(dead_code)]
+pub async fn new_storage() -> anyhow::Result<cnidarium::TempStorage> {
+    cnidarium::TempStorage::new_with_prefixes(shieldd_sdk_app::SUBSTORE_PREFIXES.to_vec()).await
+}
 
 #[allow(dead_code)]
-pub fn align_transfer_planning_metadata(
-    spends: &mut [ShieldedInputPlan],
-    outputs: &mut [ShieldedOutputPlan],
-) {
-    let Some(first_spend) = spends.first().cloned() else {
-        return;
+pub async fn scan_latest(
+    chain: &cnidarium::TempStorage,
+    wallet: &shieldd_sdk_view::Storage,
+) -> anyhow::Result<()> {
+    use shieldd_sdk_sct::component::clock::EpochRead as _;
+    let snapshot = chain.latest_snapshot();
+    let mut worker = shieldd_sdk_view::SyncWorker::new(wallet.clone()).await?;
+    let first = wallet.last_sync_height().await?.map(|h| h + 1).unwrap_or(0);
+    let last = snapshot.get_block_height().await?;
+    for height in first..=last {
+        worker.scan(wallet_block(&snapshot, height).await?).await?;
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub async fn wallet_block(
+    snapshot: &cnidarium::Snapshot,
+    height: u64,
+) -> anyhow::Result<shieldd_sdk_view::WalletBlock> {
+    use anyhow::Context;
+    use shieldd_sdk_app::app::StateReadExt as _;
+    use shieldd_sdk_compact_block::component::StateReadExt as _;
+    use shieldd_sdk_sct::component::{clock::EpochRead as _, tree::SctRead as _};
+    let block = snapshot
+        .compact_block(height)
+        .await?
+        .context("missing compact block")?;
+    let updated_app_parameters = if block.app_parameters_updated {
+        Some(snapshot.get_app_params().await?)
+    } else {
+        None
     };
-    for spend in spends.iter_mut() {
-        spend.asset_anchor = first_spend.asset_anchor;
-        spend.compliance_anchor = first_spend.compliance_anchor;
-        spend.target_timestamp = first_spend.target_timestamp;
-        spend.is_regulated = first_spend.is_regulated;
-        spend.tx_blinding_nonce = first_spend.tx_blinding_nonce;
-    }
-    for output in outputs {
-        output.asset_anchor = first_spend.asset_anchor;
-        output.compliance_anchor = first_spend.compliance_anchor;
-        output.target_timestamp = first_spend.target_timestamp;
-        output.is_regulated = first_spend.is_regulated;
-        output.tx_blinding_nonce = first_spend.tx_blinding_nonce;
-        output.asset_indexed_leaf = first_spend.asset_indexed_leaf.clone();
-        output.asset_path = first_spend.asset_path.clone();
-        output.asset_position = first_spend.asset_position;
-        output.asset_policy = first_spend.asset_policy.clone();
-    }
+    Ok(shieldd_sdk_view::WalletBlock {
+        block: block.try_into()?,
+        expected_sct_root: snapshot
+            .get_anchor_by_height(height)
+            .await?
+            .context("missing SCT anchor")?,
+        // Genesis has no signed host block time.
+        timestamp: if height == 0 {
+            0
+        } else {
+            snapshot
+                .get_block_timestamp(height)
+                .await?
+                .unix_timestamp()
+                .try_into()?
+        },
+        transactions: snapshot
+            .transactions_by_height(height)
+            .await?
+            .transactions
+            .into_iter()
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<_>, _>>()?,
+        assets: vec![],
+        updated_app_parameters,
+    })
 }
-
-/// Register assets as unregulated in the compliance registry.
-///
-/// With the IMT design, unregulated assets are NOT stored in the tree.
-/// Their unregulated status is proven via non-membership proofs.
-/// This function is now a no-op but kept for API compatibility.
-#[allow(dead_code)]
-pub async fn register_assets_for_compliance<S: StateWrite + ComplianceRegistryRead>(
-    _state: &mut S,
-    _asset_ids: &[asset::Id],
-) -> anyhow::Result<()> {
-    // No-op: unregulated assets don't need to be registered.
-    // They are proven via IMT non-membership proofs.
-    Ok(())
-}
-
-/// Register test users in the compliance registry with BLACK_HOLE_ACK.
-///
-/// This helper registers the given addresses for the specified assets as unregulated
-/// users (using BLACK_HOLE_ACK). This is necessary for tests that build transactions
-/// with shielded input/output plans, as the compliance circuit requires valid Merkle proofs.
-///
-/// # Example
-/// ```ignore
-/// let mut state = StateDelta::new(storage.latest_snapshot());
-/// register_test_users_for_compliance(
-///     &mut state,
-///     &[sender_address, recipient_address],
-///     &[staking_token_id],
-/// ).await?;
-/// storage.commit(state).await?;
-/// ```
-#[allow(dead_code)]
-pub async fn register_test_users_for_compliance<S: StateWrite>(
-    state: &mut S,
-    addresses: &[Address],
-    asset_ids: &[asset::Id],
-) -> anyhow::Result<()> {
-    for address in addresses {
-        for &asset_id in asset_ids {
-            let leaf = ComplianceLeaf::new(address.clone(), asset_id);
-            state.test_only_add_compliance_leaf(leaf).await?;
-        }
-    }
-    Ok(())
-}
-
-/// Create a StateDelta with compliance registrations for building transactions.
-///
-/// For tests that use TestNode.block().execute() pattern, this creates a state layer
-/// with compliance data for `witness_auth_build_with_compliance`. The returned StateDelta
-/// is NOT committed to storage - it's only used for building the transaction.
-///
-/// Note: The actual chain will NOT have this compliance data, which means transactions
-/// will fail stateful checks unless the assets are already registered.
-#[allow(dead_code)]
-pub async fn state_with_compliance_for_build(
-    storage: &cnidarium::TempStorage,
-    addresses: &[Address],
-    asset_ids: &[asset::Id],
-) -> anyhow::Result<cnidarium::StateDelta<cnidarium::Snapshot>> {
-    use cnidarium::StateDelta;
-
-    let mut delta = StateDelta::new(storage.latest_snapshot());
-
-    // Register users with real d (matching what the circuit derives from the address)
-    for address in addresses {
-        for &asset_id in asset_ids {
-            let leaf = ComplianceLeaf::new(address.clone(), asset_id);
-            delta.test_only_add_compliance_leaf(leaf).await?;
-        }
-    }
-
-    Ok(delta)
-}
-
-/// Shieldd-specific extensions to the mock consensus builder.
-///
-/// See [`BuilderExt`].
-mod test_node_builder_ext;
-
-/// Extensions to [`TempStorage`][cnidarium::TempStorage].
-mod temp_storage_ext;
-
-/// Shieldd-specific extensions to the mock consensus test node.
-///
-/// See [`TestNodeExt`].
-mod test_node_ext;
-
-/// Methods for testing IBC functionality.
-#[allow(unused)]
-pub mod ibc_tests;

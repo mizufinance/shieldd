@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use async_trait::async_trait;
+#[cfg(feature = "rpc")]
 use shieldd_sdk_proto::core::component::sct::v1::{
     query_service_client::QueryServiceClient as SctQueryServiceClient,
     ArchivedNullifierProofRequest,
@@ -11,6 +12,7 @@ use shieldd_sdk_sct::{
     Nullifier,
 };
 use tokio::sync::watch;
+#[cfg(feature = "rpc")]
 use tonic::transport::Channel;
 
 use crate::{
@@ -18,10 +20,12 @@ use crate::{
     HistoricalProofProvider, HistoricalProofUpdateError, HistoricalWitnessSource, Storage,
 };
 
-struct RpcHistoricalWitnessSource {
-    channel: Channel,
+#[cfg(feature = "rpc")]
+pub struct RpcHistoricalWitnessSource {
+    pub channel: Channel,
 }
 
+#[cfg(feature = "rpc")]
 #[async_trait]
 impl HistoricalWitnessSource for RpcHistoricalWitnessSource {
     async fn nonmembership_proof(
@@ -42,23 +46,23 @@ impl HistoricalWitnessSource for RpcHistoricalWitnessSource {
     }
 }
 
-pub(crate) struct HistoricalProofWorker {
+pub struct HistoricalProofWorker {
     storage: Storage,
-    witness_source: RpcHistoricalWitnessSource,
+    witness_source: Arc<dyn HistoricalWitnessSource>,
     prover: Option<Arc<dyn HistoricalProofProvider>>,
     sync_height_rx: watch::Receiver<u64>,
 }
 
 impl HistoricalProofWorker {
-    pub(crate) fn new(
+    pub fn new(
         storage: Storage,
-        channel: Channel,
+        witness_source: Arc<dyn HistoricalWitnessSource>,
         prover: Option<Arc<dyn HistoricalProofProvider>>,
         sync_height_rx: watch::Receiver<u64>,
     ) -> Self {
         Self {
             storage,
-            witness_source: RpcHistoricalWitnessSource { channel },
+            witness_source,
             prover,
             sync_height_rx,
         }
@@ -82,9 +86,7 @@ impl HistoricalProofWorker {
             }
             HistoricalProofUpdateError::Invalid(error) => {
                 cache.transition(HistoricalProofCacheState::Invalid)?;
-                let mut error = format!("{error:#}");
-                error.truncate(1_024);
-                cache.last_error = Some(error);
+                cache.set_error(format!("{error:#}"));
             }
         }
         self.storage.put_historical_proof_cache(cache).await
@@ -99,7 +101,7 @@ impl HistoricalProofWorker {
         if cache.state == HistoricalProofCacheState::Invalid {
             return Ok(());
         }
-        if cache.covered_generation_count < window.archived_generation_count
+        if cache.proof.coverage()?.generation_count < window.archived_generation_count
             && self.prover.is_none()
         {
             if cache.state != HistoricalProofCacheState::Updating {
@@ -114,7 +116,13 @@ impl HistoricalProofWorker {
         loop {
             let before = cache.clone();
             let prover = self.prover.as_deref().unwrap_or(&NoopHistoricalProver);
-            match advance_historical_proof_cache(cache, window, &self.witness_source, prover).await
+            match advance_historical_proof_cache(
+                cache,
+                window,
+                self.witness_source.as_ref(),
+                prover,
+            )
+            .await
             {
                 Ok(updated) => {
                     let complete = updated.state == HistoricalProofCacheState::Ready;
@@ -152,7 +160,7 @@ impl HistoricalProofWorker {
         Ok(())
     }
 
-    pub(crate) async fn run(mut self) {
+    pub async fn run(mut self) {
         loop {
             if let Err(error) = self.update_all().await {
                 tracing::warn!(?error, "historical proof worker pass failed");

@@ -55,10 +55,19 @@ fn note_reshape_extract_public(
             .collect(),
         outputs: outputs
             .into_iter()
-            .map(|output| NoteReshapeOutputPublic {
-                note_commitment: output.note_commitment,
+            .zip(note_reshape.body.outputs.iter())
+            .map(|(output, body_output)| {
+                Ok(NoteReshapeOutputPublic {
+                    note_commitment: output.note_commitment,
+                    recovery_commitment: body_output
+                        .note_payload
+                        .recovery_capsule
+                        .as_ref()
+                        .ok_or_else(|| anyhow::anyhow!("missing note reshape recovery capsule"))?
+                        .commitment(),
+                })
             })
-            .collect(),
+            .collect::<Result<Vec<_>>>()?,
     };
     public
         .validate_shape()
@@ -141,7 +150,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        component::NoteManager as _, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedInputPlan,
+        component::NoteManager as _, Note, NoteReshapeFamilyId, ShieldedInputPlan,
         ShieldedOutputPlan,
     };
 
@@ -203,8 +212,13 @@ mod tests {
                     )
                 })
                 .collect();
-            let plan = NoteReshapePlan::new(family_id, spends, outputs, decaf377::Fr::from(7u64))
-                .expect("canonical family plan");
+            let plan = crate::test_plan_helpers::note_reshape(
+                family_id,
+                spends,
+                outputs,
+                decaf377::Fr::from(7u64),
+            )
+            .expect("canonical family plan");
             let (proving_public, _) = plan
                 .note_reshape_public_private(&test_keys::FULL_VIEWING_KEY, &proofs, anchor, 0)
                 .expect("derive proving public");

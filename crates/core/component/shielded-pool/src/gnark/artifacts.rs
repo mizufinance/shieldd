@@ -44,7 +44,7 @@ pub struct VerifyingKeyJson {
     pub gamma_abc_g1: Vec<G1PointJson>,
 }
 
-const CIRCUIT_METADATA_SCHEMA: &str = "shieldd.gnark.circuit_metadata.v2";
+const CIRCUIT_METADATA_SCHEMA: &str = "shieldd.gnark.circuit_metadata";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -269,7 +269,7 @@ mod statement_parity_tests {
     const FAMILIES: &[&str] = &[
         "note_reshape1x8",
         "note_reshape8x1",
-        "shielded_ics20_withdrawal",
+        "shielded_withdrawal",
         "transfer",
     ];
 

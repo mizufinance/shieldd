@@ -1,20 +1,17 @@
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use rusqlite::{params, Connection, OpenFlags, OptionalExtension, Transaction};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::types::{
-    BlockRef, ClearFlowEvent, DetectionEvent, ExtractedComplianceCiphertext, InvalidCiphertext,
-    OutputRef, DECRYPTED_VIA_PUBLIC, FLOW_TYPE_PRIVATE_TRANSFER,
-};
-use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
-use crate::ComplianceEvidenceObject;
+use super::types::{BlockRef, OutputRef, FLOW_TYPE_PRIVATE_TRANSFER, FLOW_TYPE_WITHDRAW};
+use super::types::{CandidateEvidence, OutputOutcome, ScannedBlock};
+use crate::audit_status::{AuditStatus, ScreenStatus};
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
-const SCANNER_DB_SCHEMA_VERSION: i64 = 5;
 pub const HEARTBEAT_STALE_SECS: i64 = 30;
 const READ_POOL_SIZE: usize = 4;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
@@ -24,23 +21,7 @@ const WAL_AUTOCHECKPOINT_PAGES: i64 = 1_000;
 pub trait ScannerStore: Send + Sync {
     async fn last_scanned_block(&self) -> Result<Option<BlockRef>>;
     async fn block_by_height(&self, height: u64) -> Result<Option<BlockRef>>;
-    async fn begin_block(&self, block: &BlockRef) -> Result<()>;
-    async fn save_ciphertext(&self, ciphertext: &ExtractedComplianceCiphertext) -> Result<()>;
-    async fn mark_ciphertext_irrelevant(&self, output_ref: &OutputRef) -> Result<()>;
-    async fn save_detection(&self, event: &DetectionEvent) -> Result<()>;
-    async fn save_invalid_ciphertext(&self, invalid: &InvalidCiphertext) -> Result<()>;
-    async fn save_clear_flow(&self, event: &ClearFlowEvent) -> Result<()>;
-    async fn validate_and_save_evidence(
-        &self,
-        evidence: &ComplianceEvidenceObject,
-    ) -> Result<[u8; 32]>;
-    async fn record_evidence_failure(
-        &self,
-        output_ref: &OutputRef,
-        stage: &str,
-        reason: &str,
-    ) -> Result<()>;
-    async fn commit_block(&self, block: &BlockRef) -> Result<()>;
+    async fn commit_scanned_block(&self, scanned: &ScannedBlock) -> Result<()>;
     async fn rollback_to_height(&self, height: u64) -> Result<()>;
     async fn detection_count(&self) -> Result<u64>;
 
@@ -85,23 +66,10 @@ fn unix_now_secs() -> i64 {
         .unwrap_or_default()
 }
 
-#[derive(Default)]
-struct PendingBlock {
-    block: Option<BlockRef>,
-    ciphertexts: Vec<ExtractedComplianceCiphertext>,
-    irrelevant_ciphertexts: Vec<OutputRef>,
-    detections: Vec<DetectionEvent>,
-    invalid_ciphertexts: Vec<InvalidCiphertext>,
-    invalid_statuses: Vec<InvalidCiphertext>,
-    skipped_invalid_ciphertexts: u64,
-    clear_flows: Vec<ClearFlowEvent>,
-}
-
 pub struct SqliteScannerStore {
     db_path: Arc<PathBuf>,
     writer: Arc<Mutex<Connection>>,
     read_pool: Arc<Mutex<Vec<Connection>>>,
-    pending: Arc<Mutex<PendingBlock>>,
 }
 
 impl SqliteScannerStore {
@@ -121,7 +89,6 @@ impl SqliteScannerStore {
             db_path: Arc::new(db_path),
             writer: Arc::new(Mutex::new(conn)),
             read_pool: Arc::new(Mutex::new(read_pool)),
-            pending: Arc::new(Mutex::new(PendingBlock::default())),
         })
     }
 
@@ -148,12 +115,10 @@ impl SqliteScannerStore {
     }
 
     fn initialize_schema(conn: &Connection) -> Result<()> {
-        Self::ensure_supported_schema(conn)?;
-        conn.execute_batch(
-            r#"
-            CREATE TABLE IF NOT EXISTS scanner_schema_version (
+        let schema_sql = r#"
+            CREATE TABLE IF NOT EXISTS scanner_schema (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                version INTEGER NOT NULL
+                identity TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS scanner_blocks (
@@ -177,8 +142,6 @@ impl SqliteScannerStore {
                 routing_tag_0 INTEGER NOT NULL,
                 routing_tag_1 INTEGER NOT NULL,
                 ciphertext_bytes BLOB NOT NULL,
-                detection_status TEXT NOT NULL DEFAULT 'detected'
-                    CHECK (detection_status IN ('detected')),
                 audit_status TEXT NOT NULL DEFAULT 'pending'
                     CHECK (audit_status IN ('pending', 'evidence_valid', 'evidence_invalid', 'decrypt_failed', 'audit_complete')),
                 evidence_object_hash BLOB,
@@ -198,6 +161,8 @@ impl SqliteScannerStore {
                 tx_hash BLOB NOT NULL,
                 action_index INTEGER NOT NULL,
                 output_index INTEGER NOT NULL,
+                record_type INTEGER NOT NULL CHECK (record_type IN (1, 2, 3)),
+                withdrawal_public_data BLOB,
                 raw_bytes BLOB NOT NULL,
                 compliance_metadata_bytes BLOB,
                 screen_status TEXT NOT NULL
@@ -225,22 +190,6 @@ impl SqliteScannerStore {
                 height INTEGER PRIMARY KEY,
                 block_hash BLOB NOT NULL,
                 skipped_count INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS scanner_clear_flows (
-                height INTEGER NOT NULL,
-                block_hash BLOB NOT NULL,
-                tx_index INTEGER NOT NULL,
-                tx_hash BLOB NOT NULL,
-                action_index INTEGER NOT NULL,
-                output_index INTEGER NOT NULL,
-                flow_type TEXT NOT NULL,
-                asset_id TEXT NOT NULL,
-                amount TEXT NOT NULL,
-                self_address TEXT,
-                counterparty TEXT,
-                public_address TEXT,
-                PRIMARY KEY(height, tx_hash, action_index, output_index)
             );
 
             CREATE TABLE IF NOT EXISTS audit_rows (
@@ -343,26 +292,28 @@ impl SqliteScannerStore {
 
             INSERT OR IGNORE INTO scanner_runtime (id) VALUES (1);
 
-            "#,
-        )?;
+            "#;
+        let schema_id = hex::encode(Sha256::digest(schema_sql.as_bytes()));
+        Self::ensure_supported_schema(conn, &schema_id)?;
+        conn.execute_batch(schema_sql)?;
         conn.execute(
-            "INSERT OR IGNORE INTO scanner_schema_version (id, version) VALUES (1, ?1)",
-            [SCANNER_DB_SCHEMA_VERSION],
+            "INSERT OR IGNORE INTO scanner_schema (id, identity) VALUES (1, ?1)",
+            [&schema_id],
         )?;
-        let version = Self::schema_version(conn)?.context("scanner DB schema version missing")?;
+        let actual = Self::schema_id(conn)?.context("scanner DB schema identity missing")?;
         anyhow::ensure!(
-            version == SCANNER_DB_SCHEMA_VERSION,
-            "unsupported scanner DB schema version {version}; recreate the scanner DB"
+            actual == schema_id,
+            "scanner DB schema identity mismatch; recreate the scanner DB"
         );
         Ok(())
     }
 
-    fn ensure_supported_schema(conn: &Connection) -> Result<()> {
-        match Self::schema_version(conn)? {
-            Some(version) => {
+    fn ensure_supported_schema(conn: &Connection, expected: &str) -> Result<()> {
+        match Self::schema_id(conn)? {
+            Some(actual) => {
                 anyhow::ensure!(
-                    version == SCANNER_DB_SCHEMA_VERSION,
-                    "unsupported scanner DB schema version {version}; recreate the scanner DB"
+                    actual == expected,
+                    "scanner DB schema identity mismatch; recreate the scanner DB"
                 );
                 Ok(())
             }
@@ -377,31 +328,31 @@ impl SqliteScannerStore {
                 )?;
                 anyhow::ensure!(
                     user_table_count == 0,
-                    "scanner DB schema is unversioned; recreate the scanner DB"
+                    "scanner DB schema is unrecognized; recreate the scanner DB"
                 );
                 Ok(())
             }
         }
     }
 
-    fn schema_version(conn: &Connection) -> Result<Option<i64>> {
-        let has_version_table: Option<i64> = conn
+    fn schema_id(conn: &Connection) -> Result<Option<String>> {
+        let has_schema_table: Option<i64> = conn
             .query_row(
-                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'scanner_schema_version'",
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'scanner_schema'",
                 [],
                 |row| row.get(0),
             )
             .optional()?;
-        if has_version_table.is_none() {
+        if has_schema_table.is_none() {
             return Ok(None);
         }
         conn.query_row(
-            "SELECT version FROM scanner_schema_version WHERE id = 1",
+            "SELECT identity FROM scanner_schema WHERE id = 1",
             [],
             |row| row.get(0),
         )
         .optional()
-        .context("read scanner DB schema version")
+        .context("read scanner DB schema identity")
     }
 
     pub fn invalid_ciphertext_count(&self) -> Result<u64> {
@@ -533,12 +484,6 @@ impl SqliteScannerStore {
         conn.execute_batch("PRAGMA incremental_vacuum; PRAGMA wal_checkpoint(TRUNCATE);")?;
         Ok(())
     }
-
-    fn lock_pending(&self) -> Result<std::sync::MutexGuard<'_, PendingBlock>> {
-        self.pending
-            .lock()
-            .map_err(|e| anyhow!("scanner store pending mutex poisoned: {e}"))
-    }
 }
 
 #[async_trait]
@@ -576,83 +521,57 @@ impl ScannerStore for SqliteScannerStore {
         })
     }
 
-    async fn begin_block(&self, block: &BlockRef) -> Result<()> {
-        let mut pending = self.lock_pending()?;
-        *pending = PendingBlock {
-            block: Some(block.clone()),
-            ciphertexts: Vec::new(),
-            irrelevant_ciphertexts: Vec::new(),
-            detections: Vec::new(),
-            invalid_ciphertexts: Vec::new(),
-            invalid_statuses: Vec::new(),
-            skipped_invalid_ciphertexts: 0,
-            clear_flows: Vec::new(),
-        };
-        Ok(())
-    }
-
-    async fn save_ciphertext(&self, ciphertext: &ExtractedComplianceCiphertext) -> Result<()> {
-        let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &ciphertext.output_ref.action.tx.block)?;
-        pending.ciphertexts.push(ciphertext.clone());
-        Ok(())
-    }
-
-    async fn mark_ciphertext_irrelevant(&self, output_ref: &OutputRef) -> Result<()> {
-        let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &output_ref.action.tx.block)?;
-        pending.irrelevant_ciphertexts.push(output_ref.clone());
-        Ok(())
-    }
-
-    async fn save_detection(&self, event: &DetectionEvent) -> Result<()> {
-        let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &event.output_ref.action.tx.block)?;
-        pending.detections.push(event.clone());
-        Ok(())
-    }
-
-    async fn save_invalid_ciphertext(&self, invalid: &InvalidCiphertext) -> Result<()> {
-        let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &invalid.output_ref.action.tx.block)?;
-        pending.invalid_statuses.push(invalid.clone());
-        if pending.invalid_ciphertexts.len() < MAX_INVALID_CIPHERTEXTS_PER_BLOCK {
-            pending.invalid_ciphertexts.push(invalid.clone());
-        } else {
-            pending.skipped_invalid_ciphertexts += 1;
+    async fn commit_scanned_block(&self, scanned: &ScannedBlock) -> Result<()> {
+        let block = &scanned.block;
+        anyhow::ensure!(
+            block.height > 0 && block.height <= i64::MAX as u64,
+            "invalid scanner block height"
+        );
+        let mut identities = std::collections::HashSet::new();
+        for output in &scanned.outputs {
+            let output_ref = &output.ciphertext.record_ref.output_ref();
+            anyhow::ensure!(
+                &output_ref.action.tx.block == block,
+                "scanner output block mismatch"
+            );
+            anyhow::ensure!(
+                identities.insert((
+                    output_ref.action.tx.tx_hash,
+                    output_ref.action.action_index,
+                    output_ref.output_index
+                )),
+                "duplicate scanner output"
+            );
+            if let OutputOutcome::Detected { event, .. } = &output.outcome {
+                anyhow::ensure!(
+                    event.record_ref == output.ciphertext.record_ref,
+                    "detection output identity mismatch"
+                );
+            }
         }
-        Ok(())
-    }
 
-    async fn save_clear_flow(&self, event: &ClearFlowEvent) -> Result<()> {
-        let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, &event.output_ref.action.tx.block)?;
-        pending.clear_flows.push(event.clone());
-        Ok(())
-    }
-
-    async fn validate_and_save_evidence(
-        &self,
-        evidence: &ComplianceEvidenceObject,
-    ) -> Result<[u8; 32]> {
-        crate::audit::validate_and_save_evidence_object(self, evidence)
-    }
-
-    async fn record_evidence_failure(
-        &self,
-        output_ref: &OutputRef,
-        stage: &str,
-        reason: &str,
-    ) -> Result<()> {
-        crate::audit::record_evidence_failure(self, output_ref, stage, reason)
-    }
-
-    async fn commit_block(&self, block: &BlockRef) -> Result<()> {
         let conn = self.lock_conn()?;
-        let mut pending = self.lock_pending()?;
-        ensure_pending_block(&pending, block)?;
-
         let tx = conn.unchecked_transaction()?;
+        let existing = tx.query_row(
+            "SELECT height, block_hash, parent_hash, block_time_unix FROM scanner_blocks WHERE height = ?1",
+            params![block.height as i64], block_ref_from_row).optional()?;
+        if let Some(existing) = existing {
+            anyhow::ensure!(
+                existing == *block,
+                "scanner block conflict; roll back before replacing a block"
+            );
+            return Ok(());
+        }
+        let last_height: i64 = tx.query_row(
+            "SELECT last_height FROM scanner_sync WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )?;
+        anyhow::ensure!(
+            block.height as i64 > last_height,
+            "scanner cursor cannot move backwards"
+        );
+        let mut invalid_count = 0usize;
 
         tx.execute(
             "INSERT OR REPLACE INTO scanner_blocks
@@ -666,14 +585,15 @@ impl ScannerStore for SqliteScannerStore {
             ],
         )?;
 
-        for ciphertext in &pending.ciphertexts {
-            let output_ref = &ciphertext.output_ref;
+        for output in &scanned.outputs {
+            let ciphertext = &output.ciphertext;
+            let output_ref = &ciphertext.record_ref.output_ref();
             let tx_ref = &output_ref.action.tx;
             tx.execute(
                 "INSERT OR IGNORE INTO scanner_ciphertexts
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  raw_bytes, compliance_metadata_bytes, screen_status, screen_reason)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL)",
+                  raw_bytes, compliance_metadata_bytes, screen_status, screen_reason, record_type, withdrawal_public_data)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11)",
                 params![
                     tx_ref.block.height as i64,
                     tx_ref.block.block_hash.as_slice(),
@@ -684,158 +604,119 @@ impl ScannerStore for SqliteScannerStore {
                     ciphertext.raw_bytes.as_slice(),
                     ciphertext.metadata_bytes.as_deref(),
                     ScreenStatus::Pending.as_str(),
+                    crate::EvidenceObjectType::for_record(&ciphertext.record_ref) as i64,
+                    ciphertext.public_withdrawal.as_ref().map(serde_json::to_vec).transpose()?,
                 ],
             )?;
-        }
 
-        for output_ref in &pending.irrelevant_ciphertexts {
-            update_ciphertext_status(&tx, output_ref, ScreenStatus::Irrelevant, None)?;
-        }
-
-        for event in &pending.detections {
-            let output_ref = &event.output_ref;
-            let tx_ref = &output_ref.action.tx;
-            tx.execute(
-                "INSERT OR IGNORE INTO scanner_ciphertexts
-                 (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  raw_bytes, compliance_metadata_bytes, screen_status, screen_reason)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, NULL)",
-                params![
-                    tx_ref.block.height as i64,
-                    tx_ref.block.block_hash.as_slice(),
-                    tx_ref.tx_index as i64,
-                    tx_ref.tx_hash.as_ref(),
-                    output_ref.action.action_index as i64,
-                    output_ref.output_index as i64,
-                    event.raw_bytes.as_slice(),
-                    ScreenStatus::Pending.as_str(),
-                ],
-            )?;
-            update_ciphertext_status(&tx, output_ref, ScreenStatus::Detected, None)?;
-            tx.execute(
-                "INSERT OR IGNORE INTO scanner_detections
+            match &output.outcome {
+                OutputOutcome::Irrelevant => {
+                    update_ciphertext_status(&tx, output_ref, ScreenStatus::Irrelevant, None)?
+                }
+                OutputOutcome::Invalid { reason } => {
+                    let reason = crate::audit::bounded_failure_reason(reason);
+                    update_ciphertext_status(
+                        &tx,
+                        output_ref,
+                        ScreenStatus::Invalid,
+                        Some(&reason),
+                    )?;
+                    invalid_count += 1;
+                    if invalid_count <= MAX_INVALID_CIPHERTEXTS_PER_BLOCK {
+                        tx.execute(
+                            "INSERT INTO scanner_invalid_ciphertexts
+                             (height, block_hash, tx_index, tx_hash, action_index, output_index, reason, raw_bytes)
+                             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                            params![block.height as i64, block.block_hash.as_slice(), tx_ref.tx_index as i64,
+                                tx_ref.tx_hash.as_ref(), output_ref.action.action_index as i64,
+                                output_ref.output_index as i64, reason, ciphertext.raw_bytes.as_slice()],
+                        )?;
+                    }
+                }
+                OutputOutcome::Detected { event, evidence } => {
+                    update_ciphertext_status(&tx, output_ref, ScreenStatus::Detected, None)?;
+                    tx.execute(
+                        "INSERT OR IGNORE INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
                   asset_id, is_flagged, salt,
-                  routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
-                params![
-                    tx_ref.block.height as i64,
-                    tx_ref.block.block_hash.as_slice(),
-                    tx_ref.tx_index as i64,
-                    tx_ref.tx_hash.as_ref(),
-                    output_ref.action.action_index as i64,
-                    output_ref.output_index as i64,
-                    event.asset_id.to_string(),
-                    if event.is_flagged { 1i64 } else { 0i64 },
-                    event.salt.to_bytes().as_slice(),
-                    i64::from(event.routing_tags[0]),
-                    i64::from(event.routing_tags[1]),
-                    event.raw_bytes.as_slice(),
-                    DetectionStatus::Detected.as_str(),
-                    AuditStatus::Pending.as_str(),
-                ],
-            )?;
-            tx.execute(
-                "INSERT OR IGNORE INTO audit_rows
+                  routing_tag_0, routing_tag_1, ciphertext_bytes, audit_status)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                        params![
+                            tx_ref.block.height as i64,
+                            tx_ref.block.block_hash.as_slice(),
+                            tx_ref.tx_index as i64,
+                            tx_ref.tx_hash.as_ref(),
+                            output_ref.action.action_index as i64,
+                            output_ref.output_index as i64,
+                            event.asset_id.to_string(),
+                            if event.is_flagged { 1i64 } else { 0i64 },
+                            event.salt.to_bytes().as_slice(),
+                            i64::from(event.routing_tags[0]),
+                            i64::from(event.routing_tags[1]),
+                            event.raw_bytes.as_slice(),
+                            AuditStatus::Pending.as_str(),
+                        ],
+                    )?;
+                    tx.execute(
+                        "INSERT OR IGNORE INTO audit_rows
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
                   flow_type, asset_id, is_flagged, amount, self_address, counterparty_address,
                   public_address, decrypted_via, updated_at_unix)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, NULL, NULL, NULL, NULL, ?10)",
-                params![
-                    tx_ref.block.height as i64,
-                    tx_ref.block.block_hash.as_slice(),
-                    tx_ref.tx_index as i64,
-                    tx_ref.tx_hash.as_ref(),
-                    output_ref.action.action_index as i64,
-                    output_ref.output_index as i64,
-                    FLOW_TYPE_PRIVATE_TRANSFER,
-                    event.asset_id.to_string(),
-                    if event.is_flagged { 1i64 } else { 0i64 },
-                    block.block_time_unix,
-                ],
-            )?;
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, NULL, ?14)",
+                        params![
+                            tx_ref.block.height as i64,
+                            tx_ref.block.block_hash.as_slice(),
+                            tx_ref.tx_index as i64,
+                            tx_ref.tx_hash.as_ref(),
+                            output_ref.action.action_index as i64,
+                            output_ref.output_index as i64,
+                            if event.public_withdrawal.is_some() {
+                                FLOW_TYPE_WITHDRAW
+                            } else {
+                                FLOW_TYPE_PRIVATE_TRANSFER
+                            },
+                            event.asset_id.to_string(),
+                            if event.is_flagged { 1i64 } else { 0i64 },
+                            event
+                                .public_withdrawal
+                                .as_ref()
+                                .map(|public| public.amount.to_string()),
+                            event
+                                .public_withdrawal
+                                .as_ref()
+                                .and_then(|public| public.self_address.as_deref()),
+                            event
+                                .public_withdrawal
+                                .as_ref()
+                                .map(|public| public.destination.as_str()),
+                            event
+                                .public_withdrawal
+                                .as_ref()
+                                .map(|public| public.destination.as_str()),
+                            block.block_time_unix,
+                        ],
+                    )?;
+                    match evidence {
+                        CandidateEvidence::Ready(evidence) => {
+                            crate::audit::validate_and_save_evidence_tx(&tx, output_ref, evidence)?;
+                        }
+                        CandidateEvidence::BuildFailure { reason } => {
+                            crate::audit::record_evidence_failure_tx(
+                                &tx,
+                                block.height,
+                                tx_ref.tx_hash.as_ref(),
+                                output_ref.action.action_index,
+                                output_ref.output_index,
+                                crate::audit::EVIDENCE_STAGE_BUILD,
+                                reason,
+                            )?
+                        }
+                    }
+                }
+            }
         }
 
-        for invalid in &pending.invalid_statuses {
-            update_ciphertext_status(
-                &tx,
-                &invalid.output_ref,
-                ScreenStatus::Invalid,
-                Some(&invalid.reason),
-            )?;
-        }
-
-        for invalid in &pending.invalid_ciphertexts {
-            let output_ref = &invalid.output_ref;
-            let tx_ref = &output_ref.action.tx;
-            let reason = crate::audit::bounded_failure_reason(&invalid.reason);
-            tx.execute(
-                "INSERT OR IGNORE INTO scanner_invalid_ciphertexts
-                 (height, block_hash, tx_index, tx_hash, action_index, output_index, reason, raw_bytes)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                params![
-                    tx_ref.block.height as i64,
-                    tx_ref.block.block_hash.as_slice(),
-                    tx_ref.tx_index as i64,
-                    tx_ref.tx_hash.as_ref(),
-                    output_ref.action.action_index as i64,
-                    output_ref.output_index as i64,
-                    reason.as_str(),
-                    invalid.raw_bytes.as_slice(),
-                ],
-            )?;
-        }
-
-        for event in &pending.clear_flows {
-            let output_ref = &event.output_ref;
-            let tx_ref = &output_ref.action.tx;
-            let amount = event.amount.to_string();
-            tx.execute(
-                "INSERT OR IGNORE INTO scanner_clear_flows
-                 (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  flow_type, asset_id, amount, self_address, counterparty, public_address)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-                params![
-                    tx_ref.block.height as i64,
-                    tx_ref.block.block_hash.as_slice(),
-                    tx_ref.tx_index as i64,
-                    tx_ref.tx_hash.as_ref(),
-                    output_ref.action.action_index as i64,
-                    output_ref.output_index as i64,
-                    event.kind.as_str(),
-                    event.asset_id.to_string(),
-                    amount.as_str(),
-                    event.self_address.as_deref(),
-                    event.counterparty.as_deref(),
-                    event.public_address.as_deref(),
-                ],
-            )?;
-            tx.execute(
-                "INSERT OR IGNORE INTO audit_rows
-                 (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  flow_type, asset_id, is_flagged, amount, self_address, counterparty_address,
-                  public_address, decrypted_via, updated_at_unix)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0, ?9, ?10, ?11, ?12, ?13, ?14)",
-                params![
-                    tx_ref.block.height as i64,
-                    tx_ref.block.block_hash.as_slice(),
-                    tx_ref.tx_index as i64,
-                    tx_ref.tx_hash.as_ref(),
-                    output_ref.action.action_index as i64,
-                    output_ref.output_index as i64,
-                    event.kind.as_str(),
-                    event.asset_id.to_string(),
-                    amount.as_str(),
-                    event.self_address.as_deref(),
-                    event.counterparty.as_deref(),
-                    event.public_address.as_deref(),
-                    DECRYPTED_VIA_PUBLIC,
-                    block.block_time_unix,
-                ],
-            )?;
-        }
-
-        if pending.skipped_invalid_ciphertexts > 0 {
+        if invalid_count > MAX_INVALID_CIPHERTEXTS_PER_BLOCK {
             tx.execute(
                 "INSERT OR REPLACE INTO scanner_invalid_ciphertext_summaries
                  (height, block_hash, skipped_count)
@@ -843,7 +724,7 @@ impl ScannerStore for SqliteScannerStore {
                 params![
                     block.height as i64,
                     block.block_hash.as_slice(),
-                    pending.skipped_invalid_ciphertexts as i64,
+                    (invalid_count - MAX_INVALID_CIPHERTEXTS_PER_BLOCK) as i64,
                 ],
             )?;
         }
@@ -854,7 +735,6 @@ impl ScannerStore for SqliteScannerStore {
         )?;
 
         tx.commit()?;
-        *pending = PendingBlock::default();
         Self::checkpoint_wal(&conn)?;
         Ok(())
     }
@@ -884,10 +764,6 @@ impl ScannerStore for SqliteScannerStore {
         )?;
         tx.execute(
             "DELETE FROM audit_rows WHERE height > ?1",
-            params![height as i64],
-        )?;
-        tx.execute(
-            "DELETE FROM scanner_clear_flows WHERE height > ?1",
             params![height as i64],
         )?;
         tx.execute(
@@ -929,8 +805,6 @@ impl ScannerStore for SqliteScannerStore {
         tx.commit()?;
         Self::checkpoint_wal(&conn)?;
 
-        let mut pending = self.lock_pending()?;
-        *pending = PendingBlock::default();
         Ok(())
     }
 
@@ -959,20 +833,6 @@ impl ScannerStore for SqliteScannerStore {
     async fn mark_stopped(&self) -> Result<()> {
         self.mark_scanner_stopped()
     }
-}
-
-fn ensure_pending_block(pending: &PendingBlock, block: &BlockRef) -> Result<()> {
-    let pending_block = pending
-        .block
-        .as_ref()
-        .ok_or_else(|| anyhow!("no pending scanner block"))?;
-    anyhow::ensure!(
-        pending_block.height == block.height && pending_block.block_hash == block.block_hash,
-        "pending scanner block mismatch: pending height {}, event height {}",
-        pending_block.height,
-        block.height
-    );
-    Ok(())
 }
 
 fn update_ciphertext_status(
@@ -1043,12 +903,53 @@ fn to_sql_error(error: anyhow::Error) -> rusqlite::Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scanner::{
-        ActionRef, ClearFlowEvent, ClearFlowKind, ExtractedComplianceCiphertext, OutputRef, TxRef,
-    };
+    use crate::scanner::{ActionRef, OutputRef, TxRef};
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_txhash::TransactionId;
     use tempfile::NamedTempFile;
+
+    use super::super::types::{
+        DetectionEvent, ExtractedComplianceCiphertext, InvalidCiphertext, ScannedOutput,
+    };
+
+    fn detected_output(event: DetectionEvent) -> ScannedOutput {
+        let ciphertext = ExtractedComplianceCiphertext {
+            record_ref: event.record_ref.clone(),
+            kind: match event.ciphertext {
+                super::super::types::ComplianceCiphertext::Transfer(_) => {
+                    super::super::types::ComplianceCiphertextKind::Transfer
+                }
+                super::super::types::ComplianceCiphertext::Withdrawal(_) => {
+                    super::super::types::ComplianceCiphertextKind::Withdrawal
+                }
+            },
+            public_withdrawal: event.public_withdrawal.clone(),
+            routing_tags: event.routing_tags,
+            raw_bytes: event.raw_bytes.clone(),
+            metadata_bytes: None,
+        };
+        let evidence = CandidateEvidence::from_detection(&event, None);
+        ScannedOutput {
+            ciphertext,
+            outcome: OutputOutcome::Detected { event, evidence },
+        }
+    }
+
+    fn invalid_output(invalid: InvalidCiphertext) -> ScannedOutput {
+        ScannedOutput {
+            ciphertext: ExtractedComplianceCiphertext {
+                record_ref: invalid.record_ref,
+                kind: super::super::types::ComplianceCiphertextKind::Transfer,
+                public_withdrawal: None,
+                routing_tags: [0, 0],
+                raw_bytes: invalid.raw_bytes,
+                metadata_bytes: None,
+            },
+            outcome: OutputOutcome::Invalid {
+                reason: invalid.reason,
+            },
+        }
+    }
 
     fn block(height: u64) -> BlockRef {
         BlockRef {
@@ -1075,7 +976,12 @@ mod tests {
 
     fn invalid(height: u64, output_index: u32) -> InvalidCiphertext {
         InvalidCiphertext {
-            output_ref: output_ref(height, 1, 2, output_index),
+            record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref(
+                height,
+                1,
+                2,
+                output_index,
+            )),
             reason: "invalid".to_string(),
             raw_bytes: vec![output_index as u8],
         }
@@ -1083,36 +989,48 @@ mod tests {
 
     fn ciphertext(height: u64, output_index: u32) -> ExtractedComplianceCiphertext {
         ExtractedComplianceCiphertext {
-            output_ref: output_ref(height, 1, 2, output_index),
+            record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref(
+                height,
+                1,
+                2,
+                output_index,
+            )),
+            kind: crate::scanner::types::ComplianceCiphertextKind::Transfer,
             routing_tags: [11, 22],
             raw_bytes: vec![output_index as u8, 9],
             metadata_bytes: Some(vec![8, output_index as u8]),
+            public_withdrawal: None,
         }
     }
 
     fn detection(height: u64) -> DetectionEvent {
         DetectionEvent {
-            output_ref: output_ref(height, 1, 2, 3),
+            record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref(height, 1, 2, 3)),
             asset_id: asset::Id(decaf377::Fq::from(123u64)),
             is_flagged: true,
             salt: decaf377::Fq::from(9u64),
             routing_tags: [11, 22],
-            ciphertext: crate::transfer::TransferComplianceCiphertext {
-                sender_core_epk: decaf377::Element::GENERATOR,
-                sender_ext_epk: decaf377::Element::GENERATOR,
-                output_core_epk: decaf377::Element::GENERATOR,
-                output_ext_epk: decaf377::Element::GENERATOR,
-                sender_core_c2: decaf377::Fq::from(1u64),
-                sender_ext_c2: decaf377::Fq::from(2u64),
-                output_core_c2: decaf377::Fq::from(3u64),
-                output_ext_c2: decaf377::Fq::from(4u64),
-                detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
-                encrypted_sender_core: [0u8; 32],
-                encrypted_sender_ext: [0u8; 96],
-                encrypted_output_core: [0u8; 32],
-                encrypted_output_ext: [0u8; 96],
-            },
+            ciphertext: crate::scanner::types::ComplianceCiphertext::Transfer(
+                crate::transfer::TransferComplianceCiphertext {
+                    sender_core_epk: decaf377::Element::GENERATOR,
+                    sender_ext_epk: decaf377::Element::GENERATOR,
+                    output_core_epk: decaf377::Element::GENERATOR,
+                    output_ext_epk: decaf377::Element::GENERATOR,
+                    sender_core_c2: decaf377::Fq::from(1u64),
+                    sender_ext_c2: decaf377::Fq::from(2u64),
+                    output_core_c2: decaf377::Fq::from(3u64),
+                    output_ext_c2: decaf377::Fq::from(4u64),
+                    sender_core_key_confirmation: decaf377::Fq::from(5u64),
+                    output_core_key_confirmation: decaf377::Fq::from(6u64),
+                    detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
+                    encrypted_sender_core: [0u8; 32],
+                    encrypted_sender_ext: [0u8; 96],
+                    encrypted_output_core: [0u8; 32],
+                    encrypted_output_ext: [0u8; 96],
+                },
+            ),
             raw_bytes: vec![1, 2, 3],
+            public_withdrawal: None,
         }
     }
 
@@ -1121,9 +1039,9 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         let scanner_block = block(10);
-        store.begin_block(&scanner_block).await.unwrap();
-        store.save_detection(&detection(10)).await.unwrap();
-        store.commit_block(&scanner_block).await.unwrap();
+        let mut scanned = ScannedBlock::new(scanner_block.clone());
+        scanned.outputs.push(detected_output(detection(10)));
+        store.commit_scanned_block(&scanned).await.unwrap();
 
         assert_eq!(store.detection_count().await.unwrap(), 1);
         assert_eq!(
@@ -1131,9 +1049,9 @@ mod tests {
             Some(scanner_block)
         );
 
-        store.begin_block(&block(10)).await.unwrap();
-        store.save_detection(&detection(10)).await.unwrap();
-        store.commit_block(&block(10)).await.unwrap();
+        let mut scanned = ScannedBlock::new(block(10).clone());
+        scanned.outputs.push(detected_output(detection(10)));
+        store.commit_scanned_block(&scanned).await.unwrap();
         assert_eq!(store.detection_count().await.unwrap(), 1);
     }
 
@@ -1142,14 +1060,11 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         let block = block(20);
-        store.begin_block(&block).await.unwrap();
+        let mut scanned = ScannedBlock::new(block.clone());
         for i in 0..(MAX_INVALID_CIPHERTEXTS_PER_BLOCK as u32 + 7) {
-            store
-                .save_invalid_ciphertext(&invalid(20, i))
-                .await
-                .unwrap();
+            scanned.outputs.push(invalid_output(invalid(20, i)));
         }
-        store.commit_block(&block).await.unwrap();
+        store.commit_scanned_block(&scanned).await.unwrap();
 
         assert_eq!(
             store.invalid_ciphertext_count().unwrap(),
@@ -1164,13 +1079,12 @@ mod tests {
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         let block = block(25);
         let ciphertext = ciphertext(25, 4);
-        store.begin_block(&block).await.unwrap();
-        store.save_ciphertext(&ciphertext).await.unwrap();
-        store
-            .mark_ciphertext_irrelevant(&ciphertext.output_ref)
-            .await
-            .unwrap();
-        store.commit_block(&block).await.unwrap();
+        let mut scanned = ScannedBlock::new(block.clone());
+        scanned.outputs.push(ScannedOutput {
+            ciphertext: ciphertext.clone(),
+            outcome: OutputOutcome::Irrelevant,
+        });
+        store.commit_scanned_block(&scanned).await.unwrap();
 
         let conn = store.lock_conn().unwrap();
         let (status, bundle): (String, Vec<u8>) = conn
@@ -1190,19 +1104,22 @@ mod tests {
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         let block = block(26);
         let ciphertext = ciphertext(26, 4);
-        store.begin_block(&block).await.unwrap();
-        store.save_ciphertext(&ciphertext).await.unwrap();
-        store
-            .mark_ciphertext_irrelevant(&ciphertext.output_ref)
-            .await
-            .unwrap();
-        store.commit_block(&block).await.unwrap();
+        let mut scanned = ScannedBlock::new(block.clone());
+        scanned.outputs.push(ScannedOutput {
+            ciphertext: ciphertext.clone(),
+            outcome: OutputOutcome::Irrelevant,
+        });
+        store.commit_scanned_block(&scanned).await.unwrap();
 
         let conn = store.lock_conn().unwrap();
         let tx = conn.unchecked_transaction().unwrap();
-        let err =
-            update_ciphertext_status(&tx, &ciphertext.output_ref, ScreenStatus::Detected, None)
-                .expect_err("irrelevant ciphertext cannot become detected");
+        let err = update_ciphertext_status(
+            &tx,
+            &ciphertext.record_ref.output_ref(),
+            ScreenStatus::Detected,
+            None,
+        )
+        .expect_err("irrelevant ciphertext cannot become detected");
 
         assert!(
             err.to_string().contains("illegal screen status transition"),
@@ -1211,7 +1128,7 @@ mod tests {
     }
 
     #[test]
-    fn sqlite_store_rejects_unversioned_db() {
+    fn sqlite_store_rejects_unrecognized_db() {
         let temp_file = NamedTempFile::new().unwrap();
         {
             let conn = Connection::open(temp_file.path()).unwrap();
@@ -1227,52 +1144,52 @@ mod tests {
         }
 
         let err = match SqliteScannerStore::new(temp_file.path()) {
-            Ok(_) => panic!("unversioned scanner DB should fail to open"),
+            Ok(_) => panic!("unrecognized scanner DB should fail to open"),
             Err(error) => error,
         };
 
         assert!(
             err.to_string()
-                .contains("scanner DB schema is unversioned; recreate the scanner DB"),
+                .contains("scanner DB schema is unrecognized; recreate the scanner DB"),
             "unexpected error: {err:#}"
         );
     }
 
     #[test]
-    fn sqlite_store_initializes_current_schema_and_rejects_stale_versions() {
+    fn sqlite_store_initializes_current_schema_and_rejects_wrong_identity() {
         let current_file = NamedTempFile::new().unwrap();
         let current = SqliteScannerStore::new(current_file.path()).unwrap();
-        let version: i64 = current
+        let identity: String = current
             .lock_conn()
             .unwrap()
             .query_row(
-                "SELECT version FROM scanner_schema_version WHERE id = 1",
+                "SELECT identity FROM scanner_schema WHERE id = 1",
                 [],
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(version, SCANNER_DB_SCHEMA_VERSION);
+        assert_eq!(identity.len(), 64);
 
         let stale_file = NamedTempFile::new().unwrap();
         {
             let conn = Connection::open(stale_file.path()).unwrap();
             conn.execute_batch(
-                "CREATE TABLE scanner_schema_version (
+                "CREATE TABLE scanner_schema (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
-                    version INTEGER NOT NULL
+                    identity TEXT NOT NULL
                  );
-                 INSERT INTO scanner_schema_version (id, version) VALUES (1, 2);",
+                 INSERT INTO scanner_schema (id, identity) VALUES (1, 'wrong');",
             )
             .unwrap();
         }
         let error = match SqliteScannerStore::new(stale_file.path()) {
-            Ok(_) => panic!("stale scanner schema should fail to open"),
+            Ok(_) => panic!("wrong scanner schema should fail to open"),
             Err(error) => error,
         };
         assert!(
             error
                 .to_string()
-                .contains("unsupported scanner DB schema version 2"),
+                .contains("scanner DB schema identity mismatch"),
             "unexpected error: {error:#}"
         );
     }
@@ -1289,8 +1206,8 @@ mod tests {
             .execute(
                 "INSERT INTO scanner_ciphertexts
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
-                  raw_bytes, screen_status)
-                 VALUES (1, ?1, 0, ?2, 0, 0, x'00', 'unknown')",
+                  raw_bytes, screen_status, record_type)
+                 VALUES (1, ?1, 0, ?2, 0, 0, x'00', 'unknown', 1)",
                 params![block_hash.as_slice(), tx_hash.as_slice()],
             )
             .expect_err("invalid screen status should fail");
@@ -1304,8 +1221,8 @@ mod tests {
                 "INSERT INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
                   asset_id, is_flagged, salt,
-                  routing_tag_0, routing_tag_1, ciphertext_bytes, detection_status, audit_status)
-                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 11, 22, x'00', 'detected', 'unknown')",
+                  routing_tag_0, routing_tag_1, ciphertext_bytes, audit_status)
+                 VALUES (1, ?1, 0, ?2, 0, 0, 'asset', 0, ?3, 11, 22, x'00', 'unknown')",
                 params![block_hash.as_slice(), tx_hash.as_slice(), salt.as_slice()],
             )
             .expect_err("invalid audit status should fail");
@@ -1323,15 +1240,19 @@ mod tests {
         let ciphertext = ciphertext(27, 4);
         let long_reason = "x".repeat(crate::audit::MAX_FAILURE_REASON_BYTES + 100);
         let invalid = InvalidCiphertext {
-            output_ref: ciphertext.output_ref.clone(),
+            record_ref: ciphertext.record_ref.clone(),
             reason: long_reason,
             raw_bytes: vec![1, 2, 3],
         };
 
-        store.begin_block(&block).await.unwrap();
-        store.save_ciphertext(&ciphertext).await.unwrap();
-        store.save_invalid_ciphertext(&invalid).await.unwrap();
-        store.commit_block(&block).await.unwrap();
+        let mut scanned = ScannedBlock::new(block.clone());
+        scanned.outputs.push(ScannedOutput {
+            ciphertext: ciphertext.clone(),
+            outcome: OutputOutcome::Invalid {
+                reason: invalid.reason.clone(),
+            },
+        });
+        store.commit_scanned_block(&scanned).await.unwrap();
 
         let conn = store.lock_conn().unwrap();
         let (screen_reason, invalid_reason): (String, String) = conn
@@ -1383,9 +1304,9 @@ mod tests {
 
         for height in 1..=5 {
             let block = block(height);
-            store.begin_block(&block).await.unwrap();
-            store.save_detection(&detection(height)).await.unwrap();
-            store.commit_block(&block).await.unwrap();
+            let mut scanned = ScannedBlock::new(block.clone());
+            scanned.outputs.push(detected_output(detection(height)));
+            store.commit_scanned_block(&scanned).await.unwrap();
         }
 
         let wal_path = PathBuf::from(format!("{}-wal", temp_file.path().display()));
@@ -1411,9 +1332,9 @@ mod tests {
 
         for height in 1..=20 {
             let block = block(height);
-            store.begin_block(&block).await.unwrap();
-            store.save_detection(&detection(height)).await.unwrap();
-            store.commit_block(&block).await.unwrap();
+            let mut scanned = ScannedBlock::new(block.clone());
+            scanned.outputs.push(detected_output(detection(height)));
+            store.commit_scanned_block(&scanned).await.unwrap();
         }
 
         for reader in readers {
@@ -1429,13 +1350,10 @@ mod tests {
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         for height in 1..=3 {
             let block = block(height);
-            store.begin_block(&block).await.unwrap();
-            store.save_detection(&detection(height)).await.unwrap();
-            store
-                .save_invalid_ciphertext(&invalid(height, 0))
-                .await
-                .unwrap();
-            store.commit_block(&block).await.unwrap();
+            let mut scanned = ScannedBlock::new(block.clone());
+            scanned.outputs.push(detected_output(detection(height)));
+            scanned.outputs.push(invalid_output(invalid(height, 0)));
+            store.commit_scanned_block(&scanned).await.unwrap();
         }
 
         store.rollback_to_height(1).await.unwrap();
@@ -1456,8 +1374,8 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         let empty = block(42);
-        store.begin_block(&empty).await.unwrap();
-        store.commit_block(&empty).await.unwrap();
+        let scanned = ScannedBlock::new(empty.clone());
+        store.commit_scanned_block(&scanned).await.unwrap();
 
         assert_eq!(store.last_scanned_block().await.unwrap(), Some(empty));
         assert_eq!(store.detection_count().await.unwrap(), 0);
@@ -1470,73 +1388,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        let clear_flows: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM scanner_clear_flows WHERE height = 42",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
         assert_eq!(ciphertexts, 0);
-        assert_eq!(clear_flows, 0);
-    }
-
-    fn clear_flow(height: u64, kind: ClearFlowKind, output_index: u32) -> ClearFlowEvent {
-        ClearFlowEvent {
-            output_ref: output_ref(height, 1, 2, output_index),
-            kind,
-            asset_id: asset::Id(decaf377::Fq::from(7u64)),
-            amount: shieldd_sdk_num::Amount::from(100u64),
-            self_address: Some("shieldd1self".to_string()),
-            counterparty: Some("shieldd1counter".to_string()),
-            public_address: None,
-        }
-    }
-
-    #[tokio::test]
-    async fn sqlite_store_projects_clear_shield_and_withdraw_to_audit_rows() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let store = SqliteScannerStore::new(temp_file.path()).unwrap();
-        let block = block(50);
-        store.begin_block(&block).await.unwrap();
-        store
-            .save_clear_flow(&clear_flow(50, ClearFlowKind::Shield, 1))
-            .await
-            .unwrap();
-        store
-            .save_clear_flow(&clear_flow(50, ClearFlowKind::Withdraw, 2))
-            .await
-            .unwrap();
-        store.commit_block(&block).await.unwrap();
-
-        let conn = store.lock_conn().unwrap();
-        let flow_rows: Vec<(String, String)> = conn
-            .prepare(
-                "SELECT flow_type, asset_id FROM scanner_clear_flows WHERE height = 50 ORDER BY output_index",
-            )
-            .unwrap()
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-            .unwrap()
-            .map(Result::unwrap)
-            .collect();
-        assert_eq!(flow_rows.len(), 2);
-        assert_eq!(flow_rows[0].0, "shield");
-        assert_eq!(flow_rows[1].0, "withdraw");
-
-        let audit_rows: Vec<(String, Option<String>)> = conn
-            .prepare(
-                "SELECT flow_type, decrypted_via FROM audit_rows WHERE height = 50 ORDER BY output_index",
-            )
-            .unwrap()
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-            .unwrap()
-            .map(Result::unwrap)
-            .collect();
-        assert_eq!(audit_rows.len(), 2);
-        assert_eq!(audit_rows[0].0, "shield");
-        assert_eq!(audit_rows[1].0, "withdraw");
-        assert_eq!(audit_rows[0].1.as_deref(), Some(DECRYPTED_VIA_PUBLIC));
-        assert_eq!(audit_rows[1].1.as_deref(), Some(DECRYPTED_VIA_PUBLIC));
     }
 
     #[tokio::test]

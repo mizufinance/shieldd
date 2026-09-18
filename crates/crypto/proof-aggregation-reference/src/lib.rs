@@ -33,7 +33,7 @@ type G2 = <P as Pairing>::G2;
 type Fr = <P as Pairing>::ScalarField;
 
 const DEV_SRS_SEED: [u8; 32] = [0x50; 32];
-const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge.v1\0";
+const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge\0";
 
 pub type ReferenceResult<T> = Result<T, ReferencePathError>;
 
@@ -124,6 +124,35 @@ type CCommitmentPair = (PairingOutput<P>, IdentityOutput<G1>);
 struct TippMippCommitment {
     ab: AbCommitmentTriple,
     c: CCommitmentPair,
+}
+
+/// Independently decode the canonical aggregate wire shape using checked Arkworks decoding.
+pub fn reference_decode_aggregate(bytes: &[u8]) -> ReferenceResult<Vec<u8>> {
+    let mut remaining = bytes;
+    let proof = ReferenceAggregateProof::deserialize_compressed(&mut remaining)
+        .map_err(|error| ReferencePathError::MalformedProof(error.to_string()))?;
+    if !remaining.is_empty() {
+        return Err(ReferencePathError::MalformedProof("trailing bytes".into()));
+    }
+    for (left, right) in &proof.tipp_mipp_proof.gipa_proof.r_commitment_steps {
+        for commitment in [left, right] {
+            if commitment.ab.2 .0.len() != 1 || commitment.c.1 .0.len() != 1 {
+                return Err(ReferencePathError::MalformedProof(
+                    "identity output is not a singleton".into(),
+                ));
+            }
+        }
+    }
+    let mut canonical = Vec::new();
+    proof
+        .serialize_compressed(&mut canonical)
+        .map_err(|error| ReferencePathError::MalformedProof(error.to_string()))?;
+    if canonical != bytes {
+        return Err(ReferencePathError::MalformedProof(
+            "noncanonical encoding".into(),
+        ));
+    }
+    Ok(canonical)
 }
 
 #[derive(Clone)]
@@ -712,12 +741,12 @@ fn challenge_preimage(
 
 fn transcript_family_domain(family_id: ProofFamilyId) -> Vec<u8> {
     match family_id {
-        ProofFamilyId::Transfer => b"shieldd.snarkpack.transfer.v1".to_vec(),
+        ProofFamilyId::Transfer => b"shieldd.snarkpack.transfer".to_vec(),
         ProofFamilyId::NoteReshape(family_id) => {
-            format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes()
+            format!("shieldd.snarkpack.{}", family_id.label()).into_bytes()
         }
-        ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => {
-            format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes()
+        ProofFamilyId::ShieldedWithdrawal(family_id) => {
+            format!("shieldd.snarkpack.{}", family_id.label()).into_bytes()
         }
     }
 }
@@ -773,8 +802,7 @@ fn reference_srs_id(srs: &DevSrs, serialized_srs: &[u8]) -> [u8; 32] {
     sha2::Digest::update(
         &mut hasher,
         format!(
-            "shieldd.proof_aggregation.srs.v{}:backend={}:curve={}:max_padded_count={}",
-            shieldd_sdk_proof_aggregation::DEV_SRS_VERSION,
+            "shieldd.proof_aggregation.srs:backend={}:curve={}:max_padded_count={}",
             shieldd_sdk_proof_aggregation::DEV_SRS_BACKEND_ID,
             shieldd_sdk_proof_aggregation::DEV_SRS_CURVE_ID,
             srs.max_padded_count
@@ -1104,7 +1132,44 @@ mod tests {
         aggregate_family, decode_wrapped_aggregate_proof, encode_wrapped_aggregate_proof,
         verify_family_aggregate, AGGREGATE_PROTOCOL_VERSION,
     };
-    use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
+    use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedWithdrawalFamilyId};
+
+    #[test]
+    fn decoder_oracle_rejects_shape_and_canonical_aliases() {
+        let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../proof-aggregation-fuzz/corpus/deserialize_aggregate_proof");
+        for index in [0, 1, 2, 3, 7, 11, 15] {
+            let bytes = std::fs::read(directory.join(format!("valid-baseline-{index:02}")))
+                .expect("committed seed");
+            assert_eq!(reference_decode_aggregate(&bytes).unwrap(), bytes);
+        }
+        let bytes = std::fs::read(directory.join("valid-baseline-01")).unwrap();
+        let original = ReferenceAggregateProof::deserialize_compressed(&bytes[..]).unwrap();
+        for length in [0, 2] {
+            let mut proof = original.clone();
+            let identity = &mut proof.tipp_mipp_proof.gipa_proof.r_commitment_steps[0]
+                .0
+                .ab
+                .2
+                 .0;
+            identity.resize(length, identity[0]);
+            let mut malformed = Vec::new();
+            proof.serialize_compressed(&mut malformed).unwrap();
+            assert!(reference_decode_aggregate(&malformed).is_err());
+        }
+        let mut proof = original;
+        proof.agg_c = G1::zero();
+        let mut canonical = Vec::new();
+        proof.serialize_compressed(&mut canonical).unwrap();
+        assert!(reference_decode_aggregate(&canonical).is_ok());
+        let offset = proof.com_a.compressed_size()
+            + proof.com_b.compressed_size()
+            + proof.com_c.compressed_size()
+            + proof.ip_ab.compressed_size();
+        canonical[offset] |= 1;
+        assert!(ReferenceAggregateProof::deserialize_compressed(&canonical[..]).is_ok());
+        assert!(reference_decode_aggregate(&canonical).is_err());
+    }
 
     #[derive(Clone)]
     struct SquareCircuit {
@@ -1217,8 +1282,8 @@ mod tests {
                 .into_iter()
                 .map(ProofFamilyId::NoteReshape),
         );
-        families.push(ProofFamilyId::ShieldedIcs20Withdrawal(
-            ShieldedIcs20WithdrawalFamilyId::Canonical,
+        families.push(ProofFamilyId::ShieldedWithdrawal(
+            ShieldedWithdrawalFamilyId::Canonical,
         ));
         families
     }
