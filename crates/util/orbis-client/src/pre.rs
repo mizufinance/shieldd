@@ -74,9 +74,14 @@ impl EncryptedDocument {
         struct Response {
             xnc_cmt: String,
             secret: Secret,
+            context: CiphertextContext,
         }
         let response: Response =
             serde_json::from_slice(raw).context("malformed Orbis PRE response")?;
+        ensure!(
+            response.context == self.context,
+            "Orbis returned a different ciphertext context"
+        );
         ensure!(
             response.secret.enc_cmt == self.secret.enc_cmt
                 && response.secret.nonce == self.secret.nonce
@@ -145,12 +150,34 @@ mod tests {
     }
 
     #[test]
+    fn current_wire_response_requires_the_verified_context() {
+        let document = document();
+        let mut response = serde_json::json!({
+            "xnc_cmt": "00".repeat(32), "secret": document.secret, "context": document.context,
+        });
+        assert_eq!(
+            document
+                .validate_response(&serde_json::to_vec(&response).unwrap())
+                .unwrap(),
+            vec![0; 32]
+        );
+        response["context"]["permission"] = "write".into();
+        assert!(document
+            .validate_response(&serde_json::to_vec(&response).unwrap())
+            .is_err());
+        response.as_object_mut().unwrap().remove("context");
+        assert!(document
+            .validate_response(&serde_json::to_vec(&response).unwrap())
+            .is_err());
+    }
+
+    #[test]
     fn response_must_return_the_requested_ciphertext() {
         let document = document();
         let mut secret = document.secret.clone();
         secret.encrypted_data[0] ^= 1;
         let raw = serde_json::to_vec(
-            &serde_json::json!({ "xnc_cmt": "00".repeat(32), "secret": secret }),
+            &serde_json::json!({ "xnc_cmt": "00".repeat(32), "secret": secret, "context": document.context }),
         )
         .unwrap();
         assert!(document.validate_response(&raw).is_err());
