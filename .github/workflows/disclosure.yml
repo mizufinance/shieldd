@@ -41,7 +41,7 @@ jobs:
         run: |
           nix develop .#ci --command python3 scripts/stage_artifacts.py native --profile ci
           nix develop .#ci --command python3 scripts/stage_artifacts.py provers --profile ci
-          nix develop .#ci --command cargo build --locked --profile ci -p pcli --features disclosure-prover,development-disclosure-artifacts
+          nix develop .#ci --command cargo build --locked --profile ci -p pcli --features disclosure-prover,development-disclosure-artifacts,orbis
           nix develop .#ci --command cargo build --locked --profile ci -p shieldd-sdk-app-tests --example registration_fixture
           nix develop .#ci --command cargo build --locked --profile ci -p shieldd-sdk-disclosure --example accepted_fixture --features prover,development-artifacts
           cd tools/gnark

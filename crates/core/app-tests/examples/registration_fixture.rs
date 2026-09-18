@@ -22,8 +22,15 @@ struct Fixture {
     chain_id: String,
     denom: String,
     address: String,
+    address_components: AddressComponents,
     asset: pb::MsgRegisterAsset,
     user: pb::MsgRegisterUser,
+}
+
+#[derive(serde::Serialize)]
+struct AddressComponents {
+    diversified_generator: [u8; 32],
+    transmission_key: [u8; 32],
 }
 
 fn main() -> Result<()> {
@@ -125,6 +132,10 @@ fn main() -> Result<()> {
             chain_id,
             denom,
             address: address.to_string(),
+            address_components: AddressComponents {
+                diversified_generator: address.diversified_generator().vartime_compress().0,
+                transmission_key: address.transmission_key().0,
+            },
             asset: asset.into(),
             user: user.into()
         })?

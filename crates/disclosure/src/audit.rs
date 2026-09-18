@@ -54,7 +54,7 @@ pub struct AuditSelection {
     pub policy: AuditPolicy,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AuditPolicy {
     pub ring_id: String,

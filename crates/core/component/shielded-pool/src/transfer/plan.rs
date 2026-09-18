@@ -46,6 +46,51 @@ pub struct TransferPlan {
 }
 
 impl TransferPlan {
+    /// Recover a payload opening only after matching the completed compliance ciphertext.
+    /// The caller must seal this scalar before crossing a wallet or persistence boundary.
+    pub fn audit_opening(
+        &self,
+        body: &TransferBody,
+        field: shieldd_sdk_compliance::audit_field::AuditField,
+    ) -> anyhow::Result<Fr> {
+        self.validate()?;
+        ensure!(
+            self.proof_context == TransferProofContext::Ordinary,
+            "audit requires ordinary transfer"
+        );
+        ensure!(
+            self.compliance.witness.asset.is_regulated,
+            "audit requires regulated asset"
+        );
+        ensure!(
+            !self.is_disclosed_to_issuer(),
+            "issuer-directed transfer has no general audit opening"
+        );
+        let rebuilt = build_transfer_compliance(&self.outputs, &self.compliance, false)?;
+        let output = body
+            .outputs
+            .first()
+            .ok_or_else(|| anyhow!("missing receiver output"))?;
+        ensure!(
+            body.proof_context == self.proof_context,
+            "transfer context mismatch"
+        );
+        ensure!(
+            output.compliance_ciphertext == rebuilt.ciphertext.to_bytes(),
+            "completed compliance ciphertext mismatch"
+        );
+        ensure!(
+            output.compliance_metadata == rebuilt.metadata.to_bytes()?,
+            "completed compliance metadata mismatch"
+        );
+        use shieldd_sdk_compliance::audit_field::AuditField;
+        Ok(match field {
+            AuditField::Amount => rebuilt.private.output.core,
+            AuditField::Sender => rebuilt.private.output.ext,
+            AuditField::Receiver => rebuilt.private.sender.ext,
+        })
+    }
+
     pub fn output_capk(&self, index: usize) -> decaf377::Element {
         if is_receiver_output_index(index) {
             self.compliance.recipient.leaf.capk
@@ -850,6 +895,60 @@ mod tests {
             err.to_string().contains(expected),
             "unexpected decoding error: {err}"
         );
+    }
+
+    #[test]
+    fn audit_openings_match_completed_ciphertext_and_reject_mutations() {
+        use crate::test_proof_helpers::proof_test_helpers::generate_base_test_data;
+        use shieldd_sdk_compliance::{audit_field::AuditField, TransferComplianceCiphertext};
+        let base = generate_base_test_data(&mut OsRng, 1, 100, true);
+        let plan = TransferPlan::new(
+            vec![ShieldedInputPlan::new(
+                &mut OsRng,
+                base.note.clone(),
+                0u64.into(),
+            )],
+            vec![ShieldedOutputPlan::new(
+                &mut OsRng,
+                base.value,
+                base.address.clone(),
+            )],
+            Fr::from(5u64),
+            base.transfer_context(Fr::from(7u64)),
+            VolumeAccumulatorPlan::padding(base.target_timestamp),
+            TransferProofContext::Ordinary,
+            Parameters::default(),
+        )
+        .unwrap();
+        let body = plan
+            .transfer_body(
+                &base.fvk,
+                &PayloadKey::random_key(&mut OsRng),
+                tct::Tree::default().root(),
+                0,
+            )
+            .unwrap();
+        let ct = TransferComplianceCiphertext::from_bytes(&body.outputs[0].compliance_ciphertext)
+            .unwrap();
+        for (field, epk) in [
+            (AuditField::Amount, ct.output_core_epk),
+            (AuditField::Sender, ct.output_ext_epk),
+            (AuditField::Receiver, ct.sender_ext_epk),
+        ] {
+            assert_eq!(
+                decaf377::Element::GENERATOR * plan.audit_opening(&body, field).unwrap(),
+                epk
+            );
+        }
+        let mut changed = body.clone();
+        changed.outputs[0].compliance_ciphertext[0] ^= 1;
+        assert!(plan.audit_opening(&changed, AuditField::Amount).is_err());
+        let mut changed = body.clone();
+        changed.outputs[0].compliance_metadata[0] ^= 1;
+        assert!(plan.audit_opening(&changed, AuditField::Amount).is_err());
+        let mut malformed = plan;
+        malformed.outputs.clear();
+        assert!(malformed.audit_opening(&body, AuditField::Amount).is_err());
     }
 
     #[test]

@@ -1,3 +1,5 @@
+#[cfg(feature = "orbis")]
+mod orbis;
 use anyhow::{ensure, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use shieldd_sdk_disclosure as sdk;
@@ -13,6 +15,18 @@ use tokio::io::AsyncWriteExt;
 pub enum DisclosureCmd {
     /// Machine adapter protocol and supported package identity.
     Capabilities,
+    /// Validate accepted sealed packages and register their canonical Orbis document IDs.
+    #[cfg(feature = "orbis")]
+    OrbisRegister {
+        #[clap(long)]
+        node: String,
+    },
+    /// Open accepted field packages through real Orbis PRE; reads bounded JSON stdin.
+    #[cfg(feature = "orbis")]
+    OrbisAudit {
+        #[clap(long)]
+        node: String,
+    },
     /// Resolve canonical compliance ciphertext from a chosen node, without a wallet.
     AuditCiphertext {
         selection: Utf8PathBuf,
@@ -435,6 +449,14 @@ async fn asset_policy(
 impl DisclosureCmd {
     pub async fn exec(&self, home: &Utf8Path) -> Result<()> {
         match self {
+            #[cfg(feature = "orbis")]
+            Self::OrbisRegister { node } | Self::OrbisAudit { node } => {
+                let input = read_bounded(Utf8Path::new("-"), 2 * 1024 * 1024)?;
+                let result =
+                    orbis::execute(&input, node, matches!(self, Self::OrbisRegister { .. }))
+                        .await?;
+                println!("{}", serde_json::to_string(&result)?);
+            }
             Self::VerifyMachine { node } => {
                 let input = zeroize::Zeroizing::new(read_bounded(
                     Utf8Path::new("-"),

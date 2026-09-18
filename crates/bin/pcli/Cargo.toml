@@ -14,9 +14,15 @@ disclosure = ["dep:shieldd-sdk-disclosure", "dep:shieldd-sdk-view", "dep:tonic",
 development-disclosure-artifacts = ["disclosure", "shieldd-sdk-disclosure/development-artifacts"]
 disclosure-prover = ["disclosure", "shieldd-sdk-disclosure/prover"]
 demo = ["shieldd-sdk-keys/demo"]
+orbis = ["disclosure", "shieldd-sdk-disclosure/orbis", "dep:shieldd-orbis-client", "dep:orbis-authn", "dep:orbis-common", "dep:orbis-crypto"]
 ledger = ["dep:shieldd-sdk-custody-ledger-usb"]
 
 [dependencies]
+shieldd-orbis-client = { workspace = true, optional = true }
+orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df", optional = true }
+orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df", optional = true }
+orbis-crypto = { package = "crypto", path = "../../../third_party/orbis-crypto", default-features = false, features = ["decaf377"], optional = true }
+
 zeroize = "1"
 shieldd-sdk-disclosure = { workspace = true, features = ["proof"], optional = true }
 shieldd-sdk-view = { workspace = true, optional = true }

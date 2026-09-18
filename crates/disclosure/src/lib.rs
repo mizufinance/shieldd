@@ -1,6 +1,8 @@
 //! Selected-payment disclosure claims; wallet, node and prover effects live at the edge.
 mod audit;
 mod claims;
+#[cfg(feature = "orbis")]
+pub mod orbis;
 mod transaction;
 pub use audit::*;
 mod types;

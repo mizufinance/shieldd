@@ -8,6 +8,7 @@ license = { workspace = true }
 publish = false
 
 [dependencies]
+orbis-crypto = { package = "crypto", path = "../../../third_party/orbis-crypto", default-features = false, features = ["decaf377"] }
 anyhow = { workspace = true }
 decaf377 = { workspace = true, default-features = true }
 hex = { workspace = true }

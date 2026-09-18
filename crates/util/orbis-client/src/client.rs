@@ -206,6 +206,43 @@ fn is_already_exists_vera_error(message: &str) -> bool {
 }
 
 impl OrbisClient {
+    pub async fn start_pre(
+        &self,
+        document: &crate::EncryptedDocument,
+        reader_key: &orbis_crypto::ScalarField,
+        jwt_signer: &JwtSigner,
+    ) -> Result<Vec<u8>> {
+        use orbis_proto::v0::pre::pre_service_client::PreServiceClient;
+        let request = document.request(reader_key)?;
+        let token = jwt_signer
+            .create_pre_jwt(
+                request.rdr_pk.clone(),
+                &request.object_id,
+                None,
+                request.salt.clone(),
+            )
+            .map_err(|error| anyhow!("failed to authenticate Orbis request: {error}"))?;
+        let mut request = create_authenticated_request(request, &token)?;
+        request.set_timeout(Duration::from_secs(60));
+        let channel = self
+            .endpoint
+            .clone()
+            .connect()
+            .await
+            .context("Orbis PRE unavailable")?;
+        let response = PreServiceClient::new(channel)
+            .start_pre(request)
+            .await
+            .context("Orbis PRE request failed")?
+            .into_inner();
+        anyhow::ensure!(
+            response.status == "completed",
+            "Orbis PRE did not complete: {}",
+            response.status
+        );
+        document.validate_response(&response.encrypted_secret)
+    }
+
     pub fn new(endpoint: impl Into<String>) -> Result<Self> {
         let endpoint = endpoint.into();
         let endpoint = Endpoint::from_shared(endpoint.clone())

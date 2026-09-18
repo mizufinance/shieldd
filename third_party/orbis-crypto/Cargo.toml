@@ -1,0 +1,57 @@
+[package]
+name = "crypto"
+version = "0.0.1"
+edition = "2021"
+authors = ["Orbis Contributors"]
+license = "MIT OR Apache-2.0"
+
+
+[dependencies]
+thiserror = "1.0"
+anyhow = "1.0"
+zeroize = { version = "1", features = ["derive"] }
+ark-bls12-381 = { version = "0.4", optional = true }
+decaf377 = { git = "https://github.com/penumbra-zone/decaf377", rev = "a170cc2b25689b45a16417ab035bbf38ea835445", optional = true }
+ark-ec = "0.4"
+ark-ff = "0.4"
+ark-std = "0.4"
+ark-serialize = "0.4"
+rand = "0.8"
+rand_core = "0.6"
+subtle = "2.5"
+sha2 = "0.10"
+aes-gcm = "0.10"
+hkdf = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.6.0"
+
+[features]
+default = ["bls12-381"]
+test-helpers = []
+bls12-381 = ["dep:ark-bls12-381"]
+decaf377 = ["dep:decaf377"]
+
+[[bench]]
+name = "pre_benchmarks"
+harness = false
+required-features = ["test-helpers"]
+
+[[bench]]
+name = "dkg_benchmarks"
+harness = false
+required-features = ["test-helpers"]
+
+[[bench]]
+name = "sign_benchmarks"
+harness = false
+required-features = ["test-helpers"]
+
+[lints.clippy]
+too_many_arguments = "allow"
+type_complexity = "allow"
+
+[workspace]

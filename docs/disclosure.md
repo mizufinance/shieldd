@@ -266,3 +266,23 @@ Changed policy, chain, height, output and unregulated selections are rejected.
 `accepted_fixture` exports openings, payload keys and true/false development
 proofs for independently fetched live transactions; acceptance still requires
 verification against the chosen node.
+
+## Orbis demo delivery
+
+With the `orbis` feature, `orbis::prepare_packages` reconstructs the completed
+transfer's compliance ciphertext and seals three field openings with pinned
+upstream Orbis crypto. Amount uses `output_core`, sender uses `output_ext`, and
+receiver uses `sender_ext`. Only encrypted packages leave the wallet.
+
+`pcli disclosure orbis-register` and `orbis-audit` accept sealed packages and
+accepted heights on stdin. They validate the chosen node's transaction and asset
+policy, the actual delivery DKG key, and canonical Orbis document IDs. Audit
+requests use authenticated PRE with a reader-key proof of possession. Decryption
+checks the sealed binding and accepted ephemeral key before decoding a field.
+
+The delivery DKG ring is independent of the synthetic registration fixture's
+ring and distinct field keys. This demo does not implement PET or Orbis issuance
+of registration capabilities. Restricted subject filtering happens on the demo
+server; it does not provide cryptographic subject isolation. No fixture secret
+substitutes for PRE. The [build adapter](../third_party/orbis-crypto/README.md)
+keeps upstream Rust source unchanged and bridges the two Decaf versions by bytes.

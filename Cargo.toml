@@ -3,6 +3,7 @@
 resolver = "2"
 
 exclude = [
+  "third_party/orbis-crypto",
   "tools/proto-compiler",
   "third_party/h2-0.3.27",
 ]
