@@ -8,7 +8,7 @@ license = {workspace = true}
 edition = {workspace = true}
 
 [features]
-benchmark-helpers = ["prover", "component"]
+benchmark-helpers = ["prover", "component", "shieldd-sdk-compliance/test-helpers"]
 component = [
     "cnidarium-component",
     "cnidarium",
@@ -29,7 +29,6 @@ parallel = [
     "decaf377/parallel",
 ]
 docsrs = []
-poc-orbis = ["shieldd-sdk-compliance/poc-orbis"]
 
 [dependencies]
 anyhow = {workspace = true}

@@ -11,10 +11,9 @@ publish = false
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 hex = { workspace = true }
-orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "1249ba8bf14c05a4b8086f239623ce98206076ea" }
-orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "1249ba8bf14c05a4b8086f239623ce98206076ea" }
+orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df" }
+orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df" }
 shieldd-orbis-client = { workspace = true }
-shieldd-sdk-keys = { workspace = true, default-features = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }

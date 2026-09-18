@@ -196,7 +196,8 @@ CREATE TABLE compliance_asset_leaves (
     ring_id_hash BLOB NOT NULL,    -- 32 bytes Fq
     policy_id_hash BLOB NOT NULL,  -- 32 bytes Fq
     permission_hash BLOB NOT NULL, -- 32 bytes Fq
-    resource_hash BLOB NOT NULL    -- 32 bytes Fq
+    resource_hash BLOB NOT NULL,    -- 32 bytes Fq
+    audit_keys BLOB NOT NULL CHECK(length(audit_keys) = 136)
 );
 
 -- Internal hashes for asset tree auth paths
@@ -257,4 +258,10 @@ INSERT INTO compliance_asset_tree_position VALUES (0, 0);
 CREATE TABLE compliance_asset_policies (
     asset_id BLOB PRIMARY KEY,
     policy BLOB NOT NULL
+);
+
+CREATE TABLE disclosure_outgoing (
+    tx_id TEXT PRIMARY KEY,
+    tx_bytes BLOB NOT NULL,
+    authorities BLOB NOT NULL
 );

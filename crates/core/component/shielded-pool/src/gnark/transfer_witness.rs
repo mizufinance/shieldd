@@ -99,6 +99,7 @@ pub struct TransferComplianceCiphertextWitness {
 pub struct TransferTierRandomizersWitness {
     pub core: [u8; 32],
     pub ext: [u8; 32],
+    pub checking: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -132,11 +133,13 @@ pub struct TransferWitness {
     pub detection_ciphertext: Vec<[u8; 32]>,
     pub sender_core_key_confirmation: [u8; 32],
     pub output_core_key_confirmation: [u8; 32],
+    pub ownership: [PointAffineBytes; 4],
     pub ring_id_hash: [u8; 32],
     pub policy_id_hash: [u8; 32],
     pub resource_hash: [u8; 32],
     pub permission_hash: [u8; 32],
     pub metadata_target_timestamp: [u8; 32],
+    pub audit_epoch: [u8; 32],
     pub sender_core_salt: [u8; 32],
     pub sender_ext_salt: [u8; 32],
     pub output_core_salt: [u8; 32],
@@ -423,10 +426,17 @@ impl TransferWitness {
                 .collect(),
             sender_core_key_confirmation: public.compliance.sender_core_key_confirmation.to_bytes(),
             output_core_key_confirmation: public.compliance.output_core_key_confirmation.to_bytes(),
+            ownership: [
+                point_affine_bytes(public.compliance.ownership[0].r)?,
+                point_affine_bytes(public.compliance.ownership[0].c)?,
+                point_affine_bytes(public.compliance.ownership[1].r)?,
+                point_affine_bytes(public.compliance.ownership[1].c)?,
+            ],
             ring_id_hash: public.compliance.metadata.ring_id_hash_bytes,
             policy_id_hash: public.compliance.metadata.policy_id_hash_bytes,
             resource_hash: public.compliance.metadata.resource_hash_bytes,
             permission_hash: public.compliance.metadata.permission_hash_bytes,
+            audit_epoch: Fq::from(public.compliance.metadata.audit_epoch).to_bytes(),
             metadata_target_timestamp: Fq::from(public.compliance.metadata.target_timestamp)
                 .to_bytes(),
             sender_core_salt: public.compliance.metadata.sender_core_salt_bytes,
@@ -440,10 +450,12 @@ impl TransferWitness {
             sender_randomizers: TransferTierRandomizersWitness {
                 core: private.compliance.sender.core.to_bytes(),
                 ext: private.compliance.sender.ext.to_bytes(),
+                checking: private.compliance.sender.checking.to_bytes(),
             },
             output_randomizers: TransferTierRandomizersWitness {
                 core: private.compliance.output.core.to_bytes(),
                 ext: private.compliance.output.ext.to_bytes(),
+                checking: private.compliance.output.checking.to_bytes(),
             },
             required_spend,
             optional_spend,

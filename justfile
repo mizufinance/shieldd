@@ -21,7 +21,7 @@ check:
     just tooling-test
     just snarkpack-invariants
     # check, failing on warnings
-    RUSTFLAGS="-D warnings" cargo check --release --all-targets --all-features --target-dir=target/check
+    RUSTFLAGS="-D warnings" cargo check --profile ci --all-targets --all-features --target-dir=target/check
     # fmt dry-run, failing on any suggestions
     cargo fmt --all -- --check
 
@@ -133,14 +133,16 @@ ci-check:
       just check; \
     fi
 
-# CI wrapper for `test`.
+# Proof-acceptance tests share expensive fixtures within one process.
 ci-test:
-    python3 scripts/stage_artifacts.py provers --profile ci
+    time python3 scripts/stage_artifacts.py provers --profile ci
     if command -v cargo-nextest >/dev/null 2>&1; then \
-      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo nextest run --cargo-profile ci --no-fail-fast -j 2; \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" time cargo nextest run --cargo-profile ci --no-run --build-jobs 2 && \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" time cargo nextest run --cargo-profile ci --no-fail-fast -j 2 -E 'not test(app::tests::proof_acceptance_tests::)' && \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" time cargo test --locked --profile ci -p shieldd-sdk-app --lib app::tests::proof_acceptance_tests:: -- --test-threads=1; \
     else \
-      echo "warning: cargo-nextest not found; falling back to 'cargo test --release --no-fail-fast'"; \
-      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo test --release --no-fail-fast -- --test-threads=2; \
+      echo "warning: cargo-nextest not found; falling back to 'cargo test --profile ci --no-fail-fast'"; \
+      SHIELDD_ARTIFACT_ROOT="$PWD/target/shieldd" cargo test --profile ci --no-fail-fast -- --test-threads=2; \
     fi
 
 # CI wrapper for `go-check`.
@@ -166,8 +168,8 @@ ci-preflight:
     elif command -v cargo-hack >/dev/null 2>&1; then \
       ./deployments/scripts/check-crate-feature-sets; \
     else \
-      echo "warning: nix and cargo-hack not found; falling back to 'cargo check --workspace --all-targets --all-features --release'"; \
-      cargo check --workspace --all-targets --all-features --release; \
+      echo "warning: nix and cargo-hack not found; falling back to 'cargo check --workspace --all-targets --all-features --profile ci'"; \
+      cargo check --workspace --all-targets --all-features --profile ci; \
     fi
     if command -v nix >/dev/null 2>&1; then \
       nix develop .#ci --command ./deployments/scripts/check-wasm-compat.sh; \
@@ -188,7 +190,7 @@ orbis-integration-preflight-binaries:
 
 # Build the binaries required by the Orbis integration flow.
 orbis-integration-build:
-    cargo build --release -p orbis-audit -p orbis-integration
+    cargo build --release -p orbis-integration
 
 # Bring up the Orbis stack for use with Bankd.
 orbis-integration-up:

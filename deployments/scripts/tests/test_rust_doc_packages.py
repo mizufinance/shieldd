@@ -48,6 +48,18 @@ def dependency(
 
 
 class RustDocPackagesTest(unittest.TestCase):
+    def test_git_specs_distinguish_sources_and_omit_private_orbis_decaf(self):
+        lock = '\n'.join(
+            f'[[package]]\nname = "decaf377"\nversion = "0.10.1"\nsource = "{source}"'
+            for source in [
+                'git+https://github.com/mizufinance/decaf377?branch=main#abc',
+                'git+https://github.com/penumbra-zone/decaf377?rev=def#def',
+            ]
+        )
+        self.assertEqual(list(PACKAGES.git_packages_from_lock(lock)), [
+            'git+https://github.com/mizufinance/decaf377?branch=main#decaf377@0.10.1',
+        ])
+
     def test_repository_selection_keeps_proof_libraries_without_proving_roots(
         self,
     ) -> None:

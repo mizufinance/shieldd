@@ -3,15 +3,16 @@
 resolver = "2"
 
 exclude = [
+  "third_party/orbis-crypto",
   "tools/proto-compiler",
   "third_party/h2-0.3.27",
 ]
 
 # Also remember to add to deployments/scripts/rust-docs
 members = [
+  "crates/disclosure",
   "crates/bench-support",
   "crates/bench",
-  "crates/bin/orbis-audit",
   "crates/bin/orbis-integration",
   "crates/bin/bankd-e2e-host-withdrawal-builder",
   "crates/bin/bankd-e2e-spend-builder",
@@ -54,6 +55,8 @@ strip = "none"
 
 [profile.ci]
 inherits = "release"
+# Optimized tests with unapproved development circuit keys; never a release artifact.
+debug-assertions = true
 codegen-units = 16
 
 [workspace.package]
@@ -64,6 +67,7 @@ repository = "https://github.com/mizufinance/shieldd"
 license    = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
+shieldd-sdk-disclosure = { path = "crates/disclosure", default-features = false }
 anyhow                           = { version = "1.0.75" }
 ark-bls12-377                    = { default-features = false, version = "0.5.0" }
 ark-bw6-761                      = { default-features = false, version = "0.5.0" }

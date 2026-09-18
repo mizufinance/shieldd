@@ -117,6 +117,8 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # Git origins are pinned per-rev/branch in Cargo.lock; this list gates which
 # origins are permitted at all.
 allow-git = [
+    # Published Decaf source retained by the pinned Orbis crypto adapter.
+    "https://github.com/penumbra-zone/decaf377",
     "https://github.com/mizufinance/decaf377",
     "https://github.com/mizufinance/decaf377-rdsa",
     "https://github.com/mizufinance/poseidon377",

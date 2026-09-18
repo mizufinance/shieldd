@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	shieldedWithdrawalWitnessMagic          = "PIWG"
+	shieldedWithdrawalWitnessMagic          = "PIW3"
 	maxShieldedWithdrawalInputs             = 2
 	minShieldedWithdrawalRequiredSpendBytes = 32*4 + 8 + 4 + 32 + 64 + 1
 	minShieldedWithdrawalOptionalSpendBytes = minShieldedWithdrawalRequiredSpendBytes + 1 + 32
@@ -248,6 +248,7 @@ func DecodeShieldedWithdrawalWitness(payload []byte) (*ShieldedWithdrawalWitness
 	if out.SenderStatus, err = read32(reader); err != nil {
 		return nil, family, err
 	}
+
 	if out.WithdrawalSeed, err = read32(reader); err != nil {
 		return nil, family, err
 	}

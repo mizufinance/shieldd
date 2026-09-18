@@ -4,11 +4,6 @@ use rand::{rngs::StdRng, SeedableRng};
 use shieldd_sdk_asset::Value;
 #[cfg(feature = "component")]
 use shieldd_sdk_compliance::TRANSFER_WIRE_BYTES;
-#[cfg(feature = "poc-orbis")]
-use shieldd_sdk_compliance::{
-    build_poc_orbis_audit_package, PocOrbisAuditBundle, PocOrbisTier, PocOrbisTierBundle,
-    TransferEncryptionResult,
-};
 use shieldd_sdk_compliance::{
     derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
     TransferComplianceMetadata, TransferCompliancePublicInputs,
@@ -45,95 +40,6 @@ fn transfer_compliance_rng_seed(transfer_nonce_root: Fr) -> [u8; 32] {
     seed
 }
 
-#[cfg(feature = "poc-orbis")]
-fn transfer_orbis_audit_rng_seed(transfer_nonce_root: Fr) -> [u8; 32] {
-    let hash = blake2b_simd::Params::new()
-        .hash_length(32)
-        .personal(b"pnxfer-orbis")
-        .hash(&transfer_nonce_root.to_bytes());
-    let mut seed = [0u8; 32];
-    seed.copy_from_slice(hash.as_bytes());
-    seed
-}
-
-#[cfg(feature = "poc-orbis")]
-#[allow(clippy::too_many_arguments)]
-fn build_orbis_tier_bundle(
-    rng: &mut StdRng,
-    ring_pk: &decaf377::Element,
-    sender_derivation: Option<Vec<u8>>,
-    output_derivation: Option<Vec<u8>>,
-    encryption: &TransferEncryptionResult,
-    metadata: &TransferComplianceMetadata,
-    ring_id: &str,
-    policy_id: &str,
-    resource: &str,
-    permission: &str,
-) -> Result<PocOrbisTierBundle> {
-    Ok(PocOrbisTierBundle {
-        sender_core: build_poc_orbis_audit_package(
-            rng,
-            ring_pk,
-            encryption.sender.core.seed,
-            sender_derivation.clone(),
-            metadata,
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            PocOrbisTier::SenderCore,
-            &encryption.ciphertext.sender_core_epk,
-            encryption.ciphertext.sender_core_c2,
-            &encryption.ciphertext.encrypted_sender_core,
-        )?,
-        sender_ext: build_poc_orbis_audit_package(
-            rng,
-            ring_pk,
-            encryption.sender.ext.seed,
-            sender_derivation,
-            metadata,
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            PocOrbisTier::SenderExt,
-            &encryption.ciphertext.sender_ext_epk,
-            encryption.ciphertext.sender_ext_c2,
-            &encryption.ciphertext.encrypted_sender_ext,
-        )?,
-        output_core: build_poc_orbis_audit_package(
-            rng,
-            ring_pk,
-            encryption.output.core.seed,
-            output_derivation.clone(),
-            metadata,
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            PocOrbisTier::OutputCore,
-            &encryption.ciphertext.output_core_epk,
-            encryption.ciphertext.output_core_c2,
-            &encryption.ciphertext.encrypted_output_core,
-        )?,
-        output_ext: build_poc_orbis_audit_package(
-            rng,
-            ring_pk,
-            encryption.output.ext.seed,
-            output_derivation,
-            metadata,
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            PocOrbisTier::OutputExt,
-            &encryption.ciphertext.output_ext_epk,
-            encryption.ciphertext.output_ext_c2,
-            &encryption.ciphertext.encrypted_output_ext,
-        )?,
-    })
-}
-
 pub(crate) fn build_transfer_compliance(
     outputs: &[ShieldedOutputPlan],
     context: &crate::TransferContext,
@@ -155,8 +61,11 @@ pub(crate) fn build_transfer_compliance(
         *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
     };
 
-    let sender_ack = sender_leaf.capk;
-    let receiver_ack = receiver_leaf.capk;
+    let general_keys = if context.witness.asset.is_regulated {
+        asset_indexed_leaf.ring.audit_keys.clone()
+    } else {
+        shieldd_sdk_compliance::AuditKeys::unregulated()
+    };
 
     let detection_salt = derive_transfer_salt(transfer_nonce_root, b"detection");
     let sender_core_salt = derive_transfer_salt(transfer_nonce_root, b"sender_core");
@@ -167,8 +76,7 @@ pub(crate) fn build_transfer_compliance(
 
     let encryption = encrypt_transfer(
         &mut rng,
-        &sender_ack,
-        &receiver_ack,
+        &general_keys,
         &dk_pub,
         &receiver_note.address(),
         &sender_leaf.address,
@@ -206,6 +114,7 @@ pub(crate) fn build_transfer_compliance(
         resource,
         permission,
         target_timestamp,
+        general_keys.epoch,
         sender_core_salt,
         sender_ext_salt,
         output_core_salt,
@@ -213,49 +122,18 @@ pub(crate) fn build_transfer_compliance(
     );
     metadata.validate()?;
 
-    #[cfg(feature = "poc-orbis")]
-    let poc_orbis_audit_bundle = if let Some(asset_policy) = asset_policy {
-        let mut audit_rng = StdRng::from_seed(transfer_orbis_audit_rng_seed(transfer_nonce_root));
-        Some(PocOrbisAuditBundle {
-            subject: build_orbis_tier_bundle(
-                &mut audit_rng,
-                &asset_policy.ring.ring_pk,
-                Some(sender_leaf.address.to_vec()),
-                Some(receiver_note.address().to_vec()),
-                &encryption,
-                &metadata,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-            )?,
-            investigation: build_orbis_tier_bundle(
-                &mut audit_rng,
-                &asset_policy.ring.ring_pk,
-                None,
-                None,
-                &encryption,
-                &metadata,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-            )?,
-        })
-    } else {
-        None
-    };
-
     let public = transfer_compliance_public_from_parts(&encryption.ciphertext, &metadata)?;
     let private = TransferCompliancePrivate {
         transfer_nonce_root,
         sender: TransferTierRandomizers {
             core: encryption.sender.core.r,
             ext: encryption.sender.ext.r,
+            checking: encryption.sender.checking_randomness,
         },
         output: TransferTierRandomizers {
             core: encryption.output.core.r,
             ext: encryption.output.ext.r,
+            checking: encryption.output.checking_randomness,
         },
     };
 
@@ -264,8 +142,6 @@ pub(crate) fn build_transfer_compliance(
         metadata,
         public,
         private,
-        #[cfg(feature = "poc-orbis")]
-        poc_orbis_audit_bundle,
     })
 }
 
@@ -274,8 +150,6 @@ pub(crate) struct BuildTransferComplianceResult {
     pub metadata: TransferComplianceMetadata,
     pub public: TransferCompliancePublic,
     pub private: TransferCompliancePrivate,
-    #[cfg(feature = "poc-orbis")]
-    pub poc_orbis_audit_bundle: Option<PocOrbisAuditBundle>,
 }
 
 pub(crate) struct TransferOutputComplianceBytes {
@@ -345,6 +219,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
         sender_ext_c2,
         output_core_c2,
         output_ext_c2,
+        ownership,
         sender_core_key_confirmation,
         output_core_key_confirmation,
         detection_ciphertext,
@@ -357,6 +232,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
     Ok(TransferCompliancePublic {
         detection_ciphertext: detection_ciphertext.to_vec(),
         metadata: metadata.clone(),
+        ownership,
         sender_core_key_confirmation,
         output_core_key_confirmation,
         sender_core: TransferComplianceCiphertextPublic {

@@ -3,6 +3,7 @@
 Use `nix develop` for the repository toolchain, or install the Rust version in
 `rust-toolchain.toml`, Go from `tools/gnark/go.mod`, and a CGO-capable C compiler.
 Direct host integration tests use temporary storage. Bankd owns the live localnet and mobile/admin/audit smoke workflows.
+Voluntary disclosure proving uses the [local gnark backend](disclosure.md#local-proving-artifacts).
 
 | Command | Coverage |
 | --- | --- |
@@ -19,12 +20,27 @@ Direct host integration tests use temporary storage. Bankd owns the live localne
 | `just wasm-check` | Supported domain crates without component features on WASM |
 | `cargo test -p shieldd-sdk-app-tests --tests -- --test-threads=1` | Host lifecycle, transfers, wallet planning, sweep, and storage query proofs |
 
+## Production artifact approval
+
+Release verification requires every deployed circuit key to be approved in
+`crates/crypto/proof-params/production_keys.json`. Entries bind the circuit label,
+binary and JSON verification-key SHA-256 digests, and an approval reference.
+The current development setups are unapproved; release builds intentionally fail.
+Do not populate approval entries merely to make a build pass.
+
+Debug builds and the optimized `ci` profile can exercise real proving with
+development keys. The `ci` profile retains debug assertions and records that
+provenance; ordinary CI uses it without weakening the release approval gate. Production ceremony
+approval and release checks remain required before deployment.
+
 ## Real proof tests
 
 Many Rust proof-generating unit tests are explicitly ignored. Ordinary app
 integration tests also build real transactions and can require staged prover
 artifacts; Go tests include both solver checks and explicit real proofs. `just gnark-proof-tests-slow`
-selects only these tests in release mode and validates their prerequisites.
+selects only these tests in release mode and validates their prerequisites; it
+requires approved artifacts. Before ceremony approval, run the selected tests in
+debug mode with the same real Go prover and bounded concurrency.
 It exercises Transfer, both NoteReshape families, the shared withdrawal proof and host withdrawal caller, and
 daemon-backed NoteSeizure. Missing artifacts or transports fail the command.
 Fixture-blessing tests remain separate and are never selected by this command.

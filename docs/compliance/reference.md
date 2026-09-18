@@ -8,28 +8,37 @@ See `flow.md` for the end-to-end lifecycle.
 Only the receiver `TransferOutputBody` carries compliance bytes. Transfer
 inputs and the change output must not carry compliance data.
 
-```text
-TransferComplianceCiphertext: 704 bytes
-  0..128    four compressed EPKs
-             sender_core, sender_ext, output_core, output_ext
-  128..256  four canonical Fq c2 values in the same order
-  256..320  sender-core and output-core key confirmations
-  320..448  four-Fq detection ciphertext
-  448..480  sender_core ciphertext: one Fq
-  480..576  sender_ext ciphertext: three Fq
-  576..608  output_core ciphertext: one Fq
-  608..704  output_ext ciphertext: three Fq
+General audits select amount (output core), sender (output extension), or
+receiver (sender extension). Named-person audits select a role and field; PET
+must authorize that specific selection before any payload share is released.
+Flagged payloads use the issuer key. Ownership ciphertexts use the independent
+checking key; no current command implements a distributed PET. See
+[disclosure](../disclosure.md) for the capability map and upstream gaps.
 
-TransferComplianceMetadata: 264 bytes
+```text
+TransferComplianceCiphertext: 832 bytes
+  0..128    four compressed payload EPKs: sender_core, sender_ext, output_core, output_ext
+  128..256  four canonical Fq c2 values in the same order
+  256..320  sender ownership R, C (canonical Decaf points)
+  320..384  receiver ownership R, C
+  384..448  sender-core and output-core key confirmations
+  448..576  four-Fq detection ciphertext
+  576..608  sender_core ciphertext: one Fq
+  608..704  sender_ext ciphertext: three Fq
+  704..736  output_core ciphertext: one Fq
+  736..832  output_ext ciphertext: three Fq
+
+TransferComplianceMetadata: 272 bytes
   0..32     ring_id_hash Fq
   32..64    policy_id_hash Fq
   64..96    resource_hash Fq
   96..128   permission_hash Fq
   128..136  target_timestamp u64 little-endian
-  136..168  sender_core_salt Fq
-  168..200  sender_ext_salt Fq
-  200..232  output_core_salt Fq
-  232..264  output_ext_salt Fq
+  136..144  audit_epoch u64 little-endian
+  144..176  sender_core_salt Fq
+  176..208  sender_ext_salt Fq
+  208..240  output_core_salt Fq
+  240..272  output_ext_salt Fq
 ```
 
 Every Fq and compressed point must decode canonically. Metadata timestamp zero

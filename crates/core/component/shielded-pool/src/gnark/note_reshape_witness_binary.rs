@@ -10,7 +10,7 @@ use crate::gnark::{
     typed::{decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine},
 };
 
-const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
+const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNW3";
 
 impl NoteReshapeWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {

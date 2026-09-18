@@ -359,6 +359,63 @@ impl ExecutionService {
         })
     }
 
+    /// Returns only the transaction log of a committed block.
+    pub async fn transactions_by_height(
+        &self,
+        request: proto_app::TransactionsByHeightRequest,
+    ) -> std::result::Result<proto_app::TransactionsByHeightResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        if storage.latest_version() == u64::MAX {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "Shieldd app state is not initialized"
+            )));
+        }
+        let snapshot = storage.latest_snapshot();
+        let height = snapshot
+            .get_block_height()
+            .await
+            .map_err(ServiceError::internal)?;
+        if request.block_height > height {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "requested block is not committed"
+            )));
+        }
+        snapshot
+            .transactions_by_height(request.block_height)
+            .await
+            .map_err(ServiceError::internal)
+    }
+
+    /// Returns at most one bounded transaction from a committed block.
+    pub async fn committed_transaction(
+        &self,
+        request: proto_app::CommittedTransactionRequest,
+    ) -> std::result::Result<proto_app::CommittedTransactionResponse, ServiceError> {
+        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
+        if storage.latest_version() == u64::MAX {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "Shieldd app state is not initialized"
+            )));
+        }
+        let snapshot = storage.latest_snapshot();
+        let height = snapshot
+            .get_block_height()
+            .await
+            .map_err(ServiceError::internal)?;
+        if request.block_height > height {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "requested block is not committed"
+            )));
+        }
+        let transaction_id = request.transaction_id.try_into().map_err(|_| {
+            ServiceError::invalid_argument(anyhow::anyhow!("transaction ID must be 32 bytes"))
+        })?;
+        snapshot
+            .committed_transaction(request.block_height, transaction_id)
+            .await
+            .map_err(ServiceError::internal)
+    }
+
     pub async fn app_parameters(
         &self,
         _request: proto_app::AppParametersRequest,

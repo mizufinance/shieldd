@@ -17,7 +17,7 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 7;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 2;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 43;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 48;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 3;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 2;
 pub const SHIELDED_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 25;
@@ -378,7 +378,14 @@ pub fn transfer_statement_fields(
     );
     fields.push(compliance.sender_core_key_confirmation);
     fields.push(compliance.output_core_key_confirmation);
+    for ct in compliance.ownership {
+        fields.extend([
+            ct.r.vartime_compress_to_field(),
+            ct.c.vartime_compress_to_field(),
+        ]);
+    }
     let metadata = &compliance.metadata;
+    fields.push(Fq::from(metadata.audit_epoch));
     metadata
         .validate()
         .map_err(|e| transfer_field_encoding_error(&format!("transfer_metadata: {e}")))?;
@@ -833,6 +840,7 @@ mod tests {
 
         let metadata = &public.compliance.metadata;
         let expected_metadata = [
+            Fq::from(metadata.audit_epoch),
             metadata.ring_id_hash().unwrap(),
             metadata.policy_id_hash().unwrap(),
             metadata.resource_hash().unwrap(),
@@ -843,14 +851,26 @@ mod tests {
             metadata.output_ext_salt().unwrap(),
         ];
         let metadata_start = fields.len() - expected_metadata.len();
-        assert_eq!(fields[metadata_start - 3], public.target_timestamp);
+        assert_eq!(fields[metadata_start - 7], public.target_timestamp);
         assert_eq!(
-            fields[metadata_start - 2],
+            fields[metadata_start - 6],
             public.compliance.sender_core_key_confirmation
         );
         assert_eq!(
-            fields[metadata_start - 1],
+            fields[metadata_start - 5],
             public.compliance.output_core_key_confirmation
+        );
+        assert_eq!(
+            &fields[metadata_start - 4..metadata_start],
+            &public
+                .compliance
+                .ownership
+                .into_iter()
+                .flat_map(|ct| [
+                    ct.r.vartime_compress_to_field(),
+                    ct.c.vartime_compress_to_field()
+                ])
+                .collect::<Vec<_>>()
         );
         assert_eq!(&fields[metadata_start..], expected_metadata.as_slice());
 

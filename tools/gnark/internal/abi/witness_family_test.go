@@ -255,7 +255,7 @@ func TestShieldedWithdrawalRejectsNonCanonicalBooleanFlags(t *testing.T) {
 		headerBytes            = 16
 		topFieldsThroughNK     = 24*32 + 4*32 + 2 + 4*32 + 8 + (4 + 24*3*32) + 2*32
 		merklePathBytes        = 4 + 16*(4+3*32)
-		committedLeafBytes     = 32 + 8 + 32 + 16 + 5*32
+		committedLeafBytes     = 32 + 8 + 32 + 16 + 5*32 + 8 + 4*64
 		isRegulatedOffset      = headerBytes + topFieldsThroughNK + merklePathBytes + 8 + committedLeafBytes
 		slimRequiredSpendBytes = 4*32 + 8 + 4 + 24*3*32 + 32 + 64 + 1
 		routingPrivateBytes    = 2 + 8 + 32
@@ -308,7 +308,7 @@ func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
 		headerBytes           = 20
 		topFieldsThroughNK    = 9 * 32
 		merklePathBytes       = 4 + 16*(4+3*32)
-		indexedLeafBytes      = 32 + 8 + 32 + 16 + 5*32
+		indexedLeafBytes      = 32 + 8 + 32 + 16 + 5*32 + 8 + 4*64
 		assetLeafPointBytes   = 2 * 64
 		routingPrivateBytes   = 1 + 2 + 8 + 32
 		sharedContextBytes    = 32 + 64

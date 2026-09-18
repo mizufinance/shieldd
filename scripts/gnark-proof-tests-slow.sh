@@ -26,3 +26,11 @@ daemon_tests NOTE_RESHAPE note_reshape1x8 gnark_proof_note_reshape_1x8_roundtrip
 daemon_tests NOTE_RESHAPE note_reshape8x1 gnark_proof_note_reshape_8x1_roundtrip
 daemon_tests SHIELDED_WITHDRAWAL shielded_withdrawal gnark_proof_shielded_withdrawal_proof_roundtrip
 daemon_tests SHIELDED_WITHDRAWAL shielded_withdrawal gnark_proof_padded_host_withdrawal_proof_roundtrip
+
+# Disclosure proofs use disposable development keys and the existing serial proof suite.
+export SHIELDD_DISCLOSURE_BACKEND="$runtime_root/target/gnark/disclosure"
+export SHIELDD_DISCLOSURE_ARTIFACTS="$(mktemp -d)"
+trap 'rm -rf "$SHIELDD_DISCLOSURE_ARTIFACTS"' EXIT
+(cd tools/gnark && go build -p 2 -o "$SHIELDD_DISCLOSURE_BACKEND" ./cmd/disclosure)
+"$SHIELDD_DISCLOSURE_BACKEND" setup-development "$SHIELDD_DISCLOSURE_ARTIFACTS"
+cargo test --locked --release -p shieldd-sdk-disclosure --features prover,development-artifacts --test claims real_proofs -- --ignored --test-threads=1

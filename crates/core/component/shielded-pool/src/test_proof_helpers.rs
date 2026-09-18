@@ -86,6 +86,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
+            shieldd_sdk_compliance::AuditKeys::test_keys(),
         );
         tree.insert(asset_id, &policy)
             .expect("should be able to insert asset");
@@ -119,6 +120,7 @@ pub mod proof_test_helpers {
             "low-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
+            shieldd_sdk_compliance::AuditKeys::test_keys(),
         );
         tree.insert(low_asset_id, &policy)
             .expect("insert populated low asset");
@@ -274,6 +276,7 @@ pub mod proof_test_helpers {
                 "test-policy-id".to_string(),
                 "read".to_string(),
                 "document".to_string(),
+                shieldd_sdk_compliance::AuditKeys::test_keys(),
             )
         } else {
             shieldd_sdk_compliance::AssetPolicy::default_unregulated()
@@ -509,6 +512,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
+            shieldd_sdk_compliance::AuditKeys::test_keys(),
         );
         build_transfer_hidden_arity_from_base(rng, base, asset_id, false, false, None)
     }
@@ -571,6 +575,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
+            shieldd_sdk_compliance::AuditKeys::test_keys(),
         );
         build_transfer_hidden_arity_from_base(rng, base, asset_id, false, true, None)
     }
@@ -602,6 +607,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
+            shieldd_sdk_compliance::AuditKeys::test_keys(),
         );
         build_transfer_hidden_arity_from_base(rng, base, asset_id, false, true, Some(25))
     }

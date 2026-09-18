@@ -30,13 +30,15 @@ jobs:
       - name: Test Orbis/Vera integration contracts
         working-directory: shieldd
         run: |
+          python3 scripts/check_orbis_vendor.py
+          nix develop --command cargo test --locked \
+            -p shieldd-sdk-disclosure --features orbis
           nix develop --command cargo test --locked \
             -p shieldd-orbis-client \
-            -p orbis-audit \
             -p orbis-integration
           nix develop --command cargo test --locked \
             -p shieldd-sdk-compliance \
-          --features poc-orbis,scanner
+          --features scanner
 
       - name: Validate pinned Orbis/Vera runtime
         working-directory: shieldd

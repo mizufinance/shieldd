@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	noteReshapeWitnessMagic = "PNWG"
+	noteReshapeWitnessMagic = "PNW3"
 	maxNoteReshapeItems     = 8
 )
 
@@ -197,6 +197,7 @@ func decodeNoteReshapeWitness(payload []byte) (*NoteReshapeWitnessBinary, error)
 	if witness.SenderStatus, err = read32(reader); err != nil {
 		return nil, err
 	}
+
 	if witness.Shared.AssetID, err = read32(reader); err != nil {
 		return nil, err
 	}

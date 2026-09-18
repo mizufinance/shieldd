@@ -1,10 +1,10 @@
 {
   "orbis": {
-    "source_revision": "1249ba8bf14c05a4b8086f239623ce98206076ea",
+    "source_revision": "0a0f935a85cc60e87561a9c7364fa80fdb3332df",
     "crypto": "decaf377",
-    "image": "ghcr.io/sourcenetwork/orbis-rs@sha256:d254270eb80fe6d921be02cadc00346af3036cd58efa45dc407a61437739a546"
+    "image": "ghcr.io/sourcenetwork/orbis-rs@sha256:e8b5a40d6b66f0da2f684c5624b9a9a2ac55c274d3b314ce6b7030f131612775"
   },
   "vera": {
-    "source_revision": "2c808e00c0d1ce805930ae98c20ced93b6825882"
+    "source_revision": "f3a7864e41ba1362e4dad34304fdc3ea3ec15fe9"
   }
 }
