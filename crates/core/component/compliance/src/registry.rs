@@ -2,10 +2,10 @@ use crate::registration::ensure_regulated_asset_id;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
-use decaf377::Fq;
-use decaf377_rdsa::{SpendAuth, VerificationKey};
 use futures::StreamExt;
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
 use shieldd_sdk_tct::StateCommitment;
@@ -27,13 +27,14 @@ fn root_from_auth_path(
     mut current: StateCommitment,
     path: &[[StateCommitment; 3]],
     hash_children: fn(
+        u8,
         StateCommitment,
         StateCommitment,
         StateCommitment,
         StateCommitment,
     ) -> StateCommitment,
 ) -> StateCommitment {
-    for siblings in path {
+    for (level, siblings) in path.iter().enumerate() {
         let children = match position % 4 {
             0 => [current, siblings[0], siblings[1], siblings[2]],
             1 => [siblings[0], current, siblings[1], siblings[2]],
@@ -41,7 +42,13 @@ fn root_from_auth_path(
             3 => [siblings[0], siblings[1], siblings[2], current],
             _ => unreachable!(),
         };
-        current = hash_children(children[0], children[1], children[2], children[3]);
+        current = hash_children(
+            level as u8 + 1,
+            children[0],
+            children[1],
+            children[2],
+            children[3],
+        );
         position /= 4;
     }
     current
@@ -271,9 +278,11 @@ fn decode_commitment(bytes: Vec<u8>) -> Result<StateCommitment> {
             bytes.len()
         )
     })?;
-    Ok(StateCommitment(Fq::from_bytes_checked(&bytes).map_err(
-        |_| anyhow::anyhow!("stored compliance tree commitment is not a field element"),
-    )?))
+    Ok(StateCommitment(
+        shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| {
+            anyhow::anyhow!("stored compliance tree commitment is not a field element")
+        })?,
+    ))
 }
 
 fn encode_asset_id(asset_id: asset::Id) -> Vec<u8> {
@@ -284,9 +293,10 @@ fn decode_asset_id(bytes: Vec<u8>) -> Result<asset::Id> {
     let bytes: [u8; 32] = bytes.try_into().map_err(|bytes: Vec<u8>| {
         anyhow::anyhow!("stored asset id must be 32 bytes, got {}", bytes.len())
     })?;
-    Ok(asset::Id(Fq::from_bytes_checked(&bytes).map_err(|_| {
-        anyhow::anyhow!("stored asset id is not a field element")
-    })?))
+    Ok(asset::Id(
+        shieldd_sdk_crypto::encoding::field(&bytes)
+            .map_err(|_| anyhow::anyhow!("stored asset id is not a field element"))?,
+    ))
 }
 
 fn encode_position(position: u64) -> Vec<u8> {
@@ -922,8 +932,13 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
                         .unwrap_or(self.read_user_node(level, base_position + 3).await?),
                 ];
                 children[child_index] = current_hash;
-                current_hash =
-                    QuadTree::hash_children(children[0], children[1], children[2], children[3]);
+                current_hash = QuadTree::hash_children(
+                    level + 1,
+                    children[0],
+                    children[1],
+                    children[2],
+                    children[3],
+                );
                 current_position = parent_position;
                 overlay.insert((level + 1, current_position), current_hash);
                 touched.push((level + 1, current_position, current_hash));
@@ -987,6 +1002,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
                 ];
                 children[child_index] = current_hash;
                 current_hash = IndexedMerkleTree::hash_children(
+                    level + 1,
                     children[0],
                     children[1],
                     children[2],

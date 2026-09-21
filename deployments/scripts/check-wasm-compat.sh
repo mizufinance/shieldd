@@ -6,6 +6,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${repo_root}"
 
 packages=(
+    shieldd-sdk-crypto
+    shieldd-sdk-circuits
     shieldd-sdk-asset
     shieldd-sdk-compact-block
     shieldd-sdk-disclosure

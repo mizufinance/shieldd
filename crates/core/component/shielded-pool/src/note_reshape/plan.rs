@@ -1,8 +1,8 @@
 use anyhow::{anyhow, ensure, Context, Error};
-use decaf377::{Fq, Fr};
-use decaf377_rdsa::{Signature, SpendAuth};
+use reddsa::{sapling::SpendAuth, Signature};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::symmetric::{PayloadKey, WrappedMemoKey};
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
@@ -66,7 +66,7 @@ impl NoteReshapePlan {
             sender_address: first_spend.note.address(),
             asset_id: first_spend.note.asset_id(),
             capk: self.compliance.witness.sender.leaf.capk,
-            nullifier_domain_sep_label: b"shieldd.note_reshape.synthetic_dummy.nullifier",
+            nullifier_domain: shieldd_sdk_crypto::domains::RESHAPE_DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.note_reshape.synthetic_dummy.nullifier_seed",
             spend_auth_key_label: b"shieldd.note_reshape.synthetic_dummy.spend_auth_key",
             spend_auth_randomizer_label:
@@ -143,6 +143,10 @@ impl NoteReshapePlan {
                     .iter()
                     .all(|output| output.value.asset_id == shared_asset_id),
             "note_reshape requires all spends and outputs to use the same asset",
+        );
+        ensure!(
+            self.balance() == Balance::default(),
+            "note_reshape must conserve value",
         );
         self.compliance
             .witness
@@ -284,7 +288,7 @@ impl NoteReshapePlan {
         );
 
         let first_spend = &self.spends[0];
-        let routing_nonce = Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes());
+        let routing_nonce = shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce);
         let routing_tag = discovery::single_tag(
             &first_spend.note.address(),
             self.compliance.witness.asset.is_regulated,
@@ -387,7 +391,7 @@ impl NoteReshapePlan {
         });
 
         let first_spend = &self.spends[0];
-        let routing_nonce = Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes());
+        let routing_nonce = shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce);
         let routing_tag = discovery::single_tag(
             &first_spend.note.address(),
             self.compliance.witness.asset.is_regulated,
@@ -408,6 +412,18 @@ impl NoteReshapePlan {
         })
     }
 
+    #[cfg(any(test, feature = "prover"))]
+    fn validate_auth_count(&self, count: usize) -> Result<(), crate::ProofError> {
+        if count != self.spends.len() {
+            return Err(crate::ProofError::InvalidPublicInput(format!(
+                "note_reshape expected {} auth sigs, got {}",
+                self.spends.len(),
+                count
+            )));
+        }
+        Ok(())
+    }
+
     #[cfg(all(feature = "prover", any(unix, windows)))]
     pub fn note_reshape(
         &self,
@@ -417,17 +433,12 @@ impl NoteReshapePlan {
         anchor: tct::Root,
         memo_key: &PayloadKey,
         recent_position_floor: u64,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<NoteReshape, crate::ProofError> {
         let body = self
             .note_reshape_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        if auth_sigs.len() != self.spends.len() {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "note_reshape expected {} auth sigs, got {}",
-                self.spends.len(),
-                auth_sigs.len()
-            )));
-        }
+        self.validate_auth_count(auth_sigs.len())?;
         let mut auth_sigs = auth_sigs;
         pad_to_len(&mut auth_sigs, self.family_id().auth_sig_count(), |slot| {
             self.synthetic_dummy_auth_sig(slot, body.effect_hash().as_ref())
@@ -438,7 +449,7 @@ impl NoteReshapePlan {
             anchor,
             recent_position_floor,
         )?;
-        let proof = NoteReshapeProof::prove(public, private)?;
+        let proof = NoteReshapeProof::prove(public, private, registry)?;
 
         Ok(NoteReshape {
             body,
@@ -456,7 +467,7 @@ impl From<NoteReshapePlan> for pb::NoteReshapePlan {
     fn from(msg: NoteReshapePlan) -> Self {
         Self {
             family_id: msg.family_id.into(),
-            value_blinding: msg.value_blinding.to_bytes_le().to_vec(),
+            value_blinding: msg.value_blinding.to_bytes().to_vec(),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
             routing_parameters: Some(msg.routing_parameters.into()),
@@ -471,7 +482,7 @@ impl TryFrom<pb::NoteReshapePlan> for NoteReshapePlan {
     fn try_from(proto: pb::NoteReshapePlan) -> Result<Self, Self::Error> {
         let plan = Self {
             family_id: proto.family_id.try_into()?,
-            value_blinding: Fr::from_bytes_checked(
+            value_blinding: shieldd_sdk_crypto::encoding::scalar(
                 proto
                     .value_blinding
                     .as_slice()
@@ -610,6 +621,20 @@ mod tests {
     }
 
     #[test]
+    fn validation_and_decode_require_exact_value_conservation() {
+        let valid = two_to_one_plan();
+        valid.validate().expect("balanced reshape must validate");
+        NoteReshapePlan::try_from(pb::NoteReshapePlan::from(valid.clone()))
+            .expect("balanced reshape must decode");
+
+        for output_amount in [7u64, 9u64] {
+            let mut unbalanced = valid.clone();
+            unbalanced.outputs[0].value.amount = Amount::from(output_amount);
+            assert_validation_and_decode_reject(unbalanced, "must conserve value");
+        }
+    }
+
+    #[test]
     fn plan_proto_rejects_missing_or_unknown_family() {
         let mut missing_family: pb::NoteReshapePlan = two_to_one_plan().into();
         missing_family.family_id = 0;
@@ -702,14 +727,7 @@ mod tests {
             .contains("note_reshape expected 2 state commitment proofs, got 0"));
 
         let error = plan
-            .note_reshape(
-                &test_keys::FULL_VIEWING_KEY,
-                Vec::new(),
-                Vec::new(),
-                anchor,
-                &PayloadKey::random_key(&mut OsRng),
-                0,
-            )
+            .validate_auth_count(0)
             .expect_err("action materialization must require one signature per real spend");
         assert!(error
             .to_string()

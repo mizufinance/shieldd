@@ -1,8 +1,8 @@
 //! Proto conversion helpers for compliance data structures.
 
 use anyhow::Result;
-use decaf377::Fr;
 use shieldd_sdk_compliance::ComplianceLeaf;
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
 use shieldd_sdk_tct::StateCommitment;
 
@@ -35,7 +35,7 @@ pub fn parse_ephemeral_secret(bytes: &[u8]) -> Result<Option<Fr>> {
     let arr: [u8; 32] = bytes
         .try_into()
         .map_err(|_| anyhow::anyhow!("invalid ephemeral secret length"))?;
-    let fr = Fr::from_bytes_checked(&arr)
+    let fr = shieldd_sdk_crypto::encoding::scalar(&arr)
         .map_err(|_| anyhow::anyhow!("invalid ephemeral secret bytes"))?;
     Ok(Some(fr))
 }
@@ -45,7 +45,8 @@ pub fn parse_tx_blinding_nonce(bytes: &[u8]) -> Result<Fr> {
     let arr: [u8; 32] = bytes
         .try_into()
         .map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce length"))?;
-    Fr::from_bytes_checked(&arr).map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce bytes"))
+    shieldd_sdk_crypto::encoding::scalar(&arr)
+        .map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce bytes"))
 }
 
 /// Parse a StateCommitment from an optional proto.

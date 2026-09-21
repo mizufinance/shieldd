@@ -2083,7 +2083,7 @@ impl serde::Serialize for GenerationNonmembershipProof {
         if self.generation_end_position != 0 {
             len += 1;
         }
-        if !self.groth16_proof.is_empty() {
+        if !self.proof.is_empty() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.GenerationNonmembershipProof", len)?;
@@ -2107,10 +2107,10 @@ impl serde::Serialize for GenerationNonmembershipProof {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("generationEndPosition", ToString::to_string(&self.generation_end_position).as_str())?;
         }
-        if !self.groth16_proof.is_empty() {
+        if !self.proof.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("groth16Proof", pbjson::private::base64::encode(&self.groth16_proof).as_str())?;
+            struct_ser.serialize_field("proof", pbjson::private::base64::encode(&self.proof).as_str())?;
         }
         struct_ser.end()
     }
@@ -2130,8 +2130,7 @@ impl<'de> serde::Deserialize<'de> for GenerationNonmembershipProof {
             "generationStartPosition",
             "generation_end_position",
             "generationEndPosition",
-            "groth16_proof",
-            "groth16Proof",
+            "proof",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2140,7 +2139,7 @@ impl<'de> serde::Deserialize<'de> for GenerationNonmembershipProof {
             GenerationRoot,
             GenerationStartPosition,
             GenerationEndPosition,
-            Groth16Proof,
+            Proof,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2167,7 +2166,7 @@ impl<'de> serde::Deserialize<'de> for GenerationNonmembershipProof {
                             "generationRoot" | "generation_root" => Ok(GeneratedField::GenerationRoot),
                             "generationStartPosition" | "generation_start_position" => Ok(GeneratedField::GenerationStartPosition),
                             "generationEndPosition" | "generation_end_position" => Ok(GeneratedField::GenerationEndPosition),
-                            "groth16Proof" | "groth16_proof" => Ok(GeneratedField::Groth16Proof),
+                            "proof" => Ok(GeneratedField::Proof),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2191,7 +2190,7 @@ impl<'de> serde::Deserialize<'de> for GenerationNonmembershipProof {
                 let mut generation_root__ = None;
                 let mut generation_start_position__ = None;
                 let mut generation_end_position__ = None;
-                let mut groth16_proof__ = None;
+                let mut proof__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::GenerationIndex => {
@@ -2226,11 +2225,11 @@ impl<'de> serde::Deserialize<'de> for GenerationNonmembershipProof {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Groth16Proof => {
-                            if groth16_proof__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("groth16Proof"));
+                        GeneratedField::Proof => {
+                            if proof__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("proof"));
                             }
-                            groth16_proof__ =
+                            proof__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2244,7 +2243,7 @@ impl<'de> serde::Deserialize<'de> for GenerationNonmembershipProof {
                     generation_root: generation_root__.unwrap_or_default(),
                     generation_start_position: generation_start_position__.unwrap_or_default(),
                     generation_end_position: generation_end_position__.unwrap_or_default(),
-                    groth16_proof: groth16_proof__.unwrap_or_default(),
+                    proof: proof__.unwrap_or_default(),
                 })
             }
         }
@@ -2361,7 +2360,7 @@ impl serde::Serialize for HistoricalChunkProof {
         if !self.end_history_head.is_empty() {
             len += 1;
         }
-        if !self.groth16_proof.is_empty() {
+        if !self.proof.is_empty() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.HistoricalChunkProof", len)?;
@@ -2375,10 +2374,10 @@ impl serde::Serialize for HistoricalChunkProof {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("endHistoryHead", pbjson::private::base64::encode(&self.end_history_head).as_str())?;
         }
-        if !self.groth16_proof.is_empty() {
+        if !self.proof.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("groth16Proof", pbjson::private::base64::encode(&self.groth16_proof).as_str())?;
+            struct_ser.serialize_field("proof", pbjson::private::base64::encode(&self.proof).as_str())?;
         }
         struct_ser.end()
     }
@@ -2394,15 +2393,14 @@ impl<'de> serde::Deserialize<'de> for HistoricalChunkProof {
             "chunkIndex",
             "end_history_head",
             "endHistoryHead",
-            "groth16_proof",
-            "groth16Proof",
+            "proof",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             ChunkIndex,
             EndHistoryHead,
-            Groth16Proof,
+            Proof,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2427,7 +2425,7 @@ impl<'de> serde::Deserialize<'de> for HistoricalChunkProof {
                         match value {
                             "chunkIndex" | "chunk_index" => Ok(GeneratedField::ChunkIndex),
                             "endHistoryHead" | "end_history_head" => Ok(GeneratedField::EndHistoryHead),
-                            "groth16Proof" | "groth16_proof" => Ok(GeneratedField::Groth16Proof),
+                            "proof" => Ok(GeneratedField::Proof),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2449,7 +2447,7 @@ impl<'de> serde::Deserialize<'de> for HistoricalChunkProof {
             {
                 let mut chunk_index__ = None;
                 let mut end_history_head__ = None;
-                let mut groth16_proof__ = None;
+                let mut proof__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChunkIndex => {
@@ -2468,11 +2466,11 @@ impl<'de> serde::Deserialize<'de> for HistoricalChunkProof {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::Groth16Proof => {
-                            if groth16_proof__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("groth16Proof"));
+                        GeneratedField::Proof => {
+                            if proof__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("proof"));
                             }
-                            groth16_proof__ =
+                            proof__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2484,7 +2482,7 @@ impl<'de> serde::Deserialize<'de> for HistoricalChunkProof {
                 Ok(HistoricalChunkProof {
                     chunk_index: chunk_index__.unwrap_or_default(),
                     end_history_head: end_history_head__.unwrap_or_default(),
-                    groth16_proof: groth16_proof__.unwrap_or_default(),
+                    proof: proof__.unwrap_or_default(),
                 })
             }
         }

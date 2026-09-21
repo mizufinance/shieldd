@@ -11,7 +11,7 @@ fn alias_records_transmission_key_for_shieldd_address() {
     let alias: String = conn
         .query_row(
             "SELECT name FROM audit_address_aliases WHERE address = ?1",
-            params![hex::encode(address.transmission_key().0)],
+            params![hex::encode(address.transmission_key().to_bytes())],
             |row| row.get(0),
         )
         .unwrap();
@@ -196,7 +196,7 @@ async fn withdrawal_scanning_preserves_public_asset_and_completes_flagged_audit(
         let key = if flagged {
             DetectionKey::demo().public_key()
         } else {
-            decaf377::Element::GENERATOR
+            *shieldd_sdk_crypto::generators::SPEND_AUTH
         };
         let ciphertext = crate::encrypt_withdrawal(rand_core::OsRng, key, &sender)
             .unwrap()
@@ -215,7 +215,7 @@ async fn withdrawal_scanning_preserves_public_asset_and_completes_flagged_audit(
             metadata_bytes: None,
             public_withdrawal: Some(public.clone()),
         };
-        let other_asset = asset::Id(asset_id.0 + decaf377::Fq::from(1u64));
+        let other_asset = asset::Id(asset_id.0 + shieldd_sdk_crypto::Fq::from(1u64));
         assert!(matches!(
             ComplianceScreener::new(DetectionKey::demo(), other_asset).screen(extracted.clone()),
             ScreeningResult::Irrelevant

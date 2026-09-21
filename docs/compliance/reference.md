@@ -15,31 +15,13 @@ Flagged payloads use the issuer key. Ownership ciphertexts use the independent
 checking key; no current command implements a distributed PET. See
 [disclosure](../disclosure.md) for the capability map and upstream gaps.
 
-```text
-TransferComplianceCiphertext: 832 bytes
-  0..128    four compressed payload EPKs: sender_core, sender_ext, output_core, output_ext
-  128..256  four canonical Fq c2 values in the same order
-  256..320  sender ownership R, C (canonical Decaf points)
-  320..384  receiver ownership R, C
-  384..448  sender-core and output-core key confirmations
-  448..576  four-Fq detection ciphertext
-  576..608  sender_core ciphertext: one Fq
-  608..704  sender_ext ciphertext: three Fq
-  704..736  output_core ciphertext: one Fq
-  736..832  output_ext ciphertext: three Fq
-
-TransferComplianceMetadata: 272 bytes
-  0..32     ring_id_hash Fq
-  32..64    policy_id_hash Fq
-  64..96    resource_hash Fq
-  96..128   permission_hash Fq
-  128..136  target_timestamp u64 little-endian
-  136..144  audit_epoch u64 little-endian
-  144..176  sender_core_salt Fq
-  176..208  sender_ext_salt Fq
-  208..240  output_core_salt Fq
-  240..272  output_ext_salt Fq
-```
+`TransferComplianceCiphertext` is 835 bytes: suite byte, four compressed Jubjub
+EPKs, four field c2 values, two suite-tagged 65-byte ownership ciphertexts,
+two confirmation fields, four detection fields and eight payload fields.
+`TransferComplianceMetadata` is 272 bytes: four policy hashes, timestamp,
+audit epoch and four salts. Exact order is defined by the
+[canonical codec](../../crates/core/component/compliance/src/transfer.rs) and
+[metadata codec](../../crates/core/component/compliance/src/decode_object.rs).
 
 Every Fq and compressed point must decode canonically. Metadata timestamp zero
 is invalid. Tier labels are not serialized; fixed ordering is the tier domain.
@@ -62,70 +44,22 @@ fragment, or index.
 
 ## Transfer Key And Address Validity
 
-The Transfer relation has three explicit one-row Decaf identity exclusions:
-
-```text
-authorization_key.x             != 0
-sender.diversified_generator.x  != 0
-receiver.diversified_generator.x != 0
-```
-
-For the on-curve companion-Edwards points consumed by the surrounding gadgets,
-`x = 0` is exactly the Decaf identity class. These rows match Rust's
-full-viewing-key and address allocation rules. In particular, the sender row
-prevents identity-DTK ownership aliasing, and the receiver row prevents a
-malicious proof from creating a note with that ambiguous owner.
+The Transfer relation constrains subgroup membership and nonidentity for the
+authorization key, both address generators and all four audit EPKs. For a
+prime-subgroup Jubjub point, `x = 0` occurs only at identity. The subgroup gadget
+proves an on-curve cofactor preimage; the identity check constrains invertible x.
+These checks prevent ambiguous ownership and publicly decryptable EPKs.
 
 ## Transfer Public Statement
 
-The fixed 2x2 Transfer statement has 53 Fq fields. Its hash uses the
-`shieldd.shielded_pool.transfer.public_input_hash.statement` domain.
-
-```text
- 0       anchor
- 1..2    receiver note and recovery-capsule commitments
- 3..4    change note and recovery-capsule commitments
- 5       balance commitment
-  6..7    fixed sender/receiver routing tags
-  8       routing parameter-set identifier
-  9       recent position floor
- 10       daily-volume transition nullifier
- 11       daily-volume successor or padding commitment
- 12       selected UTC day start
- 13       proof context
- 14..19   two (nullifier, randomized verification key, history-required bit) triples
- 20..21   asset and compliance anchors
- 22..25   detection ciphertext
- 26..28   sender_core: EPK, c2, one ciphertext word
- 29..33   sender_ext: EPK, c2, three ciphertext words
- 34..36   output_core: EPK, c2, one ciphertext word
- 37..41   output_ext: EPK, c2, three ciphertext words
- 42       target_timestamp
- 43..44   sender-core and output-core key confirmations
- 45..48   ring, policy, resource, and permission hashes
- 49..52   sender-core, sender-ext, output-core, and output-ext salts
-```
-
-The exact tail append order is:
-
-```text
-target_timestamp,
-sender_core_key_confirmation,
-output_core_key_confirmation,
-ring_id_hash,
-policy_id_hash,
-resource_hash,
-permission_hash,
-sender_core_salt,
-sender_ext_salt,
-output_core_salt,
-output_ext_salt
-```
-
-The metadata timestamp is not appended twice: its serialized value must equal
-the statement's existing `target_timestamp`. The authoritative builders are
-`transfer_statement_fields` in Rust and `buildTransferStatementFields` /
-`ReconstructedTransferStatementFieldsFromWitness` in Go.
+The fixed 2x2 Transfer statement has 69 field elements. Every public point binds
+both affine coordinates. It includes state roots, output/recovery commitments,
+balance, routing, recent floor, volume transition, two nullifier/key/history
+records, detection and tier ciphertexts, policy metadata, audit epoch and both
+ownership ciphertexts. The authoritative order is
+[`Statement::fields`](../../crates/crypto/circuits/src/transfer.rs).
+Its Poseidon domain is `TRANSFER_STATEMENT` in the shared domain registry.
+Runtime witness parity tests compare this reconstruction with action bytes.
 
 ## Effective Policy Selection
 
@@ -146,8 +80,8 @@ real transition whose checked candidate is at most the authenticated daily
 volume limit. The fixed padding branch flags the transfer. Unregulated,
 self-transfer, and fee-funding contexts remain unflagged.
 
-For regulated assets, audit-tier shared secrets select ACK when unflagged and
-issuer DK when flagged. Detection always uses the selected DK. Each tier has an
+For regulated assets, audit-tier shared secrets select the registered role key
+when unflagged and issuer DK when flagged. Detection always uses the selected DK. Each tier has an
 independent randomizer and EPK. Honest construction derives them from one
 fresh private CSPRNG nonce root per Transfer action. That root must not be
 reused across sibling Transfers or fee funding; its uniqueness and entropy are
@@ -242,8 +176,8 @@ capsule-release material.
 
 ## Circuit Implementation Boundary
 
-The deployed Transfer and shielded-withdrawal proving systems are the gnark
-circuits under `tools/gnark/`. No second circuit architecture is supported.
+Transfer and shielded withdrawal use the native Pari circuits under
+`crates/crypto/circuits/src`, with runtime witness projections in the shielded pool.
 
 ## Restrictions
 
@@ -266,8 +200,8 @@ circuits under `tools/gnark/`. No second circuit architecture is supported.
 | Ciphertext construction | `crates/core/component/compliance/src/transfer.rs` |
 | Metadata codec | `crates/core/component/compliance/src/decode_object.rs` |
 | Native crypto | `crates/core/component/compliance/src/crypto.rs` |
-| Transfer circuit | `tools/gnark/internal/circuits/transfer_circuit.go` |
-| Witness ABI | `tools/gnark/internal/abi/transfer_witness_binary.go` |
+| Transfer circuit | `crates/crypto/circuits/src/transfer.rs` |
+| Witness projection | `crates/core/component/shielded-pool/src/transfer/proof.rs` |
 | Rust statement builder | `crates/core/component/shielded-pool/src/public_input_hash.rs` |
 | Scanner | `crates/core/component/compliance/src/scanner/` |
 | Evidence and audit | `crates/core/component/compliance/src/evidence.rs`, `audit.rs` |

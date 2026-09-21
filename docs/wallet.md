@@ -4,26 +4,46 @@
 `SyncWorker`. Each record contains compact data, transactions, a timestamp and
 an expected SCT root. The worker verifies roots before atomically committing
 notes, witnesses, compliance projection, historical state and the new sync height.
-A failed projection cannot publish partial wallet state.
+A failed projection cannot publish partial wallet state. Block admission checks the
+predecessor height inside the same transaction, so only one competing scan can commit.
+Each worker binds its in-memory trees to a durable height and rejects scans after another
+writer advances storage. Recreate a stale worker, including after cancelling a scan
+whose database commit may have completed.
 
 `StoragePlanningIo` fixes its read height when created and rejects reads after
 the wallet advances. `PlanningIo` supplies the external reads needed to complete
 an intent. Issued addresses are durable records: planning and discovery reuse
 canonical address indices, including diversifiers beyond the default address.
+Note selection with an address index matches the complete index, including its
+diversifier. Amount cutoffs apply only to unspent notes of one specified asset.
+Sweep returns one ready plan; execute it and sync before requesting the next step
+to avoid reusing fee notes. Paid base-asset consolidation uses two-input
+self-transfers. Reshape and withdrawal actions conserve their asset value and use
+separate base-asset fee funding. Withdrawal maintenance can first create an exact
+principal note and a fee note; resume planning after those outputs are confirmed.
 
 The wallet retains witnesses for owned notes. Compliance projection uses separate
 user and indexed asset trees; their pair is validated against advertised anchors.
+Asset-registration events must match their leaf identity and committed policy
+fields before any side policy is persisted.
 See [tree persistence](state.md) for mutation and atomicity rules.
 
-`HistoricalProofWorker` advances replayable caches using a `HistoricalWitnessSource`
-and optional prover. It persists blocked, invalid and useful failure states;
-work becomes ready only after archive/proof prerequisites validate. View’s optional
+`SyncWorker` owns a `HistoricalProofWorker`, an explicit configured Pari registry
+and a `HistoricalWitnessSource`. It advances history at startup and after each
+committed scan; `update_history` retries deferred work without replaying blocks. It persists blocked, invalid and useful failure states;
+The pass reads bounded pages and awaits proof work serially;
+work becomes ready only after archive/proof prerequisites validate. Every worker
+write compares its expected cache row and captured nullifier window atomically;
+stale work is discarded and retried on a subsequent pass. View’s optional
 `rpc` feature supplies `RpcHistoricalWitnessSource`; hosts may supply another real
 external source. [Nullifier history](nullifier-history.md) defines coverage,
 archive and pruning requirements.
 
-A daily-volume transfer reserves one confirmed accumulator head per subject/day.
-Definite pre-broadcast failure or rejection releases the reservation; ambiguous
+Completion permits at most one real daily-volume transition per subject/day,
+including precompleted actions. A daily-volume transfer reserves one confirmed
+accumulator head per subject/day.
+Definite pre-broadcast failure or rejection releases the reservation only for its
+transaction owner; ambiguous
 broadcast keeps it reserved until confirmation or strict expiry. Confirmation
 records the successor and clears the reservation atomically. Recovery verifies
 the owner payload’s commitment and transition chain before a head becomes

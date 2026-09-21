@@ -1,14 +1,14 @@
+use group::GroupEncoding;
 use std::{
     collections::BTreeMap,
     convert::{TryFrom, TryInto},
 };
 
 use anyhow::{Context, Error};
-use ark_ff::Zero;
-use decaf377::Fr;
-use decaf377_rdsa::{Binding, Signature, VerificationKey, VerificationKeyBytes};
+use reddsa::{sapling::Binding, Signature, VerificationKey, VerificationKeyBytes};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::{AddressView, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{
     core::transaction::v1::{self as pbt},
@@ -242,7 +242,7 @@ pub fn no_binding_signature() -> Signature<Binding> {
 
 /// Returns whether a binding signature is the canonical no-proof placeholder.
 pub fn is_no_binding_signature(signature: &Signature<Binding>) -> bool {
-    signature.to_bytes() == [0u8; 64]
+    <[u8; 64]>::from(*signature) == [0u8; 64]
 }
 
 impl Default for Transaction {
@@ -288,35 +288,10 @@ impl Transaction {
                 Action::Transfer(_)
                 | Action::NoteReshape(_)
                 | Action::ShieldedHostWithdrawal(_) => 1,
-                Action::ComplianceRegisterAsset(_)
-                | Action::ComplianceRegisterUser(_)
-                | Action::AggregateBundle(_) => 0,
+                Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => 0,
             })
             .sum::<usize>()
             + usize::from(self.transaction_body.fee_funding.is_some())
-    }
-
-    pub fn is_aggregate_bundle_tx(&self) -> bool {
-        matches!(
-            self.transaction_body.actions.as_slice(),
-            [Action::AggregateBundle(_)]
-        )
-    }
-
-    pub fn aggregate_bundle_action(
-        &self,
-    ) -> Option<&shieldd_sdk_proof_aggregation::AggregateBundle> {
-        self.actions().find_map(|action| {
-            if let Action::AggregateBundle(bundle) = action {
-                Some(bundle)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn contains_aggregate_bundle_action(&self) -> bool {
-        self.aggregate_bundle_action().is_some()
     }
 
     pub fn decrypt_memo(&self, fvk: &FullViewingKey) -> anyhow::Result<MemoPlaintext> {
@@ -443,14 +418,12 @@ impl Transaction {
                             result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
                         }
                         Err(_) => {
-                            let shared_secret = fvk.incoming().key_agreement_with(epk)?;
+                            let shared_secret = fvk.incoming().key_agreement_with(epk);
                             result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
                         }
                     }
                 }
-                Action::ComplianceRegisterAsset(_)
-                | Action::ComplianceRegisterUser(_)
-                | Action::AggregateBundle(_) => {}
+                Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => {}
             }
         }
 
@@ -616,6 +589,19 @@ impl Transaction {
     }
 
     /// Counts every proof-bound spend without allocating the iterator's buffer.
+    /// Scoped volume nullifiers for body actions; fee funding has no volume effect.
+    pub fn volume_nullifiers(
+        &self,
+    ) -> impl Iterator<Item = shieldd_sdk_shielded_pool::VolumeNullifier> + '_ {
+        self.actions().filter_map(|action| match action {
+            Action::Transfer(transfer) => Some(transfer.body.volume_accumulator.scoped_nullifier()),
+            Action::ShieldedHostWithdrawal(withdrawal) => {
+                Some(withdrawal.body.volume_accumulator.scoped_nullifier())
+            }
+            _ => None,
+        })
+    }
+
     pub fn spent_nullifier_count(&self) -> usize {
         let body_count = self.actions().fold(0usize, |count, action| {
             let action_count = match action {
@@ -623,9 +609,7 @@ impl Transaction {
                 Action::NoteReshape(note_reshape) => note_reshape.body.inputs.len(),
 
                 Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.body.inputs.len(),
-                Action::ComplianceRegisterAsset(_)
-                | Action::ComplianceRegisterUser(_)
-                | Action::AggregateBundle(_) => 0,
+                Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => 0,
             };
             count.saturating_add(action_count)
         });
@@ -703,7 +687,7 @@ impl Transaction {
     }
 
     pub fn binding_verification_key(&self) -> VerificationKey<Binding> {
-        let mut balance_commitments = decaf377::Element::default();
+        let mut balance_commitments = shieldd_sdk_crypto::SubgroupPoint::default();
         for action in &self.transaction_body.actions {
             balance_commitments += action.balance_commitment().0;
         }
@@ -720,7 +704,7 @@ impl Transaction {
         balance_commitments += fee_value_commitment.0;
 
         let binding_verification_key_bytes: VerificationKeyBytes<Binding> =
-            balance_commitments.vartime_compress().0.into();
+            balance_commitments.to_bytes().into();
 
         binding_verification_key_bytes
             .try_into()
@@ -754,7 +738,7 @@ where
                 result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
             }
             Err(_) => {
-                let shared_secret = fvk.incoming().key_agreement_with(epk)?;
+                let shared_secret = fvk.incoming().key_agreement_with(epk);
                 result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
             }
         }
@@ -808,7 +792,7 @@ fn payload_key_from_view(action_view: &ActionView) -> Option<&PayloadKey> {
 
 #[cfg(test)]
 mod tests {
-    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+    use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
     use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM};
     use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
     use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
@@ -822,20 +806,20 @@ mod tests {
 
     fn recovery_capsule(seed: u64) -> RecoveryCapsule {
         RecoveryCapsule {
-            epk: decaf377::Element::GENERATOR * decaf377::Fr::from(seed),
-            c2: decaf377::Fq::from(seed + 1),
-            salt: decaf377::Fq::from(seed + 2),
-            key_confirmation: decaf377::Fq::from(seed + 3),
-            encrypted_amount: decaf377::Fq::from(seed + 4),
-            encrypted_note_blinding: decaf377::Fq::from(seed + 5),
+            epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * shieldd_sdk_crypto::Fr::from(seed),
+            c2: shieldd_sdk_crypto::Fq::from(seed + 1),
+            salt: shieldd_sdk_crypto::Fq::from(seed + 2),
+            key_confirmation: shieldd_sdk_crypto::Fq::from(seed + 3),
+            encrypted_amount: shieldd_sdk_crypto::Fq::from(seed + 4),
+            encrypted_note_blinding: shieldd_sdk_crypto::Fq::from(seed + 5),
         }
     }
 
     fn withdrawal_compliance_ciphertext(seed: u64) -> WithdrawalComplianceCiphertext {
         WithdrawalComplianceCiphertext {
-            epk: decaf377::Element::GENERATOR * decaf377::Fr::from(seed),
-            c2: decaf377::Fq::from(seed + 1),
-            key_confirmation: decaf377::Fq::from(seed + 2),
+            epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * shieldd_sdk_crypto::Fr::from(seed),
+            c2: shieldd_sdk_crypto::Fq::from(seed + 1),
+            key_confirmation: shieldd_sdk_crypto::Fq::from(seed + 2),
             encrypted_sender_address: [0u8; 96],
         }
     }
@@ -872,15 +856,18 @@ mod tests {
                 anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Balance::from(Value {
                     amount: 9u64.into(),
-                    asset_id: asset::Id(decaf377::Fq::from(1u64)),
+                    asset_id: asset::Id(shieldd_sdk_crypto::Fq::from(1u64)),
                 })
-                .commit(decaf377::Fr::from(2u64)),
+                .commit(shieldd_sdk_crypto::Fr::from(2u64)),
                 inputs: vec![
                     shieldd_sdk_shielded_pool::TransferInputBody {
-                        nullifier: Nullifier(decaf377::Fq::from(3u64)),
-                        rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
-                            decaf377::Fr::from(4u64),
-                        )),
+                        nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(3u64)),
+                        rk: VerificationKey::from(
+                            &SigningKey::<SpendAuth>::try_from(
+                                (shieldd_sdk_crypto::Fr::from(4u64)).to_bytes(),
+                            )
+                            .expect("canonical key"),
+                        ),
                         encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                             [1u8; ENCRYPTED_BACKREF_LEN],
                         )
@@ -889,10 +876,13 @@ mod tests {
                         history_required: false,
                     },
                     shieldd_sdk_shielded_pool::TransferInputBody {
-                        nullifier: Nullifier(decaf377::Fq::from(30u64)),
-                        rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
-                            decaf377::Fr::from(40u64),
-                        )),
+                        nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(30u64)),
+                        rk: VerificationKey::from(
+                            &SigningKey::<SpendAuth>::try_from(
+                                (shieldd_sdk_crypto::Fr::from(40u64)).to_bytes(),
+                            )
+                            .expect("canonical key"),
+                        ),
                         encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                             [2u8; 48],
                         )
@@ -904,10 +894,14 @@ mod tests {
                 outputs: vec![
                     shieldd_sdk_shielded_pool::TransferOutputBody {
                         note_payload: shieldd_sdk_shielded_pool::NotePayload {
-                            note_commitment: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(
-                                5u64,
-                            )),
-                            ephemeral_key: decaf377_ka::Public([6u8; 32]),
+                            note_commitment: shieldd_sdk_tct::StateCommitment(
+                                shieldd_sdk_crypto::Fq::from(5u64),
+                            ),
+                            ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(
+                                *shieldd_sdk_crypto::generators::SPEND_AUTH
+                                    * shieldd_sdk_crypto::Fr::from(6),
+                            )
+                            .expect("valid point"),
                             encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
                                 [7u8; NOTE_CIPHERTEXT_BYTES],
                             ),
@@ -920,10 +914,14 @@ mod tests {
                     },
                     shieldd_sdk_shielded_pool::TransferOutputBody {
                         note_payload: shieldd_sdk_shielded_pool::NotePayload {
-                            note_commitment: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(
-                                50u64,
-                            )),
-                            ephemeral_key: decaf377_ka::Public([60u8; 32]),
+                            note_commitment: shieldd_sdk_tct::StateCommitment(
+                                shieldd_sdk_crypto::Fq::from(50u64),
+                            ),
+                            ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(
+                                *shieldd_sdk_crypto::generators::SPEND_AUTH
+                                    * shieldd_sdk_crypto::Fr::from(60),
+                            )
+                            .expect("valid point"),
                             encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
                                 [70u8; NOTE_CIPHERTEXT_BYTES],
                             ),
@@ -936,10 +934,12 @@ mod tests {
                     },
                 ],
                 target_timestamp: 10,
-                compliance_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(11u64)),
-                asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(12u64)),
+                compliance_anchor: shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(
+                    11u64,
+                )),
+                asset_anchor: shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(12u64)),
                 routing: Default::default(),
-                routing_parameter_set_id: decaf377::Fq::from(0u64),
+                routing_parameter_set_id: shieldd_sdk_crypto::Fq::from(0u64),
                 volume_accumulator:
                     shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                 proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
@@ -1022,10 +1022,13 @@ mod tests {
     fn note_reshape_fixed_slots_do_not_filter_spent_nullifiers() {
         let inputs = (0..8)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
-                nullifier: Nullifier(decaf377::Fq::from(100u64 + index)),
-                rk: VerificationKey::from(SigningKey::<SpendAuth>::from(decaf377::Fr::from(
-                    200u64 + index,
-                ))),
+                nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(100u64 + index)),
+                rk: VerificationKey::from(
+                    &SigningKey::<SpendAuth>::try_from(
+                        (shieldd_sdk_crypto::Fr::from(200u64 + index)).to_bytes(),
+                    )
+                    .expect("canonical key"),
+                ),
                 encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                     [u8::try_from(index + 1).expect("small test index"); 48],
                 )
@@ -1041,14 +1044,18 @@ mod tests {
             body: shieldd_sdk_shielded_pool::NoteReshapeBody {
                 family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                 anchor: shieldd_sdk_tct::Tree::default().root(),
-                balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
+                balance_commitment: Balance::default().commit(shieldd_sdk_crypto::Fr::from(1u64)),
                 inputs,
                 outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
                     note_payload: shieldd_sdk_shielded_pool::NotePayload {
-                        note_commitment: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(
-                            300u64,
-                        )),
-                        ephemeral_key: decaf377_ka::Public([3u8; 32]),
+                        note_commitment: shieldd_sdk_tct::StateCommitment(
+                            shieldd_sdk_crypto::Fq::from(300u64),
+                        ),
+                        ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(
+                            *shieldd_sdk_crypto::generators::SPEND_AUTH
+                                * shieldd_sdk_crypto::Fr::from(3),
+                        )
+                        .expect("valid point"),
                         encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
                             [4u8; NOTE_CIPHERTEXT_BYTES],
                         ),
@@ -1058,9 +1065,11 @@ mod tests {
                     ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
                 }],
                 routing_tag: Default::default(),
-                routing_parameter_set_id: decaf377::Fq::from(0u64),
-                asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
-                compliance_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                routing_parameter_set_id: shieldd_sdk_crypto::Fq::from(0u64),
+                asset_anchor: shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(0u64)),
+                compliance_anchor: shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(
+                    0u64,
+                )),
             },
             auth_sigs: vec![[0u8; 64].into(); 8],
             proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
@@ -1096,22 +1105,18 @@ mod tests {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
                             family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
-                            balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
+                            balance_commitment: Balance::default().commit(shieldd_sdk_crypto::Fr::from(1u64)),
                             inputs: vec![
                                 shieldd_sdk_shielded_pool::NoteReshapeInputBody {
-                                    nullifier: Nullifier(decaf377::Fq::from(2u64)),
-                                    rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
-                                        decaf377::Fr::from(3u64),
-                                    )),
+                                    nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(2u64)),
+                                    rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(3u64)).to_bytes()).expect("canonical key")),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                     history_required: false,
                                 },
                                 shieldd_sdk_shielded_pool::NoteReshapeInputBody {
-                                    nullifier: Nullifier(decaf377::Fq::from(4u64)),
-                                    rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
-                                        decaf377::Fr::from(5u64),
-                                    )),
+                                    nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(4u64)),
+                                    rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(5u64)).to_bytes()).expect("canonical key")),
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                     history_required: false,
@@ -1120,9 +1125,9 @@ mod tests {
                             outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
                                 note_payload: shieldd_sdk_shielded_pool::NotePayload {
                                     note_commitment: shieldd_sdk_tct::StateCommitment(
-                                        decaf377::Fq::from(6u64),
+                                        shieldd_sdk_crypto::Fq::from(6u64),
                                     ),
-                                    ephemeral_key: decaf377_ka::Public([7u8; 32]),
+                                    ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(*shieldd_sdk_crypto::generators::SPEND_AUTH * shieldd_sdk_crypto::Fr::from(7)).expect("valid point"),
                                     encrypted_note:
                                         shieldd_sdk_shielded_pool::NoteCiphertext(
                                             [8u8; NOTE_CIPHERTEXT_BYTES],
@@ -1133,10 +1138,10 @@ mod tests {
                                 ovk_wrapped_key: OvkWrappedKey([10u8; 48]),
                             }],
                             routing_tag: Default::default(),
-                            routing_parameter_set_id: decaf377::Fq::from(0u64),
-                            asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                            routing_parameter_set_id: shieldd_sdk_crypto::Fq::from(0u64),
+                            asset_anchor: shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(0u64)),
                             compliance_anchor: shieldd_sdk_tct::StateCommitment(
-                                decaf377::Fq::from(0u64),
+                                shieldd_sdk_crypto::Fq::from(0u64),
                             ),
                         },
                         auth_sigs: vec![[11u8; 64].into(), [12u8; 64].into()],
@@ -1146,12 +1151,10 @@ mod tests {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
                             family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::OneByEight,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
-                            balance_commitment: Balance::default().commit(decaf377::Fr::from(13u64)),
+                            balance_commitment: Balance::default().commit(shieldd_sdk_crypto::Fr::from(13u64)),
                             inputs: vec![shieldd_sdk_shielded_pool::NoteReshapeInputBody {
-                                nullifier: Nullifier(decaf377::Fq::from(14u64)),
-                                rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
-                                    decaf377::Fr::from(15u64),
-                                )),
+                                nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(14u64)),
+                                rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(15u64)).to_bytes()).expect("canonical key")),
                                 encrypted_backref:
                                     shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                 history_required: false,
@@ -1160,9 +1163,9 @@ mod tests {
                                 shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
                                     note_payload: shieldd_sdk_shielded_pool::NotePayload {
                                         note_commitment: shieldd_sdk_tct::StateCommitment(
-                                            decaf377::Fq::from(16u64),
+                                            shieldd_sdk_crypto::Fq::from(16u64),
                                         ),
-                                        ephemeral_key: decaf377_ka::Public([17u8; 32]),
+                                        ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(*shieldd_sdk_crypto::generators::SPEND_AUTH * shieldd_sdk_crypto::Fr::from(17)).expect("valid point"),
                                         encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
                                             [18u8; NOTE_CIPHERTEXT_BYTES],
                                         ),
@@ -1174,10 +1177,10 @@ mod tests {
                                 4
                             ],
                             routing_tag: Default::default(),
-                            routing_parameter_set_id: decaf377::Fq::from(0u64),
-                            asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                            routing_parameter_set_id: shieldd_sdk_crypto::Fq::from(0u64),
+                            asset_anchor: shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(0u64)),
                             compliance_anchor: shieldd_sdk_tct::StateCommitment(
-                                decaf377::Fq::from(0u64),
+                                shieldd_sdk_crypto::Fq::from(0u64),
                             ),
                         },
                         auth_sigs: vec![[21u8; 64].into()],
@@ -1189,13 +1192,11 @@ mod tests {
                                 family_id:
                                     shieldd_sdk_shielded_pool::ShieldedWithdrawalFamilyId::Canonical,
                                 anchor: shieldd_sdk_tct::Tree::default().root(),
-                                balance_commitment: Balance::default().commit(decaf377::Fr::from(22u64)),
+                                balance_commitment: Balance::default().commit(shieldd_sdk_crypto::Fr::from(22u64)),
                                 inputs: vec![
                                     shieldd_sdk_shielded_pool::TransferInputBody {
-                                        nullifier: Nullifier(decaf377::Fq::from(23u64)),
-                                        rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
-                                            decaf377::Fr::from(24u64),
-                                        )),
+                                        nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(23u64)),
+                                        rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(24u64)).to_bytes()).expect("canonical key")),
                                         encrypted_backref:
                                             shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                                                 [23u8; 48],
@@ -1205,10 +1206,8 @@ mod tests {
                                         history_required: false,
                                     },
                                     shieldd_sdk_shielded_pool::TransferInputBody {
-                                        nullifier: Nullifier(decaf377::Fq::from(25u64)),
-                                        rk: VerificationKey::from(SigningKey::<SpendAuth>::from(
-                                            decaf377::Fr::from(26u64),
-                                        )),
+                                        nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(25u64)),
+                                        rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(26u64)).to_bytes()).expect("canonical key")),
                                         encrypted_backref:
                                             shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                                                 [25u8; 48],
@@ -1228,9 +1227,9 @@ mod tests {
                                     shieldd_sdk_shielded_pool::ShieldedWithdrawalChangeBody {
                                         note_payload: shieldd_sdk_shielded_pool::NotePayload {
                                             note_commitment: shieldd_sdk_tct::StateCommitment(
-                                                decaf377::Fq::from(27u64),
+                                                shieldd_sdk_crypto::Fq::from(27u64),
                                             ),
-                                            ephemeral_key: decaf377_ka::Public([28u8; 32]),
+                                            ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(*shieldd_sdk_crypto::generators::SPEND_AUTH * shieldd_sdk_crypto::Fr::from(28)).expect("valid point"),
                                             encrypted_note:
                                                 shieldd_sdk_shielded_pool::NoteCiphertext(
                                                     [29u8; NOTE_CIPHERTEXT_BYTES],
@@ -1242,11 +1241,11 @@ mod tests {
                                     },
                                 target_timestamp: 0,
                                 compliance_anchor: shieldd_sdk_tct::StateCommitment(
-                                    decaf377::Fq::from(32u64),
+                                    shieldd_sdk_crypto::Fq::from(32u64),
                                 ),
-                                asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(33u64)),
+                                asset_anchor: shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(33u64)),
                                 routing_tag: Default::default(),
-                                routing_parameter_set_id: decaf377::Fq::from(0u64),
+                                routing_parameter_set_id: shieldd_sdk_crypto::Fq::from(0u64),
                                 withdrawal_compliance_ciphertext:
                                     withdrawal_compliance_ciphertext(36),
                                 volume_accumulator:
@@ -1266,11 +1265,11 @@ mod tests {
         assert_eq!(
             tx.spent_nullifiers().collect::<Vec<_>>(),
             [
-                Nullifier(decaf377::Fq::from(2u64)),
-                Nullifier(decaf377::Fq::from(4u64)),
-                Nullifier(decaf377::Fq::from(14u64)),
-                Nullifier(decaf377::Fq::from(23u64)),
-                Nullifier(decaf377::Fq::from(25u64)),
+                Nullifier(shieldd_sdk_crypto::Fq::from(2u64)),
+                Nullifier(shieldd_sdk_crypto::Fq::from(4u64)),
+                Nullifier(shieldd_sdk_crypto::Fq::from(14u64)),
+                Nullifier(shieldd_sdk_crypto::Fq::from(23u64)),
+                Nullifier(shieldd_sdk_crypto::Fq::from(25u64)),
             ],
             "transaction-wide duplicate detection must see every fixed-slot \
              NoteReshape and shielded-withdrawal nullifier"

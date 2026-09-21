@@ -2,8 +2,6 @@ use super::*;
 
 use std::time::Duration;
 
-use ark_groth16::Proof;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use cnidarium::ArcStateDeltaExt as _;
 use shieldd_sdk_compact_block::component::StateReadExt as _;
 use shieldd_sdk_sct::component::tree::SctRead as _;
@@ -38,7 +36,7 @@ impl DeployedProofFamily {
     fn fixture_binding_blinding(self) -> Fr {
         match self {
             Self::Transfer => Fr::from(1u64),
-            Self::NoteReshape(family) => Fr::from(family.get()),
+            Self::NoteReshape(family) => Fr::from(u64::from(family.get())),
             Self::ShieldedWithdrawal => Fr::from(29u64),
         }
     }
@@ -176,7 +174,7 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
             family_id: family,
             spends: spends,
             outputs: outputs,
-            value_blinding: Fr::from(family.get()),
+            value_blinding: Fr::from(u64::from(family.get())),
         };
         family_actions.push((
             DeployedProofFamily::NoteReshape(family),
@@ -214,6 +212,7 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
                 &client
                     .complete_intent(plan, storage.latest_snapshot())
                     .await?,
+                registry(),
             )
             .await
             .with_context(|| format!("building {} transaction fixture", family.label()))?;
@@ -235,6 +234,7 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
             &client
                 .complete_intent(fee_funding_plan, storage.latest_snapshot())
                 .await?,
+            registry(),
         )
         .await
         .context("building fee-funding Transfer transaction fixture")?;
@@ -278,6 +278,7 @@ async fn build_fixture_storage() -> Result<TempStorage> {
         storage.as_ref().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         initial_time,
+        registry(),
     )
     .await?;
     node.execute(Vec::new()).await?;
@@ -398,17 +399,12 @@ fn mutate_to_decodable_invalid_proof(fixture: &FamilyFixture) -> Result<(Transac
         }
     };
 
-    let mut remaining = proof_bytes.as_slice();
-    let mut proof = Proof::<decaf377::Bls12_377>::deserialize_compressed(&mut remaining)
-        .context("decoding canonical fixture proof")?;
-    anyhow::ensure!(remaining.is_empty(), "fixture proof had trailing bytes");
-    proof.c = proof.a;
-    proof_bytes.clear();
-    proof
-        .serialize_compressed(proof_bytes)
-        .context("serializing canonical invalid proof")?;
-    let binding_signing_key = rdsa::SigningKey::<rdsa::Binding>::from(fixture.binding_blinding);
-    tx.binding_sig = binding_signing_key.sign_deterministic(tx.auth_hash().as_bytes());
+    // Negate a valid compressed proof point; decoding stays canonical but the proof equation changes.
+    proof_bytes[116] ^= 0x20;
+    shieldd_sdk_circuits::proof::Envelope::from_bytes(proof_bytes)?;
+    let binding_signing_key =
+        rdsa::SigningKey::<rdsa::sapling::Binding>::try_from(fixture.binding_blinding.to_bytes())?;
+    tx.binding_sig = binding_signing_key.sign(OsRng, tx.auth_hash().as_bytes());
 
     let invalid_bytes = tx.encode_to_vec();
     Transaction::decode(invalid_bytes.as_slice())
@@ -439,7 +435,10 @@ fn tx_hash(tx_bytes: &[u8]) -> [u8; 32] {
 
 fn assert_cache_invalid(cache: &StatelessCache, hash: &[u8; 32], tx_bytes: &[u8], context: &str) {
     assert!(
-        matches!(cache.get(hash, tx_bytes), Some(CacheEntry::Invalid)),
+        matches!(
+            cache.get(registry().id(), hash, tx_bytes),
+            Some(CacheEntry::Invalid)
+        ),
         "{context}: failed proof must leave an Invalid cache entry"
     );
 }
@@ -452,10 +451,10 @@ fn assert_cache_not_promoted(
 ) {
     assert!(
         !matches!(
-            cache.get(hash, tx_bytes),
+            cache.get(registry().id(), hash, tx_bytes),
             Some(CacheEntry::FullyVerified(_))
         ),
-        "{context}: failed validation must never promote a Groth16-verified cache entry"
+        "{context}: failed validation must never promote a Pari-verified cache entry"
     );
 }
 
@@ -499,18 +498,39 @@ async fn stage_spent_nullifier(app: &mut App, tx: &Transaction) -> Result<[u8; 3
     Ok(source_id)
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn historical_attestation_stays_off_the_async_worker_in_both_verification_paths() -> Result<()>
+{
+    let fixtures = family_fixtures().await?;
+    let tx = Arc::new(Transaction::decode(
+        fixtures.fixtures[0].tx_bytes.as_slice(),
+    )?);
+    let observer = crate::stateless_cache::attachment_observer::Guard::new(tx.clone());
+    let independently = App::build_tx_artifacts(registry(), std::slice::from_ref(&tx)).await?;
+    assert_eq!(independently.len(), 1);
+    let extracted = App::build_tx_artifacts_extracted(&[tx]).await?;
+    let batched = App::verify_tx_artifacts_for_stage(registry(), "test", &extracted).await?;
+    assert_eq!(batched.len(), 1);
+    assert_eq!(
+        observer.result(),
+        (2, false),
+        "historical verification must run on blocking workers"
+    );
+    Ok(())
+}
+
 #[tokio::test(flavor = "multi_thread")]
-async fn artifact_build_rejects_decodable_invalid_groth16() -> Result<()> {
+async fn artifact_build_rejects_decodable_invalid_pari() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
         let (invalid_tx, _) = mutate_to_decodable_invalid_proof(fixture)?;
-        let error = App::build_tx_artifacts(&[Arc::new(invalid_tx)])
+        let error = App::build_tx_artifacts(registry(), &[Arc::new(invalid_tx)])
             .await
             .err()
             .expect("artifact construction must reject an invalid proof");
         assert!(
-            format!("{error:#}").contains("verification failed"),
+            format!("{error:#}").contains("invalid Pari proof"),
             "{}: artifact construction failed for the wrong reason: {error:#}",
             fixture.label()
         );
@@ -520,19 +540,17 @@ async fn artifact_build_rejects_decodable_invalid_groth16() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn process_proposal_rejects_decodable_invalid_groth16() -> Result<()> {
+async fn process_proposal_rejects_decodable_invalid_pari() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
         let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
-        let mut app = App::new(family_set._storage_guard.latest_snapshot());
+        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
         let proposal = process_request(&app, &invalid_bytes).await?;
 
-        let verdict = app
-            .validate_batch(proposal, Some(&cache), None, false)
-            .await;
+        let verdict = app.validate_batch(proposal, Some(&cache), false).await;
         assert!(
             matches!(verdict, BatchVerdict::Reject),
             "{}: ProcessProposal accepted a decodable invalid proof",
@@ -546,18 +564,16 @@ async fn process_proposal_rejects_decodable_invalid_groth16() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn fee_funding_process_proposal_rejects_invalid_groth16() -> Result<()> {
+async fn fee_funding_process_proposal_rejects_invalid_pari() -> Result<()> {
     let family_set = family_fixtures().await?;
     let fixture = &family_set.fee_funding_fixture;
     let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
     let hash = tx_hash(&invalid_bytes);
     let cache = StatelessCache::new();
-    let mut app = App::new(family_set._storage_guard.latest_snapshot());
+    let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
     let proposal = process_request(&app, &invalid_bytes).await?;
 
-    let verdict = app
-        .validate_batch(proposal, Some(&cache), None, false)
-        .await;
+    let verdict = app.validate_batch(proposal, Some(&cache), false).await;
     assert!(
         matches!(verdict, BatchVerdict::Reject),
         "ProcessProposal accepted an invalid fee-funding Transfer proof"
@@ -603,7 +619,7 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
 
     let storage_guard = build_fixture_storage().await?;
     let storage = storage_guard.as_ref().clone();
-    let mut app = App::new(storage.latest_snapshot());
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
     let context = app.benchmark_block_context().await?;
     let begin_block = cnidarium_component::BlockContext {
         height: context.height,
@@ -616,7 +632,9 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
         .await
         .context("valid fee-funding proof must execute")?;
     let hash = tx_hash(&fixture.tx_bytes);
-    let Some(CacheEntry::FullyVerified(artifact)) = cache.get(&hash, &fixture.tx_bytes) else {
+    let Some(CacheEntry::FullyVerified(artifact)) =
+        cache.get(registry().id(), &hash, &fixture.tx_bytes)
+    else {
         anyhow::bail!("valid fee-funding delivery did not retain an exact proof capability")
     };
     artifact
@@ -634,7 +652,7 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     }
 
     app.end_block(context.height).await;
-    app.commit(storage.clone()).await;
+    app.commit(storage.clone()).await?;
 
     let committed = storage.latest_snapshot();
     let compact_block: shieldd_sdk_compact_block::CompactBlock = committed
@@ -679,17 +697,17 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn prepare_proposal_excludes_decodable_invalid_groth16() -> Result<()> {
+async fn prepare_proposal_excludes_decodable_invalid_pari() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
         let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
-        let mut app = App::new(family_set._storage_guard.latest_snapshot());
+        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
         let proposal = prepare_request(&app, invalid_bytes.clone()).await?;
 
-        let (prepared, _) = app.prepare_batch(proposal, Some(&cache), false).await;
+        let prepared = app.prepare_batch(proposal, Some(&cache), false).await;
         assert!(
             prepared
                 .txs
@@ -706,21 +724,21 @@ async fn prepare_proposal_excludes_decodable_invalid_groth16() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn cold_deliver_rejects_invalid_groth16_without_state_mutation() -> Result<()> {
+async fn cold_deliver_rejects_invalid_pari_without_state_mutation() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
         let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
-        let mut app = App::new(family_set._storage_guard.latest_snapshot());
+        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
 
         let error = app
             .deliver_tx_bytes(&invalid_bytes, Some(&cache))
             .await
             .expect_err("cold delivery must reject an invalid proof");
         assert!(
-            format!("{error:#}").contains("Groth16"),
+            format!("{error:#}").contains("Pari"),
             "{}: cold delivery failed for the wrong reason: {error:#}",
             fixture.label()
         );
@@ -744,7 +762,7 @@ async fn deferred_index_records_only_transactions_that_commit() -> Result<()> {
         BlockTxIndexingMode::PerTx,
         BlockTxIndexingMode::DeferredBatch,
     ] {
-        let mut app = App::new(family_set._storage_guard.latest_snapshot());
+        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
         app.set_block_tx_indexing_mode(mode);
         use shieldd_sdk_shielded_pool::component::StateWriteExt as _;
         let mut state_tx = app
@@ -781,37 +799,7 @@ async fn deferred_index_records_only_transactions_that_commit() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn extracted_cache_cannot_bypass_groth16_verification() -> Result<()> {
-    let family_set = family_fixtures().await?;
-
-    for fixture in &family_set.fixtures {
-        let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
-        let hash = tx_hash(&invalid_bytes);
-        let cache = StatelessCache::new();
-        let mut artifacts = App::build_tx_artifacts_extracted_for_stage_public(
-            "preseed_extracted",
-            &[Arc::new(invalid_tx.clone())],
-        )
-        .await
-        .with_context(|| format!("{} invalid proof remains extraction-valid", fixture.label()))?;
-        let artifact = artifacts
-            .pop()
-            .context("single extracted transaction artifact missing")?;
-        cache.insert_extracted(&invalid_bytes, artifact)?;
-        let mut app = App::new(family_set._storage_guard.latest_snapshot());
-
-        app.deliver_tx_bytes(&invalid_bytes, Some(&cache))
-            .await
-            .expect_err("an Extracted cache hit must still verify Groth16");
-        assert_cache_invalid(&cache, &hash, &invalid_bytes, fixture.label());
-        assert_no_tx_effects(&app, &invalid_tx, fixture.label()).await?;
-    }
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn host_delivery_rejects_invalid_groth16_cold_and_after_checktx() -> Result<()> {
+async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<()> {
     let family_set = family_fixtures().await?;
     let snapshot = family_set._storage_guard.latest_snapshot();
     let root_before = snapshot.root_hash().await?;
@@ -829,7 +817,9 @@ async fn host_delivery_rejects_invalid_groth16_cold_and_after_checktx() -> Resul
         let mut checked_host = HostExecution::with_cache(
             family_set._storage_guard.as_ref().clone(),
             checked_cache.clone(),
-        );
+            registry(),
+        )
+        .await?;
         let check_response = checked_host.check_tx(&invalid_bytes).await?;
         assert_ne!(
             check_response.code,
@@ -857,7 +847,9 @@ async fn host_delivery_rejects_invalid_groth16_cold_and_after_checktx() -> Resul
         let mut cold_host = HostExecution::with_cache(
             family_set._storage_guard.as_ref().clone(),
             cold_cache.clone(),
-        );
+            registry(),
+        )
+        .await?;
         cold_host
             .begin_block(HostBlock {
                 height: next_height,
@@ -887,7 +879,7 @@ async fn host_delivery_rejects_invalid_groth16_cold_and_after_checktx() -> Resul
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn cache_promotion_never_exceeds_exact_groth16_attestation() -> Result<()> {
+async fn cache_promotion_never_exceeds_exact_pari_attestation() -> Result<()> {
     let family_set = family_fixtures().await?;
     let transfer = family_set
         .fixtures
@@ -898,22 +890,24 @@ async fn cache_promotion_never_exceeds_exact_groth16_attestation() -> Result<()>
     let valid_hash = tx_hash(&transfer.tx_bytes);
 
     let process_cache = StatelessCache::new();
-    let mut process_app = App::new(family_set._storage_guard.latest_snapshot());
+    let mut process_app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
     stage_spent_nullifier(&mut process_app, &valid_tx).await?;
     let proposal = process_request(&process_app, &transfer.tx_bytes).await?;
     let verdict = process_app
-        .validate_batch(proposal, Some(&process_cache), None, false)
+        .validate_batch(proposal, Some(&process_cache), false)
         .await;
     assert!(matches!(verdict, BatchVerdict::Reject));
-    assert_cache_not_promoted(
-        &process_cache,
-        &valid_hash,
-        &transfer.tx_bytes,
-        "stateful ProcessProposal failure",
+    assert!(
+        matches!(
+            process_cache.get(registry().id(), &valid_hash, &transfer.tx_bytes),
+            Some(CacheEntry::FullyVerified(_))
+        ),
+        "valid cryptographic evidence can survive a stateful rejection"
     );
+    assert!(process_app.state.pending_note_payloads().is_empty());
 
     let deliver_cache = StatelessCache::new();
-    let mut deliver_app = App::new(family_set._storage_guard.latest_snapshot());
+    let mut deliver_app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
     stage_spent_nullifier(&mut deliver_app, &valid_tx).await?;
     let pending_nullifiers_before = deliver_app.state.pending_nullifiers();
     let pending_note_commitments_before = deliver_app
@@ -928,10 +922,10 @@ async fn cache_promotion_never_exceeds_exact_groth16_attestation() -> Result<()>
         .expect_err("committed-nullifier conflict must reject delivery");
     assert!(
         matches!(
-            deliver_cache.get(&valid_hash, &transfer.tx_bytes),
+            deliver_cache.get(registry().id(), &valid_hash, &transfer.tx_bytes),
             Some(CacheEntry::FullyVerified(_))
         ),
-        "stateful delivery failure may retain only the exact Groth16 attestation"
+        "stateful delivery failure may retain only the exact Pari attestation"
     );
     assert_eq!(
         deliver_app.state.pending_nullifiers(),
@@ -952,12 +946,106 @@ async fn cache_promotion_never_exceeds_exact_groth16_attestation() -> Result<()>
     let (_, invalid_bytes) = mutate_to_decodable_invalid_proof(transfer)?;
     let invalid_hash = tx_hash(&invalid_bytes);
     let proof_cache = StatelessCache::new();
-    let mut proof_app = App::new(family_set._storage_guard.latest_snapshot());
+    let mut proof_app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
     proof_app
         .deliver_tx_bytes(&invalid_bytes, Some(&proof_cache))
         .await
-        .expect_err("invalid Groth16 proof must reject delivery");
+        .expect_err("invalid Pari proof must reject delivery");
     assert_cache_not_promoted(&proof_cache, &invalid_hash, &invalid_bytes, "proof failure");
 
+    Ok(())
+}
+
+#[tokio::test]
+async fn prepare_proposal_keeps_valid_candidate_after_invalid_proof() -> Result<()> {
+    let family_set = family_fixtures().await?;
+    let fixture = &family_set.fixtures[0];
+    let (_, invalid) = mutate_to_decodable_invalid_proof(fixture)?;
+    for invalid_first in [true, false] {
+        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+        let mut request = prepare_request(&app, fixture.tx_bytes.clone()).await?;
+        let invalid: Bytes = invalid.clone().into();
+        if invalid_first {
+            request.txs.insert(0, invalid);
+        } else {
+            request.txs.push(invalid);
+        }
+        let prepared = app
+            .prepare_batch(request, Some(&StatelessCache::new()), false)
+            .await;
+        assert_eq!(prepared.txs, vec![Bytes::from(fixture.tx_bytes.clone())]);
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn prepare_proposal_keeps_multiple_candidates_with_one_worker() -> Result<()> {
+    let family_set = family_fixtures().await?;
+    let fixtures = &family_set.fixtures[..2];
+    let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut request = prepare_request(&app, fixtures[0].tx_bytes.clone()).await?;
+    request.txs.push(fixtures[1].tx_bytes.clone().into());
+    let expected = request.txs.clone();
+    let prepared = app
+        .prepare_batch(request, Some(&StatelessCache::new()), false)
+        .await;
+    assert_eq!(prepared.txs, expected);
+    Ok(())
+}
+
+#[tokio::test]
+async fn prepare_proposal_skips_unfitting_candidate_and_accepts_exact_limit() -> Result<()> {
+    let family_set = family_fixtures().await?;
+    let mut fixtures = family_set.fixtures.iter().collect::<Vec<_>>();
+    fixtures.sort_by_key(|fixture| fixture.tx_bytes.len());
+    let small = fixtures.first().context("small fixture")?;
+    let large = fixtures.last().context("large fixture")?;
+    assert!(large.tx_bytes.len() > small.tx_bytes.len());
+    let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut request = prepare_request(&app, small.tx_bytes.clone()).await?;
+    request.txs.insert(0, large.tx_bytes.clone().into());
+    request.max_tx_bytes = small.tx_bytes.len() as i64;
+    let prepared = app.prepare_batch(request, None, false).await;
+    assert_eq!(prepared.txs, vec![Bytes::from(small.tx_bytes.clone())]);
+    Ok(())
+}
+
+#[tokio::test]
+async fn output_capacity_rejection_rolls_back_all_transaction_effects() -> Result<()> {
+    let (storage, _node, transactions) = setup_test_txs(1).await?;
+    let tx = Transaction::decode_canonical(&transactions[0])?;
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let position = shieldd_sdk_tct::Position::from(
+        (shieldd_sdk_sct::component::tree::SCT_BLOCK_COMMITMENT_CAPACITY - 1) as u64,
+    );
+    let tree = shieldd_sdk_tct::Tree::load(
+        shieldd_sdk_tct::storage::StoredPosition::Position(position),
+        shieldd_sdk_tct::Forgotten::default(),
+    )
+    .load_hashes()
+    .finish();
+    {
+        let mut state = app.state.try_begin_transaction().context("unique state")?;
+        state.object_put(
+            shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+            tree,
+        );
+        state.apply();
+    }
+    let before_notes = pending_note_records(&app);
+    let before_nullifiers = app.state.pending_nullifiers();
+    let error = app
+        .deliver_tx_bytes(&transactions[0], None)
+        .await
+        .expect_err("outputs do not fit");
+    assert_eq!(
+        error.downcast_ref::<shieldd_sdk_tct::error::InsertError>(),
+        Some(&shieldd_sdk_tct::error::InsertError::BlockFull),
+        "{error:#}"
+    );
+    assert_eq!(pending_note_records(&app), before_notes);
+    assert_eq!(app.state.pending_nullifiers(), before_nullifiers);
+    assert_eq!(app.state.get_sct_position().await?, Some(position));
+    assert_no_tx_effects(&app, &tx, "SCT capacity rejection").await?;
     Ok(())
 }

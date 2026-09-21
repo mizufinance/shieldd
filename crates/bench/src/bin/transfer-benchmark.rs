@@ -1,5 +1,6 @@
 use shieldd_sdk_app::app::{BatchCandidate, BatchPreparation, BatchVerdict, PreparedBatch};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
@@ -19,7 +20,7 @@ use shieldd_sdk_bench_support::proof_txs::{
     about = "Measure batch proof verification and host execution costs"
 )]
 struct Args {
-    #[clap(long, default_value_t = 1_000)]
+    #[clap(long, default_value_t = 8)]
     tx_count: usize,
 
     #[clap(long, default_value_t = 3)]
@@ -50,7 +51,20 @@ struct BenchmarkReport {
     generated_at_unix: u64,
     notes: Vec<String>,
     transfer_corpus: CorpusReport,
+    proof_verification: ProofVerificationReport,
     scenarios: Vec<ScenarioReport>,
+}
+
+#[derive(Debug, Serialize)]
+struct ProofVerificationReport {
+    proof_count: usize,
+    runs: Vec<ProofVerificationRun>,
+}
+
+#[derive(Debug, Serialize)]
+struct ProofVerificationRun {
+    single_transaction_batches_ms: f64,
+    same_family_batches_ms: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -80,7 +94,6 @@ struct RunReport {
     total_wall_ms: f64,
     tps: f64,
     ms_per_tx: f64,
-    projected_5000_tx_ms: f64,
 
     execution_and_commit_share: f64,
     execution_profile: ExecutionBlockProfile,
@@ -96,10 +109,9 @@ struct ScenarioSummary {
     p99_ms_per_tx: f64,
 
     mean_execution_and_commit_share: f64,
-    projected_5000_tx_ms_from_mean: f64,
 }
 
-#[tokio::main(flavor = "multi_thread")]
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
     let args = Args::parse();
     anyhow::ensure!(args.tx_count > 0, "--tx-count must be positive");
@@ -112,15 +124,14 @@ async fn main() -> Result<()> {
     let (pool, corpus_report) =
         load_or_build_transfer_corpus(&pool_dir, args.tx_count, args.rebuild_corpus).await?;
     let transfer_txs = build_proof_tx_workload(args.tx_count, &pool);
+    let proof_verification = measure_proof_verification(&pool, args.runs).await?;
 
     let mut scenarios = Vec::new();
     for scenario in &args.scenarios {
         let report = match scenario.as_str() {
-            "regulated_inner_transfer" | "inner_transfer" => {
-                run_inner_transfer(&args, &transfer_txs)
-                    .await
-                    .context("running inner_transfer benchmark")?
-            }
+            "regulated_inner_transfer" => run_inner_transfer(&args, &transfer_txs)
+                .await
+                .context("running inner_transfer benchmark")?,
             other => anyhow::bail!("unknown scenario name: {other}"),
         };
         scenarios.push(report);
@@ -132,9 +143,15 @@ async fn main() -> Result<()> {
         generated_at_unix: unix_ts(),
         notes: vec![
             "transaction/proof generation is excluded from scenario timing".to_string(),
+            "regulated fixtures disclose to the issuer and use randomized padding volume payloads".to_string(),
+            "preparation, validation and execution are three uncached passes; totals include all three".to_string(),
+            "oversized proposals are allowed for measurement; reported TPS is not a block capacity limit".to_string(),
+            "percentiles describe whole-run averages per transaction, not individual latency samples".to_string(),
+            "proof-only timings exclude extraction and warmup; include verification task scheduling and capability construction".to_string(),
             "regulated_inner_transfer uses current TransferProof proving and verification keys via the corpus cache key".to_string(),
         ],
         transfer_corpus: corpus_report,
+        proof_verification,
         scenarios,
     };
 
@@ -149,6 +166,53 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+async fn measure_proof_verification(
+    pool: &ProofTxPool,
+    runs: usize,
+) -> Result<ProofVerificationReport> {
+    let registry = shieldd_sdk_bench_support::proof_txs::registry()?;
+    let transactions = pool
+        .txs
+        .iter()
+        .map(|bytes| shieldd_sdk_transaction::Transaction::decode_canonical(bytes).map(Arc::new))
+        .collect::<Result<Vec<_>>>()?;
+    let artifacts =
+        App::build_tx_artifacts_extracted_for_stage_public("bench", &transactions).await?;
+    App::batch_verify_artifacts_for_bench(registry.clone(), &artifacts).await?;
+    let mut report = ProofVerificationReport {
+        proof_count: artifacts
+            .iter()
+            .map(|artifact| artifact.total_proof_count)
+            .sum(),
+        runs: Vec::with_capacity(runs),
+    };
+    for index in 0..runs {
+        let mut single_transaction_batches_ms = 0.0;
+        let mut same_family_batches_ms = 0.0;
+        for batched in [index % 2 == 0, index % 2 != 0] {
+            let started = Instant::now();
+            if batched {
+                App::batch_verify_artifacts_for_bench(registry.clone(), &artifacts).await?;
+                same_family_batches_ms = elapsed_ms(started);
+            } else {
+                for artifact in &artifacts {
+                    App::batch_verify_artifacts_for_bench(
+                        registry.clone(),
+                        std::slice::from_ref(artifact),
+                    )
+                    .await?;
+                }
+                single_transaction_batches_ms = elapsed_ms(started);
+            }
+        }
+        report.runs.push(ProofVerificationRun {
+            single_transaction_batches_ms,
+            same_family_batches_ms,
+        });
+    }
+    Ok(report)
+}
+
 async fn load_or_build_transfer_corpus(
     pool_dir: &PathBuf,
     tx_count: usize,
@@ -158,7 +222,7 @@ async fn load_or_build_transfer_corpus(
     let rebuild_reason;
 
     if !rebuild_corpus {
-        match load_proof_tx_pool(pool_dir) {
+        match load_proof_tx_pool(pool_dir, tx_count) {
             Ok((pool, metadata)) => {
                 return Ok((
                     pool,
@@ -208,33 +272,41 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
             .await
             .with_context(|| format!("setting up fresh storage for run {run_index}"))?;
 
-        let mut proposer = App::new(storage.latest_snapshot());
+        let mut proposer = App::new(
+            storage.latest_snapshot(),
+            shieldd_sdk_bench_support::proof_txs::registry()?,
+        )
+        .await?;
         proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let prepare_request = prepare_request(txs);
         let prepare_start = Instant::now();
-        let (prepared, sidecar) = proposer.prepare_batch(prepare_request, None, true).await;
+        let prepared = proposer.prepare_batch(prepare_request, None, true).await;
         let prepare_wall_ms = elapsed_ms(prepare_start);
         ensure_prepare_preserved_user_txs(txs, &prepared)?;
-        let sidecar = sidecar.context("profiled proposal must retain its artifact sidecar")?;
-        let envelope = App::candidate_envelope_from_prepared_proposal_public(
-            &prepared,
-            &sidecar,
-            "transfer_benchmark",
+        let envelope = shieldd_sdk_app::app::CandidateEnvelope::new(
+            prepared.txs.iter().map(|bytes| bytes.to_vec()).collect(),
+            "transfer_benchmark".into(),
         )?;
 
         let process_request = process_request_from_prepare_response(&prepared);
-        let mut validator = App::new(storage.latest_snapshot());
+        let mut validator = App::new(
+            storage.latest_snapshot(),
+            shieldd_sdk_bench_support::proof_txs::registry()?,
+        )
+        .await?;
         let process_start = Instant::now();
-        let process_verdict = validator
-            .validate_batch(process_request, None, Some(&sidecar), true)
-            .await;
+        let process_verdict = validator.validate_batch(process_request, None, true).await;
         let process_wall_ms = elapsed_ms(process_start);
         anyhow::ensure!(
             matches!(process_verdict, BatchVerdict::Accept),
             "process proposal rejected run {run_index}: {process_verdict:?}"
         );
 
-        let mut executor = App::new(storage.latest_snapshot());
+        let mut executor = App::new(
+            storage.latest_snapshot(),
+            shieldd_sdk_bench_support::proof_txs::registry()?,
+        )
+        .await?;
         executor.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let execute_start = Instant::now();
         let execution_profile = executor
@@ -260,7 +332,6 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
             total_wall_ms,
             tps,
             ms_per_tx,
-            projected_5000_tx_ms: ms_per_tx * 5_000.0,
 
             execution_and_commit_share: share(execution_and_commit_ms, total_wall_ms),
 
@@ -297,9 +368,8 @@ fn ensure_prepare_preserved_user_txs(
     prepared: &PreparedBatch,
 ) -> Result<()> {
     anyhow::ensure!(
-        prepared.txs.len() == input_txs.len()
-            || prepared.txs.len() == input_txs.len().saturating_add(1),
-        "prepared proposal must contain {} user transactions and at most one aggregate bundle, got {} entries",
+        prepared.txs.len() == input_txs.len(),
+        "prepared proposal must contain {} user transactions , got {} entries",
         input_txs.len(),
         prepared.txs.len()
     );
@@ -328,7 +398,6 @@ fn summarize(runs: &[RunReport]) -> ScenarioSummary {
         mean_execution_and_commit_share: mean(
             runs.iter().map(|run| run.execution_and_commit_share),
         ),
-        projected_5000_tx_ms_from_mean: mean_ms_per_tx * 5_000.0,
     }
 }
 
@@ -380,11 +449,8 @@ fn print_summary(path: &PathBuf, report: &BenchmarkReport) {
         match &scenario.summary {
             Some(summary) => {
                 println!(
-                    "{}: {:.2} TPS, {:.3} ms/tx, projected 5k {:.1} ms",
-                    scenario.name,
-                    summary.mean_tps,
-                    summary.mean_ms_per_tx,
-                    summary.projected_5000_tx_ms_from_mean,
+                    "{}: {:.3} ms/tx across three uncached passes ({:.2} tx/s in this workload)",
+                    scenario.name, summary.mean_ms_per_tx, summary.mean_tps,
                 );
             }
             None => unreachable!("completed scenario must include a summary"),

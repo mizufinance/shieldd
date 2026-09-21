@@ -15,7 +15,7 @@ own them.
   randomizer for real spends.
 - Spent note transmission keys bind to the IVK decomposition.
 - The authorization key and shared sender diversified generator are
-  non-identity Decaf points. The generator check is ownership-critical:
+  non-identity Jubjub subgroup points. The generator check is ownership-critical:
   identity DTK derivation would let one commitment/path be reopened with
   distinct nullifier keys.
 

@@ -1,5 +1,5 @@
 use anyhow::{ensure, Context, Result};
-use decaf377::{Element, Encoding, Fr};
+use group::GroupEncoding;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
@@ -7,6 +7,7 @@ use shieldd_sdk_compliance::{
     issuer_keys::decrypt_detection, DetectionKey, DleqProof, IssuerDhEvidence,
     TransferComplianceCiphertext,
 };
+use shieldd_sdk_crypto::SubgroupPoint as Element;
 
 use crate::{
     accepted_audit_ciphertext, decode_audit_ciphertext, AcceptedAuditCiphertext, AcceptedBlock,
@@ -103,17 +104,15 @@ pub struct VerifiedIssuerDisclosure {
 }
 
 fn point(bytes: [u8; 32]) -> Result<Element> {
-    Encoding(bytes)
-        .vartime_decompress()
-        .map_err(|_| anyhow::anyhow!("invalid issuer evidence point"))
+    shieldd_sdk_crypto::encoding::nonidentity(&bytes)
 }
 
 impl From<IssuerDhEvidence> for IssuerEvidence {
     fn from(value: IssuerDhEvidence) -> Self {
         Self {
-            shared_point: value.shared_point.vartime_compress().0,
-            commitment_g: value.proof.commitment_g.vartime_compress().0,
-            commitment_h: value.proof.commitment_h.vartime_compress().0,
+            shared_point: value.shared_point.to_bytes(),
+            commitment_g: value.proof.commitment_g.to_bytes(),
+            commitment_h: value.proof.commitment_h.to_bytes(),
             response: value.proof.response.to_bytes(),
         }
     }
@@ -136,8 +135,7 @@ impl IssuerEvidence {
             proof: DleqProof {
                 commitment_g: point(self.commitment_g)?,
                 commitment_h: point(self.commitment_h)?,
-                response: Fr::from_bytes_checked(&self.response)
-                    .map_err(|_| anyhow::anyhow!("noncanonical issuer evidence scalar"))?,
+                response: shieldd_sdk_crypto::encoding::scalar(&self.response)?,
             },
         }
         .verify_bound_for(asset.0.to_bytes(), key, epk, request)
@@ -241,7 +239,7 @@ fn verify_fields(
     let shared = package
         .selected
         .verify(asset, key, point(accepted.epk)?, &binding)?;
-    let value = decode_audit_ciphertext(accepted, shared.vartime_compress().0)?;
+    let value = decode_audit_ciphertext(accepted, shared.to_bytes())?;
     Ok(VerifiedIssuerDisclosure {
         request: package.request.clone(),
         selection: package.request.selection.clone(),
@@ -256,10 +254,12 @@ fn verify_fields(
 mod tests {
     use super::*;
     use crate::{ActionRef, AuditField, AuditPolicy, OutputRef, RingAuditKeyRef};
-    use decaf377::Fq;
+    use group::Group;
     use shieldd_sdk_compliance::{
         transfer::encrypt_transfer, AuditKeys, TransferComplianceMetadata,
     };
+    use shieldd_sdk_crypto::Fq;
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::keys::{SpendKey, SpendKeyBytes};
 
     fn fixture(
@@ -276,10 +276,10 @@ mod tests {
             .payment_address(0u32.into());
         let keys = |n| AuditKeys {
             epoch: 1,
-            amount: Element::GENERATOR * Fr::from(n),
-            sender: Element::GENERATOR * Fr::from(n + 1),
-            receiver: Element::GENERATOR * Fr::from(n + 2),
-            checking: Element::GENERATOR * Fr::from(n + 3),
+            amount: Element::generator() * Fr::from(n),
+            sender: Element::generator() * Fr::from(n + 1),
+            receiver: Element::generator() * Fr::from(n + 2),
+            checking: Element::generator() * Fr::from(n + 3),
         };
         let asset = asset::Id(Fq::from(42u64));
         let key = DetectionKey::new(Fr::from(37u64));
@@ -333,7 +333,7 @@ mod tests {
                     permission: "read".into(),
                 },
             },
-            epk: tier.epk.vartime_compress().0,
+            epk: tier.epk.to_bytes(),
             wrapping: tier.c2.to_bytes(),
             ciphertext: encrypted.ciphertext.to_bytes().to_vec(),
             metadata,
@@ -381,7 +381,7 @@ mod tests {
                     }
                 );
             }
-            assert!(verify_fields(&package, &accepted, asset, Element::GENERATOR).is_err());
+            assert!(verify_fields(&package, &accepted, asset, Element::generator()).is_err());
             assert!(verify_fields(
                 &package,
                 &accepted,
@@ -393,7 +393,7 @@ mod tests {
             altered.detection.response = [255; 32];
             assert!(verify_fields(&altered, &accepted, asset, key.public_key()).is_err());
             let mut altered = package.clone();
-            altered.selected.shared_point = Element::GENERATOR.vartime_compress().0;
+            altered.selected.shared_point = Element::generator().to_bytes();
             assert!(verify_fields(&altered, &accepted, asset, key.public_key()).is_err());
             let mut altered = accepted.clone();
             altered.ciphertext[0] ^= 1;

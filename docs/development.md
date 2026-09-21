@@ -1,91 +1,35 @@
-# Development and verification
+# Development
 
-Use `nix develop` for the repository toolchain, or install the Rust version in
-`rust-toolchain.toml`, Go from `tools/gnark/go.mod`, and a CGO-capable C compiler.
-Direct host integration tests use temporary storage. Bankd owns the live localnet and mobile/admin/audit smoke workflows.
-Voluntary disclosure proving uses the [local gnark backend](disclosure.md#local-proving-artifacts).
+Use the pinned Rust toolchain, a C/C++ compiler for RocksDB, and Python 3. Go is
+needed only for generated protobuf consumers. Proving and verification are native
+Rust/Commonware. Run commands from the repository root.
 
-| Command | Coverage |
+| Command | Purpose |
 | --- | --- |
-| `just check` | Native compilation, formatting, and focused aggregation invariants |
-| `just test` | Ordinary Rust tests; ignored tests are excluded |
-| `just go-check` | Gnark Go formatting, compilation, tests, and vet |
-| `just gnark-proof-tests` | Fast witness, statement, and Go checks |
-| `just note-seizure-proof-tests` | Real seizure proofs and host state transitions |
-| `just gnark-proof-tests-slow` | Real release-mode proofs using both library and daemon transports |
-| `just snarkpack-slow` | Release-mode oracle and two-way aggregation interoperability |
-| `just snarkpack-dos-gate` | Release latency and bounded-size rejection gate |
-| `just proto-check` | Deterministic Rust/Go generation and schema closure |
-| `just features-check` | Independent native crate feature builds |
-| `just wasm-check` | Supported domain crates without component features on WASM |
-| `cargo test -p shieldd-sdk-app-tests --tests -- --test-threads=1` | Host lifecycle, transfers, wallet planning, sweep, and storage query proofs |
+| `just pari-setup` | Generate a fresh complete demo proof registry |
+| `just check` | Source provenance, tooling, Rust and formatting checks |
+| `just ci-test` | Workspace tests with an explicitly selected registry |
+| `just commonware-test` | Pinned Commonware Pari, prepared math/MSM and compiler tests |
+| `just pari-proof-tests` | Ignored expensive real proof tests, serially |
+| `just features-check` | Independent crate feature boundaries |
+| `just proto-check` | Reproduce Rust and Go protobufs |
+| `just artifacts-native` | Stage the C header and native static library |
 
-## Production artifact approval
+Set `SHIELDD_PARI_KEYS` to share an existing registry. Its default in `just` is
+`target/dev-pari-keys`. Setup refuses to overwrite existing keys. See
+[Proof system](proof-system.md) for registry and state identity rules.
 
-Release verification requires every deployed circuit key to be approved in
-`crates/crypto/proof-params/production_keys.json`. Entries bind the circuit label,
-binary and JSON verification-key SHA-256 digests, and an approval reference.
-The current development setups are unapproved; release builds intentionally fail.
-Do not populate approval entries merely to make a build pass.
+Only one heavy verification job may run at once, including across agents.
+Start with `CARGO_BUILD_JOBS=2`, `RAYON_NUM_THREADS=2`, `GOMAXPROCS=2`, Go `-p 2`,
+and Rust `--test-threads=2`. Run expensive proofs serially. Check memory, swap,
+disk and existing workloads first; stop this task's jobs if pressure appears.
+Use the optimized `ci` profile and reuse its cache. Diagnose crashes before
+retrying. Do not stop unrelated processes or change Docker's global resources.
 
-Debug builds and the optimized `ci` profile can exercise real proving with
-development keys. The `ci` profile retains debug assertions and records that
-provenance; ordinary CI uses it without weakening the release approval gate. Production ceremony
-approval and release checks remain required before deployment.
+Hardware custody is unavailable. Software and upstream RedJubjub FROST custody
+are supported. Authenticated DKG broadcasts and confidential authenticated share
+channels remain requirements of the threshold-signing ceremony. FROST uses the
+transaction plan's CSPRNG-generated randomizer fixed before signing round one.
 
-## Real proof tests
-
-Many Rust proof-generating unit tests are explicitly ignored. Ordinary app
-integration tests also build real transactions and can require staged prover
-artifacts; Go tests include both solver checks and explicit real proofs. `just gnark-proof-tests-slow`
-selects only these tests in release mode and validates their prerequisites; it
-requires approved artifacts. Before ceremony approval, run the selected tests in
-debug mode with the same real Go prover and bounded concurrency.
-It exercises Transfer, both NoteReshape families, the shared withdrawal proof and host withdrawal caller, and
-daemon-backed NoteSeizure. Missing artifacts or transports fail the command.
-Fixture-blessing tests remain separate and are never selected by this command.
-
-## Scanner
-
-`cargo test -p shieldd-sdk-compliance --lib` covers atomic block persistence,
-restart/replay, reorg rollback, bounded invalid outcomes, and audit validation.
-The transaction crate's
-`compliance_scanner_transaction_id_matches_canonical_transaction_id` test checks
-scanner output identities against `Transaction::id()`.
-
-Scanner databases use a schema guard. Recreate incompatible development state;
-there is no migration or version-adoption path.
-
-## Orbis
-
-`just orbis-integration-up` builds the offline tools and starts the pinned
-Orbis/Vera Compose stack. `just orbis-integration-setup-ring /tmp/orbis-state.json`
-creates the test ring and policy. Use `just orbis-integration-down` for cleanup.
-The retained Docker workflow requires Docker Compose v2.
-
-## Builds and features
-
-Use `just proto` to regenerate bindings and `just proto-check` to verify them.
-`proto/codegen.json` lists retained roots; imports form the Rust/Go schema closure.
-The generator checks the pinned protoc version and compiles its generated Go output.
-
-Native proof construction is opt-in with `prover` on shielded-pool and transaction.
-`bundled-proving-keys` includes proving; external artifacts need `prover` alone.
-Compliance `scanner` enables SQLite and worker dependencies without `component`.
-View `rpc` enables its historical-witness RPC adapter. Isolated builds matter:
-workspace feature unification can conceal missing feature declarations.
-
-[Embedded artifacts](embedded-artifacts.md) defines native/prover/audit staging
-and relocation. [AGENTS.md](../AGENTS.md) defines resource limits, prototype
-contracts and the rule to pause heavy verification after a resource interruption.
-Run one heavy job at a time with Rust/Rayon/Go parallelism bounded at two;
-run expensive proof tests serially.
-
-Benchmarks, fuzz campaigns and fixture generation are explicit developer tasks.
-Keep independent reference/property cases and regression seeds. Fixture blessing
-changes frozen vectors and is separate from correctness verification. Do not infer
-real proof, release, platform or vendor coverage from an ordinary workspace run.
-
-`just gnark-profile` runs opt-in constraint diagnostics. `just gnark-bless-seizure`
-regenerates the frozen seizure witness; ordinary Go tests cannot write it.
-Rust witness blessing remains explicitly ignored and selected by exact name.
+Commonware updates follow [the pinned-source policy](../third_party/commonware-patches/README.md).
+Formal tools and evidence belong to the separate shieldd-security repository.

@@ -1,13 +1,13 @@
 use anyhow::{Context, Error};
 
-use decaf377::Fq;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_keys::keys::FullViewingKey;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
 
 use crate::{note, Note, NoteCiphertext, RecoveryCapsule};
-use decaf377_ka as ka;
+use shieldd_sdk_crypto::ka;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(try_from = "pb::NotePayload", into = "pb::NotePayload")]
@@ -22,7 +22,8 @@ impl NotePayload {
     pub fn dummy() -> Self {
         Self {
             note_commitment: note::StateCommitment(Fq::from(0u64)),
-            ephemeral_key: ka::Public([0u8; 32]),
+            ephemeral_key: ka::Public::from_point(*shieldd_sdk_crypto::generators::SPEND_AUTH)
+                .expect("nonidentity generator"),
             encrypted_note: NoteCiphertext([0u8; crate::note::NOTE_CIPHERTEXT_BYTES]),
             recovery_capsule: None,
         }
@@ -112,7 +113,7 @@ impl From<NotePayload> for pb::NotePayload {
 
         pb::NotePayload {
             note_commitment: Some(msg.note_commitment.into()),
-            ephemeral_key: msg.ephemeral_key.0.to_vec(),
+            ephemeral_key: msg.ephemeral_key.to_bytes().to_vec(),
             encrypted_note: Some(msg.encrypted_note.into()),
             recovery_capsule: msg.recovery_capsule.map(Into::into),
         }

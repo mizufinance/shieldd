@@ -3,12 +3,13 @@ use crate::planning_intent::{
     WithdrawalIntent,
 };
 use anyhow::{anyhow, Context, Result};
-use decaf377::Fr;
+use ff::Field;
 use rand::CryptoRng;
 use rand_core::RngCore;
 use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_ID};
 #[cfg(test)]
 use shieldd_sdk_compliance::ComplianceQuery;
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_fee::{Fee, FeeTier, GasPrices};
 use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
@@ -188,20 +189,17 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
+        let self_funded = gas_prices_are_zero(gas_prices) || value.asset_id == *BASE_ASSET_ID;
         let nullifier_window = view.nullifier_window().await?;
 
         let mut notes = self
             .load_notes_for_asset(view, source, value.asset_id)
             .await?;
-        let total_available = notes
-            .iter()
-            .map(|record| record.note.amount())
-            .sum::<Amount>();
 
         let mut fee = zero_base_fee();
 
         for _ in 0..4 {
-            let required_amount = if gas_prices_are_zero(gas_prices) {
+            let required_amount = if self_funded {
                 value
                     .amount
                     .checked_add(&fee.amount())
@@ -209,7 +207,18 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             } else {
                 value.amount
             };
-            let selected = select_notes_covering(&mut notes, required_amount);
+            let selected = match recent_note_indices_covering(
+                &notes,
+                required_amount,
+                nullifier_window.recent_position_floor,
+                &[],
+            )? {
+                Some(indices) => indices
+                    .into_iter()
+                    .map(|index| notes.remove(index))
+                    .collect(),
+                None => select_notes_covering(&mut notes, required_amount),
+            };
             let selected_total = selected
                 .iter()
                 .map(|record| record.note.amount())
@@ -227,12 +236,18 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
             let action_needs_maintenance = selected.len() > 2;
             let excluded_fee_notes = selected_note_commitments(&selected);
-            let fee_funding_selection = if gas_prices_are_zero(gas_prices) {
+            let fee_funding_selection = if self_funded {
                 None
             } else {
                 Some(
-                    self.select_base_fee_funding(view, source, fee, &excluded_fee_notes)
-                        .await?,
+                    self.select_base_fee_funding(
+                        view,
+                        source,
+                        fee,
+                        &excluded_fee_notes,
+                        nullifier_window.recent_position_floor,
+                    )
+                    .await?,
                 )
             };
 
@@ -272,7 +287,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             zero_base_fee(),
                         )?;
                         let fee_funding = self.build_fee_funding_plan(&fee_notes, fee)?;
-                        let actions = vec![ActionIntent::Transfer(transfer.clone())];
+                        let actions = vec![ActionIntent::Transfer(transfer)];
                         let new_fee = price_transaction_plan(
                             gas_prices,
                             self.fee_tier,
@@ -319,10 +334,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
 
             if action_needs_maintenance {
-                if total_available < required_amount {
-                    return Ok(NoteManagerPlanningResult::InsufficientBalance);
-                }
-
                 let Some(maintenance_plan) = self
                     .plan_auto_note_reshape_step(view, source, value.asset_id, selected.len())
                     .await?
@@ -342,20 +353,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
 
             let transfer = self.build_transfer_plan(&selected, recipient.clone(), value, fee)?;
-            let actions = vec![ActionIntent::Transfer(transfer.clone())];
+            let actions = vec![ActionIntent::Transfer(transfer)];
             let new_fee =
                 price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
 
             if new_fee == fee {
                 let plan = self
-                    .finalize_wallet_plan(
-                        view,
-                        source,
-                        vec![ActionIntent::Transfer(transfer)],
-                        None,
-                        new_fee,
-                        nullifier_window,
-                    )
+                    .finalize_wallet_plan(view, source, actions, None, new_fee, nullifier_window)
                     .await?;
                 return Ok(NoteManagerPlanningResult::Ready {
                     transaction_plan: plan,
@@ -490,25 +494,70 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
+        let self_funded = gas_prices_are_zero(gas_prices);
+        let paid_base = !self_funded && asset_id == *BASE_ASSET_ID;
         let nullifier_window = view.nullifier_window().await?;
 
         let mut notes = self.load_notes_for_asset(view, source, asset_id).await?;
-        let total_available = notes
-            .iter()
-            .map(|record| record.note.amount())
-            .sum::<Amount>();
 
         let mut fee = zero_base_fee();
 
         for _ in 0..4 {
-            let required_amount = if gas_prices_are_zero(gas_prices) {
+            let required_amount = if self_funded {
                 withdrawal_amount
                     .checked_add(&fee.amount())
                     .ok_or_else(|| anyhow!("{label} amount overflow while planning"))?
             } else {
                 withdrawal_amount
             };
-            let selected = select_notes_covering(&mut notes, required_amount);
+            let recent = if paid_base {
+                match recent_note_indices_covering(
+                    &notes,
+                    required_amount,
+                    nullifier_window.recent_position_floor,
+                    &[],
+                )? {
+                    Some(indices)
+                        if recent_note_indices_covering(
+                            &notes,
+                            self.withdrawal_fee(&withdrawal)?.amount().max(1u64.into()),
+                            nullifier_window.recent_position_floor,
+                            &indices,
+                        )?
+                        .is_some() =>
+                    {
+                        Some(indices)
+                    }
+                    _ => None,
+                }
+            } else {
+                None
+            };
+            let selected = match recent {
+                Some(indices) => indices
+                    .into_iter()
+                    .map(|index| notes.remove(index))
+                    .collect(),
+                None => {
+                    let exact = paid_base
+                        .then(|| {
+                            notes
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, record)| record.note.amount() == withdrawal_amount)
+                                .min_by_key(|(_, record)| {
+                                    u64::from(record.position)
+                                        < nullifier_window.recent_position_floor
+                                })
+                                .map(|(index, _)| index)
+                        })
+                        .flatten();
+                    match exact {
+                        Some(index) => vec![notes.remove(index)],
+                        None => select_notes_covering(&mut notes, required_amount),
+                    }
+                }
+            };
             let selected_total = selected
                 .iter()
                 .map(|record| record.note.amount())
@@ -523,13 +572,24 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 withdrawal: withdrawal.clone(),
             });
             let action_needs_maintenance = selected.len() > 2;
+            if paid_base && action_needs_maintenance {
+                return self
+                    .plan_base_withdrawal_maintenance(view, source, &withdrawal)
+                    .await;
+            }
             let excluded_fee_notes = selected_note_commitments(&selected);
-            let fee_funding_selection = if gas_prices_are_zero(gas_prices) {
+            let fee_funding_selection = if self_funded {
                 None
             } else {
                 Some(
-                    self.select_base_fee_funding(view, source, fee, &excluded_fee_notes)
-                        .await?,
+                    self.select_base_fee_funding(
+                        view,
+                        source,
+                        fee,
+                        &excluded_fee_notes,
+                        nullifier_window.recent_position_floor,
+                    )
+                    .await?,
                 )
             };
 
@@ -599,6 +659,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         });
                     }
                     BaseFeeFundingSelection::InsufficientBalance => {
+                        if paid_base {
+                            return self
+                                .plan_base_withdrawal_maintenance(view, source, &withdrawal)
+                                .await;
+                        }
                         return Ok(NoteManagerPlanningResult::InsufficientBalance);
                     }
                     BaseFeeFundingSelection::UnsupportedIntent { reason } => {
@@ -608,10 +673,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
 
             if action_needs_maintenance {
-                if total_available < required_amount {
-                    return Ok(NoteManagerPlanningResult::InsufficientBalance);
-                }
-
                 let Some(maintenance_plan) = self
                     .plan_auto_note_reshape_step(view, source, asset_id, selected.len())
                     .await?
@@ -776,13 +837,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 family_id,
                 spends,
                 outputs,
-                value_blinding: Fr::rand(&mut self.rng),
+                value_blinding: Fr::random(&mut self.rng),
             };
-            let actions = vec![ActionIntent::NoteReshape(note_reshape.clone())];
+            let actions = vec![ActionIntent::NoteReshape(note_reshape)];
             self.plan_actions_with_base_fee_funding(
                 view,
                 source,
-                actions.clone(),
+                actions,
                 NoteManagerResumeToken::NoteReshape(NoteReshapeResumeToken {
                     source,
                     asset_id,
@@ -872,10 +933,10 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 family_id,
                 spends,
                 outputs,
-                value_blinding: Fr::rand(&mut self.rng),
+                value_blinding: Fr::random(&mut self.rng),
             };
             if gas_prices_are_zero(gas_prices) {
-                let actions = vec![ActionIntent::NoteReshape(note_reshape.clone())];
+                let actions = vec![ActionIntent::NoteReshape(note_reshape)];
                 let new_fee = price_transaction_plan(
                     gas_prices,
                     self.fee_tier,
@@ -888,7 +949,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         .finalize_wallet_plan(
                             view,
                             source,
-                            vec![ActionIntent::NoteReshape(note_reshape)],
+                            actions,
                             None,
                             new_fee,
                             nullifier_window,
@@ -898,12 +959,12 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 }
                 fee = new_fee;
             } else {
-                let actions = vec![ActionIntent::NoteReshape(note_reshape.clone())];
+                let actions = vec![ActionIntent::NoteReshape(note_reshape)];
                 return self
                     .plan_actions_with_base_fee_funding(
                         view,
                         source,
-                        actions.clone(),
+                        actions,
                         NoteManagerResumeToken::NoteReshape(NoteReshapeResumeToken {
                             source,
                             asset_id,
@@ -933,6 +994,36 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             return Ok(None);
         };
 
+        if asset_id == *BASE_ASSET_ID
+            && !gas_prices_are_zero(self.gas_prices.context("missing gas prices")?)
+        {
+            let selected = available_notes
+                .into_iter()
+                .rev()
+                .take(2)
+                .collect::<Vec<_>>();
+            return self
+                .build_base_transfer_step(view, source, &selected, None)
+                .await;
+        }
+
+        if asset_id != *BASE_ASSET_ID {
+            // Fee maintenance terminates in a base-asset self-transfer.
+            return Ok(
+                match self
+                    .plan_note_reshape_from_notes(view, source, asset_id, Some(family_id))
+                    .await?
+                {
+                    NoteManagerPlanningResult::Ready { transaction_plan } => Some(transaction_plan),
+                    NoteManagerPlanningResult::NeedsMaintenance {
+                        maintenance_plan, ..
+                    } => Some(maintenance_plan),
+                    NoteManagerPlanningResult::InsufficientBalance
+                    | NoteManagerPlanningResult::UnsupportedIntent { .. } => None,
+                },
+            );
+        }
+
         let mut notes = available_notes;
         let real_input_count = notes.len().min(family_id.max_real_inputs());
         if real_input_count < family_id.min_real_inputs() {
@@ -943,6 +1034,161 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .await
     }
 
+    pub(crate) async fn plan_base_consolidation<V: PlanningIo + Send + ?Sized>(
+        &mut self,
+        view: &mut V,
+        source: AddressIndex,
+    ) -> Result<Option<TransactionPlan>> {
+        let notes = self
+            .load_notes_for_asset(view, source, *BASE_ASSET_ID)
+            .await?;
+        if notes.len() < 2 {
+            return Ok(None);
+        }
+        let selected = notes.into_iter().rev().take(2).collect::<Vec<_>>();
+        self.build_base_transfer_step(view, source, &selected, None)
+            .await
+    }
+
+    fn withdrawal_fee(&self, withdrawal: &HostWithdrawal) -> Result<Fee> {
+        let gas = shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(withdrawal)
+            + shieldd_sdk_transaction::gas::transfer_gas_cost();
+        Ok(self
+            .gas_prices
+            .context("missing gas prices")?
+            .fee(&gas)
+            .apply_tier(self.fee_tier))
+    }
+
+    async fn plan_base_withdrawal_maintenance<V: PlanningIo + Send + ?Sized>(
+        &mut self,
+        view: &mut V,
+        source: AddressIndex,
+        withdrawal: &HostWithdrawal,
+    ) -> Result<NoteManagerPlanningResult> {
+        let notes = self
+            .load_notes_for_asset(view, source, *BASE_ASSET_ID)
+            .await?;
+        let selected = notes.iter().rev().take(2).cloned().collect::<Vec<_>>();
+        if selected.is_empty() {
+            return Ok(NoteManagerPlanningResult::InsufficientBalance);
+        }
+        let maintenance_plan = if let Some(plan) = self
+            .build_base_transfer_step(view, source, &selected, Some(withdrawal))
+            .await?
+        {
+            plan
+        } else if notes.len() > 2 {
+            let Some(plan) = self
+                .build_base_transfer_step(view, source, &selected, None)
+                .await?
+            else {
+                return Ok(NoteManagerPlanningResult::InsufficientBalance);
+            };
+            let total = notes.iter().try_fold(Amount::zero(), |sum, record| {
+                sum.checked_add(&record.note.amount())
+                    .context("base withdrawal balance exceeds u128")
+            })?;
+            let required = withdrawal
+                .value
+                .amount
+                .checked_add(&self.withdrawal_fee(withdrawal)?.amount())
+                .and_then(|amount| amount.checked_add(&plan.transaction_parameters.fee.amount()));
+            if required.is_none_or(|required| total < required) {
+                return Ok(NoteManagerPlanningResult::InsufficientBalance);
+            }
+            plan
+        } else {
+            return Ok(NoteManagerPlanningResult::InsufficientBalance);
+        };
+        Ok(NoteManagerPlanningResult::NeedsMaintenance {
+            maintenance_plan,
+            resume_token: NoteManagerResumeToken::HostWithdrawal(HostWithdrawalResumeToken {
+                source,
+                withdrawal: withdrawal.clone(),
+            }),
+        })
+    }
+
+    // A merge removes one note; a split creates the exact principal selected on resume.
+    async fn build_base_transfer_step<V: PlanningIo + Send + ?Sized>(
+        &mut self,
+        view: &mut V,
+        source: AddressIndex,
+        selected: &[SpendableNoteRecord],
+        withdrawal: Option<&HostWithdrawal>,
+    ) -> Result<Option<TransactionPlan>> {
+        let gas_prices = self.gas_prices.context("missing gas prices")?;
+        anyhow::ensure!(
+            gas_prices.asset_id == *BASE_ASSET_ID,
+            "base maintenance requires base-asset gas"
+        );
+        anyhow::ensure!(
+            !selected.is_empty() && selected.len() <= 2,
+            "base maintenance needs one or two inputs"
+        );
+        anyhow::ensure!(
+            withdrawal.is_some() || selected.len() == 2,
+            "base consolidation needs two inputs"
+        );
+        anyhow::ensure!(
+            selected
+                .iter()
+                .all(|record| record.note.asset_id() == *BASE_ASSET_ID),
+            "base maintenance requires base notes"
+        );
+        let total = selected.iter().try_fold(Amount::zero(), |sum, record| {
+            sum.checked_add(&record.note.amount())
+                .context("base maintenance output exceeds u128")
+        })?;
+        let reserve = match withdrawal {
+            Some(withdrawal) => {
+                anyhow::ensure!(
+                    withdrawal.value.asset_id == *BASE_ASSET_ID,
+                    "base maintenance requires a base withdrawal"
+                );
+                let Some(required) = withdrawal
+                    .value
+                    .amount
+                    .checked_add(&self.withdrawal_fee(withdrawal)?.amount().max(1u64.into()))
+                else {
+                    return Ok(None);
+                };
+                required
+            }
+            None => 1u64.into(),
+        };
+        let window = view.nullifier_window().await?;
+        let mut fee = zero_base_fee();
+        for _ in 0..4 {
+            if reserve
+                .checked_add(&fee.amount())
+                .is_none_or(|required| total < required)
+            {
+                return Ok(None);
+            }
+            let transfer = match withdrawal {
+                Some(withdrawal) => self.build_transfer_plan(
+                    selected,
+                    selected[0].note.address(),
+                    withdrawal.value,
+                    fee,
+                )?,
+                None => self.build_self_funded_transfer_plan(selected, *BASE_ASSET_ID, fee)?,
+            };
+            let actions = vec![ActionIntent::Transfer(transfer)];
+            let new_fee = price_transaction_plan(gas_prices, self.fee_tier, &actions, None, window);
+            if new_fee == fee {
+                return self
+                    .finalize_wallet_plan(view, source, actions, None, fee, window)
+                    .await
+                    .map(Some);
+            }
+            fee = new_fee;
+        }
+        Err(anyhow!("base maintenance fee planning did not converge"))
+    }
+
     async fn build_note_reshape_transaction<V: PlanningIo + Send + ?Sized>(
         &mut self,
         view: &mut V,
@@ -951,65 +1197,45 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         family_id: NoteReshapeFamilyId,
         selected: Vec<SpendableNoteRecord>,
     ) -> Result<Option<TransactionPlan>> {
-        let gas_prices = self
-            .gas_prices
-            .context("note manager instances must call set_gas_prices prior to planning")?;
-        let nullifier_window = view.nullifier_window().await?;
+        anyhow::ensure!(
+            gas_prices_are_zero(self.gas_prices.context("missing gas prices")?),
+            "paid note reshapes require separate fee funding"
+        );
+        let window = view.nullifier_window().await?;
         let sender_address = selected
             .first()
             .map(|record| record.note.address())
-            .ok_or_else(|| anyhow!("note reshape requires at least one selected note"))?;
-        let mut fee = zero_base_fee();
-
-        for _ in 0..4 {
-            let total_input = selected
-                .iter()
-                .map(|record| record.note.amount())
-                .sum::<Amount>();
-            if total_input <= fee.amount() {
-                return Ok(None);
-            }
-            let output_value = Value {
-                amount: total_input - fee.amount(),
-                asset_id,
-            };
-            let spends = selected
-                .iter()
-                .map(|record| {
-                    ShieldedInputPlan::new(&mut self.rng, record.note.clone(), record.position)
-                })
-                .collect::<Vec<_>>();
-            let outputs = vec![ShieldedOutputPlan::new(
-                &mut self.rng,
-                output_value,
-                sender_address.clone(),
-            )];
-            let note_reshape = NoteReshapeIntent {
-                family_id,
-                spends,
-                outputs,
-                value_blinding: Fr::rand(&mut self.rng),
-            };
-            let actions = vec![ActionIntent::NoteReshape(note_reshape.clone())];
-            let new_fee =
-                price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
-            if new_fee == fee {
-                let plan = self
-                    .finalize_wallet_plan(
-                        view,
-                        source,
-                        vec![ActionIntent::NoteReshape(note_reshape)],
-                        None,
-                        new_fee,
-                        nullifier_window,
-                    )
-                    .await?;
-                return Ok(Some(plan));
-            }
-            fee = new_fee;
+            .context("note reshape requires selected notes")?;
+        let total = selected.iter().try_fold(Amount::zero(), |sum, record| {
+            sum.checked_add(&record.note.amount())
+                .context("note reshape output exceeds u128")
+        })?;
+        if total == Amount::zero() {
+            return Ok(None);
         }
-
-        Err(anyhow!("note reshape planning did not converge"))
+        let spends = selected
+            .iter()
+            .map(|record| {
+                ShieldedInputPlan::new(&mut self.rng, record.note.clone(), record.position)
+            })
+            .collect();
+        let outputs = vec![ShieldedOutputPlan::new(
+            &mut self.rng,
+            Value {
+                amount: total,
+                asset_id,
+            },
+            sender_address,
+        )];
+        let actions = vec![ActionIntent::NoteReshape(NoteReshapeIntent {
+            family_id,
+            spends,
+            outputs,
+            value_blinding: Fr::random(&mut self.rng),
+        })];
+        self.finalize_wallet_plan(view, source, actions, None, zero_base_fee(), window)
+            .await
+            .map(Some)
     }
 
     fn build_transfer_plan(
@@ -1058,7 +1284,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         Ok(TransferIntent {
             spends,
             outputs,
-            value_blinding: Fr::rand(&mut self.rng),
+            value_blinding: Fr::random(&mut self.rng),
         })
     }
 
@@ -1102,7 +1328,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         Ok(TransferIntent {
             spends,
             outputs,
-            value_blinding: Fr::rand(&mut self.rng),
+            value_blinding: Fr::random(&mut self.rng),
         })
     }
 
@@ -1120,6 +1346,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         source: AddressIndex,
         fee: Fee,
         excluded_note_commitments: &BTreeSet<note::StateCommitment>,
+        recent_position_floor: u64,
     ) -> Result<BaseFeeFundingSelection> {
         anyhow::ensure!(
             fee.asset_id() == *BASE_ASSET_ID,
@@ -1139,7 +1366,18 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .into_iter()
             .filter(|record| !excluded_note_commitments.contains(&record.note_commitment))
             .collect::<Vec<_>>();
-        let selected = select_notes_covering(&mut notes, minimum_total);
+        let selected = match recent_note_indices_covering(
+            &notes,
+            minimum_total,
+            recent_position_floor,
+            &[],
+        )? {
+            Some(indices) => indices
+                .into_iter()
+                .map(|index| notes.remove(index))
+                .collect(),
+            None => select_notes_covering(&mut notes, minimum_total),
+        };
         let selected_total = selected
             .iter()
             .map(|record| record.note.amount())
@@ -1151,13 +1389,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
         if selected.len() > 2 {
             let Some(maintenance_plan) = self
-                .plan_auto_note_reshape_step(view, source, *BASE_ASSET_ID, selected.len())
+                .build_base_transfer_step(view, source, &selected[..2], None)
                 .await?
             else {
                 return Ok(BaseFeeFundingSelection::UnsupportedIntent {
-                    reason: format!(
-                        "base-asset fee funding requires note maintenance, but no supported note reshape family is currently applicable"
-                    ),
+                    reason: format!("base-asset fee notes cannot fund their consolidation"),
                 });
             };
 
@@ -1203,7 +1439,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
         for _ in 0..4 {
             let fee_funding = self
-                .select_base_fee_funding(view, source, fee, &excluded_fee_notes)
+                .select_base_fee_funding(
+                    view,
+                    source,
+                    fee,
+                    &excluded_fee_notes,
+                    nullifier_window.recent_position_floor,
+                )
                 .await?;
             let selected_fee_notes = match fee_funding {
                 BaseFeeFundingSelection::Ready { selected } => selected,
@@ -1295,7 +1537,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         } else {
             None
         };
-        let value_blinding = Fr::rand(&mut self.rng);
+        let value_blinding = Fr::random(&mut self.rng);
         Ok(ActionIntent::HostWithdrawal(WithdrawalIntent {
             spends,
             change_output,
@@ -1383,11 +1625,13 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             shieldd_sdk_shielded_pool::VolumeAccumulatorState::subject(
                                 &query.address,
                                 query.asset_id,
-                            ),
+                            )
+                            .to_bytes(),
                         );
                     }
                 }
                 for subject in subjects {
+                    let subject = shieldd_sdk_crypto::encoding::field(&subject)?;
                     volumes.push(crate::VolumeRecoveryRecord {
                         subject,
                         day_start,
@@ -1408,7 +1652,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
     }
 }
 
-fn gas_prices_are_zero(gas_prices: GasPrices) -> bool {
+pub(crate) fn gas_prices_are_zero(gas_prices: GasPrices) -> bool {
     gas_prices.block_space_price == 0
         && gas_prices.compact_block_space_price == 0
         && gas_prices.verification_price == 0
@@ -1505,6 +1749,41 @@ fn prioritize_and_filter_spendable_notes(
     filtered
 }
 
+/// Return a sufficient recent single or pair, with indices in descending removal order.
+fn recent_note_indices_covering(
+    notes: &[SpendableNoteRecord],
+    required_amount: Amount,
+    recent_position_floor: u64,
+    excluded_indices: &[usize],
+) -> Result<Option<Vec<usize>>> {
+    if required_amount == Amount::zero() {
+        return Ok(None);
+    }
+    let eligible = |index: usize, record: &SpendableNoteRecord| {
+        u64::from(record.position) >= recent_position_floor && !excluded_indices.contains(&index)
+    };
+    if let Some((index, _)) = notes
+        .iter()
+        .enumerate()
+        .find(|(index, record)| eligible(*index, record) && record.note.amount() >= required_amount)
+    {
+        return Ok(Some(vec![index]));
+    }
+    let pair = notes
+        .iter()
+        .enumerate()
+        .rev()
+        .filter(|(index, record)| eligible(*index, record))
+        .take(2)
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    let total = pair.iter().try_fold(Amount::zero(), |sum, index| {
+        sum.checked_add(&notes[*index].note.amount())
+            .context("recent input total exceeds u128")
+    })?;
+    Ok((pair.len() == 2 && total >= required_amount).then_some(pair))
+}
+
 fn select_notes_covering(
     notes: &mut Vec<SpendableNoteRecord>,
     required_amount: Amount,
@@ -1526,9 +1805,9 @@ fn select_notes_covering(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use decaf377::Fq;
     use rand_core::OsRng;
     use shieldd_sdk_asset::BASE_ASSET_ID;
+    use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_fee::GasPrices;
     use shieldd_sdk_keys::keys::SeedPhrase;
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SpendKey};
@@ -1680,7 +1959,7 @@ mod tests {
         }
         async fn volume_accumulator_recovery(
             &mut self,
-            _: decaf377::Fq,
+            _: shieldd_sdk_crypto::Fq,
             _: u64,
         ) -> Result<crate::storage::VolumeAccumulatorRecovery> {
             Ok(crate::storage::VolumeAccumulatorRecovery::Absent)
@@ -1993,6 +2272,1068 @@ mod tests {
         assert_action_only_plan(transaction_plan, |action| {
             matches!(action, ActionPlan::ComplianceRegisterUser(_))
         });
+    }
+
+    #[tokio::test]
+    async fn sweep_does_not_return_conflicting_fee_funded_plans() {
+        let source = AddressIndex::new(0);
+        let sender = test_address(0);
+        let mut rng = OsRng;
+        let mut notes = Vec::new();
+        for (asset_number, position) in [(801, 1), (801, 2), (802, 3), (802, 4)] {
+            notes.push(spendable_note_record_with_asset(
+                &mut rng,
+                10,
+                asset::Id(Fq::from(asset_number)),
+                source,
+                sender.clone(),
+                position,
+            ));
+        }
+        notes.push(spendable_note_record(
+            &mut rng,
+            1_000_000_000,
+            source,
+            sender.clone(),
+            5,
+        ));
+        let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]));
+        let gas_prices = GasPrices {
+            block_space_price: 0,
+            compact_block_space_price: 0,
+            verification_price: 0,
+            execution_price: 1_000,
+            asset_id: *BASE_ASSET_ID,
+        };
+        let plans = crate::sweep(&mut view, rng, gas_prices).await.unwrap();
+        assert!(
+            plans.iter().next().is_some(),
+            "fixture must produce ready sweep work"
+        );
+        let mut commitments = std::collections::BTreeSet::new();
+        for plan in plans.iter() {
+            assert!(
+                plan.fee_funding.is_some(),
+                "non-base reshapes need base fee funding"
+            );
+            for planned in plan.spends() {
+                assert!(
+                    commitments.insert(planned.spend.note.commit().0.to_bytes()),
+                    "returned sweep work must not spend the same fee note twice"
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn base_asset_sweep_pays_nonzero_fee_from_self_transfer() {
+        for note_count in [2usize, 3] {
+            let source = AddressIndex::new(0);
+            let sender = test_address(0);
+            let mut rng = OsRng;
+            let notes = (0..note_count)
+                .map(|index| {
+                    spendable_note_record(
+                        &mut rng,
+                        1_000_000_000,
+                        source,
+                        sender.clone(),
+                        index as u64 + 1,
+                    )
+                })
+                .collect();
+            let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]));
+            let gas_prices = GasPrices {
+                block_space_price: 0,
+                compact_block_space_price: 0,
+                verification_price: 0,
+                execution_price: 1_000,
+                asset_id: *BASE_ASSET_ID,
+            };
+            let plan = crate::sweep(&mut view, rng, gas_prices)
+                .await
+                .expect("base asset sweep planning succeeds")
+                .expect("base notes can fund their own consolidation fee");
+            assert!(plan.fee_funding.is_none());
+            assert_eq!(plan.actions.len(), 1);
+            let Some(ActionPlan::Transfer(transfer)) = plan.actions.first() else {
+                panic!("paid base consolidation must use a transfer");
+            };
+            assert_eq!(transfer.spends.len(), 2);
+            assert_eq!(transfer.outputs.len(), 1);
+            assert_eq!(transfer.outputs[0].value.asset_id, *BASE_ASSET_ID);
+            let fee = plan.transaction_parameters.fee;
+            assert!(fee.amount() > Amount::zero());
+            assert_eq!(
+                transfer.outputs[0].value.amount + fee.amount(),
+                Amount::from(2_000_000_000u64),
+            );
+            assert_eq!(
+                fee,
+                gas_prices
+                    .fee(&plan.gas_cost())
+                    .apply_tier(FeeTier::default()),
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn nonbase_transfer_maintenance_preserves_asset_and_funds_base_fee() {
+        assert_nonbase_maintenance_fee_funding(false).await;
+    }
+
+    fn nonzero_base_gas_prices() -> GasPrices {
+        GasPrices {
+            block_space_price: 0,
+            compact_block_space_price: 0,
+            verification_price: 0,
+            execution_price: 1_000,
+            asset_id: *BASE_ASSET_ID,
+        }
+    }
+
+    async fn plan_base_intent(
+        manager: &mut NoteManager<OsRng>,
+        view: &mut MockNoteManagerView,
+        amount: u64,
+        withdrawal: bool,
+    ) -> Result<NoteManagerPlanningResult> {
+        let source = AddressIndex::new(0);
+        if withdrawal {
+            manager
+                .plan_host_withdrawal(view, source, test_host_withdrawal(amount, "host-recipient"))
+                .await
+        } else {
+            manager
+                .plan_transfer(
+                    view,
+                    source,
+                    Value {
+                        amount: amount.into(),
+                        asset_id: *BASE_ASSET_ID,
+                    },
+                    test_address(1),
+                )
+                .await
+        }
+    }
+
+    fn confirm_self_transfer(view: &MockNoteManagerView, plan: &TransactionPlan) -> Amount {
+        assert!(plan.fee_funding.is_none());
+        let [ActionPlan::Transfer(transfer)] = plan.actions.as_slice() else {
+            panic!("paid maintenance must be a single transfer");
+        };
+        assert!((1..=2).contains(&transfer.spends.len()));
+        let fee = plan.transaction_parameters.fee;
+        assert_eq!(
+            fee,
+            nonzero_base_gas_prices()
+                .fee(&plan.gas_cost())
+                .apply_tier(FeeTier::default())
+        );
+        let input = transfer
+            .spends
+            .iter()
+            .map(|spend| spend.note.amount())
+            .sum::<Amount>();
+        let output = transfer
+            .outputs
+            .iter()
+            .map(|output| output.value.amount)
+            .sum::<Amount>();
+        assert_eq!(input, output + fee.amount());
+        let spent = transfer
+            .spends
+            .iter()
+            .map(|spend| spend.note.commit())
+            .collect::<BTreeSet<_>>();
+        let mut notes = view.notes.lock().expect("fixture notes");
+        let position = notes
+            .iter()
+            .map(|record| u64::from(record.position))
+            .max()
+            .unwrap_or(0)
+            + 1;
+        notes.retain(|record| !spent.contains(&record.note_commitment));
+        for (offset, output) in transfer.outputs.iter().enumerate() {
+            assert_eq!(output.value.asset_id, *BASE_ASSET_ID);
+            assert_eq!(output.dest_address, test_address(0));
+            notes.push(spendable_note_record(
+                &mut OsRng,
+                u64::try_from(output.value.amount.value()).expect("fixture fits u64"),
+                AddressIndex::new(0),
+                output.dest_address.clone(),
+                position + offset as u64,
+            ));
+        }
+        fee.amount()
+    }
+
+    fn assert_base_intent_plan(plan: &TransactionPlan, amount: u64, withdrawal: bool) {
+        let fee = plan.transaction_parameters.fee;
+        assert!(fee.amount() > Amount::zero());
+        assert_eq!(
+            fee,
+            nonzero_base_gas_prices()
+                .fee(&plan.gas_cost())
+                .apply_tier(FeeTier::default())
+        );
+        assert_eq!(plan.actions.len(), 1);
+        match &plan.actions[0] {
+            ActionPlan::Transfer(transfer) if !withdrawal => {
+                assert!(plan.fee_funding.is_none());
+                assert_eq!(transfer.outputs[0].dest_address, test_address(1));
+                assert_eq!(transfer.outputs[0].value.amount, amount.into());
+                assert_eq!(
+                    transfer
+                        .spends
+                        .iter()
+                        .map(|spend| spend.note.amount())
+                        .sum::<Amount>(),
+                    transfer
+                        .outputs
+                        .iter()
+                        .map(|output| output.value.amount)
+                        .sum::<Amount>()
+                        + fee.amount()
+                );
+            }
+            ActionPlan::ShieldedHostWithdrawal(withdrawal_plan) if withdrawal => {
+                assert_eq!(
+                    withdrawal_plan.withdrawal,
+                    test_host_withdrawal(amount, "host-recipient")
+                );
+                assert_eq!(plan.actions[0].balance(), Balance::default());
+                let funding = plan
+                    .fee_funding
+                    .as_ref()
+                    .expect("withdrawal fee has separate inputs");
+                let primary = withdrawal_plan
+                    .spends
+                    .iter()
+                    .map(|spend| spend.note.commit())
+                    .collect::<BTreeSet<_>>();
+                assert!(funding
+                    .transfer
+                    .spends
+                    .iter()
+                    .all(|spend| !primary.contains(&spend.note.commit())));
+                assert_eq!(
+                    funding
+                        .transfer
+                        .spends
+                        .iter()
+                        .map(|spend| spend.note.amount())
+                        .sum::<Amount>(),
+                    funding
+                        .transfer
+                        .outputs
+                        .iter()
+                        .map(|output| output.value.amount)
+                        .sum::<Amount>()
+                        + fee.amount()
+                );
+            }
+            _ => panic!("expected the original intent"),
+        }
+    }
+
+    #[tokio::test]
+    async fn base_self_funding_transfer_uses_its_only_note() {
+        let mut rng = OsRng;
+        let mut view = funded_view(
+            &mut rng,
+            AddressIndex::new(0),
+            test_address(0),
+            &[1_000_000_000],
+        );
+        let mut manager = NoteManager::new(rng);
+        manager.set_gas_prices(nonzero_base_gas_prices());
+        let result = plan_base_intent(&mut manager, &mut view, 1_000_000, false)
+            .await
+            .unwrap();
+        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+            panic!("one base note must fund a transfer and its fee");
+        };
+        assert_base_intent_plan(&transaction_plan, 1_000_000, false);
+    }
+
+    #[tokio::test]
+    async fn base_withdrawal_isolates_fee_then_selects_exact_small_principal() {
+        for amount in [1, 1_000_000] {
+            let mut rng = OsRng;
+            let mut view = funded_view(
+                &mut rng,
+                AddressIndex::new(0),
+                test_address(0),
+                &[1_000_000_000],
+            );
+            let mut manager = NoteManager::new(rng);
+            manager.set_gas_prices(nonzero_base_gas_prices());
+            let result = plan_base_intent(&mut manager, &mut view, amount, true)
+                .await
+                .unwrap();
+            let NoteManagerPlanningResult::NeedsMaintenance {
+                maintenance_plan,
+                resume_token,
+            } = result
+            else {
+                panic!("withdrawal must isolate a fee note");
+            };
+            let [ActionPlan::Transfer(split)] = maintenance_plan.actions.as_slice() else {
+                panic!("expected self split")
+            };
+            assert_eq!(split.spends.len(), 1);
+            assert_eq!(split.outputs.len(), 2);
+            assert_eq!(split.outputs[0].value.amount, amount.into());
+            confirm_self_transfer(&view, &maintenance_plan);
+            let resumed = manager.resume(&mut view, resume_token).await.unwrap();
+            let NoteManagerPlanningResult::Ready { transaction_plan } = resumed else {
+                panic!("fee isolation must terminate")
+            };
+            assert_base_intent_plan(&transaction_plan, amount, true);
+            let ActionPlan::ShieldedHostWithdrawal(withdrawal) = &transaction_plan.actions[0]
+            else {
+                unreachable!()
+            };
+            assert_eq!(withdrawal.spends.len(), 1);
+            assert_eq!(withdrawal.spends[0].note.amount(), amount.into());
+        }
+    }
+
+    #[tokio::test]
+    async fn base_self_funding_rejects_value_without_fee_balance() {
+        for withdrawal in [false, true] {
+            let mut rng = OsRng;
+            let mut view = funded_view(
+                &mut rng,
+                AddressIndex::new(0),
+                test_address(0),
+                &[1_000_000_000],
+            );
+            let mut manager = NoteManager::new(rng);
+            manager.set_gas_prices(nonzero_base_gas_prices());
+            let result = plan_base_intent(&mut manager, &mut view, 1_000_000_000, withdrawal)
+                .await
+                .unwrap();
+            assert!(matches!(
+                result,
+                NoteManagerPlanningResult::InsufficientBalance
+            ));
+        }
+    }
+
+    #[tokio::test]
+    async fn base_withdrawal_requires_split_and_final_fee_budget() {
+        let amount = 1_000;
+        let prices = nonzero_base_gas_prices();
+        let split_fee = prices
+            .fee(&shieldd_sdk_transaction::gas::transfer_gas_cost())
+            .apply_tier(FeeTier::default());
+        let withdrawal_fee = prices
+            .fee(
+                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&test_host_withdrawal(
+                    amount,
+                    "host-recipient",
+                )) + shieldd_sdk_transaction::gas::transfer_gas_cost()),
+            )
+            .apply_tier(FeeTier::default());
+        let required =
+            amount + u64::try_from((split_fee.amount() + withdrawal_fee.amount()).value()).unwrap();
+        for available in [required - 1, required] {
+            let mut rng = OsRng;
+            let mut view = funded_view(
+                &mut rng,
+                AddressIndex::new(0),
+                test_address(0),
+                &[available],
+            );
+            let mut manager = NoteManager::new(rng);
+            manager.set_gas_prices(prices);
+            let result = plan_base_intent(&mut manager, &mut view, amount, true)
+                .await
+                .unwrap();
+            if available < required {
+                assert!(matches!(
+                    result,
+                    NoteManagerPlanningResult::InsufficientBalance
+                ));
+            } else {
+                let NoteManagerPlanningResult::NeedsMaintenance {
+                    maintenance_plan,
+                    resume_token,
+                } = result
+                else {
+                    panic!("exact combined budget is sufficient")
+                };
+                confirm_self_transfer(&view, &maintenance_plan);
+                let NoteManagerPlanningResult::Ready { transaction_plan } =
+                    manager.resume(&mut view, resume_token).await.unwrap()
+                else {
+                    panic!("reserved fee must cover withdrawal")
+                };
+                assert_base_intent_plan(&transaction_plan, amount, true);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn base_withdrawal_merge_preserves_existing_exact_fee_budget() {
+        let prices = nonzero_base_gas_prices();
+        let merge_fee = prices
+            .fee(&shieldd_sdk_transaction::gas::transfer_gas_cost())
+            .apply_tier(FeeTier::default());
+        let amount = 3_000_000 - u64::try_from(merge_fee.amount().value()).unwrap();
+        let withdrawal = test_host_withdrawal(amount, "host-recipient");
+        let final_fee = prices
+            .fee(
+                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&withdrawal)
+                    + shieldd_sdk_transaction::gas::transfer_gas_cost()),
+            )
+            .apply_tier(FeeTier::default());
+        let mut rng = OsRng;
+        let mut view = funded_view(
+            &mut rng,
+            AddressIndex::new(0),
+            test_address(0),
+            &[
+                1_000_000,
+                1_000_000,
+                1_000_000,
+                u64::try_from(final_fee.amount().value()).unwrap(),
+            ],
+        );
+        let mut manager = NoteManager::new(rng);
+        manager.set_gas_prices(prices);
+        let result = plan_base_intent(&mut manager, &mut view, amount, true)
+            .await
+            .unwrap();
+        let NoteManagerPlanningResult::NeedsMaintenance {
+            maintenance_plan,
+            resume_token,
+        } = result
+        else {
+            panic!("one merge plus the existing fee note covers the withdrawal");
+        };
+        let [ActionPlan::Transfer(transfer)] = maintenance_plan.actions.as_slice() else {
+            panic!("expected a self-transfer merge");
+        };
+        assert_eq!(transfer.spends.len(), 2);
+        assert_eq!(transfer.outputs.len(), 1);
+        assert_eq!(maintenance_plan.transaction_parameters.fee, merge_fee);
+        confirm_self_transfer(&view, &maintenance_plan);
+        let resumed = manager.resume(&mut view, resume_token).await.unwrap();
+        let NoteManagerPlanningResult::Ready { transaction_plan } = resumed else {
+            panic!("balanced withdrawal needs no extra split");
+        };
+        assert_base_intent_plan(&transaction_plan, amount, true);
+        assert_eq!(transaction_plan.actions[0].spends().len(), 2);
+        assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
+    }
+
+    #[tokio::test]
+    async fn base_withdrawal_prefers_recent_exact_principal_over_old_duplicate() {
+        let mut prices = nonzero_base_gas_prices();
+        prices.verification_price = 1_000;
+        let withdrawal = test_host_withdrawal(1, "host-recipient");
+        let final_fee = prices
+            .fee(
+                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&withdrawal)
+                    + shieldd_sdk_transaction::gas::transfer_gas_cost()),
+            )
+            .apply_tier(FeeTier::default());
+        let split_fee = prices
+            .fee(&shieldd_sdk_transaction::gas::transfer_gas_cost())
+            .apply_tier(FeeTier::default());
+        let reserve = final_fee.amount() + split_fee.amount() + split_fee.amount();
+        let source = AddressIndex::new(0);
+        let sender = test_address(0);
+        let mut rng = OsRng;
+        let old = spendable_note_record(&mut rng, 1, source, sender.clone(), 1);
+        let recent = spendable_note_record(&mut rng, 1, source, sender.clone(), 100);
+        let recent_commitment = recent.note_commitment;
+        let fee_note = spendable_note_record(
+            &mut rng,
+            u64::try_from(reserve.value()).unwrap(),
+            source,
+            sender.clone(),
+            101,
+        );
+        let mut view = MockNoteManagerView::new(
+            vec![old, recent, fee_note],
+            BTreeMap::from([(source, sender)]),
+        )
+        .with_nullifier_window(NullifierWindow {
+            protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+            current_generation: 101,
+            recent_position_floor: 100,
+            archived_generation_count: 100,
+            archived_history_head: [1; 32],
+        });
+        let mut manager = NoteManager::new(rng);
+        manager.set_gas_prices(prices);
+        let result = manager
+            .plan_host_withdrawal(&mut view, source, withdrawal)
+            .await
+            .unwrap();
+        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+            panic!("recent exact principal and reserved fee need no further maintenance");
+        };
+        let [ActionPlan::ShieldedHostWithdrawal(withdrawal)] = transaction_plan.actions.as_slice()
+        else {
+            panic!("expected balanced withdrawal");
+        };
+        assert_eq!(withdrawal.spends.len(), 1);
+        assert_eq!(withdrawal.spends[0].note.commit(), recent_commitment);
+        assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
+        assert!(transaction_plan
+            .spends()
+            .all(|planned| u64::from(planned.spend.position) >= 100));
+    }
+
+    #[tokio::test]
+    async fn base_fee_funding_prefers_sufficient_recent_note_over_larger_old_note() {
+        let mut prices = nonzero_base_gas_prices();
+        prices.verification_price = 1_000;
+        let withdrawal = test_host_withdrawal(1, "host-recipient");
+        let final_fee = prices
+            .fee(
+                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&withdrawal)
+                    + shieldd_sdk_transaction::gas::transfer_gas_cost()),
+            )
+            .apply_tier(FeeTier::default());
+        let fee_amount = u64::try_from(final_fee.amount().value()).unwrap();
+        for amounts in [
+            vec![fee_amount],
+            vec![fee_amount / 2, fee_amount - fee_amount / 2],
+        ] {
+            let source = AddressIndex::new(0);
+            let sender = test_address(0);
+            let mut rng = OsRng;
+            let principal = spendable_note_record(&mut rng, 1, source, sender.clone(), 100);
+            let old = spendable_note_record(&mut rng, fee_amount + 1, source, sender.clone(), 1);
+            let mut notes = vec![principal, old];
+            let mut fee_commitments = BTreeSet::new();
+            for (index, amount) in amounts.iter().copied().enumerate() {
+                let fee_note = spendable_note_record(
+                    &mut rng,
+                    amount,
+                    source,
+                    sender.clone(),
+                    101 + index as u64,
+                );
+                fee_commitments.insert(fee_note.note_commitment);
+                notes.push(fee_note);
+            }
+            let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
+                .with_nullifier_window(NullifierWindow {
+                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                    current_generation: 101,
+                    recent_position_floor: 100,
+                    archived_generation_count: 100,
+                    archived_history_head: [1; 32],
+                });
+            let mut manager = NoteManager::new(rng);
+            manager.set_gas_prices(prices);
+            let result = manager
+                .plan_host_withdrawal(&mut view, source, withdrawal.clone())
+                .await
+                .unwrap();
+            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+                panic!("fresh principal and {} sufficient fresh fee notes must be immediately spendable", amounts.len());
+            };
+            assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
+            assert_eq!(transaction_plan.actions[0].balance(), Balance::default());
+            let funding = transaction_plan
+                .fee_funding
+                .as_ref()
+                .expect("separate fee funding");
+            assert_eq!(funding.transfer.spends.len(), amounts.len());
+            assert_eq!(
+                funding
+                    .transfer
+                    .spends
+                    .iter()
+                    .map(|spend| spend.note.commit())
+                    .collect::<BTreeSet<_>>(),
+                fee_commitments
+            );
+            assert!(transaction_plan
+                .spends()
+                .all(|planned| u64::from(planned.spend.position) >= 100));
+        }
+    }
+
+    #[tokio::test]
+    async fn base_transfer_prefers_recent_primary_notes_over_larger_old_note() {
+        let mut prices = nonzero_base_gas_prices();
+        prices.verification_price = 1_000;
+        let fee = prices
+            .fee(&shieldd_sdk_transaction::gas::transfer_gas_cost())
+            .apply_tier(FeeTier::default());
+        let required = u64::try_from(fee.amount().value()).unwrap() + 1;
+        for amounts in [vec![required], vec![required / 2, required - required / 2]] {
+            let source = AddressIndex::new(0);
+            let sender = test_address(0);
+            let mut rng = OsRng;
+            let mut notes = vec![spendable_note_record(
+                &mut rng,
+                required + 1,
+                source,
+                sender.clone(),
+                1,
+            )];
+            let mut expected = BTreeSet::new();
+            for (index, amount) in amounts.iter().copied().enumerate() {
+                let note = spendable_note_record(
+                    &mut rng,
+                    amount,
+                    source,
+                    sender.clone(),
+                    100 + index as u64,
+                );
+                expected.insert(note.note_commitment);
+                notes.push(note);
+            }
+            let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
+                .with_nullifier_window(NullifierWindow {
+                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                    current_generation: 101,
+                    recent_position_floor: 100,
+                    archived_generation_count: 100,
+                    archived_history_head: [1; 32],
+                });
+            let mut manager = NoteManager::new(rng);
+            manager.set_gas_prices(prices);
+            let result = plan_base_intent(&mut manager, &mut view, 1, false)
+                .await
+                .unwrap();
+            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+                panic!("{} recent primary notes cover value and fee", amounts.len());
+            };
+            let [ActionPlan::Transfer(transfer)] = transaction_plan.actions.as_slice() else {
+                panic!("expected transfer");
+            };
+            assert!(transaction_plan.fee_funding.is_none());
+            assert_eq!(transaction_plan.transaction_parameters.fee, fee);
+            assert_eq!(transfer.spends.len(), amounts.len());
+            assert_eq!(
+                transfer
+                    .spends
+                    .iter()
+                    .map(|spend| spend.note.commit())
+                    .collect::<BTreeSet<_>>(),
+                expected
+            );
+            assert_eq!(transfer.outputs.len(), 1);
+            assert_eq!(transfer.outputs[0].value.amount, Amount::from(1u64));
+        }
+    }
+
+    #[tokio::test]
+    async fn base_withdrawal_prefers_recent_primary_with_disjoint_recent_fee() {
+        let mut prices = nonzero_base_gas_prices();
+        prices.verification_price = 1_000;
+        let withdrawal = test_host_withdrawal(20_000, "host-recipient");
+        let fee = prices
+            .fee(
+                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&withdrawal)
+                    + shieldd_sdk_transaction::gas::transfer_gas_cost()),
+            )
+            .apply_tier(FeeTier::default());
+        for old_amount in [20_002, 20_000] {
+            for amounts in [vec![20_001], vec![10_000, 10_001]] {
+                let source = AddressIndex::new(0);
+                let sender = test_address(0);
+                let mut rng = OsRng;
+                let old = spendable_note_record(&mut rng, old_amount, source, sender.clone(), 1);
+                let fee_note = spendable_note_record(
+                    &mut rng,
+                    u64::try_from(fee.amount().value()).unwrap(),
+                    source,
+                    sender.clone(),
+                    102,
+                );
+                let fee_commitment = fee_note.note_commitment;
+                let mut notes = vec![old, fee_note];
+                let mut expected = BTreeSet::new();
+                for (index, amount) in amounts.iter().copied().enumerate() {
+                    let note = spendable_note_record(
+                        &mut rng,
+                        amount,
+                        source,
+                        sender.clone(),
+                        100 + index as u64,
+                    );
+                    expected.insert(note.note_commitment);
+                    notes.push(note);
+                }
+                let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
+                    .with_nullifier_window(NullifierWindow {
+                        protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                        current_generation: 101,
+                        recent_position_floor: 100,
+                        archived_generation_count: 100,
+                        archived_history_head: [1; 32],
+                    });
+                let mut manager = NoteManager::new(rng);
+                manager.set_gas_prices(prices);
+                let result = manager
+                    .plan_host_withdrawal(&mut view, source, withdrawal.clone())
+                    .await
+                    .unwrap();
+                let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+                    panic!("{} recent primary notes and separate fee must be ready (old amount {old_amount})", amounts.len());
+                };
+                let [ActionPlan::ShieldedHostWithdrawal(primary)] =
+                    transaction_plan.actions.as_slice()
+                else {
+                    panic!("expected withdrawal");
+                };
+                assert_eq!(primary.spends.len(), amounts.len());
+                assert_eq!(
+                    primary
+                        .spends
+                        .iter()
+                        .map(|spend| spend.note.commit())
+                        .collect::<BTreeSet<_>>(),
+                    expected
+                );
+                assert_eq!(transaction_plan.actions[0].balance(), Balance::default());
+                let funding = transaction_plan.fee_funding.as_ref().expect("separate fee");
+                assert_eq!(funding.transfer.spends.len(), 1);
+                assert_eq!(funding.transfer.spends[0].note.commit(), fee_commitment);
+                assert_eq!(transaction_plan.transaction_parameters.fee, fee);
+                assert!(transaction_plan
+                    .spends()
+                    .all(|planned| u64::from(planned.spend.position) >= 100));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn base_withdrawal_preserves_old_primary_when_recent_notes_fund_its_fee() {
+        let mut prices = nonzero_base_gas_prices();
+        prices.verification_price = 1_000;
+        for (amount, old_amount, fee_amounts) in
+            [(1, 1, vec![38_923]), (20_000, 21_000, vec![19_461, 19_462])]
+        {
+            let source = AddressIndex::new(0);
+            let sender = test_address(0);
+            let mut rng = OsRng;
+            let old = spendable_note_record(&mut rng, old_amount, source, sender.clone(), 1);
+            let primary_commitment = old.note_commitment;
+            let mut notes = vec![old];
+            let mut expected_fee = BTreeSet::new();
+            for (index, amount) in fee_amounts.iter().copied().enumerate() {
+                let note = spendable_note_record(
+                    &mut rng,
+                    amount,
+                    source,
+                    sender.clone(),
+                    100 + index as u64,
+                );
+                expected_fee.insert(note.note_commitment);
+                notes.push(note);
+            }
+            let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
+                .with_nullifier_window(NullifierWindow {
+                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                    current_generation: 101,
+                    recent_position_floor: 100,
+                    archived_generation_count: 100,
+                    archived_history_head: [1; 32],
+                });
+            let mut manager = NoteManager::new(rng);
+            manager.set_gas_prices(prices);
+            let result = plan_base_intent(&mut manager, &mut view, amount, true)
+                .await
+                .unwrap();
+            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+                panic!(
+                    "old primary with {} disjoint fee notes is affordable",
+                    fee_amounts.len()
+                );
+            };
+            let [ActionPlan::ShieldedHostWithdrawal(primary)] = transaction_plan.actions.as_slice()
+            else {
+                panic!("expected withdrawal");
+            };
+            assert_eq!(primary.spends.len(), 1);
+            assert_eq!(primary.spends[0].note.commit(), primary_commitment);
+            assert_eq!(transaction_plan.actions[0].balance(), Balance::default());
+            let funding = transaction_plan.fee_funding.as_ref().expect("separate fee");
+            assert_eq!(funding.transfer.spends.len(), fee_amounts.len());
+            assert_eq!(
+                funding
+                    .transfer
+                    .spends
+                    .iter()
+                    .map(|spend| spend.note.commit())
+                    .collect::<BTreeSet<_>>(),
+                expected_fee
+            );
+            assert_eq!(
+                transaction_plan.transaction_parameters.fee.amount(),
+                Amount::from(38_923u64)
+            );
+            assert_eq!(
+                transaction_plan.transaction_parameters.fee,
+                prices
+                    .fee(&transaction_plan.gas_cost())
+                    .apply_tier(FeeTier::default())
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn base_consolidation_rejects_nonbase_fee_asset() {
+        let mut rng = OsRng;
+        let source = AddressIndex::new(0);
+        let mut view = funded_view(&mut rng, source, test_address(0), &[1_000_000_000; 2]);
+        let mut prices = nonzero_base_gas_prices();
+        prices.asset_id = asset::Id(Fq::from(999u64));
+        let error = crate::sweep(&mut view, rng, prices).await.unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("base maintenance requires base-asset gas"));
+    }
+
+    #[tokio::test]
+    async fn base_consolidation_rejects_output_overflow() {
+        let mut rng = OsRng;
+        let source = AddressIndex::new(0);
+        let sender = test_address(0);
+        let mut huge = spendable_note_record(&mut rng, 1, source, sender.clone(), 1);
+        huge.note = Note::from_parts(
+            sender.clone(),
+            Value {
+                amount: Amount::from(u128::MAX),
+                asset_id: *BASE_ASSET_ID,
+            },
+            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
+        )
+        .unwrap();
+        huge.note_commitment = huge.note.commit();
+        let second = spendable_note_record(&mut rng, 1, source, sender.clone(), 2);
+        let mut view =
+            MockNoteManagerView::new(vec![huge, second], BTreeMap::from([(source, sender)]));
+        let mut manager = NoteManager::new(rng);
+        manager.set_gas_prices(nonzero_base_gas_prices());
+        let error = manager
+            .plan_base_consolidation(&mut view, source)
+            .await
+            .unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("base maintenance output exceeds u128"));
+    }
+
+    #[tokio::test]
+    async fn base_transfer_ignores_unselected_wallet_total_overflow() {
+        let mut rng = OsRng;
+        let source = AddressIndex::new(0);
+        let sender = test_address(0);
+        let mut huge = spendable_note_record(&mut rng, 1, source, sender.clone(), 1);
+        huge.note = Note::from_parts(
+            sender.clone(),
+            Value {
+                amount: Amount::from(u128::MAX),
+                asset_id: *BASE_ASSET_ID,
+            },
+            Rseed::generate(&mut rng),
+            RecoveryCommitment::unavailable(),
+        )
+        .unwrap();
+        huge.note_commitment = huge.note.commit();
+        let second = spendable_note_record(&mut rng, 1, source, sender.clone(), 2);
+        let mut view =
+            MockNoteManagerView::new(vec![huge, second], BTreeMap::from([(source, sender)]));
+        let mut manager = NoteManager::new(rng);
+        manager.set_gas_prices(nonzero_base_gas_prices());
+        let result = plan_base_intent(&mut manager, &mut view, 1, false)
+            .await
+            .unwrap();
+        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+            panic!("one selected note covers the transfer regardless of the unused balance");
+        };
+        assert_base_intent_plan(&transaction_plan, 1, false);
+        assert_eq!(transaction_plan.actions[0].spends().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn base_fee_consolidation_keeps_excluded_primary_note_unspent() {
+        let mut rng = OsRng;
+        let mut view = funded_view(
+            &mut rng,
+            AddressIndex::new(0),
+            test_address(0),
+            &[1_000_000_000, 60, 60, 60],
+        );
+        let primary = view.notes.lock().unwrap()[0].note_commitment;
+        let mut manager = NoteManager::new(rng);
+        manager.set_gas_prices(nonzero_base_gas_prices());
+        let result = manager
+            .select_base_fee_funding(
+                &mut view,
+                AddressIndex::new(0),
+                Fee::from_staking_token_amount(130u64.into()),
+                &BTreeSet::from([primary]),
+                0,
+            )
+            .await
+            .unwrap();
+        let BaseFeeFundingSelection::NeedsMaintenance { maintenance_plan } = result else {
+            panic!("three eligible fee notes need consolidation")
+        };
+        assert!(maintenance_plan
+            .spends()
+            .all(|planned| planned.spend.note.commit() != primary));
+        confirm_self_transfer(&view, &maintenance_plan);
+        assert!(view
+            .notes
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|record| record.note_commitment == primary));
+    }
+
+    #[tokio::test]
+    async fn base_self_funding_fragmented_intents_maintain_then_resume() {
+        for withdrawal in [false, true] {
+            let mut rng = OsRng;
+            let mut view = funded_view(
+                &mut rng,
+                AddressIndex::new(0),
+                test_address(0),
+                &[1_000_000_000; 3],
+            );
+            let mut manager = NoteManager::new(rng);
+            manager.set_gas_prices(nonzero_base_gas_prices());
+            let mut result = plan_base_intent(&mut manager, &mut view, 2_500_000_000, withdrawal)
+                .await
+                .unwrap();
+            let mut steps = 0;
+            loop {
+                match result {
+                    NoteManagerPlanningResult::Ready { transaction_plan } => {
+                        assert_base_intent_plan(&transaction_plan, 2_500_000_000, withdrawal);
+                        assert_eq!(steps, if withdrawal { 2 } else { 1 });
+                        break;
+                    }
+                    NoteManagerPlanningResult::NeedsMaintenance {
+                        maintenance_plan,
+                        resume_token,
+                    } => {
+                        assert!(steps < 2, "maintenance must make bounded progress");
+                        confirm_self_transfer(&view, &maintenance_plan);
+                        steps += 1;
+                        result = manager.resume(&mut view, resume_token).await.unwrap();
+                    }
+                    _ => panic!("funded fragmented intent must progress"),
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn nonbase_withdrawal_maintenance_preserves_asset_and_funds_base_fee() {
+        assert_nonbase_maintenance_fee_funding(true).await;
+    }
+
+    async fn assert_nonbase_maintenance_fee_funding(withdrawal: bool) {
+        let source = AddressIndex::new(0);
+        let sender = test_address(0);
+        let asset_id = asset::Id(Fq::from(803u64));
+        let mut rng = OsRng;
+        let mut notes = (1..=3)
+            .map(|position| {
+                spendable_note_record_with_asset(
+                    &mut rng,
+                    1_000_000_000,
+                    asset_id,
+                    source,
+                    sender.clone(),
+                    position,
+                )
+            })
+            .collect::<Vec<_>>();
+        notes.push(spendable_note_record(
+            &mut rng,
+            1_000_000_000,
+            source,
+            sender.clone(),
+            4,
+        ));
+        let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]));
+        let gas_prices = GasPrices {
+            block_space_price: 0,
+            compact_block_space_price: 0,
+            verification_price: 0,
+            execution_price: 1_000,
+            asset_id: *BASE_ASSET_ID,
+        };
+        let mut manager = NoteManager::new(rng);
+        manager.set_gas_prices(gas_prices);
+        let value = Value {
+            amount: 3_000_000_000u64.into(),
+            asset_id,
+        };
+        let result = if withdrawal {
+            let mut intent = test_host_withdrawal(0, "host-recipient");
+            intent.value = value;
+            manager
+                .plan_host_withdrawal(&mut view, source, intent)
+                .await
+        } else {
+            manager
+                .plan_transfer(&mut view, source, value, test_address(1))
+                .await
+        }
+        .expect("fragmented non-base asset planning succeeds");
+        let NoteManagerPlanningResult::NeedsMaintenance {
+            maintenance_plan: plan,
+            resume_token,
+        } = result
+        else {
+            panic!("three primary notes require maintenance");
+        };
+        match resume_token {
+            NoteManagerResumeToken::Transfer(token) if !withdrawal => {
+                assert_eq!(token.source, source);
+                assert_eq!(token.value, value);
+                assert_eq!(token.recipient, test_address(1));
+            }
+            NoteManagerResumeToken::HostWithdrawal(token) if withdrawal => {
+                assert_eq!(token.source, source);
+                assert_eq!(token.withdrawal.value, value);
+            }
+            _ => panic!("maintenance must retain the original wallet intent"),
+        }
+        let Some(ActionPlan::NoteReshape(reshape)) = plan.actions.first() else {
+            panic!("expected note reshape maintenance");
+        };
+        assert_eq!(reshape.spends.len(), 3);
+        assert_eq!(reshape.outputs.len(), 1);
+        assert_eq!(reshape.outputs[0].value, value);
+        let fee_funding = plan
+            .fee_funding
+            .as_ref()
+            .expect("base fee needs base notes");
+        assert_eq!(fee_funding.transfer.spends.len(), 1);
+        assert_eq!(
+            fee_funding.transfer.spends[0].note.asset_id(),
+            *BASE_ASSET_ID
+        );
+        let fee = plan.transaction_parameters.fee;
+        assert!(fee.amount() > Amount::zero());
+        assert_eq!(
+            fee,
+            gas_prices
+                .fee(&plan.gas_cost())
+                .apply_tier(FeeTier::default()),
+        );
     }
 
     #[tokio::test]

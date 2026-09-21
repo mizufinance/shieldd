@@ -13,6 +13,11 @@ rust-version = "1.75"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
+shieldd-sdk-crypto.workspace = true
+reddsa.workspace = true
+ff.workspace = true
+group.workspace = true
+shieldd-sdk-proof-params.workspace = true
 ibc-proto = { workspace = true }
 cnidarium-component = { workspace = true }
 anyhow = { workspace = true }
@@ -33,13 +38,12 @@ tracing = { workspace = true }
 # Rust-side global allocator. With the baked `dirty_decay_ms:0` config (see lib.rs),
 # freed pages are returned to the OS promptly instead of being held in per-thread
 # arenas, which shrinks the RSS high-water from transient per-block allocation
-# bursts. Only covers Rust allocations (not RocksDB's C++ or the gnark Go runtime).
+# bursts. Only covers Rust allocations (not RocksDB's C++).
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.6"
 
 [dev-dependencies]
 ibc-types = { workspace = true }
-decaf377 = { workspace = true, default-features = true }
 shieldd-sdk-asset = { workspace = true, default-features = true }
 shieldd-sdk-keys = { workspace = true, default-features = false }
 tempfile = { workspace = true }

@@ -19,8 +19,13 @@ pub struct BlockResult {
 }
 
 impl TestHost {
-    pub async fn new(storage: Storage, genesis: AppState, time: tendermint::Time) -> Result<Self> {
-        let mut execution = HostExecution::new(storage);
+    pub async fn new(
+        storage: Storage,
+        genesis: AppState,
+        time: tendermint::Time,
+        registry: std::sync::Arc<shieldd_sdk_proof_params::pari::Registry>,
+    ) -> Result<Self> {
+        let mut execution = HostExecution::new(storage, registry).await?;
         execution.init_genesis(genesis).await?;
         execution.commit().await?;
         Ok(Self {

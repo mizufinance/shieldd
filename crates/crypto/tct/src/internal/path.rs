@@ -234,7 +234,7 @@ mod test {
 #[error("could not decode authentication path")]
 pub struct PathDecodeError;
 
-use decaf377::Fq;
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::shieldd::crypto::tct::v1 as pb;
 use std::{
     collections::VecDeque,
@@ -332,16 +332,22 @@ where
             Ok(Node {
                 siblings: [
                     Hash::new(
-                        Fq::from_bytes_checked(&sibling_1.try_into().map_err(|_| PathDecodeError)?)
-                            .map_err(|_| PathDecodeError)?,
+                        shieldd_sdk_crypto::encoding::field(
+                            &sibling_1.try_into().map_err(|_| PathDecodeError)?,
+                        )
+                        .map_err(|_| PathDecodeError)?,
                     ),
                     Hash::new(
-                        Fq::from_bytes_checked(&sibling_2.try_into().map_err(|_| PathDecodeError)?)
-                            .map_err(|_| PathDecodeError)?,
+                        shieldd_sdk_crypto::encoding::field(
+                            &sibling_2.try_into().map_err(|_| PathDecodeError)?,
+                        )
+                        .map_err(|_| PathDecodeError)?,
                     ),
                     Hash::new(
-                        Fq::from_bytes_checked(&sibling_3.try_into().map_err(|_| PathDecodeError)?)
-                            .map_err(|_| PathDecodeError)?,
+                        shieldd_sdk_crypto::encoding::field(
+                            &sibling_3.try_into().map_err(|_| PathDecodeError)?,
+                        )
+                        .map_err(|_| PathDecodeError)?,
                     ),
                 ],
                 child,

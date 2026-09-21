@@ -14,16 +14,19 @@ component = [
     "shieldd-sdk-proto/cnidarium",
 ]
 default = ["std", "component"]
-std = ["ark-ff/std"]
+std = []
 docsrs = []
 
 [dependencies]
+shieldd-sdk-crypto.workspace = true
+ff.workspace = true
+group.workspace = true
+reddsa.workspace = true
+shieldd-sdk-proof-params.workspace = true
 anyhow = {workspace = true}
-ark-ff = {workspace = true, default-features = false}
 async-trait = {workspace = true}
 cnidarium = {workspace = true, optional = true, default-features = true}
 cnidarium-component = {workspace = true, optional = true, default-features = true}
-decaf377 = {workspace = true, default-features = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
 shieldd-sdk-num = {workspace = true, default-features = false}
 shieldd-sdk-proto = {workspace = true, default-features = false}

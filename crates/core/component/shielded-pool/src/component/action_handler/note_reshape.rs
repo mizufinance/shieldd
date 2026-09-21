@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use cnidarium::StateWrite;
-use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
+use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
 use shieldd_sdk_sct::component::{source::SourceContext, tree::SctManager};
@@ -110,7 +110,7 @@ where
     for output in outputs {
         let note_payload = output_note_payload(output).clone();
         let note_commitment = note_payload.note_commitment;
-        state.add_note_payload(note_payload, source.into()).await;
+        state.add_note_payload(note_payload, source.into()).await?;
         state.record_proto(event::EventNoteCreated { note_commitment }.to_proto());
     }
 
@@ -121,9 +121,9 @@ where
 mod tests {
     use super::*;
     use cnidarium::{StateDelta, TempStorage};
-    use decaf377::{Fq, Fr};
-    use decaf377_rdsa::SigningKey;
     use rand_core::OsRng;
+    use reddsa::SigningKey;
+    use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_sct::component::tree::SctRead;
     use shieldd_sdk_txhash::TransactionId;
 
@@ -250,7 +250,10 @@ mod tests {
         state.put_current_source(Some(TransactionId([9u8; 32])));
         let output = NotePayload {
             note_commitment: shieldd_sdk_tct::StateCommitment(Fq::from(45u64)),
-            ephemeral_key: decaf377_ka::Public([0u8; 32]),
+            ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
+            )
+            .unwrap(),
             encrypted_note: crate::NoteCiphertext([0u8; crate::note::NOTE_CIPHERTEXT_BYTES]),
             recovery_capsule: None,
         };
@@ -270,12 +273,12 @@ mod tests {
 
     #[test]
     fn auth_verification_rejects_invalid_dummy_slot_signature() {
-        let real_sk = SigningKey::<SpendAuth>::from(Fr::from(11u64));
-        let dummy_sk = SigningKey::<SpendAuth>::from(Fr::from(12u64));
-        let wrong_dummy_sk = SigningKey::<SpendAuth>::from(Fr::from(13u64));
+        let real_sk = SigningKey::<SpendAuth>::try_from(Fr::from(11u64).to_bytes()).unwrap();
+        let dummy_sk = SigningKey::<SpendAuth>::try_from(Fr::from(12u64).to_bytes()).unwrap();
+        let wrong_dummy_sk = SigningKey::<SpendAuth>::try_from(Fr::from(13u64).to_bytes()).unwrap();
         let inputs = [
-            VerificationKey::from(real_sk.clone()),
-            VerificationKey::from(dummy_sk.clone()),
+            VerificationKey::from(&real_sk),
+            VerificationKey::from(&dummy_sk),
         ];
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
@@ -297,8 +300,8 @@ mod tests {
 
     #[test]
     fn note_reshape_auth_verification_rejects_identity_randomized_key() {
-        let identity_sk = SigningKey::<SpendAuth>::from(Fr::from(0u64));
-        let identity_rk = VerificationKey::from(identity_sk.clone());
+        let identity_sk = SigningKey::<SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap();
+        let identity_rk = VerificationKey::from(&identity_sk);
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
@@ -306,7 +309,7 @@ mod tests {
         };
         let different_message = b"different note reshape authorization hash";
         assert_ne!(&different_message[..], context.effect_hash.as_ref());
-        let signature = identity_sk.sign_deterministic(different_message);
+        let signature = identity_sk.sign(rand_core::OsRng, different_message);
 
         identity_rk
             .verify(context.effect_hash.as_ref(), &signature)
@@ -321,8 +324,8 @@ mod tests {
         .expect_err("identity randomized spend keys must fail before RDSA verification");
         assert!(
             error
-                .to_string()
-                .contains("randomized spend key 0 must not be identity"),
+                .chain()
+                .any(|cause| cause.to_string().contains("identity Jubjub key")),
             "unexpected rejection reason: {error:#}"
         );
     }

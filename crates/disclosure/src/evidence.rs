@@ -11,13 +11,16 @@ impl std::fmt::Display for VerificationUnavailable {
 }
 impl std::error::Error for VerificationUnavailable {}
 
-pub fn verify(package: &DisclosurePackage) -> Result<VerificationResult> {
+pub fn verify(
+    package: &DisclosurePackage,
+    _registry: Option<&shieldd_sdk_proof_params::pari::Registry>,
+) -> Result<VerificationResult> {
     ensure!(package.version == VERSION, "unsupported disclosure version");
     validate_request(&package.statement.request)?;
     match &package.evidence {
-        Evidence::Groth16 { .. } => {
+        Evidence::Pari { .. } => {
             #[cfg(feature = "proof")]
-            crate::proof::verify_groth16(package)?;
+            crate::proof::verify_pari(package, _registry.ok_or(VerificationUnavailable)?)?;
             #[cfg(not(feature = "proof"))]
             return Err(VerificationUnavailable.into());
         }
@@ -58,7 +61,9 @@ pub fn verify(package: &DisclosurePackage) -> Result<VerificationResult> {
             {
                 let public = &output.public;
                 let key = shieldd_sdk_keys::PayloadKey::try_from(key.clone())?;
-                let epk = decaf377_ka::Public(public.ephemeral_key.as_slice().try_into()?);
+                let epk = shieldd_sdk_crypto::ka::Public::try_from(<[u8; 32]>::try_from(
+                    public.ephemeral_key.as_slice(),
+                )?)?;
                 let ciphertext = shieldd_sdk_shielded_pool::NoteCiphertext(
                     public.encrypted_note.as_slice().try_into()?,
                 );
@@ -118,7 +123,7 @@ pub fn export_openings(w: &DisclosureWitness) -> Result<DisclosurePackage> {
             control_signatures: signatures(w),
         },
     };
-    verify(&p)?;
+    verify(&p, None)?;
     Ok(p)
 }
 pub fn export_payload_keys(w: &DisclosureWitness) -> Result<DisclosurePackage> {
@@ -140,6 +145,6 @@ pub fn export_payload_keys(w: &DisclosureWitness) -> Result<DisclosurePackage> {
             control_signatures: signatures(w),
         },
     };
-    verify(&p)?;
+    verify(&p, None)?;
     Ok(p)
 }

@@ -71,9 +71,9 @@ cannot be presented as an authenticated regulated policy.
 
 ## Transfer Construction
 
-The circuit excludes the Decaf identity class for the authorization key, both
-distinct address generators, and all four compliance tier EPKs. Each is an
-exact `x != 0` row, matching the native full-viewing-key and address gadgets.
+The circuit enforces Jubjub subgroup membership and excludes identity for the authorization key, both
+distinct address generators, and all four compliance tier EPKs. Each subgroup point has an
+explicit `x != 0` constraint, matching the native full-viewing-key and address gadgets.
 These are ownership/classification constraints, not builder hygiene:
 identity sender DTK derivation would make the transmission key independent of
 the IVK and let one note commitment/path be reopened under distinct nullifier
@@ -172,7 +172,7 @@ Only the receiver output carries compliance data:
 
 ```text
 TransferOutputBody {
-  compliance_ciphertext: 832 bytes
+  compliance_ciphertext: 835 bytes
   compliance_metadata:   272 bytes
 }
 ```
@@ -269,7 +269,7 @@ keyed by height/hash/parent hash; a reorg rolls state back to the common
 ancestor before replay.
 
 The evidence object contains the output reference, asset/flag/detection facts,
-the 832-byte ciphertext, the 272-byte metadata record, and a payload hash. It
+the 835-byte ciphertext, the 272-byte metadata record, and a payload hash. It
 contains no capsule-release evidence, shared point, or standalone DLEQ proof. Evidence
 validation compares both ciphertext and metadata to the accepted output and
 the persisted detection row before an audit can complete.

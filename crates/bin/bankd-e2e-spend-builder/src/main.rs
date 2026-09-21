@@ -5,9 +5,8 @@ use std::{env, fs, ops::Deref, path::PathBuf, str::FromStr};
 use anyhow::{anyhow, bail, Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use cnidarium::Storage;
-use decaf377::{Element, Encoding, Fq, Fr};
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use rand_core::OsRng;
+use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
 use serde::Deserialize;
 use shieldd_sdk_app::SUBSTORE_PREFIXES;
 use shieldd_sdk_asset::{asset, Value};
@@ -18,6 +17,7 @@ use shieldd_sdk_compliance::{
     },
     ComplianceLeaf, DetectionKey,
 };
+use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint as Element};
 use shieldd_sdk_keys::{keys::SpendKey, test_keys, Address};
 use shieldd_sdk_mock_client::MockClient;
 use shieldd_sdk_num::Amount;
@@ -321,7 +321,12 @@ async fn build_spend_tx(
         .complete_intent(intent, storage.latest_snapshot())
         .await?;
     let tx = client
-        .witness_auth_build(&plan)
+        .witness_auth_build(
+            &plan,
+            std::sync::Arc::new(shieldd_sdk_proof_params::pari::Registry::load(
+                std::env::var("SHIELDD_PARI_KEYS").context("SHIELDD_PARI_KEYS is required")?,
+            )?),
+        )
         .await
         .context("failed to build Shieldd spend transaction")?;
     Ok(BuiltTx { tx })
@@ -341,7 +346,12 @@ async fn build_registration_tx(
         ..Default::default()
     };
     client
-        .witness_auth_build(&plan)
+        .witness_auth_build(
+            &plan,
+            std::sync::Arc::new(shieldd_sdk_proof_params::pari::Registry::load(
+                std::env::var("SHIELDD_PARI_KEYS").context("SHIELDD_PARI_KEYS is required")?,
+            )?),
+        )
         .await
         .context("failed to build Shieldd compliance registration transaction")
 }
@@ -433,7 +443,7 @@ fn register_user_action(
             .as_slice(),
     )?;
     let policy = shieldd_sdk_compliance::AssetPolicy::new(
-        Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
         vec![],
         None,
@@ -464,7 +474,7 @@ fn register_user_action(
 fn demo_signing_key(value: u8) -> SigningKey<SpendAuth> {
     let mut bytes = [0u8; 32];
     bytes[0] = value;
-    SigningKey::try_from(bytes.as_slice()).expect("nonzero demo signing key must be valid")
+    SigningKey::try_from(bytes).expect("nonzero demo signing key must be valid")
 }
 
 fn parse_element(value: &str) -> Result<Element> {
@@ -472,9 +482,8 @@ fn parse_element(value: &str) -> Result<Element> {
         .context("ringPkHex must be hex")?
         .try_into()
         .map_err(|_| anyhow!("ringPkHex must encode 32 bytes"))?;
-    Encoding(bytes)
-        .vartime_decompress()
-        .map_err(|_| anyhow!("ringPkHex is not a valid decaf377 element"))
+    shieldd_sdk_crypto::encoding::nonidentity(&bytes)
+        .map_err(|_| anyhow!("ringPkHex is not a valid Jubjub point"))
 }
 
 fn parse_fq(value: &str) -> Result<Fq> {
@@ -482,7 +491,7 @@ fn parse_fq(value: &str) -> Result<Fq> {
         .context("rnkCommitmentHex must be hex")?
         .try_into()
         .map_err(|_| anyhow!("rnkCommitmentHex must encode 32 bytes"))?;
-    Fq::from_bytes_checked(&bytes)
+    shieldd_sdk_crypto::encoding::field(&bytes)
         .map_err(|_| anyhow!("rnkCommitmentHex is not a canonical field element"))
 }
 

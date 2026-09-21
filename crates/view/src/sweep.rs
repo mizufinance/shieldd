@@ -12,7 +12,7 @@ pub async fn sweep<V, R>(
     view: &mut V,
     mut rng: R,
     gas_prices: shieldd_sdk_fee::GasPrices,
-) -> anyhow::Result<Vec<TransactionPlan>>
+) -> anyhow::Result<Option<TransactionPlan>>
 where
     V: PlanningIo + Send,
     R: RngCore + CryptoRng,
@@ -29,9 +29,16 @@ where
 
     let mut note_manager = NoteManager::new(&mut rng);
     note_manager.set_gas_prices(gas_prices);
-    let mut plans = Vec::new();
     for ((index, asset_id), count) in counts {
         if count < 2 {
+            continue;
+        }
+        if asset_id == *shieldd_sdk_asset::BASE_ASSET_ID
+            && !crate::note_manager::gas_prices_are_zero(gas_prices)
+        {
+            if let Some(plan) = note_manager.plan_base_consolidation(view, index).await? {
+                return Ok(Some(plan));
+            }
             continue;
         }
         match note_manager
@@ -39,7 +46,9 @@ where
             .await
             .context("can't build sweep transaction")?
         {
-            NoteManagerPlanningResult::Ready { transaction_plan } => plans.push(transaction_plan),
+            NoteManagerPlanningResult::Ready { transaction_plan } => {
+                return Ok(Some(transaction_plan));
+            }
             NoteManagerPlanningResult::UnsupportedIntent { reason } => {
                 tracing::debug!(?asset_id, ?reason, "skipping unsupported sweep intent");
             }
@@ -47,5 +56,5 @@ where
             | NoteManagerPlanningResult::InsufficientBalance => {}
         }
     }
-    Ok(plans)
+    Ok(None)
 }

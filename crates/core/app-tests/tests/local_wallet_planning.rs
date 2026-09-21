@@ -20,6 +20,7 @@ async fn local_wallet_plan_preserves_inputs_outputs_context_and_insufficient_bal
         chain.as_ref().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+        shieldd_sdk_app_tests::registry(),
     )
     .await?;
     host.execute(vec![]).await?;
@@ -82,7 +83,9 @@ async fn local_wallet_plan_preserves_inputs_outputs_context_and_insufficient_bal
     let outputs: shieldd_sdk_num::Amount = transfer.outputs.iter().map(|o| o.value.amount).sum();
     assert_eq!(inputs, outputs);
     assert!(plan.memo.is_some());
-    wallet.witness_plan(&plan).await?;
+    wallet
+        .witness_plan(&plan, shieldd_sdk_app_tests::registry().id())
+        .await?;
     assert!(matches!(
         manager
             .plan_transfer(
@@ -120,6 +123,7 @@ async fn wallet_catch_up_uses_each_blocks_timestamp() -> anyhow::Result<()> {
         chain.as_ref().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+        shieldd_sdk_app_tests::registry(),
     )
     .await?;
     host.execute(vec![]).await?;

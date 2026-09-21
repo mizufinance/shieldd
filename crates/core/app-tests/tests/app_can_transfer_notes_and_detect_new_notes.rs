@@ -1,10 +1,10 @@
 use {
     anyhow::anyhow,
-    decaf377::Fr,
     rand_core::OsRng,
     shieldd_sdk_app::genesis::{self, AppState},
     shieldd_sdk_app::test_support::{TestHost, TEST_CHAIN_ID},
     shieldd_sdk_asset::{Value, BASE_ASSET_ID},
+    shieldd_sdk_crypto::Fr,
     shieldd_sdk_keys::test_keys,
     shieldd_sdk_mock_client::MockClient,
     shieldd_sdk_num::Amount,
@@ -27,6 +27,7 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
             storage.as_ref().clone(),
             app_state,
             tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+            shieldd_sdk_app_tests::registry(),
         )
         .await?
     };
@@ -97,7 +98,9 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
     let plan = client
         .complete_intent(intent, storage.latest_snapshot())
         .await?;
-    let tx = client.witness_auth_build(&plan).await?;
+    let tx = client
+        .witness_auth_build(&plan, shieldd_sdk_app_tests::registry())
+        .await?;
 
     let pre_tx_snapshot = storage.latest_snapshot();
     test_node.execute(vec![tx.encode_to_vec()]).await?;

@@ -1,6 +1,7 @@
 # Shieldd
 
-Shieldd is Bankd’s embedded private execution subsystem, forked from Penumbra.
+Shieldd is a privacy pool library, forked from Penumbra, with an embedded host
+interface for Bankd.
 It owns shielded notes, nullifiers, proof verification, compliance commitments,
 and compact wallet/auditor data. Bankd owns consensus, issuer authorization,
 asset accounting, escrow settlement, IBC execution, public queries, and transaction submission.

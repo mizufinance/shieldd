@@ -20,11 +20,16 @@ impl Storage {
         plan: TransactionPlan,
         witness: &shieldd_sdk_transaction::WitnessData,
         authorization: &shieldd_sdk_transaction::AuthorizationData,
+        registry: std::sync::Arc<shieldd_sdk_proof_params::pari::Registry>,
     ) -> anyhow::Result<Transaction> {
-        let tx = plan
-            .clone()
-            .build_concurrent(&self.full_viewing_key().await?, witness, authorization)
-            .await?;
+        let fvk = self.full_viewing_key().await?;
+        let proving_plan = plan.clone();
+        let witness = witness.clone();
+        let authorization = authorization.clone();
+        let tx = tokio::task::spawn_blocking(move || {
+            proving_plan.build(&fvk, &witness, &authorization, &registry)
+        })
+        .await??;
         self.retain_disclosure_authority(&tx, &plan).await?;
         Ok(tx)
     }

@@ -1,7 +1,7 @@
 //! Generating random values of various types.
 
-use decaf377::Fq;
 use rand::{distributions::Distribution, Rng};
+use shieldd_sdk_crypto::Fq;
 
 use super::StateCommitment;
 use crate::{
@@ -17,7 +17,7 @@ impl Distribution<Fq> for UniformFq {
         let mut bytes = [0u8; 32];
         loop {
             rng.fill_bytes(&mut bytes);
-            if let Ok(fq) = Fq::from_bytes_checked(&bytes) {
+            if let Ok(fq) = shieldd_sdk_crypto::encoding::field(&bytes) {
                 return fq;
             }
         }

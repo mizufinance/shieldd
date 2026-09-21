@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
-use decaf377_rdsa::{Signature, SpendAuth};
+use reddsa::{sapling::SpendAuth, Signature};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
@@ -30,7 +30,7 @@ pub struct ShieldedHostWithdrawalBody {
     pub compliance_anchor: tct::StateCommitment,
     pub asset_anchor: tct::StateCommitment,
     pub routing_tag: RoutingTag,
-    pub routing_parameter_set_id: decaf377::Fq,
+    pub routing_parameter_set_id: shieldd_sdk_crypto::Fq,
     pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
     pub volume_accumulator: VolumeAccumulatorPayload,
 }
@@ -208,7 +208,7 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
                 .routing_tag
                 .ok_or_else(|| anyhow::anyhow!("missing shielded host withdrawal routing tag"))?
                 .try_into()?,
-            routing_parameter_set_id: decaf377::Fq::from_bytes_checked(
+            routing_parameter_set_id: shieldd_sdk_crypto::encoding::field(
                 &value
                     .routing_parameter_set_id
                     .try_into()

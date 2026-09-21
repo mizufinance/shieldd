@@ -1,14 +1,14 @@
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
-    fs::{self, File, OpenOptions},
+    fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
     sync::{Arc, Condvar, Mutex},
 };
 
 use anyhow::{ensure, Context, Result};
-use decaf377::Fq;
 use sha2::{Digest, Sha256};
+use shieldd_sdk_crypto::Fq;
 
 use crate::{
     indexed_nullifier_tree::{
@@ -56,14 +56,15 @@ impl GenerationPackMetadata {
             "unsupported nullifier generation pack protocol"
         );
         ensure!(
-            self.generation_start_position <= self.generation_end_position,
+            self.generation_start_position <= self.generation_end_position
+                && self.generation_end_position < (1 << 48),
             "generation pack position range is invalid"
         );
         ensure!(
             (1..=CAPACITY).contains(&self.leaf_count),
             "generation pack leaf count is invalid"
         );
-        Fq::from_bytes_checked(&self.generation_root)
+        shieldd_sdk_crypto::encoding::field(&self.generation_root)
             .map_err(|_| anyhow::anyhow!("generation pack root is not canonical"))?;
         Ok(())
     }
@@ -309,7 +310,10 @@ impl ReconstructedGeneration {
                         .copied()
                         .unwrap_or(ZERO_HASHES[level])
                 };
-                parents.push(hash_children([child(0), child(1), child(2), child(3)]));
+                parents.push(hash_children(
+                    level as u8 + 1,
+                    [child(0), child(1), child(2), child(3)],
+                ));
             }
             levels.push(parents);
         }
@@ -395,12 +399,29 @@ struct PackCache {
     loading: BTreeSet<u64>,
 }
 
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PublicationStage {
+    Opened,
+    Validated,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+struct PublicationGate {
+    stage: PublicationStage,
+    reached: std::sync::mpsc::Sender<PathBuf>,
+    resume: Mutex<std::sync::mpsc::Receiver<()>>,
+}
+
 #[derive(Clone, Debug)]
 pub struct GenerationPackRepository {
     directory: Arc<PathBuf>,
     max_cached_generations: usize,
     cache: Arc<Mutex<PackCache>>,
     cache_ready: Arc<Condvar>,
+    #[cfg(test)]
+    publication_gate: Option<Arc<PublicationGate>>,
 }
 
 impl GenerationPackRepository {
@@ -418,7 +439,23 @@ impl GenerationPackRepository {
                 loading: BTreeSet::new(),
             })),
             cache_ready: Arc::new(Condvar::new()),
+            #[cfg(test)]
+            publication_gate: None,
         })
+    }
+
+    #[cfg(test)]
+    fn publication_checkpoint(&self, stage: PublicationStage, path: &Path) -> Result<()> {
+        if let Some(gate) = &self.publication_gate {
+            if gate.stage == stage {
+                gate.reached.send(path.to_path_buf())?;
+                gate.resume
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(std::time::Duration::from_secs(10))?;
+            }
+        }
+        Ok(())
     }
 
     pub fn directory(&self) -> &Path {
@@ -527,40 +564,58 @@ impl GenerationPackRepository {
         pack.receipt(&bytes)
     }
 
+    fn existing_receipt(
+        &self,
+        pack: &NullifierGenerationPack,
+    ) -> Result<NullifierGenerationPackReceipt> {
+        let archived = archived_from_metadata(pack.metadata);
+        let (existing, existing_bytes, _) = self.load_pack(archived)?;
+        ensure!(
+            existing == *pack,
+            "existing generation pack has different contents"
+        );
+        let receipt = existing.receipt(&existing_bytes)?;
+        // A concurrent publisher may not have synced the directory entry yet.
+        File::open(self.directory())?.sync_all()?;
+        Ok(receipt)
+    }
+
     pub fn write(&self, pack: &NullifierGenerationPack) -> Result<NullifierGenerationPackReceipt> {
         fs::create_dir_all(self.directory())?;
         let bytes = pack.encode()?;
         pack.reconstruct()?;
         let final_path = self.path(pack.metadata.generation_index);
         if final_path.exists() {
-            let archived = archived_from_metadata(pack.metadata);
-            let (existing, existing_bytes, _) = self.load_pack(archived)?;
-            ensure!(
-                existing == *pack,
-                "existing generation pack has different contents"
-            );
-            return existing.receipt(&existing_bytes);
+            return self.existing_receipt(pack);
         }
 
-        let temporary = final_path.with_extension("ngp.partial");
-        let mut file = OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(&temporary)
-            .with_context(|| format!("create temporary pack {}", temporary.display()))?;
-        file.write_all(&bytes)?;
-        file.sync_all()?;
-        drop(file);
+        let mut temporary = tempfile::Builder::new()
+            .prefix(".generation-")
+            .suffix(".ngp.partial")
+            .tempfile_in(self.directory())
+            .context("create exclusive temporary generation pack")?;
+        #[cfg(test)]
+        self.publication_checkpoint(PublicationStage::Opened, temporary.path())?;
+        temporary.write_all(&bytes)?;
+        temporary.as_file().sync_all()?;
 
-        let durable = fs::read(&temporary)?;
+        let durable = fs::read(temporary.path())?;
         let decoded = NullifierGenerationPack::decode(&durable)?;
         ensure!(
             decoded == *pack,
-            "durable generation pack changed before rename"
+            "durable generation pack changed before publication"
         );
-        decoded.reconstruct()?;
-        fs::rename(&temporary, &final_path)?;
+        #[cfg(test)]
+        self.publication_checkpoint(PublicationStage::Validated, temporary.path())?;
+        // Equality transfers the input's reconstructed-root validation to the readback.
+        match temporary.persist_noclobber(&final_path) {
+            Ok(_) => {}
+            Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {
+                drop(error.file);
+                return self.existing_receipt(pack);
+            }
+            Err(error) => return Err(error.error.into()),
+        }
         File::open(self.directory())?.sync_all()?;
         decoded.receipt(&durable)
     }
@@ -728,7 +783,7 @@ mod tests {
                 .chunks(4)
                 .map(|chunk| {
                     let child = |index| chunk.get(index).copied().unwrap_or(ZERO_HASHES[level]);
-                    hash_children([child(0), child(1), child(2), child(3)])
+                    hash_children(level as u8 + 1, [child(0), child(1), child(2), child(3)])
                 })
                 .collect();
         }
@@ -788,6 +843,96 @@ mod tests {
     }
 
     #[test]
+    fn overlapping_publications_do_not_share_temporary_files() -> Result<()> {
+        use std::{sync::mpsc, time::Duration};
+        for conflicting in [false, true] {
+            let directory = TempDir::new()?;
+            let original = pack(&[7, 1, 12])?;
+            let expected = original.encode()?;
+            let gate = |stage| -> Result<_> {
+                let mut repository =
+                    GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
+                let (reached, observed) = mpsc::channel();
+                let (resume, waiting) = mpsc::channel();
+                repository.publication_gate = Some(Arc::new(PublicationGate {
+                    stage,
+                    reached,
+                    resume: Mutex::new(waiting),
+                }));
+                Ok((repository, observed, resume))
+            };
+            let (first, first_reached, resume_first) = gate(PublicationStage::Validated)?;
+            let final_path = first.path(original.metadata.generation_index);
+            let first_pack = original.clone();
+            let first_writer = std::thread::spawn(move || first.write(&first_pack));
+            let first_temporary = first_reached.recv_timeout(Duration::from_secs(10))?;
+            // Model a reopened repository while an earlier owned publication is still running.
+            let (second, second_reached, resume_second) = gate(PublicationStage::Opened)?;
+            let second_pack = if conflicting {
+                pack(&[8, 1, 12])?
+            } else {
+                original
+            };
+            let second_writer = std::thread::spawn(move || second.write(&second_pack));
+            let second_temporary = second_reached.recv_timeout(Duration::from_secs(10))?;
+            resume_first.send(())?;
+            let first_result = first_writer
+                .join()
+                .expect("first publication thread panicked");
+            let durable = fs::read(&final_path);
+            resume_second.send(())?;
+            let second_result = second_writer
+                .join()
+                .expect("second publication thread panicked");
+            first_result?;
+            assert_eq!(
+                durable?, expected,
+                "a concurrent writer changed validated publication bytes"
+            );
+            assert_ne!(first_temporary, second_temporary);
+            if conflicting {
+                assert!(
+                    second_result.is_err(),
+                    "a competing different pack must not replace the winner"
+                );
+            } else {
+                second_result?;
+            }
+            assert_eq!(fs::read(&final_path)?, expected);
+            assert_eq!(
+                fs::read_dir(directory.path())?.count(),
+                1,
+                "temporary files must be cleaned up"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn publication_rejects_wrong_root_and_preserves_existing_pack() -> Result<()> {
+        let directory = TempDir::new()?;
+        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
+        let original = pack(&[7, 1, 12])?;
+        let mut wrong = original.clone();
+        wrong.nullifiers[0] = Nullifier(Fq::from(8u64));
+        assert!(repository.write(&wrong).is_err());
+        assert!(!repository.contains(original.metadata.generation_index));
+        let receipt = repository.write(&original)?;
+        let before = fs::read(repository.path(original.metadata.generation_index))?;
+        assert_eq!(repository.write(&original)?, receipt);
+        assert!(repository.write(&wrong).is_err());
+        assert_eq!(
+            fs::read(repository.path(original.metadata.generation_index))?,
+            before
+        );
+        assert_eq!(
+            repository.verify(archived(original.metadata.generation_root))?,
+            receipt
+        );
+        Ok(())
+    }
+
+    #[test]
     fn inspection_is_cheap_but_full_verification_still_checks_the_root() -> Result<()> {
         let directory = TempDir::new()?;
         let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
@@ -804,5 +949,17 @@ mod tests {
         repository.inspect(archived)?;
         assert!(repository.verify(archived).is_err());
         Ok(())
+    }
+    #[test]
+    fn pack_metadata_rejects_positions_above_sct_height() {
+        let metadata = GenerationPackMetadata {
+            protocol_version: PROTOCOL_VERSION,
+            generation_index: 0,
+            generation_root: Fq::from(1).to_bytes(),
+            generation_start_position: 0,
+            generation_end_position: 1 << 48,
+            leaf_count: 1,
+        };
+        assert!(metadata.validate().is_err());
     }
 }

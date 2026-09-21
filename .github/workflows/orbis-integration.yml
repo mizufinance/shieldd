@@ -11,9 +11,13 @@ concurrency:
 
 jobs:
   contract:
-    name: Orbis/Vera Contract
+    name: Shieldd Orbis adapter contracts
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: 2
+      RAYON_NUM_THREADS: 2
+      GOMAXPROCS: 2
     steps:
       - name: Checkout Shieldd
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -31,33 +35,14 @@ jobs:
         working-directory: shieldd
         run: |
           python3 scripts/check_orbis_vendor.py
-          nix develop --command cargo test --locked \
-            -p shieldd-sdk-disclosure --features orbis
-          nix develop --command cargo test --locked \
+          nix develop --command cargo test --locked --profile ci \
+            -p shieldd-sdk-disclosure --features orbis -- --test-threads=1
+          nix develop --command cargo test --locked --profile ci \
             -p shieldd-orbis-client \
-            -p orbis-integration
-          nix develop --command cargo test --locked \
+            -p orbis-integration -- --test-threads=1
+          nix develop --command cargo test --locked --profile ci \
             -p shieldd-sdk-compliance \
-          --features scanner
+          --features scanner -- --test-threads=1
 
-      - name: Validate pinned Orbis/Vera runtime
-        working-directory: shieldd
-        run: |
-          nix develop --command bash -euo pipefail -c '
-            source scripts/lib/common.sh
-            ensure_orbis_images
-            run_orbis_compose deployments/orbis/docker-compose.yml \
-              config >/dev/null
-          '
-
-      - name: Smoke test pinned Orbis/Vera runtime
-        working-directory: shieldd
-        run: |
-          nix develop --command cargo build --release --locked -p orbis-integration
-          nix develop --command ./scripts/orbis-stack.sh up
-          nix develop --command just orbis-integration-setup-ring /tmp/orbis-state.json
-
-      - name: Stop Orbis/Vera runtime
-        if: always()
-        working-directory: shieldd
-        run: nix develop --command ./scripts/orbis-stack.sh down
+      - name: Report live integration prerequisite
+        run: echo "::notice::The locked Decaf377 Orbis image is unsupported. This job validates adapter contracts only; live BLS12-381 PRE and Jubjub PET require compatible external implementations."

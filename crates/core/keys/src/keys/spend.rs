@@ -11,19 +11,13 @@ use super::{
     seed_phrase::{SeedPhrase, NUM_PBKDF2_ROUNDS},
     FullViewingKey, FullViewingKeyError, IncomingViewingKey, NullifierKey, OutgoingViewingKey,
 };
-use crate::{
-    prf,
-    rdsa::{SigningKey, SpendAuth},
-};
+use crate::prf;
+use reddsa::{sapling::SpendAuth, SigningKey};
+use shieldd_sdk_crypto::{Fq, Fr};
 
 pub const SPENDKEY_LEN_BYTES: usize = 32;
 
-/// A refinement type for a `[u8; 32]` indicating that it stores the
-/// bytes of a spend key.
-///
-/// TODO(hdevalence): In the future, we should hide the SpendKeyBytes
-/// and force everything to use the proto format / bech32 serialization.
-/// But we can't do this now, because we need it to support existing wallets.
+/// Seed material for one spending authority.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct SpendKeyBytes(pub [u8; SPENDKEY_LEN_BYTES]);
 
@@ -62,8 +56,12 @@ impl TryFrom<pb::SpendKey> for SpendKey {
     type Error = anyhow::Error;
 
     fn try_from(msg: pb::SpendKey) -> Result<Self, Self::Error> {
+        anyhow::ensure!(
+            msg.inner.len() == 33 && msg.inner[0] == shieldd_sdk_crypto::SUITE,
+            "unsupported spend key suite or length"
+        );
         Ok(SpendKey::try_from(SpendKeyBytes::try_from(
-            msg.inner.as_slice(),
+            &msg.inner[1..],
         )?)?)
     }
 }
@@ -71,7 +69,7 @@ impl TryFrom<pb::SpendKey> for SpendKey {
 impl From<SpendKey> for pb::SpendKey {
     fn from(msg: SpendKey) -> Self {
         Self {
-            inner: msg.to_bytes().0.to_vec(),
+            inner: [&[shieldd_sdk_crypto::SUITE][..], &msg.to_bytes().0].concat(),
         }
     }
 }
@@ -80,9 +78,12 @@ impl TryFrom<SpendKeyBytes> for SpendKey {
     type Error = SpendKeyError;
 
     fn try_from(seed: SpendKeyBytes) -> Result<Self, Self::Error> {
-        let ask = SigningKey::new_from_field(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[0; 1]));
-        let nk = NullifierKey(prf::expand_ff(b"Shieldd_ExpandSd", &seed.0, &[1; 1]));
-        let fvk = FullViewingKey::from_components(ask.into(), nk)?;
+        let ask = Fr::from_bytes_wide(prf::expand(b"Shieldd_ExpandSd", &seed.0, &[0]).as_array());
+        let ask = SigningKey::try_from(ask.to_bytes()).expect("canonical scalar");
+        let nk = NullifierKey(Fq::from_bytes_wide(
+            prf::expand(b"Shieldd_ExpandSd", &seed.0, &[1]).as_array(),
+        ));
+        let fvk = FullViewingKey::from_components((&ask).into(), nk)?;
 
         Ok(Self { seed, ask, fvk })
     }
@@ -219,7 +220,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bip44_test_ledger() {
+    fn bip44_seed_vector() {
         // Test account
         let seed = SeedPhrase::from_str("comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate").unwrap();
 

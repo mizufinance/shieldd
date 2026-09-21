@@ -8,9 +8,9 @@ license = { workspace = true }
 publish = false
 
 [dependencies]
-orbis-crypto = { package = "crypto", path = "../../../third_party/orbis-crypto", default-features = false, features = ["decaf377"] }
+ark-ec-04 = { package = "ark-ec", version = "0.4" }
+orbis-crypto = { package = "crypto", path = "../../../third_party/orbis-crypto", default-features = false, features = ["bls12-381"] }
 anyhow = { workspace = true }
-decaf377 = { workspace = true, default-features = true }
 hex = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }

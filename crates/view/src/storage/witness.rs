@@ -5,12 +5,17 @@ use shieldd_sdk_tct::Proof;
 use shieldd_sdk_transaction::{ActionPlan, TransactionPlan, WitnessData};
 
 impl Storage {
-    pub async fn witness_plan(&self, plan: &TransactionPlan) -> Result<WitnessData> {
+    pub async fn witness_plan(
+        &self,
+        plan: &TransactionPlan,
+        registry_id: [u8; 32],
+    ) -> Result<WitnessData> {
         let pool = self.pool.clone();
         let plan = plan.clone();
         tokio::task::spawn_blocking(move || {
             let mut connection = pool.get()?;
-            let mut transaction = connection.transaction()?;
+            let mut transaction = connection.transaction_with_behavior(r2d2_sqlite::rusqlite::TransactionBehavior::Immediate)?;
+            super::registry::bind(&transaction, registry_id)?;
             let sct = shieldd_sdk_tct::Tree::from_reader(&mut TreeStore(&mut transaction))?;
             let mut historical_nullifier_proofs = Vec::new();
             if plan.spends().any(|p| p.spend.note.amount() != 0u64.into()) {
@@ -41,7 +46,7 @@ impl Storage {
                     let key = planned.witness.nullifier_key(&fvk)?;
                     let nullifier = planned.spend.nullifier(&key);
                     let mut statement = transaction.prepare_cached(
-                        "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error
+                        "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses
                      FROM historical_proof_cache WHERE nullifier = ?1",
                     )?;
                     let mut rows = statement.query([nullifier.to_bytes().to_vec()])?;
@@ -49,7 +54,7 @@ impl Storage {
                         format!("historical proof cache is missing for {nullifier}")
                     })?;
                     let cache = Storage::decode_historical_cache(row)?;
-                    historical_nullifier_proofs.push(cache.bundle_for(window)?);
+                    historical_nullifier_proofs.push(cache.bundle_for(window, registry_id)?);
                 }
             }
             let mut commitments = plan
@@ -79,6 +84,7 @@ impl Storage {
             {
                 witness.add_proof(commitment, Proof::dummy(&mut rand_core::OsRng, commitment));
             }
+            transaction.commit()?;
             Ok(witness)
         })
         .await?

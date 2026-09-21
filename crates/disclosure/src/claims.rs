@@ -1,8 +1,8 @@
 use crate::*;
 use anyhow::{ensure, Context, Result};
-use decaf377_ka as ka;
-use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
+use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use sha2::{Digest, Sha256};
+use shieldd_sdk_crypto::ka;
 use shieldd_sdk_keys::{
     symmetric::{PayloadKind, WrappedMemoKey},
     PayloadKey,
@@ -134,16 +134,16 @@ pub fn control_message(request: &DisclosureRequest) -> Result<[u8; 32]> {
 pub fn payload_key(note: &Note) -> Result<PayloadKey> {
     let secret = note
         .ephemeral_secret_key()
-        .key_agreement_with(note.transmission_key())?;
+        .key_agreement_with(note.transmission_key());
     Ok(PayloadKey::derive(&secret, &note.ephemeral_public_key()))
 }
 
 fn decrypt_note(public: &PublicOutput, note: &Note) -> Result<PayloadKey> {
-    let epk = ka::Public(public.ephemeral_key.as_slice().try_into()?);
+    let epk = ka::Public::try_from(<[u8; 32]>::try_from(public.ephemeral_key.as_slice())?)?;
     ensure!(note.ephemeral_public_key() == epk, "ephemeral key mismatch");
     let secret = note
         .ephemeral_secret_key()
-        .key_agreement_with(note.transmission_key())?;
+        .key_agreement_with(note.transmission_key());
     let key = PayloadKey::derive(&secret, &epk);
     // The note is already parsed and its derived epk checked above. Comparing
     // authenticated plaintext bytes avoids parsing and deriving that key again.
@@ -162,12 +162,12 @@ pub fn note_opening(note: &Note) -> NoteOpening {
     }
 }
 
-pub fn field(value: &str) -> Result<decaf377::Fq> {
+pub fn field(value: &str) -> Result<shieldd_sdk_crypto::Fq> {
     let bytes: [u8; 32] = hex::decode(value)?
         .try_into()
         .map_err(|_| anyhow::anyhow!("invalid field length"))?;
     ensure!(hex::encode(bytes) == value, "noncanonical field");
-    Ok(decaf377::Fq::from_bytes_checked(&bytes).map_err(|_| anyhow::anyhow!("invalid field"))?)
+    Ok(shieldd_sdk_crypto::encoding::field(&bytes)?)
 }
 
 pub fn describe_openings(
@@ -199,7 +199,7 @@ pub fn describe_openings(
             },
             field(&o.blinding)?,
             shieldd_sdk_shielded_pool::RecoveryCommitment(field(&o.recovery)?),
-        )?;
+        );
         ensure!(
             hex::encode(commitment.0.to_bytes()) == p.commitment,
             "note commitment mismatch"
@@ -270,8 +270,9 @@ pub fn verify_controls(
                 .spend_verification_key
                 .as_deref()
                 .context("not an ordinary Transfer")?;
+            let key: [u8; 32] = key.try_into()?;
+            shieldd_sdk_crypto::encoding::nonidentity(&key)?;
             let vk = VerificationKey::<SpendAuth>::try_from(key)?;
-            ensure!(!vk.is_identity(), "identity authority");
             let bytes: [u8; 64] = sig
                 .as_deref()
                 .context("missing control signature")?

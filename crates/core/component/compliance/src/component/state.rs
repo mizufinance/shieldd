@@ -361,10 +361,11 @@ impl ActionHandler for MsgRegisterAsset {
 mod tests {
     use super::*;
     use cnidarium::{StateRead, TempStorage};
-    use decaf377::Fq;
-    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+    use group::{Group, GroupEncoding};
     use rand_core::OsRng;
+    use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
     use shieldd_sdk_asset::{asset, BASE_ASSET_ID};
+    use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_sct::component::clock::EpochManager;
 
@@ -393,22 +394,22 @@ mod tests {
         policy_id: &str,
     ) -> OrbisCapabilityCertificate {
         let policy = AssetPolicy::new(
-            decaf377::Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             u128::MAX,
             vec![],
             None,
             "test-ring".to_owned(),
-            decaf377::Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             policy_id.to_string(),
             "read".to_owned(),
             "document".to_owned(),
-            crate::AuditKeys::test_keys(),
+            crate::audit_keys::test_keys(),
         );
         OrbisCapabilityCertificate::sign_for_test(
             TEST_CHAIN_ID,
             leaf,
             &policy,
-            decaf377::Fr::from(1u64),
+            shieldd_sdk_crypto::Fr::from(1u64),
         )
         .expect("test Orbis certificate is valid")
     }
@@ -439,7 +440,7 @@ mod tests {
                     TEST_CHAIN_ID,
                     msg.asset_id,
                     &policy,
-                    decaf377::Fr::from(1u64),
+                    shieldd_sdk_crypto::Fr::from(1u64),
                 )
                 .ok();
             }
@@ -453,14 +454,14 @@ mod tests {
     ) -> MsgRegisterAsset {
         MsgRegisterAsset {
             audit_certificate: None,
-            audit_keys: Some(crate::AuditKeys::test_keys()),
+            audit_keys: Some(crate::audit_keys::test_keys()),
             asset_id,
             is_regulated: true,
-            dk_pub: Some(decaf377::Element::GENERATOR),
+            dk_pub: Some(*shieldd_sdk_crypto::generators::SPEND_AUTH),
             daily_volume_limit: None,
             allowed_ibc_routes: vec![],
             ibc_origin: None,
-            ring_pk: Some(decaf377::Element::GENERATOR),
+            ring_pk: Some(*shieldd_sdk_crypto::generators::SPEND_AUTH),
             ring_id: "test-ring".to_owned(),
             policy_id: "test-policy".to_string(),
             permission: "read".to_owned(),
@@ -534,8 +535,14 @@ mod tests {
             !proof_data.is_regulated,
             "the base asset must be proven unregulated by non-membership"
         );
-        assert!(proof_data.indexed_leaf.value < BASE_ASSET_ID.0);
-        assert!(BASE_ASSET_ID.0 < proof_data.indexed_leaf.next_value);
+        assert!(
+            crate::indexed_tree::FqOrdKey::from(proof_data.indexed_leaf.value)
+                < crate::indexed_tree::FqOrdKey::from(BASE_ASSET_ID.0)
+        );
+        assert!(
+            crate::indexed_tree::FqOrdKey::from(BASE_ASSET_ID.0)
+                < crate::indexed_tree::FqOrdKey::from(proof_data.indexed_leaf.next_value)
+        );
     }
 
     #[tokio::test]
@@ -553,17 +560,17 @@ mod tests {
         let leaf = ComplianceLeaf::registered_from_rnk(
             address.clone(),
             custom_asset,
-            decaf377::Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             address.diversified_generator().clone(),
             Fq::from(1u64),
         )
         .expect("fixed genesis compliance keys are valid");
 
         // Custom genesis with a regulated asset (requires dk_pub)
-        let dk_pub_bytes = decaf377::Element::GENERATOR.vartime_compress().0;
+        let dk_pub_bytes = (*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes();
         let genesis = genesis::Content {
             native_assets: vec![NativeAssetRegistration {
-                audit_keys: Some(crate::AuditKeys::test_keys()),
+                audit_keys: Some(crate::audit_keys::test_keys()),
                 asset_id: custom_asset,
                 is_regulated: true,
                 dk_pub: Some(dk_pub_bytes),
@@ -573,7 +580,7 @@ mod tests {
                 seizure_authority_vk: Some(VerificationKey::from(&SigningKey::<SpendAuth>::new(
                     OsRng,
                 ))),
-                ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+                ring_pk: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
                 ring_id: "test-ring".to_owned(),
                 policy_id: "test-policy".to_owned(),
                 permission: "read".to_owned(),
@@ -791,7 +798,7 @@ mod tests {
 
         let mut leaf =
             ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
-        leaf.capk = decaf377::Element::IDENTITY;
+        leaf.capk = shieldd_sdk_crypto::SubgroupPoint::identity();
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
             capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
@@ -904,7 +911,7 @@ mod tests {
         assert!(!proof_before.is_regulated, "asset should start unregulated");
 
         // Create a register asset message (regulated) - requires dk_pub
-        let dk_pub = Some(decaf377::Element::GENERATOR);
+        let dk_pub = Some(*shieldd_sdk_crypto::generators::SPEND_AUTH);
         let mut msg = regulated_asset_msg(asset_id, authority_vk);
         msg.dk_pub = dk_pub;
         let msg = sign_asset_registration(msg, &registrar_sk, TEST_VALID_UNTIL_UNIX);
@@ -1121,7 +1128,8 @@ mod tests {
 
         let mut mismatched_leaf =
             ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
-        mismatched_leaf.capk = decaf377::Element::GENERATOR * decaf377::Fr::from(222u64);
+        mismatched_leaf.capk =
+            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * shieldd_sdk_crypto::Fr::from(222u64);
         let mismatched_msg = MsgRegisterUser {
             leaf: mismatched_leaf.clone(),
             capability_certificate: Some(capability_certificate(&mismatched_leaf, "test-policy")),
@@ -1217,7 +1225,7 @@ mod tests {
         let msg = sign_asset_registration(
             MsgRegisterAsset {
                 audit_certificate: None,
-                audit_keys: Some(crate::AuditKeys::test_keys()),
+                audit_keys: Some(crate::audit_keys::test_keys()),
                 asset_id,
                 is_regulated: true,
                 dk_pub: None, // Missing!

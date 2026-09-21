@@ -14,6 +14,7 @@ async fn host_commits_empty_blocks_with_exact_supplied_height_and_time() -> anyh
         storage.as_ref().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         start,
+        shieldd_sdk_app_tests::registry(),
     )
     .await?;
     assert_eq!(storage.latest_snapshot().get_block_height().await?, 0);

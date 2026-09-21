@@ -410,7 +410,7 @@ pub struct NoteSeizure {
     pub authorization: ::core::option::Option<NoteSeizureAuthorizationBody>,
     #[prost(message, optional, tag = "2")]
     pub authority_signature: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     #[prost(message, optional, tag = "3")]
     pub anchor: ::core::option::Option<
@@ -453,7 +453,7 @@ pub struct TransferInputBody {
     /// The randomized validating key for the spend authorization signature.
     #[prost(message, optional, tag = "2")]
     pub rk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
@@ -513,7 +513,7 @@ pub struct Transfer {
     /// The authorizing signatures for each transfer input.
     #[prost(message, repeated, tag = "2")]
     pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the transfer is well-formed.
     #[prost(message, optional, tag = "3")]
@@ -836,7 +836,7 @@ pub struct ShieldedHostWithdrawal {
     /// The authorizing signatures for each consumed input.
     #[prost(message, repeated, tag = "2")]
     pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the withdrawal is well-formed.
     #[prost(message, optional, tag = "3")]
@@ -1045,7 +1045,7 @@ pub struct NoteReshapeInputBody {
     /// The randomized validating key for the spend authorization signature.
     #[prost(message, optional, tag = "2")]
     pub rk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
@@ -1095,7 +1095,7 @@ pub struct NoteReshape {
     /// The authorizing signatures for each consumed input.
     #[prost(message, repeated, tag = "2")]
     pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the note reshape action is well-formed.
     #[prost(message, optional, tag = "3")]

@@ -17,26 +17,20 @@ component = [
     "shieldd-sdk-sct/component",
 ]
 default = ["std", "component"]
-std = ["ark-ff/std"]
-prover = ["dep:libloading"]
-bundled-proving-keys = ["prover", "shieldd-sdk-proof-params/bundled-proving-keys"]
-parallel = [
-    "shieldd-sdk-tct/parallel",
-    "ark-ff/parallel",
-    "poseidon377/parallel",
-    "decaf377-rdsa/parallel",
-    "ark-groth16/parallel",
-    "decaf377/parallel",
-]
+std = []
+prover = []
+parallel = ["shieldd-sdk-tct/parallel"]
 docsrs = []
 
 [dependencies]
+shieldd-sdk-crypto.workspace = true
+shieldd-sdk-circuits.workspace = true
+commonware-cryptography.workspace = true
+commonware-parallel.workspace = true
+ff.workspace = true
+group.workspace = true
+reddsa.workspace = true
 anyhow = {workspace = true}
-ark-ec = {workspace = true, default-features = false}
-ark-ff = {workspace = true, default-features = false}
-ark-groth16 = {workspace = true, default-features = false}
-ark-serialize = {workspace = true}
-ark-snark = {workspace = true}
 async-stream = {workspace = true}
 async-trait = {workspace = true}
 base64 = {workspace = true}
@@ -45,14 +39,10 @@ bytes = {workspace = true}
 chacha20poly1305 = {workspace = true}
 cnidarium = {workspace = true, optional = true, default-features = true}
 cnidarium-component = {workspace = true, optional = true, default-features = true}
-decaf377 = {workspace = true, default-features = true}
-decaf377-ka = {workspace = true}
-decaf377-rdsa = {workspace = true}
 futures = {workspace = true}
 hex = {workspace = true}
 imbl = {workspace = true}
 jmt = {workspace = true}
-libloading = {workspace = true, optional = true}
 metrics = {workspace = true}
 once_cell = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
@@ -64,7 +54,6 @@ shieldd-sdk-proto = {workspace = true, default-features = false}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-tct = {workspace = true, default-features = true}
 shieldd-sdk-txhash = {workspace = true, default-features = false}
-poseidon377 = {workspace = true}
 prost = {workspace = true}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
@@ -79,10 +68,6 @@ tracing = {workspace = true}
 
 [dev-dependencies]
 shieldd-sdk-shielded-pool = {path = ".", default-features = false, features = ["prover"]}
-decaf377 = {workspace = true, features = ["r1cs"]}
-poseidon377 = {workspace = true, features = ["r1cs"]}
-ark-r1cs-std = {workspace = true}
-ark-relations = {workspace = true}
 criterion = {workspace = true}
 shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}
 shieldd-sdk-proof-params = {workspace = true, default-features = false}

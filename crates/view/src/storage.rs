@@ -1,3 +1,4 @@
+use group::GroupEncoding;
 use std::{
     collections::{BTreeMap, BTreeSet},
     time::Duration,
@@ -5,13 +6,13 @@ use std::{
 
 use anyhow::{anyhow, Context};
 use camino::Utf8Path;
-use decaf377::Fq;
 use once_cell::sync::Lazy;
 use r2d2_sqlite::{
     rusqlite::{self, OpenFlags, OptionalExtension},
     SqliteConnectionManager,
 };
 use sha2::{Digest, Sha256};
+use shieldd_sdk_crypto::Fq;
 use tokio::{
     sync::broadcast::{self, error::RecvError},
     task::spawn_blocking,
@@ -45,7 +46,16 @@ use crate::{
 
 pub(crate) mod compliance;
 pub mod disclosure;
+#[cfg(test)]
+mod historical_worker_tests;
 mod sct;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HistoricalCacheWrite {
+    Stored,
+    NoteSpent,
+    Stale,
+}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BalanceEntry {
@@ -135,6 +145,276 @@ impl ComplianceBlockPlan {
 }
 
 #[cfg(test)]
+mod note_query_tests {
+    use super::*;
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_shielded_pool::RecoveryCommitment;
+
+    struct Fixture {
+        storage: Storage,
+        first: AddressIndex,
+        second: AddressIndex,
+        asset: asset::Id,
+    }
+
+    async fn fixture() -> anyhow::Result<Fixture> {
+        let fvk = (*test_keys::FULL_VIEWING_KEY).clone();
+        let storage =
+            Storage::initialize(None::<&Utf8Path>, fvk.clone(), AppParameters::default()).await?;
+        let first = AddressIndex::new(3);
+        let second = AddressIndex {
+            account: first.account,
+            randomizer: [1; 12],
+        };
+        let asset = asset::Id(Fq::from(7u64));
+        let other_asset = asset::Id(Fq::from(8u64));
+        let rows = [
+            (first, asset, 5u64, None),
+            (first, asset, 7, None),
+            (first, asset, 11, Some(1i64)),
+            (second, asset, 19, None),
+            (first, other_asset, 23, None),
+            (AddressIndex::new(4), asset, 29, None),
+        ];
+        {
+            let mut connection = storage.pool.get()?;
+            let transaction = connection.transaction()?;
+            for (position, (index, asset_id, amount, spent)) in rows.into_iter().enumerate() {
+                let note = Note::from_parts(
+                    fvk.payment_address(index),
+                    Value {
+                        amount: Amount::from(amount),
+                        asset_id,
+                    },
+                    Rseed([position as u8 + 1; 32]),
+                    RecoveryCommitment::unavailable(),
+                )?;
+                Storage::record_note_inner(&transaction, &note)?;
+                let nullifier = Nullifier::derive(
+                    fvk.nullifier_key(),
+                    tct::Position::from(position as u64),
+                    &note.commit(),
+                );
+                transaction.execute(
+                    "INSERT INTO spendable_notes (note_commitment, nullifier, position, height_created, address_index, source, height_spent) VALUES (?1, ?2, ?3, 0, ?4, ?5, ?6)",
+                    rusqlite::params![note.commit().0.to_bytes().to_vec(), nullifier.to_bytes().to_vec(), position as i64, index.to_bytes().to_vec(), CommitmentSource::Genesis.encode_to_vec(), spent],
+                )?;
+            }
+            transaction.commit()?;
+        }
+        Ok(Fixture {
+            storage,
+            first,
+            second,
+            asset,
+        })
+    }
+
+    fn amounts(notes: &[SpendableNoteRecord]) -> Vec<u128> {
+        let mut amounts = notes
+            .iter()
+            .map(|record| record.note.amount().value())
+            .collect::<Vec<_>>();
+        amounts.sort_unstable();
+        amounts
+    }
+
+    #[tokio::test]
+    async fn exact_address_index_keeps_diversifiers_separate() -> anyhow::Result<()> {
+        let fixture = fixture().await?;
+        let first = fixture
+            .storage
+            .notes(false, Some(fixture.asset), Some(fixture.first), None)
+            .await?;
+        assert_eq!(amounts(&first), vec![5, 7]);
+        assert!(first
+            .iter()
+            .all(|record| record.address_index == fixture.first));
+        let second = fixture
+            .storage
+            .notes(false, Some(fixture.asset), Some(fixture.second), None)
+            .await?;
+        assert_eq!(amounts(&second), vec![19]);
+        assert!(second
+            .iter()
+            .all(|record| record.address_index == fixture.second));
+        let all = fixture
+            .storage
+            .notes(false, Some(fixture.asset), None, None)
+            .await?;
+        assert_eq!(amounts(&all), vec![5, 7, 19, 29]);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn spent_note_query_ignores_amount_cutoff() -> anyhow::Result<()> {
+        let fixture = fixture().await?;
+        let notes = fixture
+            .storage
+            .notes(
+                true,
+                Some(fixture.asset),
+                None,
+                Some(Amount::from(1_000u64)),
+            )
+            .await?;
+        assert_eq!(amounts(&notes), vec![5, 7, 11, 19, 29]);
+        assert_eq!(
+            notes
+                .iter()
+                .filter(|record| record.height_spent.is_some())
+                .count(),
+            1
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn mixed_asset_query_ignores_amount_cutoff() -> anyhow::Result<()> {
+        let fixture = fixture().await?;
+        let notes = fixture
+            .storage
+            .notes(false, None, None, Some(Amount::from(1_000u64)))
+            .await?;
+        assert_eq!(amounts(&notes), vec![5, 7, 19, 23, 29]);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn active_cutoff_stops_at_sufficient_value_and_rejects_shortage() -> anyhow::Result<()> {
+        let fixture = fixture().await?;
+        let notes = fixture
+            .storage
+            .notes(false, Some(fixture.asset), None, Some(Amount::from(1u64)))
+            .await?;
+        assert_eq!(notes.len(), 1);
+        assert!(notes[0].note.amount().value() >= 1);
+        let error = fixture
+            .storage
+            .notes(false, Some(fixture.asset), None, Some(Amount::from(61u64)))
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("exceeds total of 60"),
+            "{error:#}"
+        );
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod block_admission_tests {
+    use super::*;
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_shielded_pool::RecoveryCommitment;
+
+    struct Candidate {
+        block: FilteredBlock,
+        tree: tct::Tree,
+        note: Note,
+    }
+
+    fn candidate(seed: u8) -> anyhow::Result<Candidate> {
+        let fvk = &*test_keys::FULL_VIEWING_KEY;
+        let address_index = AddressIndex::new(0);
+        let note = Note::from_parts(
+            fvk.payment_address(address_index),
+            Value {
+                amount: Amount::from(u64::from(seed)),
+                asset_id: asset::Id(Fq::from(7u64)),
+            },
+            Rseed([seed; 32]),
+            RecoveryCommitment::unavailable(),
+        )?;
+        let mut tree = tct::Tree::new();
+        let position = tree.insert(tct::Witness::Keep, note.commit())?;
+        tree.end_block()?;
+        let record = SpendableNoteRecord {
+            note_commitment: note.commit(),
+            note: note.clone(),
+            address_index,
+            nullifier: Nullifier::derive(fvk.nullifier_key(), position, &note.commit()),
+            height_created: 0,
+            height_spent: None,
+            position,
+            source: CommitmentSource::Genesis,
+            return_address: None,
+        };
+        Ok(Candidate {
+            block: FilteredBlock {
+                new_notes: BTreeMap::from([(note.commit(), record)]),
+                spent_nullifiers: vec![],
+                height: 0,
+                discovery_parameters: None,
+                app_parameters_updated: false,
+                gas_prices: None,
+                nullifier_window: None,
+                volume_accumulators: vec![],
+            },
+            tree,
+            note,
+        })
+    }
+
+    #[tokio::test]
+    async fn competing_wallet_blocks_admit_only_one_complete_candidate() -> anyhow::Result<()> {
+        let mut storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await?;
+        storage.before_block_write = Some(std::sync::Arc::new(tokio::sync::Barrier::new(2)));
+        let mut first = candidate(11)?;
+        let mut second = candidate(22)?;
+        let (first_result, second_result) = tokio::join!(
+            storage.record_block(
+                first.block.clone(),
+                vec![],
+                &mut first.tree,
+                None,
+                None,
+                WalletBlockMetadata {
+                    timestamp: 11,
+                    ..Default::default()
+                }
+            ),
+            storage.record_block(
+                second.block.clone(),
+                vec![],
+                &mut second.tree,
+                None,
+                None,
+                WalletBlockMetadata {
+                    timestamp: 22,
+                    ..Default::default()
+                }
+            ),
+        );
+        assert_eq!(
+            usize::from(first_result.is_ok()) + usize::from(second_result.is_ok()),
+            1,
+            "only one candidate may commit: first={first_result:?}, second={second_result:?}"
+        );
+        let (winner, timestamp) = if first_result.is_ok() {
+            (&first, 11)
+        } else {
+            (&second, 22)
+        };
+        assert_eq!(storage.last_sync_height().await?, Some(0));
+        assert_eq!(storage.block_timestamp().await?, timestamp);
+        let notes = storage.notes(false, None, None, None).await?;
+        assert_eq!(notes.len(), 1, "losing candidate must leave no note rows");
+        assert_eq!(notes[0].note, winner.note);
+        let persisted = storage.state_commitment_tree().await?;
+        assert_eq!(persisted.root(), winner.tree.root());
+        assert_eq!(persisted.position(), winner.tree.position());
+        assert!(persisted.witness(winner.note.commit()).is_some());
+        Ok(())
+    }
+}
+
+#[cfg(test)]
 mod compliance_projection_tests {
     use super::*;
     use shieldd_sdk_keys::test_keys;
@@ -153,9 +433,9 @@ mod compliance_projection_tests {
         let asset_id = asset::Id(Fq::from(13u64));
         let leaf = ComplianceLeaf::synthetic_unregulated(test_keys::ADDRESS_0.clone(), asset_id);
         let policy = AssetPolicy::for_test(
-            decaf377::Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             u128::MAX,
-            decaf377::Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
         );
         let plan = ComplianceBlockPlan {
             height: 1,
@@ -302,7 +582,6 @@ mod compliance_projection_tests {
 #[cfg(test)]
 mod note_storage_tests {
     use super::*;
-    use decaf377::Element;
     use shieldd_sdk_asset::BASE_ASSET_ID;
     use shieldd_sdk_keys::test_keys;
 
@@ -322,7 +601,7 @@ mod note_storage_tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed([42u8; 32]),
-            Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
         )
         .unwrap();
         let commitment = note.commit();
@@ -377,7 +656,7 @@ mod issued_address_tests {
             account: 9,
             randomizer: [0x5a; 12],
         };
-        let regulated_asset = asset::Id(decaf377::Fq::from(42u64));
+        let regulated_asset = asset::Id(shieldd_sdk_crypto::Fq::from(42u64));
         let issued = [
             IssuedAddress {
                 address_index: general_index,
@@ -433,7 +712,7 @@ mod issued_address_tests {
 
         let mut conflicting = issued;
         conflicting.purpose = AddressPurpose::Regulated {
-            asset_id: asset::Id(decaf377::Fq::from(9u64)),
+            asset_id: asset::Id(shieldd_sdk_crypto::Fq::from(9u64)),
         };
         let assigned = storage
             .record_issued_address(conflicting.clone())
@@ -443,7 +722,7 @@ mod issued_address_tests {
 
         let mut second_asset = conflicting.clone();
         second_asset.purpose = AddressPurpose::Regulated {
-            asset_id: asset::Id(decaf377::Fq::from(10u64)),
+            asset_id: asset::Id(shieldd_sdk_crypto::Fq::from(10u64)),
         };
         assert_eq!(
             storage.record_issued_address(second_asset).await.unwrap(),
@@ -472,6 +751,52 @@ mod issued_address_tests {
     }
 
     #[tokio::test]
+    async fn history_pages_are_bounded_ordered_and_skip_spent_notes() -> anyhow::Result<()> {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await?;
+        for i in (1..=35u64).chain([255, 256, 257]) {
+            let nullifier = Nullifier(Fq::from(i));
+            storage.pool.get()?.execute(
+                "INSERT INTO spendable_notes (note_commitment,nullifier,position,height_created,address_index,source) VALUES (?1,?2,?3,0,X'',X'')",
+                rusqlite::params![nullifier.to_bytes().to_vec(),nullifier.to_bytes().to_vec(),i])?;
+            storage
+                .put_historical_proof_cache(HistoricalProofCache::pending(nullifier))
+                .await?;
+        }
+        storage.pool.get()?.execute(
+            "UPDATE spendable_notes SET height_spent=1 WHERE nullifier=?1",
+            [Nullifier(Fq::from(34)).to_bytes().to_vec()],
+        )?;
+        let mut expected = (1..=35u64)
+            .chain([255, 256, 257])
+            .filter(|i| *i != 34)
+            .map(|i| Nullifier(Fq::from(i)))
+            .collect::<Vec<_>>();
+        expected.sort_by_key(|nullifier| nullifier.to_bytes());
+        let first = storage.historical_proof_cache_page(None).await?;
+        assert_eq!(first.len(), 32);
+        let second = storage
+            .historical_proof_cache_page(Some(first.last().unwrap().proof.nullifier))
+            .await?;
+        assert_eq!(second.len(), 5);
+        let collected = first
+            .iter()
+            .chain(&second)
+            .map(|cache| cache.proof.nullifier)
+            .collect::<Vec<_>>();
+        assert_eq!(collected, expected);
+        assert!(storage
+            .historical_proof_cache_page(Some(second.last().unwrap().proof.nullifier))
+            .await?
+            .is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn historical_proof_cache_round_trips_and_deletes() {
         let storage = Storage::initialize(
             None::<&Utf8Path>,
@@ -481,6 +806,9 @@ mod issued_address_tests {
         .await
         .unwrap();
         let nullifier = Nullifier(Fq::from(77u64));
+        let connection = storage.pool.get().unwrap();
+        connection.execute("INSERT INTO spendable_notes (note_commitment,nullifier,position,height_created,address_index,source) VALUES (?1,?2,0,0,X'',X'')",rusqlite::params![[8u8;32].to_vec(),nullifier.to_bytes().to_vec()]).unwrap();
+        drop(connection);
         let cache = HistoricalProofCache::pending(nullifier);
         storage
             .put_historical_proof_cache(cache.clone())
@@ -488,12 +816,25 @@ mod issued_address_tests {
             .unwrap();
         assert_eq!(
             storage.historical_proof_cache(nullifier).await.unwrap(),
-            Some(cache)
+            Some(cache.clone())
         );
         storage
             .delete_historical_proof_cache(nullifier)
             .await
             .unwrap();
+        storage
+            .pool
+            .get()
+            .unwrap()
+            .execute(
+                "UPDATE spendable_notes SET height_spent=1 WHERE nullifier=?1",
+                [nullifier.to_bytes().to_vec()],
+            )
+            .unwrap();
+        assert_eq!(
+            storage.put_historical_proof_cache(cache).await.unwrap(),
+            HistoricalCacheWrite::NoteSpent
+        );
         assert!(storage
             .historical_proof_cache(nullifier)
             .await
@@ -563,7 +904,7 @@ mod volume_accumulator_tests {
             .await
             .unwrap();
         storage
-            .release_volume_reservation(payload.scoped_nullifier())
+            .release_volume_reservation(payload.scoped_nullifier(), [2; 32])
             .await
             .unwrap();
         assert!(matches!(
@@ -680,6 +1021,60 @@ mod volume_accumulator_tests {
             .to_string()
             .contains("head changed"));
     }
+    #[tokio::test]
+    async fn stale_volume_release_does_not_remove_replacement_reservation() {
+        let storage = Storage::initialize(
+            None::<&Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await
+        .unwrap();
+        let state = state();
+        let payload = payload(&state);
+        let reservation = |expires_at| VolumeAccumulatorReservation {
+            state: state.clone(),
+            payload: payload.clone(),
+            expires_at,
+        };
+        let nk = *test_keys::FULL_VIEWING_KEY.nullifier_key();
+        storage
+            .reserve_volume_accumulators(vec![reservation(120)], [1; 32], 100, nk)
+            .await
+            .unwrap();
+        storage
+            .reserve_volume_accumulators(vec![reservation(200)], [2; 32], 121, nk)
+            .await
+            .unwrap();
+
+        // Transaction A's delayed cancellation arrives after B acquired the expired head.
+        storage
+            .release_volume_reservation(payload.scoped_nullifier(), [1; 32])
+            .await
+            .unwrap();
+
+        let replacement_count: i64 = storage
+            .pool
+            .get()
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM volume_accumulator_reservations WHERE tx_id = ?1",
+                [&[2u8; 32][..]],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            replacement_count, 1,
+            "stale A release must preserve B's ownership"
+        );
+        assert!(
+            storage
+                .reserve_volume_accumulators(vec![reservation(220)], [3; 32], 122, nk)
+                .await
+                .is_err(),
+            "C must not acquire B's live reservation"
+        );
+    }
 }
 
 /// The hash of the schema for the database.
@@ -688,6 +1083,8 @@ static SCHEMA_HASH: Lazy<String> =
 
 #[derive(Clone)]
 pub struct Storage {
+    #[cfg(test)]
+    before_block_write: Option<std::sync::Arc<tokio::sync::Barrier>>,
     pool: r2d2::Pool<SqliteConnectionManager>,
 
     scanned_notes_tx: tokio::sync::broadcast::Sender<SpendableNoteRecord>,
@@ -730,7 +1127,7 @@ impl Storage {
                 .ok_or_else(|| anyhow!("complete volume accumulator is missing its amount"))?
                 .try_into()
                 .map_err(|_| anyhow!("stored volume accumulator amount is malformed"))?;
-            let blinding = Fq::from_bytes_checked(
+            let blinding = shieldd_sdk_crypto::encoding::field(
                 &blinding
                     .ok_or_else(|| anyhow!("complete volume accumulator is missing its blinding"))?
                     .try_into()
@@ -851,15 +1248,17 @@ impl Storage {
     pub async fn release_volume_reservation(
         &self,
         scoped: shieldd_sdk_shielded_pool::VolumeNullifier,
+        tx_id: [u8; 32],
     ) -> anyhow::Result<()> {
         let pool = self.pool.clone();
         spawn_blocking(move || {
             pool.get()?.execute(
                 "DELETE FROM volume_accumulator_reservations
-                 WHERE day_start = ?1 AND nullifier = ?2",
+                 WHERE day_start = ?1 AND nullifier = ?2 AND tx_id = ?3",
                 (
                     scoped.day_start as i64,
                     scoped.nullifier.to_bytes().to_vec(),
+                    tx_id.to_vec(),
                 ),
             )?;
             anyhow::Ok(())
@@ -870,39 +1269,86 @@ impl Storage {
     fn put_historical_proof_cache_inner(
         connection: &rusqlite::Connection,
         cache: &HistoricalProofCache,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<HistoricalCacheWrite> {
         cache.validate()?;
         let proof: pb_sct::HistoricalNullifierProof = cache.proof.clone().into();
-        connection.execute(
+        let written = connection.execute(
             "INSERT INTO historical_proof_cache
-             (nullifier, protocol_version, proof_bundle, cache_state, last_error)
-             VALUES (?1, ?2, ?3, ?4, ?5)
+             (nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses)
+             SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 FROM spendable_notes WHERE nullifier = ?1 AND height_spent IS NULL
              ON CONFLICT(nullifier) DO UPDATE SET
-               protocol_version = excluded.protocol_version,
-               proof_bundle = excluded.proof_bundle,
-               cache_state = excluded.cache_state,
-               last_error = excluded.last_error",
-            rusqlite::params![
-                cache.proof.nullifier.to_bytes().to_vec(),
-                cache.protocol_version,
-                proof.encode_to_vec(),
-                cache.state.storage_id(),
-                cache.last_error.as_deref(),
-            ],
+               protocol_version = excluded.protocol_version, proof_bundle = excluded.proof_bundle,
+               cache_state = excluded.cache_state, last_error = excluded.last_error,
+               registry_id = excluded.registry_id, pending_witnesses = excluded.pending_witnesses",
+            rusqlite::params![cache.proof.nullifier.to_bytes().to_vec(), cache.protocol_version,
+                proof.encode_to_vec(), cache.state.storage_id(), cache.last_error.as_deref(),
+                cache.registry_id.map(|id|id.to_vec()), serde_json::to_vec(&cache.pending)?],
         )?;
-        Ok(())
+        Ok(if written == 0 {
+            HistoricalCacheWrite::NoteSpent
+        } else {
+            HistoricalCacheWrite::Stored
+        })
     }
-
-    pub async fn put_historical_proof_cache(
+    #[cfg(test)]
+    async fn put_historical_proof_cache(
         &self,
         cache: HistoricalProofCache,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<HistoricalCacheWrite> {
         let pool = self.pool.clone();
         spawn_blocking(move || {
             let connection = pool.get()?;
             Self::put_historical_proof_cache_inner(&connection, &cache)
         })
         .await?
+    }
+
+    /// Worker writes compare both the persisted row and its captured chain window.
+    pub(crate) async fn update_historical_proof_cache(
+        &self,
+        expected: HistoricalProofCache,
+        window: NullifierWindow,
+        cache: HistoricalProofCache,
+    ) -> anyhow::Result<HistoricalCacheWrite> {
+        anyhow::ensure!(
+            expected.proof.nullifier == cache.proof.nullifier,
+            "history update changed nullifier"
+        );
+        let pool = self.pool.clone();
+        spawn_blocking(move || {
+            let mut connection = pool.get()?;
+            let tx = connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+            let unspent: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM spendable_notes WHERE nullifier = ?1 AND height_spent IS NULL)",
+                [expected.proof.nullifier.to_bytes().to_vec()], |row| row.get(0),
+            )?;
+            if !unspent {
+                return Ok(HistoricalCacheWrite::NoteSpent);
+            }
+            let bytes: Option<Vec<u8>> = tx.query_row(
+                "SELECT v FROM kv WHERE k = 'nullifier_window'", [], |row| row.get(0),
+            ).optional()?;
+            let current_window: Option<NullifierWindow> = bytes
+                .map(|bytes| pb_sct::NullifierWindow::decode(bytes.as_slice())?.try_into())
+                .transpose()?;
+            if current_window != Some(window) {
+                return Ok(HistoricalCacheWrite::Stale);
+            }
+            let current = {
+                let mut statement = tx.prepare_cached(
+                    "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses
+                     FROM historical_proof_cache WHERE nullifier = ?1",
+                )?;
+                let mut rows = statement.query([expected.proof.nullifier.to_bytes().to_vec()])?;
+                rows.next()?.map(Self::decode_historical_cache).transpose()?
+            };
+            if current.as_ref() != Some(&expected) {
+                return Ok(HistoricalCacheWrite::Stale);
+            }
+            let outcome = Self::put_historical_proof_cache_inner(&tx, &cache)?;
+            tx.commit()?;
+            Ok(outcome)
+        }).await?
     }
 
     fn decode_historical_cache(row: &rusqlite::Row<'_>) -> anyhow::Result<HistoricalProofCache> {
@@ -913,6 +1359,15 @@ impl Storage {
             proof: pb_sct::HistoricalNullifierProof::decode(bundle.as_slice())?.try_into()?,
             state: HistoricalProofCacheState::from_storage_id(row.get(3)?)?,
             last_error: row.get(4)?,
+            registry_id: row
+                .get::<_, Option<Vec<u8>>>(5)?
+                .map(|bytes| {
+                    bytes
+                        .try_into()
+                        .map_err(|_| anyhow::anyhow!("invalid history registry ID"))
+                })
+                .transpose()?,
+            pending: serde_json::from_slice(&row.get::<_, Vec<u8>>(6)?)?,
         };
         anyhow::ensure!(
             cache.proof.nullifier == Nullifier::try_from(key)?,
@@ -930,7 +1385,7 @@ impl Storage {
         spawn_blocking(move || {
             let connection = pool.get()?;
             let mut statement = connection.prepare_cached(
-                "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error
+                "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses
                  FROM historical_proof_cache WHERE nullifier = ?1",
             )?;
             let mut rows = statement.query([nullifier.to_bytes().to_vec()])?;
@@ -939,20 +1394,23 @@ impl Storage {
         .await?
     }
 
-    pub async fn historical_proof_caches_for_unspent_notes(
+    pub(crate) async fn historical_proof_cache_page(
         &self,
+        after: Option<Nullifier>,
     ) -> anyhow::Result<Vec<HistoricalProofCache>> {
         let pool = self.pool.clone();
         spawn_blocking(move || {
             let connection = pool.get()?;
             let mut statement = connection.prepare_cached(
-                "SELECT c.nullifier, c.protocol_version, c.proof_bundle, c.cache_state, c.last_error
+                "SELECT c.nullifier, c.protocol_version, c.proof_bundle, c.cache_state, c.last_error, c.registry_id, c.pending_witnesses
                  FROM historical_proof_cache c
-                 JOIN spendable_notes n ON n.nullifier = c.nullifier
-                 WHERE n.height_spent IS NULL ORDER BY n.position ASC",
+                 WHERE c.nullifier > ?1 AND EXISTS (
+                     SELECT 1 FROM spendable_notes n WHERE n.nullifier = c.nullifier AND n.height_spent IS NULL
+                 )
+                 ORDER BY c.nullifier ASC LIMIT 32",
             )?;
             let caches = statement
-                .query_and_then([], Self::decode_historical_cache)?
+                .query_and_then([after.map(|nullifier| nullifier.to_bytes().to_vec()).unwrap_or_default()], Self::decode_historical_cache)?
                 .collect::<anyhow::Result<Vec<_>>>()?;
             Ok(caches)
         })
@@ -1038,6 +1496,8 @@ impl Storage {
 
     pub async fn load(path: impl AsRef<Utf8Path>) -> anyhow::Result<Self> {
         let storage = Self {
+            #[cfg(test)]
+            before_block_write: None,
             pool: Self::connect(Some(path))?,
             scanned_notes_tx: broadcast::channel(128).0,
             scanned_nullifiers_tx: broadcast::channel(512).0,
@@ -1123,6 +1583,8 @@ impl Storage {
             drop(conn);
 
             anyhow::Ok(Storage {
+                #[cfg(test)]
+                before_block_write: None,
                 pool,
                 scanned_notes_tx: broadcast::channel(128).0,
                 scanned_nullifiers_tx: broadcast::channel(512).0,
@@ -1822,37 +2284,9 @@ impl Storage {
         address_index: Option<shieldd_sdk_keys::keys::AddressIndex>,
         amount_to_spend: Option<Amount>,
     ) -> anyhow::Result<Vec<SpendableNoteRecord>> {
-        // If set, return spent notes as well as unspent notes.
-        // bool include_spent = 2;
-        let spent_clause = match include_spent {
-            false => "NULL",
-            true => "height_spent",
-        };
-
-        // If set, only return notes with the specified asset id.
-        // core.crypto.v1.AssetId asset_id = 3;
-        let asset_clause = asset_id
-            .map(|id| format!("x'{}'", hex::encode(id.to_bytes())))
-            .unwrap_or_else(|| "asset_id".to_string());
-
-        // If set, only return notes with the specified address index.
-        // crypto.AddressIndex address_index = 4;
-        // This isn't what we want any more, we need to be indexing notes
-        // by *account*, not just by address index.
-        // For now, just do filtering in software.
-        /*
-        let address_clause = address_index
-            .map(|d| format!("x'{}'", hex::encode(d.to_bytes())))
-            .unwrap_or_else(|| "address_index".to_string());
-         */
-        let address_clause = "address_index".to_string();
-
-        // If set, stop returning notes once the total exceeds this amount.
-        //
-        // Ignored if `asset_id` is unset or if `include_spent` is set.
-        // uint64 amount_to_spend = 5;
-        //TODO: figure out a clever way to only return notes up to the sum using SQL
-        let amount_cutoff = (amount_to_spend.is_some()) && !(include_spent || asset_id.is_none());
+        let amount_cutoff = amount_to_spend.filter(|_| !include_spent && asset_id.is_some());
+        let asset_bytes = asset_id.map(|id| id.to_bytes().to_vec());
+        let address_bytes = address_index.map(|index| index.to_bytes().to_vec());
         let mut amount_total = Amount::zero();
 
         let pool = self.pool.clone();
@@ -1862,7 +2296,7 @@ impl Storage {
 
             for result in pool
                 .get()?
-                .prepare(&format!(
+                .prepare(
                     "SELECT notes.note_commitment,
                         spendable_notes.height_created,
                         notes.address,
@@ -1879,45 +2313,36 @@ impl Storage {
                 FROM notes
                 JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
                 LEFT JOIN tx ON spendable_notes.tx_hash = tx.tx_hash
-                WHERE spendable_notes.height_spent IS {spent_clause}
-                AND notes.asset_id IS {asset_clause}
-                AND spendable_notes.address_index IS {address_clause}"
-                ))?
-                .query_and_then((), |row| SpendableNoteRecord::try_from(row))?
+                WHERE (?1 OR spendable_notes.height_spent IS NULL)
+                AND (?2 IS NULL OR notes.asset_id = ?2)
+                AND (?3 IS NULL OR spendable_notes.address_index = ?3)",
+                )?
+                .query_and_then(
+                    rusqlite::params![include_spent, asset_bytes, address_bytes],
+                    |row| SpendableNoteRecord::try_from(row),
+                )?
             {
                 let record = result?;
-
-                // Skip notes that don't match the account, since we're
-                // not doing account filtering in SQL as a temporary hack (see above)
-                if let Some(address_index) = address_index {
-                    if record.address_index.account != address_index.account {
-                        continue;
-                    }
-                }
                 let amount = record.note.amount();
-
-                // Only display notes of value > 0
 
                 if amount.value() > 0 {
                     output.push(record);
                 }
 
-                // If we're tracking amounts, accumulate the value of the note
-                // and check if we should break out of the loop.
-                if amount_cutoff {
-                    // We know all the notes are of the same type, so adding raw quantities makes sense.
+                if let Some(requested) = amount_cutoff {
                     amount_total += amount;
-                    if amount_total >= amount_to_spend.unwrap_or_default() {
+                    if amount_total >= requested {
                         break;
                     }
                 }
             }
 
-            if amount_total < amount_to_spend.unwrap_or_default() {
-                anyhow::bail!(
+            if let Some(requested) = amount_cutoff {
+                anyhow::ensure!(
+                    amount_total >= requested,
                     "requested amount of {} exceeds total of {}",
-                    amount_to_spend.unwrap_or_default(),
-                    amount_total
+                    requested,
+                    amount_total,
                 );
             }
 
@@ -2035,7 +2460,7 @@ impl Storage {
                     let address = Address::try_from(row.get::<_, Vec<u8>>("address")?)?;
                     let amount = row.get::<_, [u8; 16]>("amount")?;
                     let amount_u128: u128 = u128::from_be_bytes(amount);
-                    let asset_id = asset::Id(Fq::from_bytes_checked(&row.get::<_, [u8; 32]>("asset_id")?).expect("asset id malformed"));
+                    let asset_id = asset::Id(shieldd_sdk_crypto::encoding::field(&row.get::<_, [u8; 32]>("asset_id")?).expect("asset id malformed"));
                     let rseed = Rseed(row.get::<_, [u8; 32]>("rseed")?);
                     let recovery_commitment = row
                         .get::<_, [u8; 32]>("recovery_commitment")?
@@ -2094,23 +2519,9 @@ impl Storage {
         compliance_plan: Option<ComplianceBlockPlan>,
         metadata: WalletBlockMetadata,
     ) -> anyhow::Result<()> {
-        //Check that the incoming block height follows the latest recorded height
-        let last_sync_height = self.last_sync_height().await?;
-
-        let correct_height = match last_sync_height {
-            // Require that the new block follows the last one we scanned.
-            Some(cur_height) => filtered_block.height == cur_height + 1,
-            // Require that the new block represents the initial chain state.
-            None => filtered_block.height == 0,
-        };
-
-        if !correct_height {
-            anyhow::bail!(
-                "Wrong block height {} for latest sync height {:?}",
-                filtered_block.height,
-                last_sync_height
-            );
-        }
+        let block_height = i64::try_from(filtered_block.height)
+            .context("wallet block height exceeds SQLite i64")?;
+        let predecessor_height = block_height - 1;
 
         let pool = self.pool.clone();
         let scanned_notes_tx = self.scanned_notes_tx.clone();
@@ -2123,18 +2534,28 @@ impl Storage {
             "wallet block parameter update is missing or unsolicited"
         );
 
-        // Cloning the SCT is cheap because it's a copy-on-write structure, so we move an owned copy
-        // into the spawned thread. This means that if for any reason the thread panics or throws an
-        // error, the changes to the SCT will be discarded, just like any changes to the database,
-        // so the two stay transactionally in sync, even in the case of errors. This would not be
-        // the case if we `std::mem::take` the SCT and move it into the spawned thread, because then
-        // an error would mean the updated version would never be put back, and the outcome would be
-        // a cleared SCT but a non-empty database.
+        // Publish the in-memory tree only after a successful commit. A cancelled waiter
+        // leaves its worker stale; the next scan must reject that snapshot.
         let mut new_sct = sct.clone();
+
+        #[cfg(test)]
+        if let Some(gate) = &self.before_block_write {
+            gate.wait().await;
+        }
 
         *sct = spawn_blocking(move || {
             let mut lock = pool.get()?;
             let mut dbtx = lock.transaction()?;
+            let admitted = dbtx.execute(
+                "UPDATE sync_height SET height = ?1 WHERE height = ?2",
+                rusqlite::params![block_height, predecessor_height],
+            )?;
+            anyhow::ensure!(
+                admitted == 1,
+                "wallet block {} is stale or out of order",
+                filtered_block.height,
+            );
+
 
             if let Some(params) = new_app_parameters {
                 let params_bytes = params.encode_to_vec();
@@ -2149,7 +2570,7 @@ impl Storage {
             // Insert new note records into storage
             for note_record in filtered_block.new_notes.values() {
                 let note_commitment = note_record.note_commitment.0.to_bytes().to_vec();
-                let height_created = filtered_block.height as i64;
+                let height_created = block_height;
                 let address_index = note_record.address_index.to_bytes().to_vec();
                 let nullifier = note_record.nullifier.to_bytes().to_vec();
                 let position = (u64::from(note_record.position)) as i64;
@@ -2305,7 +2726,7 @@ impl Storage {
                 // We have to create an explicit temporary borrow, because the sqlx api is bad (see above)
                 let tx_hash_owned = sha2::Sha256::digest(&tx_bytes);
                 let tx_hash = tx_hash_owned.as_slice();
-                let tx_block_height = filtered_block.height as i64;
+                let tx_block_height = block_height;
                 let decrypted_memo = transaction.decrypt_memo(&fvk).ok();
                 let memo_text = decrypted_memo.clone().map_or(None,|x| Some(x.text().to_string()));
                 let return_address = decrypted_memo.map_or(None, |x| Some(x.return_address().to_vec()));
@@ -2386,21 +2807,10 @@ impl Storage {
             dbtx.execute("INSERT INTO kv(k, v) VALUES ('block_timestamp', ?1)
                 ON CONFLICT(k) DO UPDATE SET v = excluded.v", [metadata.timestamp.to_le_bytes().to_vec()])?;
 
-            // Record block height as latest synced height
-            let latest_sync_height = filtered_block.height as i64;
-            dbtx.execute("UPDATE sync_height SET height = ?1", [latest_sync_height])?;
-
             // Commit the changes to the database
             dbtx.commit()?;
 
-            // IMPORTANT: NO PANICS OR ERRORS PAST THIS POINT
-            // If there is a panic or error past this point, the database will be left in out of
-            // sync with the in-memory copy of the SCT, which means that it will become corrupted as
-            // synchronization continues.
-
-            // Broadcast all committed note records to channel
-            // Done following tx.commit() to avoid notifying of a new SpendableNoteRecord before it is actually committed to the database
-
+            // Notify only after the transaction commits; absent subscribers are harmless.
             for note_record in filtered_block.new_notes.values() {
                 // This will fail to be broadcast if there is no active receiver (such as on initial
                 // sync) The error is ignored, as this isn't a problem, because if there is no
@@ -2527,8 +2937,8 @@ impl Storage {
                 &update.leaf.address.to_vec(),
                 &update.leaf.asset_id.to_bytes(),
                 update.position,
-                &update.leaf.capk.vartime_compress().0,
-                &update.leaf.rnk_dh_pk.vartime_compress().0,
+                &update.leaf.capk.to_bytes(),
+                &update.leaf.rnk_dh_pk.to_bytes(),
                 &update.leaf.rnk_commitment.to_bytes(),
                 update.leaf.status,
                 update.leaf.freeze_generation,
@@ -2646,4 +3056,5 @@ impl Storage {
     }
 }
 
+mod registry;
 mod witness;

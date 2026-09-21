@@ -14,6 +14,7 @@ async fn host_storage_query_proves_committed_value_at_exact_root() -> anyhow::Re
         storage.as_ref().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+        shieldd_sdk_app_tests::registry(),
     )
     .await?;
     let committed = host.execute(vec![]).await?.commit;

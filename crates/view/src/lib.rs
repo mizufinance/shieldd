@@ -21,7 +21,7 @@ pub use crate::client_compliance::{
 pub use crate::compliance_tree::{ComplianceAssetTree, ComplianceUserTree};
 pub use crate::historical_proof_cache::{
     advance_historical_proof_cache, HistoricalProofCache, HistoricalProofCacheState,
-    HistoricalProofProvider, HistoricalProofUpdateError, HistoricalWitnessSource,
+    HistoricalProofUpdateError, HistoricalWitnessSource,
 };
 pub use crate::issued_address::{AddressPurpose, IssuedAddress};
 pub use crate::note_manager::{

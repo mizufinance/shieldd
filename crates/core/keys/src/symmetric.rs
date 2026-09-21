@@ -4,9 +4,9 @@ use chacha20poly1305::{
     aead::{Aead, NewAead},
     ChaCha20Poly1305, Key, Nonce, XChaCha20Poly1305, XNonce,
 };
-use decaf377_ka as ka;
 use rand::{CryptoRng, RngCore};
 use shieldd_sdk_asset::balance;
+use shieldd_sdk_crypto::ka;
 use shieldd_sdk_proto::core::keys::v1::{self as pb};
 use shieldd_sdk_tct::StateCommitment;
 
@@ -53,8 +53,8 @@ impl PayloadKey {
         kdf_params.personal(b"Shieldd_Payload");
         kdf_params.hash_length(32);
         let mut kdf = kdf_params.to_state();
-        kdf.update(&shared_secret.0);
-        kdf.update(&epk.0);
+        kdf.update(&shared_secret.to_bytes());
+        kdf.update(&epk.to_bytes());
 
         let key = kdf.finalize();
         Self(*Key::from_slice(key.as_bytes()))
@@ -218,7 +218,7 @@ impl OutgoingCipherKey {
         kdf.update(&ovk.to_bytes());
         kdf.update(&cv_bytes);
         kdf.update(&cm_bytes);
-        kdf.update(&epk.0);
+        kdf.update(&epk.to_bytes());
 
         let key = kdf.finalize();
         Self(*Key::from_slice(key.as_bytes()))
@@ -303,13 +303,13 @@ impl WrappedMemoKey {
         memo_key: &PayloadKey,
         esk: ka::Secret,
         transmission_key: &ka::Public,
-        diversified_generator: &decaf377::Element,
+        diversified_generator: &shieldd_sdk_crypto::SubgroupPoint,
     ) -> Self {
         // 1. Construct the per-action PayloadKey.
-        let epk = esk.diversified_public(diversified_generator);
-        let shared_secret = esk
-            .key_agreement_with(transmission_key)
-            .expect("key agreement succeeded");
+        let epk = esk
+            .diversified_public(diversified_generator)
+            .expect("nonidentity diversified base");
+        let shared_secret = esk.key_agreement_with(transmission_key);
 
         let action_key = PayloadKey::derive(&shared_secret, &epk);
         // 2. Now use the per-action key to encrypt the memo key.
@@ -324,9 +324,7 @@ impl WrappedMemoKey {
     /// Decrypt a wrapped memo key by first deriving the action-specific `PayloadKey`.
     pub fn decrypt(&self, epk: ka::Public, ivk: &IncomingViewingKey) -> Result<PayloadKey> {
         // 1. Construct the per-action PayloadKey.
-        let shared_secret = ivk
-            .key_agreement_with(&epk)
-            .expect("key agreement succeeded");
+        let shared_secret = ivk.key_agreement_with(&epk);
 
         let action_key = PayloadKey::derive(&shared_secret, &epk);
         // 2. Now use the per-action key to decrypt the memo key.

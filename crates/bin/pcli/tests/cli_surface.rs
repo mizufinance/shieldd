@@ -46,3 +46,18 @@ fn generates_detection_key_without_a_wallet_or_network() {
         .unwrap();
     assert_eq!(hex::decode(key).unwrap().len(), 32);
 }
+
+#[test]
+fn unavailable_hardware_custody_is_not_advertised() {
+    Command::cargo_bin("pcli")
+        .unwrap()
+        .args(["init", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ledger").not());
+    Command::cargo_bin("pcli")
+        .unwrap()
+        .args(["init", "ledger"])
+        .assert()
+        .failure();
+}

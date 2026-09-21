@@ -5,9 +5,10 @@ use crate::{
     TransferContext, TransferPlan, UserWitness, WithdrawalContext,
 };
 use anyhow::{Context, Result};
-use decaf377::Fr;
+use ff::Field;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_compliance::ComplianceLeaf;
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::Address;
 
 pub const TIMESTAMP: u64 = 1_700_000_000;
@@ -46,7 +47,7 @@ pub fn transfer_context(spend: &ShieldedInputPlan, recipient: &Address) -> Trans
         witness: witness(spend.note.asset_id(), &spend.note.address()),
         recipient: user_witness(spend.note.asset_id(), recipient),
         timestamp: TIMESTAMP,
-        nonce: Fr::rand(&mut rand_core::OsRng),
+        nonce: Fr::random(&mut rand_core::OsRng),
     }
 }
 
@@ -107,7 +108,7 @@ pub fn note_reshape(
     let spend = spends.first().context("fixture requires a spend")?;
     let context = NoteReshapeContext {
         witness: witness(spend.note.asset_id(), &spend.note.address()),
-        nonce: Fr::rand(&mut rand_core::OsRng),
+        nonce: Fr::random(&mut rand_core::OsRng),
     };
     NoteReshapePlan::new(
         family,
@@ -123,7 +124,7 @@ pub fn withdrawal_context(spend: &ShieldedInputPlan) -> WithdrawalContext {
     WithdrawalContext {
         witness: witness(spend.note.asset_id(), &spend.note.address()),
         timestamp: TIMESTAMP,
-        nonce: Fr::rand(&mut rand_core::OsRng),
+        nonce: Fr::random(&mut rand_core::OsRng),
     }
 }
 

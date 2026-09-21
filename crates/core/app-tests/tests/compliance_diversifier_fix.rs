@@ -1,7 +1,6 @@
 use {
     anyhow::anyhow,
     cnidarium::StateDelta,
-    decaf377::Fr,
     rand_core::OsRng,
     shieldd_sdk_app::genesis::{self, AppState},
     shieldd_sdk_app::test_support::{TestHost, TEST_CHAIN_ID},
@@ -10,6 +9,7 @@ use {
         scanning::decrypt_full_flagged, structs::AssetPolicy, ComplianceRegistryWrite,
         DetectionKey, TransferComplianceCiphertext, TransferComplianceMetadata,
     },
+    shieldd_sdk_crypto::Fr,
     shieldd_sdk_keys::{keys::AddressIndex, symmetric::PayloadKey, test_keys},
     shieldd_sdk_mock_client::MockClient,
     shieldd_sdk_shielded_pool::{genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan},
@@ -53,6 +53,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
             storage.as_ref().clone(),
             app_state,
             tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+            shieldd_sdk_app_tests::registry(),
         )
         .await?
     };
@@ -71,8 +72,9 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
 
     let asset_id = note.asset_id();
     assert_eq!(asset_id, regulated_asset_id);
-    let dk = DetectionKey::new(decaf377::Fr::from(88888u64));
-    let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::from(424242u64);
+    let dk = DetectionKey::new(shieldd_sdk_crypto::Fr::from(88888u64));
+    let ring_pk =
+        (*shieldd_sdk_crypto::generators::SPEND_AUTH) * shieldd_sdk_crypto::Fr::from(424242u64);
 
     let mut build_state = StateDelta::new(storage.latest_snapshot());
     build_state
@@ -171,7 +173,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
 
     assert_eq!(
         decrypted.sender_address.transmission_key,
-        sender.transmission_key().0,
+        sender.transmission_key().to_bytes(),
         "compliance ciphertext should preserve the sender transmission key",
     );
     assert_eq!(
@@ -181,7 +183,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     );
     assert_eq!(
         decrypted.receiver_address.transmission_key,
-        recipient.transmission_key().0,
+        recipient.transmission_key().to_bytes(),
         "compliance ciphertext should preserve the receiver transmission key",
     );
 

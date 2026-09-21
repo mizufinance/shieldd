@@ -129,17 +129,17 @@ pub mod shieldd {
 
     /// Cryptography primitives used by Shieldd.
     pub mod crypto {
-        pub mod decaf377_frost {
+        pub mod redjubjub_frost {
             pub mod v1 {
-                include!("gen/shieldd.crypto.decaf377_frost.v1.rs");
-                include!("gen/shieldd.crypto.decaf377_frost.v1.serde.rs");
+                include!("gen/shieldd.crypto.redjubjub_frost.v1.rs");
+                include!("gen/shieldd.crypto.redjubjub_frost.v1.serde.rs");
             }
         }
 
-        pub mod decaf377_rdsa {
+        pub mod redjubjub_rdsa {
             pub mod v1 {
-                include!("gen/shieldd.crypto.decaf377_rdsa.v1.rs");
-                include!("gen/shieldd.crypto.decaf377_rdsa.v1.serde.rs");
+                include!("gen/shieldd.crypto.redjubjub_rdsa.v1.rs");
+                include!("gen/shieldd.crypto.redjubjub_rdsa.v1.serde.rs");
             }
         }
 

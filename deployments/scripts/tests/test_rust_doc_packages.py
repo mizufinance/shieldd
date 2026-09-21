@@ -1,241 +1,26 @@
-from __future__ import annotations
-
-import json
-import subprocess
-import sys
-import unittest
+import importlib.util
 from pathlib import Path
+import unittest
 
-
-SCRIPTS = Path(__file__).resolve().parents[1]
-ROOT = SCRIPTS.parents[1]
-sys.path.insert(0, str(SCRIPTS))
-
-import rust_doc_packages as PACKAGES
-
-
-def package(
-    name: str,
-    *,
-    features: dict[str, list[str]] | None = None,
-    dependencies: list[dict[str, object]] | None = None,
-    doc: bool = True,
-) -> dict[str, object]:
-    return {
-        "name": name,
-        "features": features or {},
-        "dependencies": dependencies or [],
-        "targets": [{"doc": doc}],
-    }
-
-
-def dependency(
-    name: str,
-    *,
-    features: list[str] | None = None,
-    kind: str | None = None,
-    optional: bool = False,
-    uses_default_features: bool = True,
-) -> dict[str, object]:
-    return {
-        "name": name,
-        "rename": None,
-        "features": features or [],
-        "kind": kind,
-        "optional": optional,
-        "uses_default_features": uses_default_features,
-    }
+SPEC = importlib.util.spec_from_file_location("packages", Path(__file__).resolve().parents[1] / "rust_doc_packages.py")
+packages = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(packages)
 
 
 class RustDocPackagesTest(unittest.TestCase):
-    def test_git_specs_distinguish_sources_and_omit_private_orbis_decaf(self):
-        lock = '\n'.join(
-            f'[[package]]\nname = "decaf377"\nversion = "0.10.1"\nsource = "{source}"'
-            for source in [
-                'git+https://github.com/mizufinance/decaf377?branch=main#abc',
-                'git+https://github.com/penumbra-zone/decaf377?rev=def#def',
-            ]
-        )
-        self.assertEqual(list(PACKAGES.git_packages_from_lock(lock)), [
-            'git+https://github.com/mizufinance/decaf377?branch=main#decaf377@0.10.1',
-        ])
+    def test_selection_is_sorted_and_respects_target_documentation(self):
+        metadata = {"packages": [
+            {"name": "z", "targets": [{"doc": True}]},
+            {"name": "a", "targets": [{"doc": True}]},
+            {"name": "private", "targets": [{"doc": False}]},
+        ]}
+        self.assertEqual(packages.workspace_package_specs(metadata), ["a", "z"])
 
-    def test_repository_selection_keeps_proof_libraries_without_proving_roots(
-        self,
-    ) -> None:
-        metadata = json.loads(
-            subprocess.check_output(
-                ["cargo", "metadata", "--format-version=1", "--no-deps"],
-                cwd=ROOT,
-                text=True,
-            )
-        )
-
-        selected = set(PACKAGES.workspace_package_specs(metadata))
-
-        self.assertTrue(
-            {"shieldd-sdk-proof-params", "shieldd-sdk-shielded-pool", "pcli"}
-            <= selected
-        )
-        self.assertTrue(
-            {
-                "bankd-e2e-host-withdrawal-builder",
-                "bankd-e2e-spend-builder",
-                "shieldd-sdk-app",
-                "shieldd-sdk-app-tests",
-                "shieldd-sdk-bench",
-                "shieldd-sdk-bench-support",
-                "shieldd-sdk-mock-client",
-            }.isdisjoint(selected)
-        )
-
-    def test_excludes_package_with_direct_proving_key_dependency_feature(self) -> None:
-        metadata = {
-            "packages": [
-                package(
-                    "proof-params",
-                    features={"default": [], "bundled-proving-keys": []},
-                ),
-                package(
-                    "bench",
-                    dependencies=[
-                        dependency("proof-params", features=["bundled-proving-keys"])
-                    ],
-                ),
-            ]
-        }
-
-        self.assertEqual(
-            PACKAGES.workspace_package_specs(metadata),
-            ["proof-params"],
-        )
-
-    def test_excludes_package_whose_default_feature_forwards_proving_keys(self) -> None:
-        metadata = {
-            "packages": [
-                package(
-                    "proof-params",
-                    features={"default": [], "bundled-proving-keys": []},
-                ),
-                package(
-                    "prover",
-                    features={
-                        "default": ["runtime"],
-                        "runtime": ["proof-params/bundled-proving-keys"],
-                    },
-                    dependencies=[dependency("proof-params", features=[])],
-                ),
-            ]
-        }
-
-        self.assertEqual(
-            PACKAGES.workspace_package_specs(metadata),
-            ["proof-params"],
-        )
-
-    def test_excludes_transitive_default_activation(self) -> None:
-        metadata = {
-            "packages": [
-                package(
-                    "proof-params",
-                    features={"default": [], "bundled-proving-keys": []},
-                ),
-                package(
-                    "prover",
-                    features={
-                        "default": ["bundled-proving-keys"],
-                        "bundled-proving-keys": [
-                            "proof-params/bundled-proving-keys"
-                        ],
-                    },
-                    dependencies=[dependency("proof-params")],
-                ),
-                package("api", dependencies=[dependency("prover")]),
-            ]
-        }
-
-        self.assertEqual(
-            PACKAGES.workspace_package_specs(metadata),
-            ["proof-params"],
-        )
-
-    def test_keeps_package_with_inactive_optional_proving_dependency(self) -> None:
-        metadata = {
-            "packages": [
-                package(
-                    "proof-params",
-                    features={"default": [], "bundled-proving-keys": []},
-                ),
-                package(
-                    "optional-prover",
-                    features={"default": []},
-                    dependencies=[
-                        dependency(
-                            "proof-params",
-                            features=["bundled-proving-keys"],
-                            optional=True,
-                        )
-                    ],
-                ),
-            ]
-        }
-
-        self.assertEqual(
-            PACKAGES.workspace_package_specs(metadata),
-            ["optional-prover", "proof-params"],
-        )
-
-    def test_ignores_transitive_development_dependencies(self) -> None:
-        metadata = {
-            "packages": [
-                package(
-                    "proof-params",
-                    features={"default": [], "bundled-proving-keys": []},
-                ),
-                package(
-                    "library",
-                    dependencies=[
-                        dependency(
-                            "proof-params",
-                            features=["bundled-proving-keys"],
-                            kind="dev",
-                        )
-                    ],
-                ),
-                package("api", dependencies=[dependency("library")]),
-            ]
-        }
-
-        self.assertEqual(
-            PACKAGES.workspace_package_specs(metadata),
-            ["api", "proof-params"],
-        )
-
-    def test_excludes_package_with_proving_key_development_dependency(self) -> None:
-        metadata = {
-            "packages": [
-                package(
-                    "proof-params",
-                    features={"default": [], "bundled-proving-keys": []},
-                ),
-                package(
-                    "cli",
-                    dependencies=[
-                        dependency(
-                            "proof-params",
-                            features=["bundled-proving-keys"],
-                            kind="dev",
-                        )
-                    ],
-                ),
-            ]
-        }
-
-        self.assertEqual(
-            PACKAGES.workspace_package_specs(metadata),
-            ["proof-params"],
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_git_specs_keep_source_identity(self):
+        lock = '''[[package]]
+name = "dependency"
+version = "1.0.0"
+source = "git+https://example.com/repo?rev=abc#abc"
+'''
+        self.assertEqual(list(packages.git_packages_from_lock(lock)),
+                         ["git+https://example.com/repo?rev=abc#dependency@1.0.0"])

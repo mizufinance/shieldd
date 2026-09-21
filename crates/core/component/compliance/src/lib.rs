@@ -68,16 +68,13 @@ pub use withdrawal::{
     encrypt_withdrawal, encrypt_withdrawal_with_material, withdrawal_encryption_key,
     withdrawal_key_confirmation, WithdrawalComplianceCiphertext, WithdrawalEncryptionResult,
     WITHDRAWAL_ADDRESS_BYTES, WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS, WITHDRAWAL_COMPLIANCE_WIRE_BYTES,
-    WITHDRAWAL_KEY_CONFIRMATION_DOMAIN,
 };
 
 pub mod tree;
 pub use tree::{QuadTree, DEFAULT_DEPTH, ZERO_HASHES};
 
 pub mod indexed_tree;
-pub use indexed_tree::{
-    recompute_root, IndexedLeaf, IndexedMerkleTree, IMT_LEAF_DOMAIN_SEP, IMT_ZERO_HASHES,
-};
+pub use indexed_tree::{recompute_root, IndexedLeaf, IndexedMerkleTree, IMT_ZERO_HASHES};
 
 pub mod state_key;
 
@@ -104,9 +101,7 @@ pub use genesis::Content as GenesisContent;
 pub mod crypto;
 pub use crypto::{
     compliance_derivation, decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar,
-    encrypt_tier_bytes, transfer_key_confirmation, COMPLIANCE_STREAM_CIPHER_DOMAIN,
-    ISSUER_DETECTION_DOMAIN, TRANSFER_KEY_CONFIRMATION_DOMAIN, UNREGULATED_SINK_DK_PUB,
-    UNREGULATED_SINK_RING_PK,
+    encrypt_tier_bytes, transfer_key_confirmation, UNREGULATED_DETECTION, UNREGULATED_RING,
 };
 
 pub mod scanning;
@@ -169,7 +164,7 @@ pub use decode_object::{TransferComplianceMetadata, TRANSFER_COMPLIANCE_METADATA
 /// Returns (asset_anchor, indexed_leaf, merkle_path, position) that satisfy circuit constraints.
 /// The asset is proven to be unregulated via non-membership (falls in a gap).
 pub fn create_default_imt_proof(
-    asset_id: decaf377::Fq,
+    asset_id: shieldd_sdk_crypto::Fq,
 ) -> (
     shieldd_sdk_tct::StateCommitment,
     IndexedLeaf,
@@ -207,8 +202,8 @@ pub fn default_user_proof(
 /// Test helpers for compliance tests. Re-exported for use in other crates' tests.
 #[cfg(any(test, feature = "test-helpers"))]
 pub mod test_helpers {
-    use decaf377::{Fq, Fr};
     use rand_core::OsRng;
+    use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_keys::keys::Diversifier;
     use shieldd_sdk_keys::Address;
 
@@ -216,11 +211,13 @@ pub mod test_helpers {
 
     /// Create an address with a specific diversifier byte pattern.
     pub fn make_address(div_byte: u8) -> Address {
+        use ff::Field;
+        use group::GroupEncoding;
         let mut rng = OsRng;
         let diversifier = Diversifier([div_byte; 16]);
-        let scalar = Fr::rand(&mut rng);
-        let point = decaf377::Element::GENERATOR * scalar;
-        let pk_d = decaf377_ka::Public(point.vartime_compress().0);
+        let scalar = Fr::random(&mut rng);
+        let point = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * scalar;
+        let pk_d = shieldd_sdk_crypto::ka::Public::try_from(point.to_bytes()).unwrap();
         Address::from_components(diversifier, pk_d).unwrap()
     }
 
@@ -236,10 +233,9 @@ mod tests {
     use super::*;
     use crate::registry::ComplianceRegistryComponentWrite as _;
     use cnidarium::{StateDelta, TempStorage};
-    use decaf377::Fq;
     use shieldd_sdk_asset::asset;
+    use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::Address;
-    use shieldd_sdk_tct::StateCommitment;
 
     #[tokio::test]
     async fn test_compliance_path_generation() {
@@ -276,7 +272,7 @@ mod tests {
         let mut current_hash = user1_commit;
         let mut current_position = 0u64;
 
-        for (_level, siblings) in path.iter().enumerate() {
+        for (level, siblings) in path.iter().enumerate() {
             let child_index = (current_position % 4) as usize;
             let children = match child_index {
                 0 => [current_hash, siblings[0], siblings[1], siblings[2]],
@@ -285,11 +281,13 @@ mod tests {
                 3 => [siblings[0], siblings[1], siblings[2], current_hash],
                 _ => unreachable!(),
             };
-            let parent_hash = poseidon377::hash_4(
-                &Fq::from(0u64),
-                (children[0].0, children[1].0, children[2].0, children[3].0),
+            current_hash = QuadTree::hash_children(
+                level as u8 + 1,
+                children[0],
+                children[1],
+                children[2],
+                children[3],
             );
-            current_hash = StateCommitment(parent_hash);
             current_position /= 4;
         }
 
@@ -395,8 +393,9 @@ mod tests {
 
         let mut rng = rand::thread_rng();
         let asset_id = asset::Id(Fq::from(1000u64));
-        let issuer_dk_pub = decaf377::Element::GENERATOR;
-        let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::from(999u64);
+        let issuer_dk_pub = *shieldd_sdk_crypto::generators::SPEND_AUTH;
+        let ring_pk =
+            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * shieldd_sdk_crypto::Fr::from(999u64);
 
         state
             .test_only_register_asset(
@@ -413,7 +412,7 @@ mod tests {
             sender_address.clone(),
             asset_id,
             ring_pk,
-            sender_address.diversified_generator() * decaf377::Fr::from(999u64),
+            sender_address.diversified_generator() * shieldd_sdk_crypto::Fr::from(999u64),
             Fq::from(1u64),
         )
         .unwrap();
@@ -421,7 +420,7 @@ mod tests {
             receiver_address.clone(),
             asset_id,
             ring_pk,
-            receiver_address.diversified_generator() * decaf377::Fr::from(999u64),
+            receiver_address.diversified_generator() * shieldd_sdk_crypto::Fr::from(999u64),
             Fq::from(2u64),
         )
         .unwrap();
@@ -451,7 +450,7 @@ mod tests {
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
+            &crate::audit_keys::test_keys(),
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
@@ -506,12 +505,12 @@ mod tests {
         let issuer_dk_pub = issuer_dk.public_key();
         let sender_address = test_helpers::make_address(1);
         let receiver_address = test_helpers::make_address(2);
-        let asset_id = asset::Id(decaf377::Fq::from(999999u64));
+        let asset_id = asset::Id(shieldd_sdk_crypto::Fq::from(999999u64));
         let amount = Amount::from(1_000_000u128);
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
+            &crate::audit_keys::test_keys(),
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
@@ -607,11 +606,11 @@ mod tests {
         assert_eq!(decrypted.amount, amount);
         assert_eq!(
             decrypted.sender_address.transmission_key,
-            sender_address.transmission_key().0
+            sender_address.transmission_key().to_bytes()
         );
         assert_eq!(
             decrypted.receiver_address.transmission_key,
-            receiver_address.transmission_key().0
+            receiver_address.transmission_key().to_bytes()
         );
     }
 }

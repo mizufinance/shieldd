@@ -1,8 +1,8 @@
 //! Flagged compliance decryption helpers.
 
 use anyhow::{ensure, Context};
-use decaf377::{Element, Fq, Fr};
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 use shieldd_sdk_num::Amount;
 
 use crate::crypto::{
@@ -14,7 +14,7 @@ use crate::withdrawal::WithdrawalComplianceCiphertext;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AddressData {
-    pub diversified_generator: Element,
+    pub diversified_generator: SubgroupPoint,
     pub transmission_key: [u8; 32],
 }
 
@@ -32,11 +32,14 @@ pub struct WithdrawalComplianceData {
     pub sender_address: AddressData,
 }
 
-fn decrypt_amount_with_seed(seed: decaf377::Fq, encrypted: &[u8]) -> anyhow::Result<Amount> {
+fn decrypt_amount_with_seed(
+    seed: shieldd_sdk_crypto::Fq,
+    encrypted: &[u8],
+) -> anyhow::Result<Amount> {
     let encrypted: [u8; 32] = encrypted
         .try_into()
         .context("transfer amount ciphertext must be one field element")?;
-    let ciphertext = Fq::from_bytes_checked(&encrypted)
+    let ciphertext = shieldd_sdk_crypto::encoding::field(&encrypted)
         .map_err(|_| anyhow::anyhow!("transfer amount ciphertext is not canonical"))?;
     let plaintext = (ciphertext - compliance_stream_block(seed, 0)).to_bytes();
     ensure!(
@@ -52,32 +55,36 @@ fn decrypt_amount_with_seed(seed: decaf377::Fq, encrypted: &[u8]) -> anyhow::Res
 /// Decrypt one core tier only when the candidate shared secret reproduces its
 /// non-indexing key confirmation. A mismatch is an authenticated non-match.
 pub fn decrypt_core_amount_if_key_matches(
-    shared_secret: &Element,
-    epk: &Element,
+    shared_secret: &SubgroupPoint,
+    epk: &SubgroupPoint,
     c2: Fq,
     key_confirmation: Fq,
     tier_salt: Fq,
     encrypted: &[u8],
 ) -> anyhow::Result<Option<Amount>> {
-    let seed = c2 - shared_secret.vartime_compress_to_field();
-    let expected = transfer_key_confirmation(seed, epk.vartime_compress_to_field(), tier_salt);
+    let seed = c2 - crate::crypto::shared_secret(shared_secret);
+    let expected = transfer_key_confirmation(seed, epk, tier_salt);
     if expected != key_confirmation {
         return Ok(None);
     }
     decrypt_amount_with_seed(seed, encrypted).map(Some)
 }
 
-fn decrypt_address_with_seed(seed: decaf377::Fq, encrypted: &[u8]) -> anyhow::Result<AddressData> {
-    let plaintext = decrypt_tier_bytes(encrypted, seed, 64);
+fn decrypt_address_with_seed(
+    seed: shieldd_sdk_crypto::Fq,
+    encrypted: &[u8],
+) -> anyhow::Result<AddressData> {
+    let plaintext = decrypt_tier_bytes(encrypted, seed, 64)?;
     let diversified_generator_bytes: [u8; 32] = plaintext[..32]
         .try_into()
         .context("transfer address diversified generator must be 32 bytes")?;
     let transmission_key: [u8; 32] = plaintext[32..64]
         .try_into()
         .context("transfer address transmission key must be 32 bytes")?;
-    let diversified_generator = decaf377::Encoding(diversified_generator_bytes)
-        .vartime_decompress()
-        .map_err(|_| anyhow::anyhow!("invalid transfer address diversified generator"))?;
+    let diversified_generator =
+        shieldd_sdk_crypto::encoding::nonidentity(&diversified_generator_bytes)
+            .map_err(|_| anyhow::anyhow!("invalid transfer address diversified generator"))?;
+    shieldd_sdk_crypto::encoding::nonidentity(&transmission_key)?;
     Ok(AddressData {
         diversified_generator,
         transmission_key,
@@ -103,9 +110,9 @@ pub fn decrypt_full_flagged(
     }
 
     let sender_ext_seed = ciphertext.sender_ext_c2
-        - (ciphertext.sender_ext_epk * *dk_secret).vartime_compress_to_field();
+        - crate::crypto::shared_secret(&(ciphertext.sender_ext_epk * *dk_secret));
     let output_ext_seed = ciphertext.output_ext_c2
-        - (ciphertext.output_ext_epk * *dk_secret).vartime_compress_to_field();
+        - crate::crypto::shared_secret(&(ciphertext.output_ext_epk * *dk_secret));
 
     let sender_amount = decrypt_core_amount_if_key_matches(
         &(ciphertext.sender_core_epk * *dk_secret),
@@ -187,20 +194,20 @@ mod tests {
         let dk_pub = dk.public_key();
         let sender_address = make_address(31);
         let receiver_address = make_address(32);
-        let asset_id = asset::Id(decaf377::Fq::from(4242u64));
+        let asset_id = asset::Id(shieldd_sdk_crypto::Fq::from(4242u64));
         let amount = Amount::from(1_000_000u128);
 
-        let sender_core_salt = decaf377::Fq::from(1u64);
-        let output_core_salt = decaf377::Fq::from(2u64);
+        let sender_core_salt = shieldd_sdk_crypto::Fq::from(1u64);
+        let output_core_salt = shieldd_sdk_crypto::Fq::from(2u64);
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
+            &crate::audit_keys::test_keys(),
             &dk_pub,
             &receiver_address,
             &sender_address,
             Value { amount, asset_id },
             true,
-            decaf377::Fq::from(0u64),
+            shieldd_sdk_crypto::Fq::from(0u64),
             sender_core_salt,
             output_core_salt,
         )
@@ -220,11 +227,11 @@ mod tests {
         assert_eq!(decrypted.amount, amount);
         assert_eq!(
             decrypted.sender_address.transmission_key,
-            sender_address.transmission_key().0
+            sender_address.transmission_key().to_bytes()
         );
         assert_eq!(
             decrypted.receiver_address.transmission_key,
-            receiver_address.transmission_key().0
+            receiver_address.transmission_key().to_bytes()
         );
     }
 
@@ -234,13 +241,13 @@ mod tests {
         let dk_pub = dk.public_key();
         let sender_address = make_address(41);
         let receiver_address = make_address(42);
-        let asset_id = asset::Id(decaf377::Fq::from(999u64));
+        let asset_id = asset::Id(shieldd_sdk_crypto::Fq::from(999u64));
 
-        let sender_core_salt = decaf377::Fq::from(2u64);
-        let output_core_salt = decaf377::Fq::from(3u64);
+        let sender_core_salt = shieldd_sdk_crypto::Fq::from(2u64);
+        let output_core_salt = shieldd_sdk_crypto::Fq::from(3u64);
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
+            &crate::audit_keys::test_keys(),
             &dk_pub,
             &receiver_address,
             &sender_address,
@@ -249,7 +256,7 @@ mod tests {
                 asset_id,
             },
             false,
-            decaf377::Fq::from(1u64),
+            shieldd_sdk_crypto::Fq::from(1u64),
             sender_core_salt,
             output_core_salt,
         )
@@ -268,14 +275,14 @@ mod tests {
 
     #[test]
     fn core_key_confirmation_distinguishes_match_from_non_match() {
-        let epk = Element::GENERATOR * Fr::from(7u64);
-        let shared = Element::GENERATOR * Fr::from(11u64);
+        let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(7u64);
+        let shared = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(11u64);
         let seed = Fq::from(19u64);
         let salt = Fq::from(23u64);
         let amount = Amount::from(29u128);
-        let c2 = seed + shared.vartime_compress_to_field();
+        let c2 = seed + crate::crypto::shared_secret(&shared);
         let encrypted = crate::crypto::encrypt_tier_bytes(&amount.to_le_bytes(), seed);
-        let confirmation = transfer_key_confirmation(seed, epk.vartime_compress_to_field(), salt);
+        let confirmation = transfer_key_confirmation(seed, &epk, salt);
 
         assert_eq!(
             decrypt_core_amount_if_key_matches(&shared, &epk, c2, confirmation, salt, &encrypted,)
@@ -284,7 +291,7 @@ mod tests {
         );
         assert_eq!(
             decrypt_core_amount_if_key_matches(
-                &(shared + Element::GENERATOR),
+                &(shared + (*shieldd_sdk_crypto::generators::SPEND_AUTH)),
                 &epk,
                 c2,
                 confirmation,

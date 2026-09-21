@@ -1,12 +1,10 @@
-use anyhow::{anyhow, ensure, Result};
-use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_snark::SNARK;
-use decaf377::{Bls12_377, Fq, Fr};
-use decaf377_rdsa::{SpendAuth, VerificationKey};
+use anyhow::{ensure, Result};
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::{
     ComplianceLeaf, IndexedLeaf, MerklePath, WithdrawalComplianceCiphertext,
 };
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
@@ -19,33 +17,6 @@ use crate::{
 };
 
 use super::ShieldedWithdrawalFamilyId;
-
-impl ShieldedWithdrawalFamilyId {
-    pub fn deployed_proof_key(self) -> shieldd_sdk_proof_params::DeployedProofKey {
-        match self.get() {
-            1 => shieldd_sdk_proof_params::DeployedProofKey::ShieldedWithdrawalCanonical,
-            unknown => {
-                panic!("validated shielded withdrawal family has unknown id {unknown}")
-            }
-        }
-    }
-
-    pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        self.deployed_proof_key().bundled_pvk()
-    }
-
-    pub fn proving_key_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::shielded_withdrawal_proving_key_bytes(self.get())
-    }
-
-    pub fn verifying_key_json_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::shielded_withdrawal_verifying_key_json_bytes(self.get())
-    }
-
-    pub fn circuit_metadata_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::shielded_withdrawal_circuit_metadata(self.get())
-    }
-}
 
 #[derive(Clone, Debug, Default)]
 pub struct ShieldedWithdrawalProof {
@@ -93,7 +64,9 @@ pub(crate) fn withdrawal_effect_hash_limbs(bytes: &[u8]) -> [Fq; 4] {
     );
     std::array::from_fn(|index| {
         let start = index * 16;
-        Fq::from_le_bytes_mod_order(&bytes[start..start + 16])
+        Fq::from(shieldd_sdk_num::Amount::from(u128::from_le_bytes(
+            bytes[start..start + 16].try_into().expect("128-bit limb"),
+        )))
     })
 }
 
@@ -113,7 +86,7 @@ impl ShieldedWithdrawalProofPublic {
         Ok(())
     }
 
-    pub fn statement_hash(&self) -> Result<Fq, crate::public_input_hash::StatementHashError> {
+    pub fn statement_hash(&self) -> Result<Fq> {
         shielded_withdrawal_statement_hash_from_public(self)
     }
 }
@@ -172,76 +145,60 @@ impl ShieldedWithdrawalProofPrivate {
 }
 
 impl ShieldedWithdrawalProof {
-    fn decoded_proof(&self) -> anyhow::Result<Proof<decaf377::Bls12_377>> {
-        crate::groth16_proof::decode(&self.inner)
-    }
-
     pub(crate) fn to_batch_item(
         &self,
         public: &ShieldedWithdrawalProofPublic,
-    ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
-        let statement_hash = public.statement_hash()?;
-        let proof = self.decoded_proof()?;
-
-        Ok(shieldd_sdk_proof_params::batch::BatchItem {
-            proof,
-            public_inputs: vec![statement_hash],
+    ) -> Result<shieldd_sdk_proof_params::pari::Verification> {
+        let envelope =
+            crate::proof::decode(&self.inner, shieldd_sdk_circuits::proof::Family::Withdrawal)?;
+        Ok(shieldd_sdk_proof_params::pari::Verification {
+            family: shieldd_sdk_circuits::proof::Family::Withdrawal,
+            statement: shieldd_sdk_circuits::encoding::field(&public.statement_hash()?),
+            envelope,
         })
     }
 
-    pub fn verify(&self, public: &ShieldedWithdrawalProofPublic) -> anyhow::Result<()> {
-        self.verify_with_prepared_vk(public, public.family_id.proof_verification_key())
-    }
-
-    pub fn verify_with_prepared_vk(
+    pub fn verify(
         &self,
         public: &ShieldedWithdrawalProofPublic,
-        vk: &PreparedVerifyingKey<Bls12_377>,
-    ) -> anyhow::Result<()> {
-        let item = self.to_batch_item(public)?;
-        let proof_result =
-            Groth16::<decaf377::Bls12_377, LibsnarkReduction>::verify_with_processed_vk(
-                vk,
-                item.public_inputs.as_slice(),
-                &item.proof,
-            )
-            .map_err(|err| anyhow!(err))?;
-
-        proof_result
-            .then_some(())
-            .ok_or_else(|| anyhow!("{} proof did not verify", public.family_id.label()))
+        registry: &shieldd_sdk_proof_params::pari::Registry,
+    ) -> Result<()> {
+        registry
+            .verify_item(&self.to_batch_item(public)?)
+            .map(|_| ())
     }
 
-    pub fn for_family(&self, _family_id: ShieldedWithdrawalFamilyId) -> Result<()> {
-        self.decoded_proof()?;
+    pub fn validate_encoding(&self) -> Result<()> {
+        let decoded = shieldd_sdk_circuits::proof::Envelope::from_bytes(&self.inner)?;
+        ensure!(
+            decoded.family() == shieldd_sdk_circuits::proof::Family::Withdrawal,
+            "wrong proof family"
+        );
         Ok(())
     }
 
-    #[cfg(all(feature = "prover", any(unix, windows)))]
     pub fn prove(
         public: ShieldedWithdrawalProofPublic,
         private: ShieldedWithdrawalProofPrivate,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Self, crate::ProofError> {
-        let family_id = public.family_id;
-        public
-            .validate_shape()
-            .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        private
-            .validate_shape()
-            .map_err(|e| crate::ProofError::InvalidPrivateInput(e.to_string()))?;
-        if private.family_id != family_id {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "shielded withdrawal family mismatch: public={} private={}",
-                family_id.label(),
-                private.family_id.label(),
-            )));
-        }
-
-        super::prover_runtime::prove_with_runtime(public, private).map_err(|e| {
-            crate::ProofError::ProofGenerationFailed(format!(
-                "gnark {} prove: {e}",
-                family_id.label()
-            ))
+        (|| -> Result<Self> {
+            let witness = crate::pari::withdrawal(&public, &private)?;
+            let proof = registry.prove(
+                &witness,
+                shieldd_sdk_proof_params::pari::proving_strategy()?,
+            )?;
+            registry.verify(
+                shieldd_sdk_circuits::proof::Family::Withdrawal,
+                &shieldd_sdk_circuits::encoding::field(&public.statement_hash()?),
+                &proof,
+            )?;
+            Ok(Self {
+                inner: proof.to_bytes(),
+            })
+        })()
+        .map_err(|error| {
+            crate::ProofError::ProofGenerationFailed(format!("Pari withdrawal: {error:#}"))
         })
     }
 }
@@ -261,7 +218,7 @@ impl TryFrom<pb::ZkShieldedWithdrawalProof> for ShieldedWithdrawalProof {
 
     fn try_from(value: pb::ZkShieldedWithdrawalProof) -> Result<Self, Self::Error> {
         let proof = Self { inner: value.inner };
-        proof.for_family(ShieldedWithdrawalFamilyId::Canonical)?;
+        proof.validate_encoding()?;
         Ok(proof)
     }
 }
@@ -269,19 +226,10 @@ impl TryFrom<pb::ZkShieldedWithdrawalProof> for ShieldedWithdrawalProof {
 #[cfg(test)]
 mod tests {
     use super::{withdrawal_effect_hash_limbs, ShieldedWithdrawalProof};
+    use crate::test_proof_helpers::proof_test_helpers::registry;
     use crate::{test_proof_helpers::proof_test_helpers, ShieldedWithdrawalFamilyId};
-    use decaf377::Fq;
     use rand::SeedableRng;
-
-    #[test]
-    fn withdrawal_deployed_key_mapping_matches_generated_registry_for_every_family() {
-        for family in ShieldedWithdrawalFamilyId::ALL {
-            assert!(std::ptr::eq(
-                family.deployed_proof_key().bundled_pvk(),
-                shieldd_sdk_proof_params::shielded_withdrawal_proof_verification_key(family.get(),),
-            ));
-        }
-    }
+    use shieldd_sdk_crypto::Fq;
 
     #[test]
     fn shielded_withdrawal_rejects_wrong_public_shape() {
@@ -314,34 +262,35 @@ mod tests {
 
         assert_eq!(
             withdrawal_effect_hash_limbs(&bytes),
-            expected.map(|value| Fq::from_le_bytes_mod_order(&value.to_le_bytes()))
+            expected.map(|value| Fq::from(shieldd_sdk_num::Amount::from(value)))
         );
     }
 
     #[cfg(all(feature = "prover", any(unix, windows)))]
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_shielded_withdrawal_proof_roundtrip() {
-        crate::gnark::require_proof_test_runtime(crate::gnark::ProofTestFamily::Withdrawal)
-            .expect("proof test prerequisites must be present");
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn pari_proof_shielded_withdrawal_proof_roundtrip() {
+        let _ = registry();
 
         let (public, private) = proof_test_helpers::build_shielded_withdrawal_roundtrip_inputs(
             ShieldedWithdrawalFamilyId::Canonical,
             true,
         );
-        let proof =
-            ShieldedWithdrawalProof::prove(public.clone(), private).unwrap_or_else(|error| {
+        let proof = ShieldedWithdrawalProof::prove(public.clone(), private, registry())
+            .unwrap_or_else(|error| {
                 panic!("can generate {} proof: {error}", public.family_id.label());
             });
         let item = proof
             .to_batch_item(&public)
             .expect("can build shielded withdrawal batch item");
-        assert_eq!(item.public_inputs.len(), 1);
-        proof.verify(&public).expect("proof should verify");
+        assert_eq!(item.family, shieldd_sdk_circuits::proof::Family::Withdrawal);
+        proof
+            .verify(&public, registry())
+            .expect("proof should verify");
 
         let reject = |label: &str, changed: crate::ShieldedWithdrawalProofPublic| {
             assert!(
-                proof.verify(&changed).is_err(),
+                proof.verify(&changed, registry()).is_err(),
                 "proof must reject mutated {label}"
             );
         };
@@ -364,7 +313,7 @@ mod tests {
         changed.outbound_amount += Fq::from(1u64);
         reject("outbound amount", changed);
         let mut changed = public.clone();
-        changed.withdrawal_compliance_ciphertext.epk += decaf377::Element::GENERATOR;
+        changed.withdrawal_compliance_ciphertext.epk += *shieldd_sdk_crypto::generators::SPEND_AUTH;
         reject("sender epk", changed);
         let mut changed = public.clone();
         changed.withdrawal_compliance_ciphertext.c2 += Fq::from(1u64);
@@ -377,8 +326,8 @@ mod tests {
             let word = &mut changed
                 .withdrawal_compliance_ciphertext
                 .encrypted_sender_address[index * 32..(index + 1) * 32];
-            let value =
-                Fq::from_bytes_checked((&*word).try_into().unwrap()).unwrap() + Fq::from(1u64);
+            let value = shieldd_sdk_crypto::encoding::field((&*word).try_into().unwrap()).unwrap()
+                + Fq::from(1u64);
             word.copy_from_slice(&value.to_bytes());
             reject("sender ciphertext", changed);
         }
@@ -386,10 +335,9 @@ mod tests {
 
     #[cfg(all(feature = "prover", any(unix, windows)))]
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_shielded_withdrawal_accumulator_branches_roundtrip() {
-        crate::gnark::require_proof_test_runtime(crate::gnark::ProofTestFamily::Withdrawal)
-            .expect("proof test prerequisites must be present");
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn pari_proof_shielded_withdrawal_accumulator_branches_roundtrip() {
+        let _ = registry();
 
         for (seed, mode) in [
             (
@@ -412,10 +360,10 @@ mod tests {
                     2,
                     mode,
                 );
-            let proof = ShieldedWithdrawalProof::prove(public.clone(), private)
+            let proof = ShieldedWithdrawalProof::prove(public.clone(), private, registry())
                 .expect("withdrawal accumulator branch should prove");
             proof
-                .verify(&public)
+                .verify(&public, registry())
                 .expect("withdrawal accumulator branch should verify");
         }
     }

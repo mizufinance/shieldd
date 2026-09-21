@@ -1,3 +1,4 @@
+-- Cryptographic suite: shieldd-jubjub-pari-v1.
 -- The hash of this schema file
 CREATE TABLE schema_hash (schema_hash TEXT NOT NULL);
 
@@ -150,6 +151,8 @@ CREATE TABLE historical_proof_cache (
     nullifier                   BLOB PRIMARY KEY NOT NULL,
     protocol_version            BIGINT NOT NULL,
     proof_bundle                BLOB NOT NULL,
+    registry_id                 BLOB,
+    pending_witnesses           BLOB NOT NULL,
     cache_state                 TINYINT NOT NULL,
     last_error                  TEXT
 );
@@ -197,7 +200,7 @@ CREATE TABLE compliance_asset_leaves (
     policy_id_hash BLOB NOT NULL,  -- 32 bytes Fq
     permission_hash BLOB NOT NULL, -- 32 bytes Fq
     resource_hash BLOB NOT NULL,    -- 32 bytes Fq
-    audit_keys BLOB NOT NULL CHECK(length(audit_keys) = 136)
+    audit_keys BLOB NOT NULL CHECK(length(audit_keys) = 137)
 );
 
 -- Internal hashes for asset tree auth paths
@@ -222,8 +225,8 @@ CREATE TABLE compliance_user_leaf_data (
     address BLOB NOT NULL,
     asset_id BLOB NOT NULL,
     position BIGINT NOT NULL,
-    capk BLOB NOT NULL,                -- 32-byte compressed Decaf point
-    rnk_dh_pk BLOB NOT NULL,           -- 32-byte compressed Decaf point
+    capk BLOB NOT NULL,                -- 32-byte compressed Jubjub point
+    rnk_dh_pk BLOB NOT NULL,           -- 32-byte compressed Jubjub point
     rnk_commitment BLOB NOT NULL,      -- 32-byte Fq
     status INTEGER NOT NULL,
     freeze_generation BIGINT NOT NULL,

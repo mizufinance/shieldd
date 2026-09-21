@@ -22,6 +22,9 @@ struct Case {
 
 fn main() -> Result<()> {
     ensure!(cfg!(debug_assertions), "requires a development build");
+    let registry = shieldd_sdk_proof_params::pari::Registry::load(&PathBuf::from(
+        std::env::var("SHIELDD_PARI_KEYS").context("SHIELDD_PARI_KEYS is required")?,
+    ))?;
     let mut args = std::env::args().skip(1);
     let input = args
         .next()
@@ -77,13 +80,13 @@ fn main() -> Result<()> {
         let package = match name {
             "openings" => sdk::export_openings(&witness)?,
             "payload-keys" => sdk::export_payload_keys(&witness)?,
-            _ => sdk::prove(&witness)?,
+            _ => sdk::prove(&witness, &registry)?,
         };
         ensure!(
             package.statement.outputs[0].predicate_result == predicate,
             "unexpected predicate result"
         );
-        sdk::verify(&package)?;
+        sdk::verify(&package, Some(&registry))?;
         let path = output.join(format!("{name}.json"));
         std::fs::write(&path, serde_json::to_vec_pretty(&package)?)?;
         cases.push(Case {

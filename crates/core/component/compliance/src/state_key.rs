@@ -81,13 +81,11 @@ pub fn compliance_registrar_vk_prefix() -> &'static str {
 }
 
 /// State key for a compliance registrar verification key.
-pub fn compliance_registrar_vk(
-    vk: &decaf377_rdsa::VerificationKey<decaf377_rdsa::SpendAuth>,
-) -> String {
+pub fn compliance_registrar_vk(vk: &reddsa::VerificationKey<reddsa::sapling::SpendAuth>) -> String {
     format!(
         "{}{}",
         compliance_registrar_vk_prefix(),
-        hex::encode(vk.to_bytes())
+        hex::encode(<[u8; 32]>::from(*vk))
     )
 }
 

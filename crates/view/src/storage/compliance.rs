@@ -779,7 +779,7 @@ mod tests {
             policy_id_hash: [13u8; 32],
             permission_hash: [14u8; 32],
             resource_hash: [15u8; 32],
-            audit_keys: shieldd_sdk_compliance::AuditKeys::test_keys(),
+            audit_keys: shieldd_sdk_compliance::audit_keys::test_keys(),
         };
         store.add_asset_leaf(0, leaf).unwrap();
         let retrieved = store.get_asset_leaf(0).unwrap().unwrap();

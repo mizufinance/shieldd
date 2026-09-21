@@ -2,8 +2,7 @@
 
 // Route Rust-side allocations through jemalloc. Halves steady-state RSS versus the
 // system allocator by returning freed memory promptly instead of holding it in
-// per-thread arenas. Note: this only covers Rust allocations, not RocksDB's C++
-// nor the embedded gnark Go runtime.
+// per-thread arenas. Note: this only covers Rust allocations, not RocksDB's C++ allocations.
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
@@ -25,3 +24,18 @@ pub use service::{ErrorKind, ExecutionService, ServiceError};
 
 #[cfg(test)]
 mod service_contract_tests;
+
+#[cfg(test)]
+fn test_registry() -> std::sync::Arc<shieldd_sdk_proof_params::pari::Registry> {
+    static KEYS: std::sync::OnceLock<std::sync::Arc<shieldd_sdk_proof_params::pari::Registry>> =
+        std::sync::OnceLock::new();
+    KEYS.get_or_init(|| {
+        std::sync::Arc::new(
+            shieldd_sdk_proof_params::pari::Registry::load(
+                std::env::var("SHIELDD_PARI_KEYS").expect("tests require local Pari keys"),
+            )
+            .expect("valid test registry"),
+        )
+    })
+    .clone()
+}

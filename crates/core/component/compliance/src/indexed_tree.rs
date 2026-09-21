@@ -1,8 +1,9 @@
 use anyhow::{anyhow, bail, Result};
-use ark_ff::{BigInteger, PrimeField};
-use decaf377::Fq;
+use ff::Field;
+use group::GroupEncoding;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{audit::point_fields, domains, poseidon, Fq};
 use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType};
 use shieldd_sdk_tct::StateCommitment;
 use std::collections::{BTreeMap, BTreeSet};
@@ -10,10 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::structs::{canonical_route_policy_string, AssetParams, AssetPolicy, RingData};
 use crate::tree::DEFAULT_DEPTH;
 
-/// Canonical numeric ordering key for `Fq`.
-///
-/// `into_bigint()` returns canonical non-Montgomery limbs. Serializing those
-/// limbs big-endian makes lexicographic byte ordering equal numeric ordering.
+/// Big-endian canonical field bytes preserve numeric ordering.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FqOrdKey([u8; 32]);
 
@@ -33,9 +31,8 @@ impl FqOrdKey {
 
 impl From<Fq> for FqOrdKey {
     fn from(value: Fq) -> Self {
-        let bytes = value.into_bigint().to_bytes_be();
-        let mut key = [0u8; 32];
-        key.copy_from_slice(&bytes);
+        let mut key = value.to_bytes();
+        key.reverse();
         Self(key)
     }
 }
@@ -46,32 +43,6 @@ fn fq_less_than(a: &Fq, b: &Fq) -> bool {
     FqOrdKey::from(*a) < FqOrdKey::from(*b)
 }
 
-// --- Domain separators ---
-
-/// Domain separator for IMT leaf commitments.
-pub static IMT_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    let hash = blake2b_simd::Params::default()
-        .personal(b"pen.imt.leaf____")
-        .hash(b"");
-    Fq::from_le_bytes_mod_order(hash.as_bytes())
-});
-
-/// Domain separator for params sub-hash (Shieldd-decided: dk_pub, daily_volume_limit, IBC route policy).
-pub static PARAMS_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    let hash = blake2b_simd::Params::default()
-        .personal(b"pen.imt.params2_")
-        .hash(b"");
-    Fq::from_le_bytes_mod_order(hash.as_bytes())
-});
-
-/// Domain separator for ring sub-hash (Orbis-decided: ring_pk, ring_id, policy_id, permission, resource).
-pub static RING_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    let hash = blake2b_simd::Params::default()
-        .personal(b"pen.imt.ring____")
-        .hash(b"");
-    Fq::from_le_bytes_mod_order(hash.as_bytes())
-});
-
 /// The maximum value representable in the field (modulus - 1).
 pub static FQ_MAX: Lazy<Fq> = Lazy::new(|| Fq::from(0u64) - Fq::from(1u64));
 
@@ -79,11 +50,7 @@ pub static FQ_MAX: Lazy<Fq> = Lazy::new(|| Fq::from(0u64) - Fq::from(1u64));
 
 /// Hash a string to a field element for inclusion in the IMT leaf commitment.
 pub fn string_to_fq(s: &str) -> Fq {
-    let hash = blake2b_simd::Params::new()
-        .hash_length(64)
-        .personal(b"pen.imt.str_hash")
-        .hash(s.as_bytes());
-    Fq::from_le_bytes_mod_order(hash.as_bytes())
+    poseidon::policy_identifier(s.as_bytes())
 }
 
 /// Hash a canonical IBC route policy to a field element.
@@ -99,7 +66,7 @@ pub fn route_policy_to_fq(params: &AssetParams) -> Fq {
 /// Shieldd-decided policy fields bound into the IMT leaf.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LeafParams {
-    pub dk_pub: decaf377::Element,
+    pub dk_pub: shieldd_sdk_crypto::SubgroupPoint,
     pub daily_volume_limit: u128,
     pub route_policy_hash: Fq,
 }
@@ -118,7 +85,7 @@ impl LeafParams {
 impl Default for LeafParams {
     fn default() -> Self {
         Self {
-            dk_pub: *crate::crypto::UNREGULATED_SINK_DK_PUB,
+            dk_pub: *crate::crypto::UNREGULATED_DETECTION,
             daily_volume_limit: u128::MAX,
             route_policy_hash: string_to_fq(""),
         }
@@ -129,7 +96,7 @@ impl Default for LeafParams {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LeafRing {
     pub audit_keys: crate::AuditKeys,
-    pub ring_pk: decaf377::Element,
+    pub ring_pk: shieldd_sdk_crypto::SubgroupPoint,
     pub ring_id_hash: Fq,
     pub policy_id_hash: Fq,
     pub permission_hash: Fq,
@@ -154,7 +121,7 @@ impl Default for LeafRing {
     fn default() -> Self {
         Self {
             audit_keys: crate::AuditKeys::unregulated(),
-            ring_pk: *crate::crypto::UNREGULATED_SINK_RING_PK,
+            ring_pk: *crate::crypto::UNREGULATED_RING,
             ring_id_hash: string_to_fq(""),
             policy_id_hash: string_to_fq(""),
             permission_hash: string_to_fq(""),
@@ -165,52 +132,65 @@ impl Default for LeafRing {
 
 // --- Precomputed default sub-hashes ---
 
-static DEFAULT_PARAMS_HASH: Lazy<Fq> = Lazy::new(|| {
-    let p = LeafParams::default();
-    let dk_pub_fq = p.dk_pub.vartime_compress_to_field();
-    let daily_volume_limit_fq = Fq::from(p.daily_volume_limit);
-    poseidon377::hash_3(
-        &PARAMS_DOMAIN_SEP,
-        (dk_pub_fq, daily_volume_limit_fq, p.route_policy_hash),
+fn params_hash(params: &LeafParams) -> Fq {
+    let [x, y] = point_fields(&params.dk_pub);
+    let amount = Fq::from_raw([
+        params.daily_volume_limit as u64,
+        (params.daily_volume_limit >> 64) as u64,
+        0,
+        0,
+    ]);
+    poseidon::hash(
+        domains::REGISTRY_PARAMETERS,
+        &[x, y, amount, params.route_policy_hash],
     )
-});
+}
 
-static DEFAULT_RING_HASH: Lazy<Fq> = Lazy::new(|| {
-    let r = LeafRing::default();
-    let ring_pk_fq = r.ring_pk.vartime_compress_to_field();
-    let base = poseidon377::hash_5(
-        &RING_DOMAIN_SEP,
-        (
-            ring_pk_fq,
-            r.ring_id_hash,
-            r.policy_id_hash,
-            r.permission_hash,
-            r.resource_hash,
-        ),
+fn ring_hash(ring: &LeafRing) -> Fq {
+    let [x, y] = point_fields(&ring.ring_pk);
+    let base = poseidon::hash(
+        domains::REGISTRY_RING,
+        &[
+            x,
+            y,
+            ring.ring_id_hash,
+            ring.policy_id_hash,
+            ring.permission_hash,
+            ring.resource_hash,
+        ],
     );
-    poseidon377::hash_2(&RING_DOMAIN_SEP, (base, r.audit_keys.commitment()))
-});
+    poseidon::hash(
+        domains::REGISTRY_RING,
+        &[base, ring.audit_keys.commitment()],
+    )
+}
+
+static DEFAULT_PARAMS_HASH: Lazy<Fq> = Lazy::new(|| params_hash(&LeafParams::default()));
+static DEFAULT_RING_HASH: Lazy<Fq> = Lazy::new(|| ring_hash(&LeafRing::default()));
 
 /// Precomputed zero hashes for each level of the IMT.
 pub static IMT_ZERO_HASHES: Lazy<Vec<StateCommitment>> = Lazy::new(|| {
     let mut zeros = Vec::with_capacity((DEFAULT_DEPTH + 1) as usize);
 
     // Level 0: empty leaf with default (unregulated) policy
-    let empty_leaf_hash = poseidon377::hash_5(
-        &IMT_LEAF_DOMAIN_SEP,
-        (
+    let empty_leaf_hash = poseidon::hash(
+        domains::REGISTRY_LEAF,
+        &[
             Fq::from(0u64),       // value
             Fq::from(0u64),       // next_index
             Fq::from(0u64),       // next_value
             *DEFAULT_PARAMS_HASH, // params sub-hash
             *DEFAULT_RING_HASH,   // ring sub-hash
-        ),
+        ],
     );
     zeros.push(StateCommitment(empty_leaf_hash));
 
     for i in 1..=(DEFAULT_DEPTH as usize) {
         let prev = zeros[i - 1].0;
-        let hash = poseidon377::hash_4(&Fq::from(0u64), (prev, prev, prev, prev));
+        let hash = poseidon::hash(
+            domains::ASSET_TREE,
+            &[Fq::from(i as u64), prev, prev, prev, prev],
+        );
         zeros.push(StateCommitment(hash));
     }
 
@@ -221,10 +201,7 @@ pub static IMT_ZERO_HASHES: Lazy<Vec<StateCommitment>> = Lazy::new(|| {
 
 /// A leaf in the Indexed Merkle Tree forming a sorted linked list.
 ///
-/// All policy fields are bound into the commitment via sub-structured Poseidon:
-///   params_hash = hash_3(PARAMS_DOMAIN, dk_pub_fq, daily_volume_limit_fq, route_policy_hash)
-///   ring_hash   = hash_5(RING_DOMAIN, ring_pk_fq, ring_id_hash, policy_id_hash, permission_hash, resource_hash)
-///   leaf_commit = hash_5(LEAF_DOMAIN, value, next_index, next_value, params_hash, ring_hash)
+/// Commits policy subhashes, both point coordinates, and the audit-key bundle.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IndexedLeaf {
     /// The value stored in this leaf (e.g., asset_id).
@@ -297,63 +274,36 @@ impl IndexedLeaf {
 
     /// Compute the canonical policy sub-commitments for this leaf.
     pub fn commitment_parts(&self) -> IndexedLeafCommitments {
-        let dk_pub_fq = self.params.dk_pub.vartime_compress_to_field();
-        let daily_volume_limit_fq = Fq::from(self.params.daily_volume_limit);
-        let params_hash = poseidon377::hash_3(
-            &PARAMS_DOMAIN_SEP,
-            (
-                dk_pub_fq,
-                daily_volume_limit_fq,
-                self.params.route_policy_hash,
-            ),
-        );
-
-        let ring_pk_fq = self.ring.ring_pk.vartime_compress_to_field();
-        let base_ring_hash = poseidon377::hash_5(
-            &RING_DOMAIN_SEP,
-            (
-                ring_pk_fq,
-                self.ring.ring_id_hash,
-                self.ring.policy_id_hash,
-                self.ring.permission_hash,
-                self.ring.resource_hash,
-            ),
-        );
-
-        let ring_hash = poseidon377::hash_2(
-            &RING_DOMAIN_SEP,
-            (base_ring_hash, self.ring.audit_keys.commitment()),
-        );
         IndexedLeafCommitments {
-            params_hash,
-            ring_hash,
+            params_hash: params_hash(&self.params),
+            ring_hash: ring_hash(&self.ring),
         }
     }
 
     /// Compute the Poseidon commitment for this leaf (3 hashes).
     pub fn commit(&self) -> StateCommitment {
         let parts = self.commitment_parts();
-        let hash = poseidon377::hash_5(
-            &IMT_LEAF_DOMAIN_SEP,
-            (
+        let hash = poseidon::hash(
+            domains::REGISTRY_LEAF,
+            &[
                 self.value,
                 Fq::from(self.next_index),
                 self.next_value,
                 parts.params_hash,
                 parts.ring_hash,
-            ),
+            ],
         );
         StateCommitment(hash)
     }
 
     /// Convenience accessors for circuit-relevant policy fields.
-    pub fn dk_pub(&self) -> &decaf377::Element {
+    pub fn dk_pub(&self) -> &shieldd_sdk_crypto::SubgroupPoint {
         &self.params.dk_pub
     }
     pub fn daily_volume_limit(&self) -> u128 {
         self.params.daily_volume_limit
     }
-    pub fn ring_pk(&self) -> &decaf377::Element {
+    pub fn ring_pk(&self) -> &shieldd_sdk_crypto::SubgroupPoint {
         &self.ring.ring_pk
     }
 }
@@ -385,10 +335,10 @@ impl Serialize for IndexedLeaf {
             value: self.value.to_bytes(),
             next_index: self.next_index,
             next_value: self.next_value.to_bytes(),
-            dk_pub: self.params.dk_pub.vartime_compress().0,
+            dk_pub: self.params.dk_pub.to_bytes(),
             daily_volume_limit: self.params.daily_volume_limit,
             route_policy_hash: self.params.route_policy_hash.to_bytes(),
-            ring_pk: self.ring.ring_pk.vartime_compress().0,
+            ring_pk: self.ring.ring_pk.to_bytes(),
             ring_id_hash: self.ring.ring_id_hash.to_bytes(),
             policy_id_hash: self.ring.policy_id_hash.to_bytes(),
             permission_hash: self.ring.permission_hash.to_bytes(),
@@ -406,25 +356,23 @@ impl<'de> Deserialize<'de> for IndexedLeaf {
     {
         let h = IndexedLeafSerde::deserialize(deserializer)?;
 
-        let value = Fq::from_bytes_checked(&h.value)
+        let value = shieldd_sdk_crypto::encoding::field(&h.value)
             .map_err(|_| serde::de::Error::custom("invalid value Fq bytes"))?;
-        let next_value = Fq::from_bytes_checked(&h.next_value)
+        let next_value = shieldd_sdk_crypto::encoding::field(&h.next_value)
             .map_err(|_| serde::de::Error::custom("invalid next_value Fq bytes"))?;
-        let dk_pub = decaf377::Encoding(h.dk_pub)
-            .vartime_decompress()
+        let dk_pub = shieldd_sdk_crypto::encoding::point(&h.dk_pub)
             .map_err(|_| serde::de::Error::custom("invalid dk_pub encoding"))?;
-        let route_policy_hash = Fq::from_bytes_checked(&h.route_policy_hash)
+        let route_policy_hash = shieldd_sdk_crypto::encoding::field(&h.route_policy_hash)
             .map_err(|_| serde::de::Error::custom("invalid route_policy_hash Fq bytes"))?;
-        let ring_pk = decaf377::Encoding(h.ring_pk)
-            .vartime_decompress()
+        let ring_pk = shieldd_sdk_crypto::encoding::point(&h.ring_pk)
             .map_err(|_| serde::de::Error::custom("invalid ring_pk encoding"))?;
-        let ring_id_hash = Fq::from_bytes_checked(&h.ring_id_hash)
+        let ring_id_hash = shieldd_sdk_crypto::encoding::field(&h.ring_id_hash)
             .map_err(|_| serde::de::Error::custom("invalid ring_id_hash Fq bytes"))?;
-        let policy_id_hash = Fq::from_bytes_checked(&h.policy_id_hash)
+        let policy_id_hash = shieldd_sdk_crypto::encoding::field(&h.policy_id_hash)
             .map_err(|_| serde::de::Error::custom("invalid policy_id_hash Fq bytes"))?;
-        let permission_hash = Fq::from_bytes_checked(&h.permission_hash)
+        let permission_hash = shieldd_sdk_crypto::encoding::field(&h.permission_hash)
             .map_err(|_| serde::de::Error::custom("invalid permission_hash Fq bytes"))?;
-        let resource_hash = Fq::from_bytes_checked(&h.resource_hash)
+        let resource_hash = shieldd_sdk_crypto::encoding::field(&h.resource_hash)
             .map_err(|_| serde::de::Error::custom("invalid resource_hash Fq bytes"))?;
 
         Ok(IndexedLeaf {
@@ -460,10 +408,10 @@ impl From<IndexedLeaf> for pb::IndexedLeafData {
             value: leaf.value.to_bytes().to_vec(),
             next_index: leaf.next_index,
             next_value: leaf.next_value.to_bytes().to_vec(),
-            dk_pub: leaf.params.dk_pub.vartime_compress().0.to_vec(),
+            dk_pub: leaf.params.dk_pub.to_bytes().to_vec(),
             daily_volume_limit: leaf.params.daily_volume_limit.to_le_bytes().to_vec(),
             route_policy_hash: leaf.params.route_policy_hash.to_bytes().to_vec(),
-            ring_pk: leaf.ring.ring_pk.vartime_compress().0.to_vec(),
+            ring_pk: leaf.ring.ring_pk.to_bytes().to_vec(),
             ring_id_hash: leaf.ring.ring_id_hash.to_bytes().to_vec(),
             policy_id_hash: leaf.ring.policy_id_hash.to_bytes().to_vec(),
             permission_hash: leaf.ring.permission_hash.to_bytes().to_vec(),
@@ -477,15 +425,15 @@ fn parse_fq(bytes: &[u8], field_name: &str) -> Result<Fq> {
     let arr: [u8; 32] = bytes
         .try_into()
         .map_err(|_| anyhow!("{} must be 32 bytes, got {}", field_name, bytes.len()))?;
-    Fq::from_bytes_checked(&arr).map_err(|_| anyhow!("invalid {} Fq bytes", field_name))
+    shieldd_sdk_crypto::encoding::field(&arr)
+        .map_err(|_| anyhow!("invalid {} Fq bytes", field_name))
 }
 
-fn parse_element(bytes: &[u8], field_name: &str) -> Result<decaf377::Element> {
+fn parse_element(bytes: &[u8], field_name: &str) -> Result<shieldd_sdk_crypto::SubgroupPoint> {
     let encoded: [u8; 32] = bytes
         .try_into()
         .map_err(|_| anyhow!("{} must be 32 bytes, got {}", field_name, bytes.len()))?;
-    decaf377::Encoding(encoded)
-        .vartime_decompress()
+    shieldd_sdk_crypto::encoding::point(&encoded)
         .map_err(|_| anyhow!("invalid {field_name} encoding"))
 }
 
@@ -523,10 +471,10 @@ impl TryFrom<pb::IndexedLeafData> for IndexedLeaf {
         let resource_hash = parse_fq(&proto.resource_hash, "resource_hash")?;
 
         Ok(IndexedLeaf {
-            value: Fq::from_bytes_checked(&value_bytes)
+            value: shieldd_sdk_crypto::encoding::field(&value_bytes)
                 .map_err(|e| anyhow!("invalid value: {}", e))?,
             next_index: proto.next_index,
-            next_value: Fq::from_bytes_checked(&next_value_bytes)
+            next_value: shieldd_sdk_crypto::encoding::field(&next_value_bytes)
                 .map_err(|e| anyhow!("invalid next_value: {}", e))?,
             params: LeafParams {
                 dk_pub,
@@ -597,10 +545,10 @@ impl Serialize for IndexedMerkleTree {
                         value: v.value.to_bytes(),
                         next_index: v.next_index,
                         next_value: v.next_value.to_bytes(),
-                        dk_pub: v.params.dk_pub.vartime_compress().0,
+                        dk_pub: v.params.dk_pub.to_bytes(),
                         daily_volume_limit: v.params.daily_volume_limit,
                         route_policy_hash: v.params.route_policy_hash.to_bytes(),
-                        ring_pk: v.ring.ring_pk.vartime_compress().0,
+                        ring_pk: v.ring.ring_pk.to_bytes(),
                         ring_id_hash: v.ring.ring_id_hash.to_bytes(),
                         policy_id_hash: v.ring.policy_id_hash.to_bytes(),
                         permission_hash: v.ring.permission_hash.to_bytes(),
@@ -637,7 +585,7 @@ impl<'de> Deserialize<'de> for IndexedMerkleTree {
             .nodes
             .into_iter()
             .map(|(k, bytes)| {
-                let fq = Fq::from_bytes_checked(&bytes)
+                let fq = shieldd_sdk_crypto::encoding::field(&bytes)
                     .map_err(|_| serde::de::Error::custom("invalid node Fq bytes"))?;
                 Ok((k, StateCommitment(fq)))
             })
@@ -653,25 +601,25 @@ impl<'de> Deserialize<'de> for IndexedMerkleTree {
             .leaves
             .into_iter()
             .map(|(k, h)| {
-                let value = Fq::from_bytes_checked(&h.value)
+                let value = shieldd_sdk_crypto::encoding::field(&h.value)
                     .map_err(|_| serde::de::Error::custom("invalid leaf value Fq bytes"))?;
-                let next_value = Fq::from_bytes_checked(&h.next_value)
+                let next_value = shieldd_sdk_crypto::encoding::field(&h.next_value)
                     .map_err(|_| serde::de::Error::custom("invalid leaf next_value Fq bytes"))?;
-                let dk_pub = decaf377::Encoding(h.dk_pub)
-                    .vartime_decompress()
+                let dk_pub = shieldd_sdk_crypto::encoding::point(&h.dk_pub)
                     .map_err(|_| serde::de::Error::custom("invalid dk_pub encoding"))?;
-                let route_policy_hash = Fq::from_bytes_checked(&h.route_policy_hash)
-                    .map_err(|_| serde::de::Error::custom("invalid route_policy_hash Fq bytes"))?;
-                let ring_pk = decaf377::Encoding(h.ring_pk)
-                    .vartime_decompress()
+                let route_policy_hash = shieldd_sdk_crypto::encoding::field(&h.route_policy_hash)
+                    .map_err(|_| {
+                    serde::de::Error::custom("invalid route_policy_hash Fq bytes")
+                })?;
+                let ring_pk = shieldd_sdk_crypto::encoding::point(&h.ring_pk)
                     .map_err(|_| serde::de::Error::custom("invalid ring_pk encoding"))?;
-                let ring_id_hash = Fq::from_bytes_checked(&h.ring_id_hash)
+                let ring_id_hash = shieldd_sdk_crypto::encoding::field(&h.ring_id_hash)
                     .map_err(|_| serde::de::Error::custom("invalid ring_id_hash Fq bytes"))?;
-                let policy_id_hash = Fq::from_bytes_checked(&h.policy_id_hash)
+                let policy_id_hash = shieldd_sdk_crypto::encoding::field(&h.policy_id_hash)
                     .map_err(|_| serde::de::Error::custom("invalid policy_id_hash Fq bytes"))?;
-                let permission_hash = Fq::from_bytes_checked(&h.permission_hash)
+                let permission_hash = shieldd_sdk_crypto::encoding::field(&h.permission_hash)
                     .map_err(|_| serde::de::Error::custom("invalid permission_hash Fq bytes"))?;
-                let resource_hash = Fq::from_bytes_checked(&h.resource_hash)
+                let resource_hash = shieldd_sdk_crypto::encoding::field(&h.resource_hash)
                     .map_err(|_| serde::de::Error::custom("invalid resource_hash Fq bytes"))?;
                 Ok((
                     k,
@@ -1038,12 +986,22 @@ impl IndexedMerkleTree {
     }
 
     pub fn hash_children(
+        height: u8,
         child0: StateCommitment,
         child1: StateCommitment,
         child2: StateCommitment,
         child3: StateCommitment,
     ) -> StateCommitment {
-        let hash = poseidon377::hash_4(&Fq::from(0u64), (child0.0, child1.0, child2.0, child3.0));
+        let hash = poseidon::hash(
+            domains::ASSET_TREE,
+            &[
+                Fq::from(u64::from(height)),
+                child0.0,
+                child1.0,
+                child2.0,
+                child3.0,
+            ],
+        );
         StateCommitment(hash)
     }
 
@@ -1060,7 +1018,7 @@ impl IndexedMerkleTree {
             let child2 = self.get_node(level, base_position + 2);
             let child3 = self.get_node(level, base_position + 3);
 
-            let parent_hash = Self::hash_children(child0, child1, child2, child3);
+            let parent_hash = Self::hash_children(level + 1, child0, child1, child2, child3);
             self.set_node(level + 1, parent_position, parent_hash);
 
             current_position = parent_position;
@@ -1443,10 +1401,17 @@ impl IndexedMerkleTree {
         expected_root: StateCommitment,
         depth: u8,
     ) -> bool {
+        if depth == 0
+            || depth > DEFAULT_DEPTH
+            || auth_path.len() != usize::from(depth)
+            || position >= (1u64 << (2 * depth))
+        {
+            return false;
+        }
         let mut current_hash = leaf.commit();
         let mut current_position = position;
 
-        for siblings in auth_path.iter().take(depth as usize) {
+        for (level, siblings) in auth_path.iter().take(depth as usize).enumerate() {
             let child_index = (current_position % 4) as usize;
 
             let children = match child_index {
@@ -1457,7 +1422,13 @@ impl IndexedMerkleTree {
                 _ => unreachable!(),
             };
 
-            current_hash = Self::hash_children(children[0], children[1], children[2], children[3]);
+            current_hash = Self::hash_children(
+                level as u8 + 1,
+                children[0],
+                children[1],
+                children[2],
+                children[3],
+            );
             current_position /= 4;
         }
 
@@ -1476,43 +1447,45 @@ pub fn recompute_root(
     leaf_commitment: StateCommitment,
     path: &crate::structs::MerklePath,
     position: u64,
-) -> StateCommitment {
+) -> anyhow::Result<StateCommitment> {
     use crate::tree::DEFAULT_DEPTH;
-
-    let mut current_hash = leaf_commitment;
-    let mut current_position = position;
-
-    for layer in path.layers.iter().take(DEFAULT_DEPTH as usize) {
-        let child_index = (current_position % 4) as usize;
-
-        if layer.siblings.len() != 3 {
-            tracing::error!(
-                "Invalid path layer: expected 3 siblings, got {}",
-                layer.siblings.len()
-            );
-            return StateCommitment(Fq::from(0u64));
+    anyhow::ensure!(
+        path.layers.len() == DEFAULT_DEPTH as usize,
+        "invalid asset path depth"
+    );
+    anyhow::ensure!(
+        position < (1u64 << (2 * DEFAULT_DEPTH)),
+        "asset position exceeds tree capacity"
+    );
+    let mut current = leaf_commitment;
+    let mut position = position;
+    for (level, layer) in path.layers.iter().enumerate() {
+        anyhow::ensure!(
+            layer.siblings.len() == 3,
+            "invalid asset path sibling count"
+        );
+        let mut children = [StateCommitment(Fq::ZERO); 4];
+        let child = (position % 4) as usize;
+        let mut siblings = layer.siblings.iter();
+        for (index, value) in children.iter_mut().enumerate() {
+            *value = if index == child {
+                current
+            } else {
+                StateCommitment(shieldd_sdk_crypto::encoding::field(
+                    siblings.next().unwrap().as_slice().try_into()?,
+                )?)
+            };
         }
-
-        let siblings: [StateCommitment; 3] = [
-            StateCommitment(Fq::from_le_bytes_mod_order(&layer.siblings[0])),
-            StateCommitment(Fq::from_le_bytes_mod_order(&layer.siblings[1])),
-            StateCommitment(Fq::from_le_bytes_mod_order(&layer.siblings[2])),
-        ];
-
-        let children = match child_index {
-            0 => [current_hash, siblings[0], siblings[1], siblings[2]],
-            1 => [siblings[0], current_hash, siblings[1], siblings[2]],
-            2 => [siblings[0], siblings[1], current_hash, siblings[2]],
-            3 => [siblings[0], siblings[1], siblings[2], current_hash],
-            _ => unreachable!(),
-        };
-
-        current_hash =
-            IndexedMerkleTree::hash_children(children[0], children[1], children[2], children[3]);
-        current_position /= 4;
+        current = IndexedMerkleTree::hash_children(
+            level as u8 + 1,
+            children[0],
+            children[1],
+            children[2],
+            children[3],
+        );
+        position /= 4;
     }
-
-    current_hash
+    Ok(current)
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 //! Offline public registrations for disposable Bankd chains with the development registrar.
 use anyhow::{ensure, Context, Result};
-use decaf377::{Element, Fr};
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+use group::GroupEncoding;
 use rand_core::{OsRng, RngCore};
+use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
 use shieldd_sdk_compliance::{
     derive_regulated_nullifier_key,
     registration::policy_from_asset_grant,
@@ -10,8 +10,9 @@ use shieldd_sdk_compliance::{
         AssetRegistrationGrant, OrbisCapabilityCertificate, UserRegistrationGrant,
         UserRegistrationGrantBody,
     },
-    AuditKeys, ComplianceLeaf, DetectionKey, MsgRegisterAsset, MsgRegisterUser,
+    ComplianceLeaf, DetectionKey, MsgRegisterAsset, MsgRegisterUser,
 };
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use shieldd_sdk_proto::core::component::compliance::v1 as pb;
 use std::{io::Read, str::FromStr};
@@ -56,13 +57,12 @@ fn main() -> Result<()> {
         .context("invalid denomination")?
         .id();
     let signing = |n: u64| {
-        SigningKey::<SpendAuth>::try_from(Fr::from(n).to_bytes().as_slice())
-            .expect("valid synthetic scalar")
+        SigningKey::<SpendAuth>::try_from(Fr::from(n).to_bytes()).expect("valid synthetic scalar")
     };
     let registrar = signing(1);
     let authority = signing(2);
     let ring_sk = Fr::from(41u64);
-    let ring_pk = Element::GENERATOR * ring_sk;
+    let ring_pk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * ring_sk;
     let mut asset = MsgRegisterAsset {
         asset_id,
         is_regulated: true,
@@ -77,7 +77,7 @@ fn main() -> Result<()> {
         resource: "document".into(),
         registration_authority_vk: Some(VerificationKey::from(&authority)),
         seizure_authority_vk: Some(VerificationKey::from(&signing(3))),
-        audit_keys: Some(AuditKeys::test_keys()),
+        audit_keys: Some(shieldd_sdk_compliance::audit_keys::test_keys()),
         audit_certificate: None,
         asset_registration_grant: None,
     };
@@ -133,8 +133,8 @@ fn main() -> Result<()> {
             denom,
             address: address.to_string(),
             address_components: AddressComponents {
-                diversified_generator: address.diversified_generator().vartime_compress().0,
-                transmission_key: address.transmission_key().0,
+                diversified_generator: address.diversified_generator().to_bytes(),
+                transmission_key: address.transmission_key().to_bytes(),
             },
             asset: asset.into(),
             user: user.into()

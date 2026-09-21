@@ -127,7 +127,7 @@ pub fn record_address_alias(store: &SqliteScannerStore, address: &str, name: &st
     if let Ok(parsed) = Address::from_str(address) {
         conn.execute(
             "INSERT OR REPLACE INTO audit_address_aliases (address, name) VALUES (?1, ?2)",
-            params![hex::encode(parsed.transmission_key().0), name],
+            params![hex::encode(parsed.transmission_key().to_bytes()), name],
         )?;
     }
 

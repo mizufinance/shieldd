@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use cnidarium_component::ActionHandler;
-use shieldd_sdk_proof_params::batch::{self, BatchItem, VerifiedBatchItem};
+use shieldd_sdk_proof_params::pari::{Verification, Verified};
 use shieldd_sdk_txhash::{EffectingData, TransactionContext};
 
 use crate::{
@@ -55,14 +55,14 @@ pub fn shielded_host_withdrawal_extract_public(
 pub fn shielded_host_withdrawal_to_batch_item(
     action: &ShieldedHostWithdrawal,
     public: ShieldedWithdrawalProofPublic,
-) -> Result<BatchItem> {
+) -> Result<Verification> {
     action.proof.to_batch_item(&public)
 }
 
 pub fn shielded_host_withdrawal_check_stateless_and_extract(
     action: &ShieldedHostWithdrawal,
     context: &TransactionContext,
-) -> Result<BatchItem> {
+) -> Result<Verification> {
     action.body.validate_shape()?;
     action.body.withdrawal.validate()?;
     shielded_host_withdrawal_verify_auth_sigs(action, context)?;
@@ -74,12 +74,12 @@ pub fn shielded_host_withdrawal_check_stateless_and_extract(
 pub async fn shielded_host_withdrawal_execute_verified<S: StateWrite>(
     action: &ShieldedHostWithdrawal,
     context: &TransactionContext,
-    verified_proof: &VerifiedBatchItem,
+    verified_proof: &Verified,
     mut state: S,
 ) -> Result<()> {
     let item = shielded_host_withdrawal_check_stateless_and_extract(action, context)?;
     verified_proof
-        .ensure_binds(action.body.family_id.deployed_proof_key(), &item)
+        .ensure_binds(shieldd_sdk_circuits::proof::Family::Withdrawal, &item)
         .context("shielded host withdrawal verified proof capability mismatch")?;
 
     anyhow::ensure!(
@@ -115,15 +115,12 @@ pub async fn shielded_host_withdrawal_execute_verified<S: StateWrite>(
 
 #[async_trait]
 impl ActionHandler for ShieldedHostWithdrawal {
-    type CheckStatelessContext = TransactionContext;
+    type CheckStatelessContext = crate::ProofVerificationContext;
 
-    async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
+    async fn check_stateless(&self, proof_context: crate::ProofVerificationContext) -> Result<()> {
+        let context = proof_context.transaction;
         let item = shielded_host_withdrawal_check_stateless_and_extract(self, &context)?;
-        batch::verify_each(
-            self.body.family_id.proof_verification_key(),
-            std::slice::from_ref(&item),
-        )
-        .map_err(|e| anyhow::anyhow!("shielded host withdrawal proof did not verify: {e}"))?;
+        proof_context.registry.verify_item(&item)?;
         Ok(())
     }
 

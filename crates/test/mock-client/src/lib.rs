@@ -245,12 +245,17 @@ impl MockClient {
         plan.authorize(OsRng, &self.sk)
     }
 
-    pub async fn witness_auth_build(&self, plan: &TransactionPlan) -> Result<Transaction, Error> {
+    pub async fn witness_auth_build(
+        &self,
+        plan: &TransactionPlan,
+        registry: std::sync::Arc<shieldd_sdk_proof_params::pari::Registry>,
+    ) -> Result<Transaction, Error> {
         let witness_data = self.witness_plan(plan)?;
         let auth_data = self.authorize_plan(plan)?;
-        plan.clone()
-            .build_concurrent(&self.fvk, &witness_data, &auth_data)
-            .await
+        let plan = plan.clone();
+        let fvk = self.fvk.clone();
+        tokio::task::spawn_blocking(move || plan.build(&fvk, &witness_data, &auth_data, &registry))
+            .await?
     }
 
     /// Complete a fixture intent using the current chain witnesses and parameters.
@@ -476,9 +481,9 @@ impl<S: StateRead + Send + Sync> StateReadComplianceProvider<S> {
 #[cfg(test)]
 mod tests {
     use super::MockClient;
-    use decaf377::{Fq, Fr};
     use rand_core::OsRng;
     use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_shielded_pool::{
         Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan,

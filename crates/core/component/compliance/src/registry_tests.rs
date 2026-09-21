@@ -2,9 +2,10 @@ use super::*;
 use crate::params::{ComplianceParameters, StateWriteExt as _};
 use crate::tree::QuadTree;
 use cnidarium::TempStorage;
-use decaf377::{Fq, Fr};
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use futures::StreamExt;
+use group::Group;
+use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::component::clock::EpochManager;
 use std::collections::BTreeMap;
@@ -107,9 +108,9 @@ async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
         .test_only_register_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
             true,
         )
@@ -177,9 +178,9 @@ async fn note_seizure_is_terminal_but_allows_more_notes_from_the_same_freeze() {
         .test_only_register_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
             true,
         )
@@ -239,7 +240,7 @@ async fn add_compliance_leaf_rejects_identity_capability_before_mutation() {
         Address::dummy(&mut rand::thread_rng()),
         asset::Id(Fq::from(1u64)),
     );
-    leaf.capk = decaf377::Element::IDENTITY;
+    leaf.capk = shieldd_sdk_crypto::SubgroupPoint::identity();
 
     let err = state
         .add_compliance_leaf(leaf)
@@ -377,9 +378,9 @@ async fn test_register_regulated_asset() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -411,9 +412,9 @@ async fn test_asset_imt_uses_nv_nodes_and_leaves_not_full_blob() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -455,9 +456,9 @@ async fn test_asset_imt_root_check_fails_on_missing_nv_leaves() {
         .register_regulated_asset(
             asset::Id(Fq::from(777u64)),
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -480,9 +481,9 @@ async fn full_asset_structure_validation_is_confined_to_readiness() {
     let mut state = cnidarium::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     state
         .register_regulated_asset(asset::Id(Fq::from(777u64)), policy.clone())
@@ -519,9 +520,9 @@ async fn asset_mutation_rejects_a_corrupted_touched_path() {
     let mut state = cnidarium::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     state
         .register_regulated_asset(asset::Id(Fq::from(777u64)), policy.clone())
@@ -553,9 +554,9 @@ async fn test_direct_read_proofs_match_reconstructed_trees_random_trace() {
     state.initialize_trees().await.unwrap();
     let mut rng = rand::rngs::StdRng::seed_from_u64(0x5eed);
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     let mut user_positions = Vec::new();
     let mut asset_ids = Vec::new();
@@ -630,7 +631,8 @@ async fn test_direct_read_proofs_match_reconstructed_trees_random_trace() {
                 direct_proof.indexed_leaf.commit(),
                 &direct_proof.auth_path,
                 direct_proof.position,
-            ),
+            )
+            .unwrap(),
             reconstructed.root()
         );
     }
@@ -643,9 +645,9 @@ async fn test_asset_proof_direct_read_membership_and_gap_parity() {
     let mut state = cnidarium::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     let registered = [100u64, 300u64];
     for value in registered {
@@ -696,9 +698,9 @@ async fn test_cold_user_and_asset_proof_lookup_uses_keyed_storage() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -727,9 +729,9 @@ async fn test_asset_duplicate_prevention() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -751,9 +753,9 @@ async fn test_asset_duplicate_prevention() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -922,9 +924,9 @@ async fn test_comprehensive_integration() {
         .register_regulated_asset(
             usdc_asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -989,9 +991,9 @@ async fn test_comprehensive_integration() {
         .register_regulated_asset(
             dai_asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -1159,22 +1161,32 @@ async fn user_leaf_record_is_compact_and_authenticated() {
 
 #[tokio::test]
 async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
-    let identity_authority = VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
+    let identity_authority = VerificationKey::from(
+        &SigningKey::<SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap(),
+    );
     let cases = [
         (
             "detection key",
-            AssetPolicy::for_test(decaf377::Element::IDENTITY, 1, decaf377::Element::GENERATOR),
+            AssetPolicy::for_test(
+                shieldd_sdk_crypto::SubgroupPoint::identity(),
+                1,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
+            ),
         ),
         (
             "ring key",
-            AssetPolicy::for_test(decaf377::Element::GENERATOR, 1, decaf377::Element::IDENTITY),
+            AssetPolicy::for_test(
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                1,
+                shieldd_sdk_crypto::SubgroupPoint::identity(),
+            ),
         ),
         (
             "registration authority key",
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 1,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             )
             .with_registration_authority(identity_authority),
         ),
@@ -1194,7 +1206,7 @@ async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
             .unwrap_err();
 
         assert!(
-            error.to_string().contains("identity"),
+            format!("{error:#}").contains("identity"),
             "{key_role} returned unexpected error: {error:#}"
         );
         assert_eq!(
@@ -1229,9 +1241,9 @@ async fn test_imt_get_proof_data_regulated() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -1270,9 +1282,9 @@ async fn test_imt_get_proof_data_unregulated() {
         .register_regulated_asset(
             regulated_asset,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -1288,8 +1300,14 @@ async fn test_imt_get_proof_data_unregulated() {
     assert_eq!(proof_data.position, 0); // Sentinel position
 
     // Verify the unregulated asset falls in the gap
-    assert!(proof_data.indexed_leaf.value < unregulated_asset.0);
-    assert!(unregulated_asset.0 < proof_data.indexed_leaf.next_value);
+    assert!(
+        crate::indexed_tree::FqOrdKey::from(proof_data.indexed_leaf.value)
+            < crate::indexed_tree::FqOrdKey::from(unregulated_asset.0)
+    );
+    assert!(
+        crate::indexed_tree::FqOrdKey::from(unregulated_asset.0)
+            < crate::indexed_tree::FqOrdKey::from(proof_data.indexed_leaf.next_value)
+    );
 }
 
 #[tokio::test]
@@ -1311,9 +1329,9 @@ async fn test_imt_multiple_regulated_assets() {
             .register_regulated_asset(
                 *asset_id,
                 AssetPolicy::for_test(
-                    decaf377::Element::GENERATOR,
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
                     u128::MAX,
-                    decaf377::Element::GENERATOR,
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 ),
             )
             .await
@@ -1360,9 +1378,9 @@ async fn test_record_and_validate_anchors() {
         .register_regulated_asset(
             asset::Id(Fq::from(200u64)),
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -1549,9 +1567,9 @@ async fn stale_asset_anchor_is_rejected_immediately_after_policy_change() {
         .register_regulated_asset(
             asset::Id(Fq::from(4242u64)),
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -1674,9 +1692,9 @@ async fn test_genesis_anchor_attack_prevented() {
         .register_regulated_asset(
             usdc_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -1731,13 +1749,13 @@ async fn test_register_asset_with_custom_daily_volume_limit() {
     state.initialize_trees().await.unwrap();
 
     let asset_id = asset::Id(Fq::from(555u64));
-    let dk_pub = decaf377::Element::GENERATOR;
+    let dk_pub = *shieldd_sdk_crypto::generators::SPEND_AUTH;
 
     // Register with daily_volume_limit=500
     state
         .register_regulated_asset(
             asset_id,
-            AssetPolicy::for_test(dk_pub, 500u128, decaf377::Element::GENERATOR),
+            AssetPolicy::for_test(dk_pub, 500u128, *shieldd_sdk_crypto::generators::SPEND_AUTH),
         )
         .await
         .unwrap();
@@ -1769,9 +1787,9 @@ async fn test_get_asset_policy_cached_matches_uncached() {
     let present_asset = asset::Id(Fq::from(77u64));
     let missing_asset = asset::Id(Fq::from(88u64));
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
 
     state
@@ -1846,9 +1864,9 @@ async fn test_ibc_origin_lookup_rejects_duplicate_base_denom() {
 
     let route = crate::IbcRoute::transfer("channel-0", "connection-0", "channel-7");
     let mut policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         500,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     policy.replace_allowed_ibc_routes(vec![route.clone()]);
     policy.params.ibc_origin = Some(crate::IbcAssetOrigin {
@@ -1886,9 +1904,9 @@ async fn test_replace_asset_ibc_policy_requires_expected_hash() {
     let old_route = crate::IbcRoute::transfer("channel-0", "connection-0", "channel-7");
     let new_route = crate::IbcRoute::transfer("channel-1", "connection-1", "channel-8");
     let mut policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         500,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     policy.replace_allowed_ibc_routes(vec![old_route.clone()]);
     let expected_hash = indexed_tree::route_policy_to_fq(&policy.params).to_bytes();

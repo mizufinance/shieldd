@@ -1,9 +1,11 @@
 use anyhow::{ensure, Context, Result};
+use ark_ec_04::{AffineRepr, CurveGroup};
 use orbis_common::blockchain::orbis::generate_document_id;
 use orbis_crypto::{
     r#trait::{EncryptionProof, Secret, ThresholdDealer},
     CiphertextContext, PreImpl,
 };
+use orbis_crypto::{CryptoDeserialize, GroupAffine};
 
 /// Upstream inline document and its authenticated encryption context.
 pub struct EncryptedDocument {
@@ -34,7 +36,8 @@ impl EncryptedDocument {
     ) -> Result<orbis_proto::v0::pre::StartPreRequest> {
         use orbis_crypto::{CryptoSerialize, GroupAffine};
         use orbis_proto::v0::pre::{ReaderKeyProof, StartPreRequest, TimestampRange};
-        let reader_pk = GroupAffine::GENERATOR * *reader_key;
+        let reader_pk = (GroupAffine::generator() * *reader_key).into_affine();
+        ensure!(!reader_pk.is_zero(), "identity reader key");
         let proof = PreImpl::prove_reader_key(reader_key, &reader_pk)?;
         Ok(StartPreRequest {
             rdr_pk: reader_pk.to_bytes()?,
@@ -89,10 +92,7 @@ impl EncryptedDocument {
             "Orbis returned a different encrypted document"
         );
         let commitment = hex::decode(response.xnc_cmt).context("invalid Orbis PRE commitment")?;
-        ensure!(
-            commitment.len() == 32,
-            "invalid Orbis PRE commitment length"
-        );
+        let _ = GroupAffine::from_bytes(&commitment).context("invalid BLS12-381 PRE commitment")?;
         Ok(commitment)
     }
 }
@@ -103,7 +103,7 @@ mod tests {
     use orbis_crypto::{GroupAffine, ScalarField};
 
     fn document() -> EncryptedDocument {
-        let pk = GroupAffine::GENERATOR * ScalarField::from(7u64);
+        let pk = (GroupAffine::generator() * ScalarField::from(7u64)).into_affine();
         use orbis_crypto::CryptoSerialize;
         let context = CiphertextContext {
             ring_pk: pk.to_bytes().unwrap(),
@@ -153,13 +153,13 @@ mod tests {
     fn current_wire_response_requires_the_verified_context() {
         let document = document();
         let mut response = serde_json::json!({
-            "xnc_cmt": "00".repeat(32), "secret": document.secret, "context": document.context,
+            "xnc_cmt": hex::encode(document.secret.enc_cmt.clone()), "secret": document.secret, "context": document.context,
         });
         assert_eq!(
             document
                 .validate_response(&serde_json::to_vec(&response).unwrap())
                 .unwrap(),
-            vec![0; 32]
+            document.secret.enc_cmt
         );
         response["context"]["permission"] = "write".into();
         assert!(document
@@ -177,7 +177,7 @@ mod tests {
         let mut secret = document.secret.clone();
         secret.encrypted_data[0] ^= 1;
         let raw = serde_json::to_vec(
-            &serde_json::json!({ "xnc_cmt": "00".repeat(32), "secret": secret, "context": document.context }),
+            &serde_json::json!({ "xnc_cmt": hex::encode(document.secret.enc_cmt.clone()), "secret": secret, "context": document.context }),
         )
         .unwrap();
         assert!(document.validate_response(&raw).is_err());

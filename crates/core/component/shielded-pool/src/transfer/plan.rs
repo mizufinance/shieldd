@@ -1,8 +1,8 @@
 use anyhow::{anyhow, ensure, Error};
-use decaf377::{Fq, Fr};
-use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
+use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, balance, Balance};
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::{
     keys::OutgoingViewingKey,
     symmetric::{OvkWrappedKey, PayloadKey, WrappedMemoKey},
@@ -91,7 +91,7 @@ impl TransferPlan {
         })
     }
 
-    pub fn output_capk(&self, index: usize) -> decaf377::Element {
+    pub fn output_capk(&self, index: usize) -> shieldd_sdk_crypto::SubgroupPoint {
         if is_receiver_output_index(index) {
             self.compliance.recipient.leaf.capk
         } else {
@@ -152,11 +152,11 @@ impl TransferPlan {
     pub fn volume_accumulator_payload(
         &self,
         fvk: &FullViewingKey,
-    ) -> crate::VolumeAccumulatorPayload {
+    ) -> anyhow::Result<crate::VolumeAccumulatorPayload> {
         self.volume_accumulator.clone().selected_payload(
             fvk.nullifier_key(),
             fvk.outgoing(),
-            Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes()),
+            shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce),
             self.proof_context,
         )
     }
@@ -202,7 +202,7 @@ impl TransferPlan {
     }
 
     fn routing(&self) -> (crate::discovery::TransferRouting, bool) {
-        let routing_nonce = Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes());
+        let routing_nonce = shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce);
         discovery::transfer_routing(
             &self.sender_address(),
             &self.outputs[0].dest_address,
@@ -224,7 +224,7 @@ impl TransferPlan {
             sender_address: self.sender_address(),
             asset_id: self.transfer_asset_id(),
             capk: self.compliance.witness.sender.leaf.capk,
-            nullifier_domain_sep_label: b"shieldd.transfer.synthetic_dummy.nullifier",
+            nullifier_domain: shieldd_sdk_crypto::domains::DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.transfer.synthetic_dummy.nullifier_seed",
             spend_auth_key_label: b"shieldd.transfer.synthetic_dummy.spend_auth_key",
             spend_auth_randomizer_label: b"shieldd.transfer.synthetic_dummy.spend_auth_randomizer",
@@ -441,7 +441,7 @@ impl TransferPlan {
             asset_anchor: self.compliance.witness.asset.root,
             routing,
             routing_parameter_set_id: self.routing_parameters.id(),
-            volume_accumulator: self.volume_accumulator_payload(fvk),
+            volume_accumulator: self.volume_accumulator_payload(fvk)?,
             proof_context: self.proof_context,
         })
     }
@@ -579,9 +579,9 @@ impl TransferPlan {
         let volume_payload = volume_plan.selected_payload(
             fvk.nullifier_key(),
             fvk.outgoing(),
-            Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes()),
+            shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce),
             self.proof_context,
-        );
+        )?;
         let volume_prior_proof = if needs_accumulator_proof {
             state_commitment_proofs[self.spends.len()].clone()
         } else {
@@ -637,11 +637,12 @@ impl TransferPlan {
     pub fn build_unauth_transfer(
         &self,
         fvk: &FullViewingKey,
-        auth_sigs: Vec<Signature<decaf377_rdsa::SpendAuth>>,
+        auth_sigs: Vec<Signature<reddsa::sapling::SpendAuth>>,
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
         recent_position_floor: u64,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Transfer, crate::ProofError> {
         let body = self
             .transfer_body(fvk, memo_key, anchor, recent_position_floor)
@@ -659,7 +660,7 @@ impl TransferPlan {
             anchor,
             recent_position_floor,
         )?;
-        let proof = TransferProof::prove(public, private)?;
+        let proof = TransferProof::prove(public, private, registry)?;
         let mut auth_sigs = auth_sigs;
         while auth_sigs.len() < PADDED_TRANSFER_INPUTS {
             auth_sigs.push(dummy_spend_auth_sig());
@@ -672,27 +673,10 @@ impl TransferPlan {
         })
     }
 
-    pub fn transfer_witness_payload(
-        &self,
-        fvk: &FullViewingKey,
-        state_commitment_proofs: Vec<tct::Proof>,
-        anchor: tct::Root,
-        recent_position_floor: u64,
-    ) -> Result<Vec<u8>, crate::ProofError> {
-        let (public, private) = self.transfer_public_private(
-            fvk,
-            &state_commitment_proofs,
-            anchor,
-            recent_position_floor,
-        )?;
-        crate::gnark::encode_transfer_witness(&public, &private)
-            .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
-    }
-
     pub fn build_unauth_transfer_with_proof(
         &self,
         fvk: &FullViewingKey,
-        auth_sigs: Vec<Signature<decaf377_rdsa::SpendAuth>>,
+        auth_sigs: Vec<Signature<reddsa::sapling::SpendAuth>>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
         proof: TransferProof,
@@ -749,7 +733,7 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
             .map_err(|_| anyhow!("malformed value blinding"))?;
 
         let plan = Self {
-            value_blinding: Fr::from_bytes_checked(&value_blinding_bytes)
+            value_blinding: shieldd_sdk_crypto::encoding::scalar(&value_blinding_bytes)
                 .map_err(|_| anyhow!("malformed canonical value blinding"))?,
             spends: proto
                 .spends
@@ -936,7 +920,8 @@ mod tests {
             (AuditField::Receiver, ct.sender_ext_epk),
         ] {
             assert_eq!(
-                decaf377::Element::GENERATOR * plan.audit_opening(&body, field).unwrap(),
+                (*shieldd_sdk_crypto::generators::SPEND_AUTH)
+                    * plan.audit_opening(&body, field).unwrap(),
                 epk
             );
         }

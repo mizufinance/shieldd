@@ -1,13 +1,13 @@
 use anyhow::{ensure, Result};
-use ark_ff::{BigInteger, PrimeField};
-use decaf377::{Element, Fr};
-use once_cell::sync::Lazy;
+use ff::Field;
+use group::{Group, GroupEncoding};
 use rand_core::{CryptoRng, RngCore};
+use shieldd_sdk_crypto::{Fr, SubgroupPoint};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DleqProof {
-    pub commitment_g: Element,
-    pub commitment_h: Element,
+    pub commitment_g: SubgroupPoint,
+    pub commitment_h: SubgroupPoint,
     pub response: Fr,
 }
 
@@ -15,14 +15,11 @@ pub struct DleqProof {
 pub struct IssuerDhEvidence {
     pub version: u32,
     pub asset_id: [u8; 32],
-    pub ciphertext_epk: Element,
-    pub issuer_dk_pub: Element,
-    pub shared_point: Element,
+    pub ciphertext_epk: SubgroupPoint,
+    pub issuer_dk_pub: SubgroupPoint,
+    pub shared_point: SubgroupPoint,
     pub proof: DleqProof,
 }
-
-static ISSUER_DLEQ_DOMAIN: Lazy<decaf377::Fq> =
-    Lazy::new(|| decaf377::Fq::from_le_bytes_mod_order(b"shieldd.issuer.dh_evidence.dleq.v1\0"));
 
 impl IssuerDhEvidence {
     /// Produce verifiable decryption access for one ciphertext without exporting DK.
@@ -30,7 +27,7 @@ impl IssuerDhEvidence {
         rng: impl RngCore + CryptoRng,
         dk: &crate::DetectionKey,
         asset_id: [u8; 32],
-        ciphertext_epk: Element,
+        ciphertext_epk: SubgroupPoint,
     ) -> Result<Self> {
         Self::prove_inner(rng, dk, asset_id, ciphertext_epk, None)
     }
@@ -40,7 +37,7 @@ impl IssuerDhEvidence {
         rng: impl RngCore + CryptoRng,
         dk: &crate::DetectionKey,
         asset_id: [u8; 32],
-        ciphertext_epk: Element,
+        ciphertext_epk: SubgroupPoint,
         request: &[u8; 32],
     ) -> Result<Self> {
         Self::prove_inner(rng, dk, asset_id, ciphertext_epk, Some(request))
@@ -50,15 +47,15 @@ impl IssuerDhEvidence {
         mut rng: impl RngCore + CryptoRng,
         dk: &crate::DetectionKey,
         asset_id: [u8; 32],
-        ciphertext_epk: Element,
+        ciphertext_epk: SubgroupPoint,
         request: Option<&[u8; 32]>,
     ) -> Result<Self> {
-        decaf377::Fq::from_bytes_checked(&asset_id)
+        shieldd_sdk_crypto::encoding::field(&asset_id)
             .map_err(|_| anyhow::anyhow!("issuer evidence asset ID is not canonical"))?;
         ensure_nonidentity("issuer ciphertext_epk", ciphertext_epk)?;
         ensure_nonidentity("issuer_dk_pub", dk.public_key())?;
         let nonce = loop {
-            let nonce = Fr::rand(&mut rng);
+            let nonce = Fr::random(&mut rng);
             if nonce != Fr::from(0u64) {
                 break nonce;
             }
@@ -70,7 +67,7 @@ impl IssuerDhEvidence {
             issuer_dk_pub: dk.public_key(),
             shared_point: ciphertext_epk * dk.0,
             proof: DleqProof {
-                commitment_g: Element::GENERATOR * nonce,
+                commitment_g: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * nonce,
                 commitment_h: ciphertext_epk * nonce,
                 response: Fr::from(0u64),
             },
@@ -83,9 +80,9 @@ impl IssuerDhEvidence {
     pub fn verify_for(
         &self,
         asset_id: [u8; 32],
-        issuer_dk_pub: Element,
-        ciphertext_epk: Element,
-    ) -> Result<Element> {
+        issuer_dk_pub: SubgroupPoint,
+        ciphertext_epk: SubgroupPoint,
+    ) -> Result<SubgroupPoint> {
         ensure!(
             self.asset_id == asset_id,
             "issuer disclosure asset mismatch"
@@ -105,10 +102,10 @@ impl IssuerDhEvidence {
     pub fn verify_bound_for(
         &self,
         asset_id: [u8; 32],
-        issuer_dk_pub: Element,
-        ciphertext_epk: Element,
+        issuer_dk_pub: SubgroupPoint,
+        ciphertext_epk: SubgroupPoint,
         request: &[u8; 32],
-    ) -> Result<Element> {
+    ) -> Result<SubgroupPoint> {
         ensure!(
             self.asset_id == asset_id
                 && self.issuer_dk_pub == issuer_dk_pub
@@ -118,16 +115,16 @@ impl IssuerDhEvidence {
         self.verify_inner(Some(request))
     }
 
-    pub fn verify(&self) -> Result<Element> {
+    pub fn verify(&self) -> Result<SubgroupPoint> {
         self.verify_inner(None)
     }
 
-    fn verify_inner(&self, request: Option<&[u8; 32]>) -> Result<Element> {
+    fn verify_inner(&self, request: Option<&[u8; 32]>) -> Result<SubgroupPoint> {
         ensure!(
             self.version == if request.is_some() { 2 } else { 1 },
             "unsupported issuer DH evidence version"
         );
-        decaf377::Fq::from_bytes_checked(&self.asset_id)
+        shieldd_sdk_crypto::encoding::field(&self.asset_id)
             .map_err(|_| anyhow::anyhow!("issuer evidence asset ID is not canonical"))?;
         ensure_nonidentity("issuer ciphertext_epk", self.ciphertext_epk)?;
         ensure_nonidentity("issuer_dk_pub", self.issuer_dk_pub)?;
@@ -135,7 +132,7 @@ impl IssuerDhEvidence {
         ensure_nonidentity("issuer DLEQ generator commitment", self.proof.commitment_g)?;
         ensure_nonidentity("issuer DLEQ EPK commitment", self.proof.commitment_h)?;
         verify_dleq(
-            Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             self.ciphertext_epk,
             self.issuer_dk_pub,
             self.shared_point,
@@ -149,10 +146,10 @@ impl IssuerDhEvidence {
 /// Verifies equations only; callers must validate points and bind the full
 /// statement and proof commitments into a domain-separated challenge.
 pub fn verify_dleq(
-    base_g: Element,
-    base_h: Element,
-    point_g: Element,
-    point_h: Element,
+    base_g: SubgroupPoint,
+    base_h: SubgroupPoint,
+    point_g: SubgroupPoint,
+    point_h: SubgroupPoint,
     proof: &DleqProof,
     challenge: Fr,
 ) -> Result<()> {
@@ -167,101 +164,117 @@ pub fn verify_dleq(
     Ok(())
 }
 
-fn ensure_nonidentity(label: &str, point: Element) -> Result<()> {
-    ensure!(!point.is_identity(), "{label} must not be identity");
+fn ensure_nonidentity(label: &str, point: SubgroupPoint) -> Result<()> {
+    ensure!(
+        !bool::from(point.is_identity()),
+        "{label} must not be identity"
+    );
     Ok(())
 }
 
 fn evidence_challenge(evidence: &IssuerDhEvidence, request: Option<&[u8; 32]>) -> Fr {
-    let base = issuer_challenge(evidence);
-    let Some(request) = request else { return base };
-    let domain = decaf377::Fq::from_le_bytes_mod_order(b"shieldd.issuer.request.dleq.v1\0");
-    fq_to_challenge_scalar(poseidon377::hash_2(
-        &domain,
-        (
-            decaf377::Fq::from_le_bytes_mod_order(&base.to_bytes()),
-            decaf377::Fq::from_le_bytes_mod_order(request),
-        ),
-    ))
+    let mut transcript = blake2b_simd::Params::new()
+        .personal(b"ShielddIssuerDH")
+        .to_state();
+    transcript.update(&[shieldd_sdk_crypto::SUITE]);
+    transcript.update(&evidence.version.to_le_bytes());
+    transcript.update(&evidence.asset_id);
+    for point in [
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
+        evidence.issuer_dk_pub,
+        evidence.ciphertext_epk,
+        evidence.shared_point,
+        evidence.proof.commitment_g,
+        evidence.proof.commitment_h,
+    ] {
+        transcript.update(&point.to_bytes());
+    }
+    transcript.update(&[u8::from(request.is_some())]);
+    if let Some(request) = request {
+        transcript.update(request);
+    }
+    Fr::from_bytes_wide(transcript.finalize().as_array())
 }
 
-fn issuer_challenge(evidence: &IssuerDhEvidence) -> Fr {
-    let asset_id = decaf377::Fq::from_bytes_checked(&evidence.asset_id)
-        .expect("issuer evidence verification checked the asset ID encoding");
-    let challenge = poseidon377::hash_7(
-        &ISSUER_DLEQ_DOMAIN,
-        (
-            asset_id,
-            Element::GENERATOR.vartime_compress_to_field(),
-            evidence.issuer_dk_pub.vartime_compress_to_field(),
-            evidence.ciphertext_epk.vartime_compress_to_field(),
-            evidence.shared_point.vartime_compress_to_field(),
-            evidence.proof.commitment_g.vartime_compress_to_field(),
-            evidence.proof.commitment_h.vartime_compress_to_field(),
-        ),
-    );
-    fq_to_challenge_scalar(challenge)
-}
-
-pub fn fq_to_challenge_scalar(challenge: decaf377::Fq) -> Fr {
-    let mut bytes = challenge.into_bigint().to_bytes_le();
-    bytes.resize(32, 0);
-    let keep_bits = (Fr::MODULUS_BIT_SIZE - 1) as usize;
-    let keep_bytes = keep_bits.div_ceil(8);
-    let spare_bits = keep_bytes * 8 - keep_bits;
-    bytes[keep_bytes - 1] &= 0xff >> spare_bits;
-    Fr::from_le_bytes_mod_order(&bytes)
+pub fn fq_to_challenge_scalar(challenge: shieldd_sdk_crypto::Fq) -> Fr {
+    shieldd_sdk_crypto::encoding::reduce_scalar(&challenge)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn issuer_proof(secret: Fr, epk: Element, asset_id: [u8; 32]) -> IssuerDhEvidence {
+    fn issuer_proof(secret: Fr, epk: SubgroupPoint, asset_id: [u8; 32]) -> IssuerDhEvidence {
         let nonce = Fr::from(17u64);
         let mut evidence = IssuerDhEvidence {
             version: 1,
             asset_id,
             ciphertext_epk: epk,
-            issuer_dk_pub: Element::GENERATOR * secret,
+            issuer_dk_pub: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * secret,
             shared_point: epk * secret,
             proof: DleqProof {
-                commitment_g: Element::GENERATOR * nonce,
+                commitment_g: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * nonce,
                 commitment_h: epk * nonce,
                 response: Fr::from(0u64),
             },
         };
-        evidence.proof.response = nonce + issuer_challenge(&evidence) * secret;
+        evidence.proof.response = nonce + evidence_challenge(&evidence, None) * secret;
         evidence
+    }
+
+    #[test]
+    fn bound_evidence_rejects_other_request_unbound_verifier_and_version() {
+        let dk = crate::DetectionKey::new(Fr::from(5u64));
+        let epk = *shieldd_sdk_crypto::generators::SPEND_AUTH * Fr::from(7u64);
+        let asset = shieldd_sdk_crypto::Fq::from(11u64).to_bytes();
+        let request = [42; 32];
+        let evidence =
+            IssuerDhEvidence::prove_bound(rand_core::OsRng, &dk, asset, epk, &request).unwrap();
+        assert_eq!(
+            evidence
+                .verify_bound_for(asset, dk.public_key(), epk, &request)
+                .unwrap(),
+            epk * dk.0
+        );
+        assert!(evidence
+            .verify_bound_for(asset, dk.public_key(), epk, &[43; 32])
+            .is_err());
+        assert!(evidence.verify_for(asset, dk.public_key(), epk).is_err());
+        let mut changed = evidence;
+        changed.version = 1;
+        assert!(changed
+            .verify_bound_for(asset, dk.public_key(), epk, &request)
+            .is_err());
+        assert!(changed.verify_for(asset, dk.public_key(), epk).is_err());
     }
 
     #[test]
     fn issuer_evidence_binds_asset_epk_and_shared_point() {
         let evidence = issuer_proof(
             Fr::from(5u64),
-            Element::GENERATOR * Fr::from(7u64),
-            decaf377::Fq::from(11u64).to_bytes(),
+            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(7u64),
+            shieldd_sdk_crypto::Fq::from(11u64).to_bytes(),
         );
         assert_eq!(evidence.verify().unwrap(), evidence.shared_point);
 
         let mut wrong_asset = evidence.clone();
-        wrong_asset.asset_id = decaf377::Fq::from(12u64).to_bytes();
+        wrong_asset.asset_id = shieldd_sdk_crypto::Fq::from(12u64).to_bytes();
         assert!(wrong_asset.verify().is_err());
 
         let mut wrong_epk = evidence.clone();
-        wrong_epk.ciphertext_epk += Element::GENERATOR;
+        wrong_epk.ciphertext_epk += *shieldd_sdk_crypto::generators::SPEND_AUTH;
         assert!(wrong_epk.verify().is_err());
 
         let mut wrong_shared = evidence;
-        wrong_shared.shared_point += Element::GENERATOR;
+        wrong_shared.shared_point += *shieldd_sdk_crypto::generators::SPEND_AUTH;
         assert!(wrong_shared.verify().is_err());
     }
 
     #[test]
     fn issuer_disclosure_uses_fresh_proof_and_pinned_chain_values() {
         let dk = crate::DetectionKey::new(Fr::from(5u64));
-        let epk = Element::GENERATOR * Fr::from(7u64);
-        let asset = decaf377::Fq::from(11u64).to_bytes();
+        let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(7u64);
+        let asset = shieldd_sdk_crypto::Fq::from(11u64).to_bytes();
         let first = IssuerDhEvidence::prove(rand_core::OsRng, &dk, asset, epk).unwrap();
         let second = IssuerDhEvidence::prove(rand_core::OsRng, &dk, asset, epk).unwrap();
         assert_ne!(first.proof.commitment_g, second.proof.commitment_g);
@@ -269,13 +282,26 @@ mod tests {
             first.verify_for(asset, dk.public_key(), epk).unwrap(),
             epk * dk.0
         );
-        assert!(first.verify_for(asset, Element::GENERATOR, epk).is_err());
         assert!(first
-            .verify_for(asset, dk.public_key(), Element::GENERATOR)
+            .verify_for(asset, *shieldd_sdk_crypto::generators::SPEND_AUTH, epk)
             .is_err());
         assert!(first
-            .verify_for(decaf377::Fq::from(12u64).to_bytes(), dk.public_key(), epk)
+            .verify_for(
+                asset,
+                dk.public_key(),
+                *shieldd_sdk_crypto::generators::SPEND_AUTH
+            )
             .is_err());
-        assert!(IssuerDhEvidence::prove(rand_core::OsRng, &dk, asset, Element::default()).is_err());
+        assert!(first
+            .verify_for(
+                shieldd_sdk_crypto::Fq::from(12u64).to_bytes(),
+                dk.public_key(),
+                epk
+            )
+            .is_err());
+        assert!(
+            IssuerDhEvidence::prove(rand_core::OsRng, &dk, asset, SubgroupPoint::default())
+                .is_err()
+        );
     }
 }

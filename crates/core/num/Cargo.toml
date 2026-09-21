@@ -9,12 +9,10 @@ edition = {workspace = true}
 
 [features]
 default = []
-parallel = ["ark-ff/parallel", "decaf377/parallel"]
 
 [dependencies]
+shieldd-sdk-crypto.workspace = true
 anyhow = { workspace = true }
-ark-ff = { workspace = true, default-features = false }
-decaf377 = { workspace = true }
 shieldd-sdk-proto = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 

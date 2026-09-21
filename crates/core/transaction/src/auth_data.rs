@@ -1,4 +1,4 @@
-use decaf377_rdsa::{Signature, SpendAuth};
+use reddsa::{sapling::SpendAuth, Signature};
 
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_txhash::EffectHash;

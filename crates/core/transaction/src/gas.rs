@@ -10,25 +10,23 @@ use crate::{
 };
 
 use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_sct::nullifier_generation::{
-    BLS12_377_PROOF_BYTES, BW6_761_PROOF_BYTES, CHUNK_WIDTH,
-};
+use shieldd_sdk_sct::nullifier_generation::{CHUNK_WIDTH, PROOF_BYTES};
 
 const NULLIFIER_SIZE: u64 = 2 + 32;
-const NOTEPAYLOAD_SIZE: u64 = 32 + 32 + 176;
-const ZKPROOF_SIZE: u64 = 192;
-const HISTORICAL_BLS_VERIFY_GAS: u64 = 1_000;
-const HISTORICAL_BW6_VERIFY_GAS: u64 = 3_000;
+const NOTEPAYLOAD_SIZE: u64 = 32 + 32 + 177;
+const ZKPROOF_SIZE: u64 = PROOF_BYTES as u64;
+const HISTORICAL_GENERATION_VERIFY_GAS: u64 = 1_000;
+const HISTORICAL_CHUNK_VERIFY_GAS: u64 = 3_000;
 
 fn historical_gas(old_input_count: usize, archived_generation_count: u64) -> Gas {
     let chunks = archived_generation_count / CHUNK_WIDTH;
     let tail = archived_generation_count % CHUNK_WIDTH;
     let per_input_bytes = chunks
-        .saturating_mul(BW6_761_PROOF_BYTES as u64 + 48)
-        .saturating_add(tail.saturating_mul(BLS12_377_PROOF_BYTES as u64 + 56));
+        .saturating_mul(PROOF_BYTES as u64 + 48)
+        .saturating_add(tail.saturating_mul(PROOF_BYTES as u64 + 56));
     let per_input_verification = chunks
-        .saturating_mul(HISTORICAL_BW6_VERIFY_GAS)
-        .saturating_add(tail.saturating_mul(HISTORICAL_BLS_VERIFY_GAS));
+        .saturating_mul(HISTORICAL_CHUNK_VERIFY_GAS)
+        .saturating_add(tail.saturating_mul(HISTORICAL_GENERATION_VERIFY_GAS));
     let count = old_input_count as u64;
     Gas {
         block_space: count.saturating_mul(per_input_bytes),
@@ -178,12 +176,6 @@ impl GasCost for Action {
                 compact_block_space: 100,
                 verification: 0,
                 execution: 10,
-            },
-            Action::AggregateBundle(_) => Gas {
-                block_space: 0,
-                compact_block_space: 0,
-                verification: 0,
-                execution: 0,
             },
         }
     }

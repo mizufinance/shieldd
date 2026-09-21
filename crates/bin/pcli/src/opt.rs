@@ -13,6 +13,9 @@ pub struct Opt {
     /// The home directory used to store configuration and data.
     #[clap(long, default_value_t = default_home(), env = "SHIELDD_PCLI_HOME")]
     pub home: Utf8PathBuf,
+    /// Trusted local Pari key registry for proof generation and verification.
+    #[clap(long, env = "SHIELDD_PARI_KEYS", global = true)]
+    pub pari_keys: Option<Utf8PathBuf>,
 }
 
 impl Opt {

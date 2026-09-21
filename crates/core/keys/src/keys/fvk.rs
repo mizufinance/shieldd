@@ -1,32 +1,21 @@
 use anyhow::Context;
-use ark_ff::Zero;
-use ark_serialize::CanonicalDeserialize;
-use decaf377::{Element, Fq, Fr};
-use once_cell::sync::Lazy;
-use poseidon377::hash_2;
+use ff::Field;
+use group::{Group, GroupEncoding};
 use rand_core::{CryptoRng, RngCore};
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{domains, encoding, poseidon, Fq, SubgroupPoint};
 
 use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::keys::v1 as pb, DomainType};
 
 use crate::keys::wallet_id::WalletId;
 use crate::PositionMetadataKey;
-use crate::{
-    ka, prf,
-    rdsa::{SpendAuth, VerificationKey},
-    Address, AddressView, BackreferenceKey,
-};
+use crate::{ka, prf, Address, AddressView, BackreferenceKey};
 
 use super::{AddressIndex, DiversifierKey, IncomingViewingKey, NullifierKey, OutgoingViewingKey};
 
-pub(crate) static IVK_DOMAIN_SEP: Lazy<Fq> =
-    Lazy::new(|| Fq::from_le_bytes_mod_order(b"shieldd.derive.ivk"));
-
-static ACCOUNT_ID_DOMAIN_SEP: Lazy<Fq> =
-    Lazy::new(|| Fq::from_le_bytes_mod_order(b"Shieldd_HashFVK"));
-
 /// The root viewing capability for all data related to a given spend authority.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(try_from = "pb::FullViewingKey", into = "pb::FullViewingKey")]
 pub struct FullViewingKey {
     ak: VerificationKey<SpendAuth>,
@@ -37,9 +26,9 @@ pub struct FullViewingKey {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum FullViewingKeyError {
-    #[error("spend authorization key has an invalid Decaf377 encoding")]
+    #[error("spend authorization key has an invalid Jubjub encoding")]
     InvalidAuthorizationKeyEncoding,
-    #[error("spend authorization key is the Decaf377 identity")]
+    #[error("spend authorization key is the Jubjub identity")]
     IdentityAuthorizationKey,
     #[error("derived incoming viewing key reduces to zero")]
     ZeroIncomingViewingKey,
@@ -85,9 +74,17 @@ impl FullViewingKey {
         ak: VerificationKey<SpendAuth>,
         nk: NullifierKey,
     ) -> Result<Self, FullViewingKeyError> {
-        let ak_s = Fq::from_bytes_checked(ak.as_ref())
+        let point = encoding::point(&ak.into())
             .map_err(|_| FullViewingKeyError::InvalidAuthorizationKeyEncoding)?;
-        let ivk_mod_q = poseidon377::hash_2(&IVK_DOMAIN_SEP, (nk.0, ak_s));
+        let coordinates = shieldd_sdk_crypto::coordinates(&point);
+        let ivk_mod_q = poseidon::hash(
+            domains::INCOMING_VIEWING_KEY,
+            &[
+                nk.0,
+                encoding::field(&coordinates.x).expect("coordinate"),
+                encoding::field(&coordinates.y).expect("coordinate"),
+            ],
+        );
         Self::from_components_with_ivk_hash(ak, nk, ivk_mod_q)
     }
 
@@ -96,29 +93,31 @@ impl FullViewingKey {
         nk: NullifierKey,
         ivk_mod_q: Fq,
     ) -> Result<Self, FullViewingKeyError> {
-        if ak.as_ref() == &Element::default().vartime_compress().0 {
+        if <[u8; 32]>::from(ak) == SubgroupPoint::identity().to_bytes() {
             return Err(FullViewingKeyError::IdentityAuthorizationKey);
         }
 
         let ovk = {
-            let hash_result = prf::expand(b"ShielddDeriveOVK", &nk.0.to_bytes(), ak.as_ref());
+            let hash_result =
+                prf::expand(b"ShielddDeriveOVK", &nk.0.to_bytes(), &<[u8; 32]>::from(ak));
             let mut ovk = [0; 32];
             ovk.copy_from_slice(&hash_result.as_bytes()[0..32]);
             ovk
         };
 
         let dk = {
-            let hash_result = prf::expand(b"Shieldd_DeriveDK", &nk.0.to_bytes(), ak.as_ref());
+            let hash_result =
+                prf::expand(b"Shieldd_DeriveDK", &nk.0.to_bytes(), &<[u8; 32]>::from(ak));
             let mut dk = [0; 16];
             dk.copy_from_slice(&hash_result.as_bytes()[0..16]);
             dk
         };
 
-        let ivk_mod_r = Fr::from_le_bytes_mod_order(&ivk_mod_q.to_bytes());
-        if ivk_mod_r.is_zero() {
+        let ivk_mod_r = encoding::reduce_scalar(&ivk_mod_q);
+        if bool::from(ivk_mod_r.is_zero()) {
             return Err(FullViewingKeyError::ZeroIncomingViewingKey);
         }
-        let ivk = ka::Secret::new_from_field(ivk_mod_r);
+        let ivk = ka::Secret::from_scalar(ivk_mod_r).expect("nonzero canonical scalar");
 
         let dk = DiversifierKey(dk);
         let ovk = OutgoingViewingKey(ovk);
@@ -158,35 +157,35 @@ impl FullViewingKey {
 
     /// Hashes the full viewing key into an [`WalletId`].
     pub fn wallet_id(&self) -> WalletId {
-        let hash_result = hash_2(
-            &ACCOUNT_ID_DOMAIN_SEP,
-            (
-                self.nk.0,
-                Fq::from_le_bytes_mod_order(&self.ak.to_bytes()[..]),
-            ),
+        let hash = prf::expand(
+            b"Shieldd_HashFVK1",
+            &self.nk.0.to_bytes(),
+            &<[u8; 32]>::from(self.ak),
         );
-        let hash = hash_result.to_bytes()[..32]
-            .try_into()
-            .expect("hash is 32 bytes");
-        WalletId(hash)
+        WalletId(hash.as_bytes()[..32].try_into().expect("32-byte digest"))
     }
 }
+
+impl Eq for FullViewingKey {}
 
 impl TryFrom<&[u8]> for FullViewingKey {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != 64 {
-            anyhow::bail!("Wrong byte length, expected 64 but found {}", value.len());
+        if value.len() != 65 {
+            anyhow::bail!("Wrong byte length, expected 65 but found {}", value.len());
         }
 
-        let ak_bytes: [u8; 32] = value[0..32].try_into().context("fvk wrong length")?;
-        let nk_bytes: [u8; 32] = value[32..64].try_into().context("fvk wrong length")?;
+        anyhow::ensure!(
+            value[0] == shieldd_sdk_crypto::SUITE,
+            "unsupported viewing key suite"
+        );
+        let ak_bytes: [u8; 32] = value[1..33].try_into().context("fvk wrong length")?;
+        let nk_bytes: [u8; 32] = value[33..65].try_into().context("fvk wrong length")?;
 
         let ak = ak_bytes.try_into()?;
         let nk = NullifierKey(
-            Fq::deserialize_compressed(&nk_bytes[..])
-                .context("could not deserialize nullifier key")?,
+            encoding::field(&nk_bytes).context("could not deserialize nullifier key")?,
         );
 
         Ok(FullViewingKey::from_components(ak, nk)?)
@@ -207,8 +206,9 @@ impl TryFrom<pb::FullViewingKey> for FullViewingKey {
 
 impl From<FullViewingKey> for pb::FullViewingKey {
     fn from(value: FullViewingKey) -> pb::FullViewingKey {
-        let mut inner = Vec::with_capacity(64);
-        inner.extend_from_slice(&value.ak.to_bytes());
+        let mut inner = Vec::with_capacity(65);
+        inner.push(shieldd_sdk_crypto::SUITE);
+        inner.extend_from_slice(&<[u8; 32]>::from(value.ak));
         inner.extend_from_slice(&value.nk.0.to_bytes());
         pb::FullViewingKey { inner }
     }
@@ -248,14 +248,14 @@ impl std::str::FromStr for FullViewingKey {
 
 #[cfg(test)]
 mod tests {
-    use decaf377_rdsa::VerificationKeyBytes;
+    use reddsa::VerificationKeyBytes;
 
     use super::*;
 
     #[test]
     fn full_viewing_key_rejects_identity_authorization_key() {
         let identity = VerificationKey::<SpendAuth>::try_from(
-            VerificationKeyBytes::<SpendAuth>::from(Element::default().vartime_compress().0),
+            VerificationKeyBytes::<SpendAuth>::from(SubgroupPoint::identity().to_bytes()),
         )
         .expect("the underlying verification-key type admits the identity");
 
@@ -272,7 +272,7 @@ mod tests {
             FullViewingKey::from_components_with_ivk_hash(
                 ak,
                 NullifierKey(Fq::from(1u64)),
-                Fq::zero(),
+                Fq::ZERO,
             ),
             Err(FullViewingKeyError::ZeroIncomingViewingKey)
         );
@@ -287,5 +287,45 @@ mod tests {
         )
         .expect("known components satisfy all full viewing key invariants");
         assert_eq!(rebuilt, known);
+    }
+    #[test]
+    fn native_viewing_key_matches_pari_relation() {
+        use shieldd_sdk_circuits::{
+            authorization, encoding as circuit_encoding, group, hash::Parameters,
+        };
+        let params = Parameters::load().unwrap();
+        for seed in [0u8, 1, 127, 255] {
+            let spend =
+                crate::keys::SpendKey::try_from(crate::keys::SpendKeyBytes([seed; 32])).unwrap();
+            let fvk = spend.full_viewing_key();
+            let point = encoding::nonidentity(&(*fvk.spend_verification_key()).into()).unwrap();
+            let expected = authorization::viewing_key(
+                &params,
+                &circuit_encoding::field(&fvk.nk.0),
+                &group::native_point(&point),
+            );
+            assert_eq!(
+                circuit_encoding::native_field(&expected.remainder).to_bytes(),
+                fvk.incoming().to_bytes()
+            );
+            let address = fvk.payment_address(3u32.into());
+            let ivk = encoding::scalar(&fvk.incoming().to_bytes()).unwrap();
+            assert_eq!(
+                address.diversified_generator() * ivk,
+                *address.transmission_point()
+            );
+        }
+    }
+
+    #[test]
+    fn full_viewing_key_rejects_non_subgroup_authorization_key() {
+        let torsion = (-Fq::ONE).to_bytes();
+        let ak = VerificationKey::<SpendAuth>::try_from(torsion)
+            .expect("RedDSA admits small order points");
+        assert_eq!(
+            FullViewingKey::from_components(ak, NullifierKey(Fq::ONE)),
+            Err(FullViewingKeyError::InvalidAuthorizationKeyEncoding)
+        );
+        assert!(crate::ensure_nonidentity_spend_auth_key(&ak, "spend authorization").is_err());
     }
 }

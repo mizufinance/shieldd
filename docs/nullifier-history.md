@@ -1,12 +1,11 @@
 # Nullifier history
 
-Status: protocol version 2 is implemented for interoperability testing. The
-checked-in proving keys are unsafe and must not be activated.
+Protocol version 3 uses the configured native Pari registry.
 
 ## Model
 
 Validators keep current and previous nullifier-generation trees. A generation
-contains 30 application epochs and uses a depth-20 quaternary Poseidon377
+contains 30 application epochs and uses a depth-20 quaternary Poseidon-381
 indexed tree. Retired generations are committed in order by
 `archived_history_head`.
 
@@ -32,9 +31,14 @@ an empty current tree. Export and physical pruning are node-local work.
 
 ## Proofs and storage
 
-A BLS12-377 Groth16 proof covers one retired generation. A BW6-761 Groth16 proof
-compresses ten consecutive generation proofs. Wallets update one generation at
-a time and compress each full ten-proof chunk.
+A Pari generation proof covers one retired generation. A Pari chunk proof
+covers ten consecutive raw nonmembership witnesses; it does not recursively
+verify generation proofs. Wallets persist those witnesses before proving and
+retain up to nine generation proofs as a trailing prefix. During backfill, each
+raw witness is persisted until a complete chunk can be proved directly; only
+the final incomplete tail needs generation proofs. Live incremental updates
+retain their trailing proofs until the tenth raw witness closes the chunk.
+A failed proof leaves staged work available after restart. See [Proof system](proof-system.md) for registry identity and checks.
 
 Full nodes store immutable compressed generation packs. A pack binds the
 generation index, root, SCT interval, canonical leaves, and checksum. Expanded
@@ -48,17 +52,11 @@ The main ownership boundaries are:
 - `crates/core/transaction`: proof bundles, authorization binding, and gas
 - `crates/core/app`: cryptographic and current-window validation
 - `crates/crypto/proof-params`: proof decoding and verification keys
-- `tools/gnark/cmd/historicalproofspike`: unsafe interoperability fixtures
 
-## Activation requirements
+## Verification
 
-Production activation requires ceremony-backed keys for both curves, a
-configured prover, canonical release artifacts, gas calibration, and
-independent review of tree ordering, gap constraints, history chaining,
-recursive inputs, and encodings. Formal evidence belongs in
-`mizufinance/shieldd-security`, pinned to the activating Shieldd commit.
-
-Required tests cover lower and upper gaps, zero and maximum nullifiers, path
-ordering, roots, indices, SCT intervals, history heads, proof ordering, flags,
-and trailing bytes. Full nodes must serve identical witnesses after pack
-reconstruction and restart.
+Tests cover lower and upper gaps, zero and maximum nullifiers, path ordering,
+roots, indices, SCT intervals, history heads, proof ordering, flags and trailing
+bytes. Full nodes must serve identical witnesses after pack reconstruction and
+restart. A mismatch in an authenticated archived prefix discards the cached
+prefix and schedules backfill from generation zero on the next worker pass.

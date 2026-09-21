@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Context as _, Result};
-use decaf377::Fq;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_crypto::Fq;
+use shieldd_sdk_crypto::{audit::point_fields, domains, poseidon};
 use shieldd_sdk_keys::{
     keys::{NullifierKey, OutgoingViewingKey},
     symmetric::PayloadKey,
@@ -17,25 +17,13 @@ pub const UTC_DAY_SECS: u64 = 86_400;
 pub const VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS: u64 = 1_800;
 pub const VOLUME_ACCUMULATOR_RETENTION_SECS: u64 =
     UTC_DAY_SECS + VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS;
-pub const VOLUME_ACCUMULATOR_PLAINTEXT_BYTES: usize = 92;
+pub const VOLUME_ACCUMULATOR_PLAINTEXT_BYTES: usize = 93;
 pub const VOLUME_ACCUMULATOR_CIPHERTEXT_BYTES: usize = VOLUME_ACCUMULATOR_PLAINTEXT_BYTES + 16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VolumeNullifier {
     pub day_start: u64,
     pub nullifier: Nullifier,
-}
-
-static SUBJECT_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.volume.subject"));
-static STATE_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.volume.state"));
-static ORIGIN_NULLIFIER_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.volume.origin_nullifier"));
-static PADDING_COMMITMENT_DOMAIN: Lazy<Fq> =
-    Lazy::new(|| domain(b"shieldd.volume.padding_commitment"));
-static PADDING_NULLIFIER_DOMAIN: Lazy<Fq> =
-    Lazy::new(|| domain(b"shieldd.volume.padding_nullifier"));
-
-fn domain(label: &[u8]) -> Fq {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label).as_bytes())
 }
 
 /// Selects the UTC accounting day containing `target_timestamp`.
@@ -96,42 +84,39 @@ pub struct VolumeAccumulatorState {
 
 impl VolumeAccumulatorState {
     pub fn subject(address: &Address, asset_id: asset::Id) -> Fq {
-        poseidon377::hash_3(
-            &SUBJECT_DOMAIN,
-            (
-                address.diversified_generator().vartime_compress_to_field(),
-                *address.transmission_key_s(),
-                asset_id.0,
-            ),
-        )
+        let [gx, gy] = point_fields(address.diversified_generator());
+        let [px, py] = point_fields(address.transmission_point());
+        poseidon::hash(domains::VOLUME_SUBJECT, &[gx, gy, px, py, asset_id.0])
     }
 
     pub fn commitment(&self) -> StateCommitment {
-        StateCommitment(poseidon377::hash_4(
-            &STATE_DOMAIN,
-            (
+        StateCommitment(poseidon::hash(
+            domains::VOLUME_STATE,
+            &[
                 self.subject,
                 Fq::from(self.day_start),
-                Fq::from(self.undisclosed_volume),
+                Fq::from(shieldd_sdk_num::Amount::from(self.undisclosed_volume)),
                 self.blinding,
-            ),
+            ],
         ))
     }
 
     pub fn origin_nullifier(&self, nk: &NullifierKey) -> Nullifier {
-        Nullifier(poseidon377::hash_3(
-            &ORIGIN_NULLIFIER_DOMAIN,
-            (nk.0, self.subject, Fq::from(self.day_start)),
+        Nullifier(poseidon::hash(
+            domains::VOLUME_ORIGIN_NULLIFIER,
+            &[nk.0, self.subject, Fq::from(self.day_start)],
         ))
     }
 
     fn encode(&self, is_real: bool) -> [u8; VOLUME_ACCUMULATOR_PLAINTEXT_BYTES] {
         let mut out = [0u8; VOLUME_ACCUMULATOR_PLAINTEXT_BYTES];
-        out[..4].copy_from_slice(&(is_real as u32).to_le_bytes());
-        out[4..36].copy_from_slice(&self.subject.to_bytes());
-        out[36..44].copy_from_slice(&self.day_start.to_le_bytes());
-        out[44..60].copy_from_slice(&self.undisclosed_volume.to_le_bytes());
-        out[60..92].copy_from_slice(&self.blinding.to_bytes());
+        out[0] = shieldd_sdk_crypto::SUITE;
+        let payload = &mut out[1..];
+        payload[..4].copy_from_slice(&(is_real as u32).to_le_bytes());
+        payload[4..36].copy_from_slice(&self.subject.to_bytes());
+        payload[36..44].copy_from_slice(&self.day_start.to_le_bytes());
+        payload[44..60].copy_from_slice(&self.undisclosed_volume.to_le_bytes());
+        payload[60..92].copy_from_slice(&self.blinding.to_bytes());
         out
     }
 
@@ -140,13 +125,18 @@ impl VolumeAccumulatorState {
             bytes.len() == VOLUME_ACCUMULATOR_PLAINTEXT_BYTES,
             "volume accumulator plaintext must be {VOLUME_ACCUMULATOR_PLAINTEXT_BYTES} bytes"
         );
+        anyhow::ensure!(
+            bytes[0] == shieldd_sdk_crypto::SUITE,
+            "unsupported volume state suite"
+        );
+        let bytes = &bytes[1..];
         let marker = u32::from_le_bytes(bytes[..4].try_into()?);
         anyhow::ensure!(marker <= 1, "invalid volume accumulator payload marker");
-        let subject = Fq::from_bytes_checked(&bytes[4..36].try_into()?)
+        let subject = shieldd_sdk_crypto::encoding::field(&bytes[4..36].try_into()?)
             .map_err(|_| anyhow!("invalid volume accumulator subject"))?;
         let day_start = u64::from_le_bytes(bytes[36..44].try_into()?);
         let undisclosed_volume = u128::from_le_bytes(bytes[44..60].try_into()?);
-        let blinding = Fq::from_bytes_checked(&bytes[60..92].try_into()?)
+        let blinding = shieldd_sdk_crypto::encoding::field(&bytes[60..92].try_into()?)
             .map_err(|_| anyhow!("invalid volume accumulator blinding"))?;
         Ok((
             Self {
@@ -326,6 +316,10 @@ impl VolumeAccumulatorPlan {
         successor_blinding: Fq,
     ) -> Result<Self> {
         anyhow::ensure!(
+            prior_position < (1u64 << 48),
+            "volume position exceeds state tree capacity"
+        );
+        anyhow::ensure!(
             prior.commitment() == prior_commitment,
             "prior volume accumulator state does not match commitment"
         );
@@ -399,15 +393,42 @@ impl VolumeAccumulatorPlan {
         }
     }
 
+    pub fn validate(&self) -> Result<()> {
+        if let Self::Continuation {
+            prior,
+            prior_commitment,
+            prior_position,
+            successor_volume,
+            ..
+        } = self
+        {
+            anyhow::ensure!(
+                *prior_position < (1u64 << 48),
+                "volume position exceeds state tree capacity"
+            );
+            anyhow::ensure!(
+                prior.commitment() == *prior_commitment,
+                "prior volume accumulator state does not match commitment"
+            );
+            anyhow::ensure!(
+                *successor_volume >= prior.undisclosed_volume,
+                "volume accumulator cannot move backward"
+            );
+        }
+        anyhow::ensure!(self.day_start() % 86400 == 0, "volume day is not aligned");
+        Ok(())
+    }
+
     pub fn selected_payload(
         &self,
         nk: &NullifierKey,
         ovk: &OutgoingViewingKey,
         padding_seed: Fq,
         context: TransferProofContext,
-    ) -> VolumeAccumulatorPayload {
+    ) -> Result<VolumeAccumulatorPayload> {
+        self.validate()?;
         if context == TransferProofContext::FeeFunding {
-            return VolumeAccumulatorPayload::canonical_fee_funding();
+            return Ok(VolumeAccumulatorPayload::canonical_fee_funding());
         }
         if let Some(state) = self.successor_state() {
             let commitment = state.commitment();
@@ -420,16 +441,18 @@ impl VolumeAccumulatorPlan {
                 } => Nullifier::derive(nk, Position::from(*prior_position), prior_commitment),
                 Self::Padding { .. } => unreachable!("real accumulator state excludes padding"),
             };
-            VolumeAccumulatorPayload::encrypt(&state, true, nullifier, commitment, ovk)
+            Ok(VolumeAccumulatorPayload::encrypt(
+                &state, true, nullifier, commitment, ovk,
+            ))
         } else {
             let day_start = self.day_start();
-            let commitment = StateCommitment(poseidon377::hash_3(
-                &PADDING_COMMITMENT_DOMAIN,
-                (nk.0, padding_seed, Fq::from(day_start)),
+            let commitment = StateCommitment(poseidon::hash(
+                domains::VOLUME_PADDING_COMMITMENT,
+                &[nk.0, padding_seed, Fq::from(day_start)],
             ));
-            let nullifier = Nullifier(poseidon377::hash_3(
-                &PADDING_NULLIFIER_DOMAIN,
-                (nk.0, padding_seed, Fq::from(day_start)),
+            let nullifier = Nullifier(poseidon::hash(
+                domains::VOLUME_PADDING_NULLIFIER,
+                &[nk.0, padding_seed, Fq::from(day_start)],
             ));
             let state = VolumeAccumulatorState {
                 subject: Fq::from(0u64),
@@ -437,7 +460,9 @@ impl VolumeAccumulatorPlan {
                 undisclosed_volume: 0,
                 blinding: padding_seed,
             };
-            VolumeAccumulatorPayload::encrypt(&state, false, nullifier, commitment, ovk)
+            Ok(VolumeAccumulatorPayload::encrypt(
+                &state, false, nullifier, commitment, ovk,
+            ))
         }
     }
 }
@@ -485,7 +510,7 @@ fn parse_fq(bytes: Vec<u8>, label: &str) -> Result<Fq> {
     let bytes: [u8; 32] = bytes
         .try_into()
         .map_err(|_| anyhow!("{label} must be 32 bytes"))?;
-    Fq::from_bytes_checked(&bytes).map_err(|_| anyhow!("{label} must be canonical"))
+    shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| anyhow!("{label} must be canonical"))
 }
 
 fn parse_u128(bytes: Vec<u8>, label: &str) -> Result<u128> {
@@ -583,6 +608,38 @@ pub struct VolumeAccumulatorPublic {
 mod tests {
     use super::*;
     use shieldd_sdk_keys::test_keys;
+
+    #[test]
+    fn continuation_rejects_positions_outside_the_state_tree() {
+        let prior = VolumeAccumulatorState {
+            subject: Fq::from(7),
+            day_start: UTC_DAY_SECS,
+            undisclosed_volume: 1,
+            blinding: Fq::from(11),
+        };
+        let commitment = prior.commitment();
+        assert!(VolumeAccumulatorPlan::continuation(
+            prior.clone(),
+            commitment,
+            (1u64 << 48) - 1,
+            2,
+            Fq::from(13)
+        )
+        .is_ok());
+        assert!(VolumeAccumulatorPlan::continuation(
+            prior.clone(),
+            commitment,
+            1u64 << 48,
+            2,
+            Fq::from(13)
+        )
+        .is_err());
+        let valid =
+            VolumeAccumulatorPlan::continuation(prior, commitment, 0, 2, Fq::from(13)).unwrap();
+        let mut proto: pb::VolumeAccumulatorPlan = valid.into();
+        proto.prior_position = 1u64 << 48;
+        assert!(VolumeAccumulatorPlan::try_from(proto).is_err());
+    }
 
     #[test]
     fn accounting_days_change_only_at_utc_midnight() {

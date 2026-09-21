@@ -1,10 +1,9 @@
 use anyhow::{ensure, Context, Result};
-use ark_ff::PrimeField;
 use cnidarium::{StateRead, StateWrite};
-use decaf377::Fq;
 use futures::{stream, StreamExt, TryStreamExt};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -69,7 +68,8 @@ fn decode_fq(bytes: Vec<u8>, label: &str) -> Result<Fq> {
     let bytes: [u8; 32] = bytes.try_into().map_err(|bytes: Vec<u8>| {
         anyhow::anyhow!("{label} must be 32 bytes, got {}", bytes.len())
     })?;
-    Fq::from_bytes_checked(&bytes).map_err(|_| anyhow::anyhow!("{label} is not canonical"))
+    shieldd_sdk_crypto::encoding::field(&bytes)
+        .map_err(|_| anyhow::anyhow!("{label} is not canonical"))
 }
 
 fn descending_key(value: Fq) -> [u8; 32] {
@@ -198,7 +198,7 @@ async fn write_path_updates<S: StateWrite + ?Sized>(
                     .unwrap_or(read_node(state, tree, level, position).await?);
             }
             children[(current_position % 4) as usize] = current_hash;
-            current_hash = hash_children(children);
+            current_hash = hash_children(level + 1, children);
             current_position = parent_position;
             overlay.insert((level + 1, current_position), current_hash);
             put_node(state, tree, level + 1, current_position, current_hash);
@@ -622,7 +622,9 @@ async fn scan_ordered_index<S: StateRead + ?Sized>(
         for byte in &mut ascending {
             *byte = !*byte;
         }
-        let value = Fq::from_be_bytes_mod_order(&ascending);
+        let mut little_endian = ascending;
+        little_endian.reverse();
+        let value = shieldd_sdk_crypto::encoding::field(&little_endian)?;
         let ordered_key = FqOrdKey(ascending);
         ensure!(
             FqOrdKey::from(value) == ordered_key,
@@ -840,18 +842,18 @@ async fn compute_dirty_nodes<S: StateRead + ?Sized>(
         let parent_nodes = if inputs.len() >= PARALLEL_HASH_THRESHOLD {
             inputs
                 .par_iter()
-                .map(|(position, children)| (*position, hash_children(*children)))
+                .map(|(position, children)| (*position, hash_children(level + 1, *children)))
                 .collect::<Vec<_>>()
         } else {
             inputs
                 .iter()
-                .map(|(position, children)| (*position, hash_children(*children)))
+                .map(|(position, children)| (*position, hash_children(level + 1, *children)))
                 .collect::<Vec<_>>()
         };
         #[cfg(not(feature = "parallel"))]
         let parent_nodes = inputs
             .iter()
-            .map(|(position, children)| (*position, hash_children(*children)))
+            .map(|(position, children)| (*position, hash_children(level + 1, *children)))
             .collect::<Vec<_>>();
         for (position, hash) in parent_nodes {
             nodes.insert(
@@ -1078,9 +1080,13 @@ pub async fn build_generation_pack<S: StateRead + ?Sized>(
         expected_position > 0,
         "retired generation has no leaves to pack"
     );
-    let pack = NullifierGenerationPack::new(archived, nullifiers)?;
-    pack.reconstruct()?;
-    Ok(pack)
+    tokio::task::spawn_blocking(move || {
+        let pack = NullifierGenerationPack::new(archived, nullifiers)?;
+        pack.reconstruct()?;
+        Ok(pack)
+    })
+    .await
+    .context("generation pack validation task panicked")?
 }
 
 pub async fn record_generation_pack_completion<S: StateWrite + ?Sized>(

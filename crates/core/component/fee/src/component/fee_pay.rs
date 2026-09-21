@@ -124,7 +124,7 @@ mod tests {
         for fee in [
             Fee::from_staking_token_amount(9u64.into()),
             Fee(Value {
-                asset_id: shieldd_sdk_asset::asset::Id(decaf377::Fq::from(42u64)),
+                asset_id: shieldd_sdk_asset::asset::Id(shieldd_sdk_crypto::Fq::from(42u64)),
                 amount: 100u64.into(),
             }),
         ] {

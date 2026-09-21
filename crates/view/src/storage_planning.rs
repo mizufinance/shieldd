@@ -109,13 +109,11 @@ impl StoragePlanningIo {
                         auth_path: self.users.witness(stored.position)?,
                     }
                 }
-                None if !is_regulated && self.users.root() == ComplianceUserTree::new().root() => {
-                    UserProofData {
-                        leaf: ComplianceLeaf::synthetic_unregulated(address.clone(), asset_id),
-                        position: 0,
-                        auth_path: MerklePath::default(),
-                    }
-                }
+                None if !is_regulated => UserProofData {
+                    leaf: ComplianceLeaf::synthetic_unregulated(address.clone(), asset_id),
+                    position: 0,
+                    auth_path: MerklePath::default(),
+                },
                 None => anyhow::bail!(
                     "compliance leaf unavailable locally; obtain host data before planning"
                 ),
@@ -134,7 +132,7 @@ impl PlanningIo for StoragePlanningIo {
     }
     async fn volume_accumulator_recovery(
         &mut self,
-        subject: decaf377::Fq,
+        subject: shieldd_sdk_crypto::Fq,
         day_start: u64,
     ) -> Result<crate::storage::VolumeAccumulatorRecovery> {
         self.read(self.storage.volume_accumulator_recovery(subject, day_start))
@@ -185,5 +183,100 @@ impl PlanningIo for StoragePlanningIo {
         queries: Vec<ComplianceQuery>,
     ) -> Result<BatchComplianceData> {
         self.read(self.local_compliance(queries)).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn unregulated_query_with_populated_user_tree() -> Result<()> {
+        use shieldd_sdk_asset::BASE_ASSET_ID;
+        use shieldd_sdk_keys::test_keys;
+        let storage = Storage::initialize(
+            None::<&camino::Utf8Path>,
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            Default::default(),
+        )
+        .await?;
+        let address = test_keys::ADDRESS_0.clone();
+        let mut users = ComplianceUserTree::new();
+        users.insert(
+            ComplianceLeaf::synthetic_unregulated(
+                address.clone(),
+                shieldd_sdk_asset::asset::Id(shieldd_sdk_crypto::Fq::from(42u64)),
+            )
+            .commit(),
+        )?;
+        let reader = StoragePlanningIo {
+            storage,
+            height: 0,
+            timestamp: 0,
+            users,
+            assets: ComplianceAssetTree::new(),
+        };
+        let result = reader
+            .local_compliance(vec![ComplianceQuery {
+                address,
+                asset_id: *BASE_ASSET_ID,
+            }])
+            .await;
+        assert!(
+            result.is_ok(),
+            "unregulated assets do not require user inclusion: {:?}",
+            result.err()
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn regulated_query_still_requires_a_user_leaf() -> Result<()> {
+        use shieldd_sdk_compliance::{AssetPolicy, IndexedMerkleTree};
+        use shieldd_sdk_crypto::{generators::SPEND_AUTH, Fq};
+        use shieldd_sdk_keys::test_keys;
+        let directory = tempfile::tempdir()?;
+        let path = directory.path().join("wallet.sqlite");
+        let storage = Storage::initialize(
+            Some(camino::Utf8Path::from_path(&path).unwrap()),
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            Default::default(),
+        )
+        .await?;
+        let asset_id = shieldd_sdk_asset::asset::Id(Fq::from(42));
+        let policy = AssetPolicy::for_test(*SPEND_AUTH, 100, *SPEND_AUTH);
+        r2d2_sqlite::rusqlite::Connection::open(&path)?.execute(
+            "INSERT INTO compliance_asset_policies (asset_id, policy) VALUES (?1, ?2)",
+            (asset_id.to_bytes().to_vec(), policy.to_bytes()?),
+        )?;
+        let mut tree = IndexedMerkleTree::new();
+        let inserted = tree.insert(asset_id.0, &policy)?;
+        let mut assets = ComplianceAssetTree::new();
+        assets.sync_from_event(
+            inserted.indexed_leaf,
+            inserted.position,
+            inserted.updated_low_leaf,
+            inserted.low_leaf_position,
+        )?;
+        let reader = StoragePlanningIo {
+            storage,
+            height: 0,
+            timestamp: 0,
+            users: ComplianceUserTree::new(),
+            assets,
+        };
+        let error = reader
+            .local_compliance(vec![ComplianceQuery {
+                address: test_keys::ADDRESS_0.clone(),
+                asset_id,
+            }])
+            .await
+            .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("compliance leaf unavailable locally"),
+            "{error:#}"
+        );
+        Ok(())
     }
 }

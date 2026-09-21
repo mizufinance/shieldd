@@ -1,8 +1,6 @@
-use std::ops::Deref;
-
-use decaf377::Fq;
-use decaf377::Fr;
-use once_cell::sync::Lazy;
+use group::GroupEncoding;
+use shieldd_sdk_crypto::Fr;
+use shieldd_sdk_crypto::{generators::VALUE_BLINDING, SubgroupPoint};
 use shieldd_sdk_proto::shieldd::core::asset::v1 as pb;
 use shieldd_sdk_proto::DomainType;
 
@@ -12,28 +10,23 @@ impl Value {
     #[allow(non_snake_case)]
     pub fn commit(&self, blinding: Fr) -> Commitment {
         let G_v = self.asset_id.value_generator();
-        let H = VALUE_BLINDING_GENERATOR.deref();
+        let H = *VALUE_BLINDING;
 
         let v = Fr::from(self.amount);
-        let C = v * G_v + blinding * H;
+        let C = G_v * v + H * blinding;
 
         Commitment(C)
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
-pub struct Commitment(pub decaf377::Element);
+pub struct Commitment(pub SubgroupPoint);
 
 impl Commitment {
     pub fn to_bytes(&self) -> [u8; 32] {
         (*self).into()
     }
 }
-
-pub static VALUE_BLINDING_GENERATOR: Lazy<decaf377::Element> = Lazy::new(|| {
-    let s = Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"decaf377-rdsa-binding").as_bytes());
-    decaf377::Element::encode_to_curve(&s)
-});
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -64,7 +57,7 @@ impl std::ops::Neg for Commitment {
 
 impl From<Commitment> for [u8; 32] {
     fn from(commitment: Commitment) -> [u8; 32] {
-        commitment.0.vartime_compress().0
+        commitment.0.to_bytes()
     }
 }
 
@@ -72,8 +65,7 @@ impl TryFrom<[u8; 32]> for Commitment {
     type Error = Error;
 
     fn try_from(bytes: [u8; 32]) -> Result<Commitment, Self::Error> {
-        let inner = decaf377::Encoding(bytes)
-            .vartime_decompress()
+        let inner = shieldd_sdk_crypto::encoding::point(&bytes)
             .map_err(|_| Error::InvalidBalanceCommitment)?;
 
         Ok(Commitment(inner))
@@ -88,8 +80,7 @@ impl TryFrom<&[u8]> for Commitment {
             .try_into()
             .map_err(|_| Error::InvalidBalanceCommitment)?;
 
-        let inner = decaf377::Encoding(bytes)
-            .vartime_decompress()
+        let inner = shieldd_sdk_crypto::encoding::point(&bytes)
             .map_err(|_| Error::InvalidBalanceCommitment)?;
 
         Ok(Commitment(inner))

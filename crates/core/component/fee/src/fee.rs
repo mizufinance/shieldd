@@ -3,8 +3,8 @@ use shieldd_sdk_proto::{shieldd::core::component::fee::v1 as pb, DomainType};
 use std::fmt;
 use std::str::FromStr;
 
-use decaf377::Fr;
 use shieldd_sdk_asset::{asset, balance, Balance, Value, BASE_ASSET_ID};
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_num::Amount;
 
 // Each fee tier multiplier has an implicit 100 denominator.

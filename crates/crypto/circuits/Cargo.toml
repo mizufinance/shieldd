@@ -1,0 +1,25 @@
+[package]
+name = "shieldd-sdk-circuits"
+version.workspace = true
+edition = "2024"
+license.workspace = true
+publish = false
+
+[dependencies]
+shieldd-sdk-crypto.workspace = true
+commonware-cryptography.workspace = true
+commonware-codec.workspace = true
+commonware-math.workspace = true
+commonware-parallel.workspace = true
+rand10.workspace = true
+anyhow.workspace = true
+hex.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
+[dev-dependencies]
+ark-bls12-381 = "=0.6.0"
+ark-ed-on-bls12-381 = "=0.6.0"
+ark-ff = "=0.6.0"
+ark-ec = "=0.6.0"
+ark-crypto-primitives = { version = "=0.6.0", features = ["sponge"] }

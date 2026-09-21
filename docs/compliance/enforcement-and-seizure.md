@@ -53,7 +53,7 @@ Every regulated spend and receive requires an `Active` leaf under the current
 root. A new freeze generation invalidates older seizure instructions.
 
 `SeizeNote` verifies the authority signature and expiry, the current frozen
-leaf, the capsule-specific DLEQ release, the Groth16 note-membership and opening
+leaf, the capsule-specific DLEQ release, the Pari note-membership and opening
 proof, the canonical regulated nullifier, and nullifier nonmembership. One
 state delta inserts the nullifier, updates the lifecycle, records the audit
 effect and receipt, and returns the exact typed Bankd withdrawal. Exact source

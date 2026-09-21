@@ -1,11 +1,9 @@
 mod action;
-mod generated;
+mod family;
 mod proof;
-#[cfg(all(feature = "prover", any(unix, windows)))]
-mod prover_runtime;
 
 pub use action::ShieldedWithdrawalChangeBody;
-pub use generated::{
+pub use family::{
     ShieldedWithdrawalFamilyId, ShieldedWithdrawalFamilySpec, SHIELDED_WITHDRAWAL_FAMILY_SPECS,
 };
 pub(crate) use proof::withdrawal_effect_hash_limbs;

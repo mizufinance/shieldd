@@ -215,6 +215,7 @@ pub extern "C" fn shieldd_open(
     out_handle: *mut *mut ShielddHandle,
 ) -> ShielddResult {
     boundary(|| {
+        clear_output_handle(out_handle)?;
         let db_path = unsafe { input_bytes(db_path, db_path_len)? };
         open_handle(db_path, None, out_handle)
     })
@@ -229,6 +230,7 @@ pub extern "C" fn shieldd_open_with_generation_packs(
     out_handle: *mut *mut ShielddHandle,
 ) -> ShielddResult {
     boundary(|| {
+        clear_output_handle(out_handle)?;
         let db_path = unsafe { input_bytes(db_path, db_path_len)? };
         let generation_pack_path =
             unsafe { input_bytes(generation_pack_path, generation_pack_path_len)? };
@@ -236,18 +238,21 @@ pub extern "C" fn shieldd_open_with_generation_packs(
     })
 }
 
-fn open_handle(
-    db_path: &[u8],
-    generation_pack_path: Option<&[u8]>,
-    out_handle: *mut *mut ShielddHandle,
-) -> std::result::Result<Vec<u8>, FfiError> {
+fn clear_output_handle(out_handle: *mut *mut ShielddHandle) -> std::result::Result<(), FfiError> {
     if out_handle.is_null() {
         return Err(FfiError::invalid_argument("out_handle must not be null"));
     }
     unsafe {
         out_handle.write(ptr::null_mut());
     }
+    Ok(())
+}
 
+fn open_handle(
+    db_path: &[u8],
+    generation_pack_path: Option<&[u8]>,
+    out_handle: *mut *mut ShielddHandle,
+) -> std::result::Result<Vec<u8>, FfiError> {
     let path = |value: &[u8], name: &str| {
         let value = str::from_utf8(value).map_err(|error| {
             FfiError::invalid_argument(format!("{name} must be UTF-8: {error}"))
@@ -264,6 +269,14 @@ fn open_handle(
         .map(|value| path(value, "generation_pack_path"))
         .transpose()?;
 
+    let key_directory = std::env::var_os("SHIELDD_PARI_KEYS").ok_or_else(|| {
+        FfiError::invalid_argument("SHIELDD_PARI_KEYS must name a trusted local Pari registry")
+    })?;
+    let registry = std::sync::Arc::new(
+        shieldd_sdk_proof_params::pari::Registry::load(key_directory).map_err(|error| {
+            FfiError::invalid_argument(format!("invalid Pari registry: {error:#}"))
+        })?,
+    );
     let runtime = Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -272,9 +285,9 @@ fn open_handle(
         })?;
     let service = match generation_pack_path {
         Some(directory) => runtime.block_on(ExecutionService::open_with_generation_packs(
-            db_path, directory,
+            db_path, directory, registry,
         )),
-        None => runtime.block_on(ExecutionService::open(db_path)),
+        None => runtime.block_on(ExecutionService::open(db_path, registry)),
     }
     .map_err(FfiError::service)?;
     let handle = Box::into_raw(Box::new(Handle {
@@ -1109,6 +1122,22 @@ mod tests {
         assert_eq!(response.code, 1);
         assert!(response.log.contains("decoding transaction"));
         close(handle);
+    }
+
+    #[test]
+    fn failed_open_clears_output_handle_before_validating_input() {
+        let mut handle = std::ptr::dangling_mut::<ShielddHandle>();
+        let result = shieldd_open(ptr::null(), 1, &mut handle);
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        free_result(result);
+        assert!(handle.is_null());
+
+        handle = std::ptr::dangling_mut::<ShielddHandle>();
+        let result =
+            shieldd_open_with_generation_packs(b"db".as_ptr(), 2, ptr::null(), 1, &mut handle);
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        free_result(result);
+        assert!(handle.is_null());
     }
 
     #[test]

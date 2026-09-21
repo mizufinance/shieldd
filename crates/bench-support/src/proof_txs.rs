@@ -1,3 +1,4 @@
+use group::GroupEncoding;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::ops::Deref;
@@ -6,10 +7,9 @@ use std::process::Command;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use ark_serialize::CanonicalSerialize;
 use cnidarium::TempStorage;
-use decaf377_rdsa::VerificationKey;
 use rand_core::OsRng;
+use reddsa::VerificationKey;
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use shieldd_sdk_app::{
@@ -17,7 +17,7 @@ use shieldd_sdk_app::{
     test_support::{TestHost, TEST_CHAIN_ID},
     APP_VERSION, SUBSTORE_PREFIXES,
 };
-use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
+use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_compliance::{
     derive_regulated_nullifier_key,
     genesis::{GenesisUserRegistration, NativeAssetRegistration},
@@ -35,6 +35,7 @@ use shieldd_sdk_transaction::{
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
+const REGULATED_DENOM: &str = "test_usd";
 const POOL_TX_SHAPE: &str = "regulated-preconsensus-transfer";
 const POOL_PROOF_FAMILY: &str = "transfer";
 const POOL_ACTION_SHAPE: &str = "one_spend_two_outputs_blank_memo";
@@ -60,12 +61,14 @@ pub struct ProofTxPoolMetadata {
     pub proof_family: String,
     pub action_shape: String,
     pub regulated: bool,
+    pub asset_denom: String,
     pub verifying_key_digest: String,
-    pub proving_key_digest: String,
-    pub circuit_metadata_digest: String,
+    pub registry_id: String,
+    pub relation_digest: String,
     pub crate_version: String,
     pub git_commit: Option<String>,
     pub git_tree_state: String,
+    pub executable_sha256: String,
     pub compatibility_fingerprint: String,
     pub tx_hashes: Vec<String>,
     pub raw_bytes: usize,
@@ -77,9 +80,10 @@ pub async fn setup_proof_storage(
 ) -> anyhow::Result<(TempStorage, TestHost, Arc<MockClient>)> {
     let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
 
+    let asset_id = asset::REGISTRY.parse_unit(REGULATED_DENOM).id();
     let allocations: Vec<Allocation> = std::iter::repeat(Allocation {
         raw_amount: 1_000_000u128.into(),
-        raw_denom: BASE_ASSET_DENOM.deref().base_denom().denom,
+        raw_denom: REGULATED_DENOM.to_owned(),
         address: test_keys::ADDRESS_0.to_owned(),
     })
     .take(n)
@@ -87,13 +91,13 @@ pub async fn setup_proof_storage(
 
     let authority_vk = VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
     let native_asset = NativeAssetRegistration {
-        audit_keys: Some(shieldd_sdk_compliance::AuditKeys::test_keys()),
-        asset_id: *BASE_ASSET_ID,
+        audit_keys: Some(shieldd_sdk_compliance::audit_keys::test_keys()),
+        asset_id,
         is_regulated: true,
-        dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+        dk_pub: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
         registration_authority_vk: Some(authority_vk),
         seizure_authority_vk: Some(authority_vk),
-        ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+        ring_pk: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
         ring_id: "test-ring".to_owned(),
         policy_id: "test-policy".to_owned(),
         permission: "read".to_owned(),
@@ -110,14 +114,14 @@ pub async fn setup_proof_storage(
         let rnk = derive_regulated_nullifier_key(
             test_keys::FULL_VIEWING_KEY.incoming(),
             &address,
-            *BASE_ASSET_ID,
-            decaf377::Element::GENERATOR,
+            asset_id,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             rnk_dh_pk,
         )?;
         let leaf = ComplianceLeaf::registered_from_rnk(
             address,
-            *BASE_ASSET_ID,
-            decaf377::Element::GENERATOR,
+            asset_id,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             rnk_dh_pk,
             rnk,
         )?;
@@ -126,7 +130,7 @@ pub async fn setup_proof_storage(
                 TEST_CHAIN_ID,
                 &leaf,
                 &policy,
-                decaf377::Fr::from(1u64),
+                shieldd_sdk_crypto::Fr::from(1u64),
             )?,
             leaf,
         })
@@ -151,6 +155,7 @@ pub async fn setup_proof_storage(
         storage.as_ref().clone(),
         AppState::Content(content),
         initial_time,
+        registry()?,
     )
     .await?;
     test_node.execute(Vec::new()).await?;
@@ -169,11 +174,7 @@ fn proof_tx_build_concurrency() -> usize {
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|value| *value > 0)
-        .unwrap_or_else(|| {
-            std::thread::available_parallelism()
-                .map(|parallelism| parallelism.get())
-                .unwrap_or(8)
-        })
+        .unwrap_or(1)
 }
 
 pub async fn build_proof_transactions(
@@ -181,12 +182,12 @@ pub async fn build_proof_transactions(
     storage: &TempStorage,
     n: usize,
 ) -> anyhow::Result<Vec<Vec<u8>>> {
+    let asset_id = asset::REGISTRY.parse_unit(REGULATED_DENOM).id();
     let notes: Vec<_> = client
         .notes
         .values()
         .filter(|note| {
-            note.asset_id() == *BASE_ASSET_ID
-                && note.address() == test_keys::ADDRESS_0.deref().clone()
+            note.asset_id() == asset_id && note.address() == test_keys::ADDRESS_0.deref().clone()
         })
         .cloned()
         .take(n)
@@ -233,7 +234,7 @@ pub async fn build_proof_transactions(
                 actions: vec![shieldd_sdk_mock_client::TransferIntent {
                     spends: vec![spend.into()],
                     outputs: vec![output.into(), change.into()],
-                    value_blinding: decaf377::Fr::from(1u64),
+                    value_blinding: shieldd_sdk_crypto::Fr::from(1u64),
                 }
                 .into()],
                 fee_funding: None,
@@ -249,7 +250,7 @@ pub async fn build_proof_transactions(
             };
 
             let plan = client.complete_intent(intent, snapshot).await?;
-            let tx = client.witness_auth_build(&plan).await?;
+            let tx = client.witness_auth_build(&plan, registry()?).await?;
             Ok::<(usize, Vec<u8>), anyhow::Error>((ordinal, tx.encode_to_vec()))
         });
     }
@@ -336,9 +337,12 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
     }
 
     let verifying_key_digest = transfer_verifying_key_digest()?;
-    let proving_key_digest = bytes_digest(shieldd_sdk_proof_params::transfer_proving_key_bytes());
-    let circuit_metadata_digest =
-        bytes_digest(shieldd_sdk_proof_params::transfer_circuit_metadata());
+    let registry_id = hex::encode(registry()?.id());
+    let relation_digest = hex::encode(
+        registry()?
+            .verifying_key(shieldd_sdk_circuits::proof::Family::Transfer)?
+            .relation_digest(),
+    );
     let git_commit = git_commit();
     let git_tree_state = git_tree_state();
     let metadata = ProofTxPoolMetadata {
@@ -353,12 +357,14 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
         proof_family: POOL_PROOF_FAMILY.to_string(),
         action_shape: POOL_ACTION_SHAPE.to_string(),
         regulated: POOL_REGULATED,
+        asset_denom: REGULATED_DENOM.to_owned(),
         verifying_key_digest,
-        proving_key_digest,
-        circuit_metadata_digest,
+        registry_id,
+        relation_digest,
         crate_version: env!("CARGO_PKG_VERSION").to_string(),
         git_commit,
         git_tree_state,
+        executable_sha256: executable_digest()?,
         compatibility_fingerprint: compatibility_fingerprint(pool.txs.len())?,
         tx_hashes,
         raw_bytes,
@@ -372,8 +378,21 @@ pub fn save_proof_tx_pool(out_dir: &Path, pool: &ProofTxPool) -> Result<ProofTxP
     Ok(metadata)
 }
 
-pub fn load_proof_tx_pool(pool_dir: &Path) -> Result<(ProofTxPool, ProofTxPoolMetadata)> {
+pub fn load_proof_tx_pool(
+    pool_dir: &Path,
+    expected_tx_count: usize,
+) -> Result<(ProofTxPool, ProofTxPoolMetadata)> {
     let metadata = read_metadata(pool_dir)?;
+    anyhow::ensure!(
+        metadata.tx_count == expected_tx_count,
+        "proof pool transaction count mismatch: requested={} stored={}",
+        expected_tx_count,
+        metadata.tx_count
+    );
+    anyhow::ensure!(
+        metadata.executable_sha256 == executable_digest()?,
+        "proof pool executable identity mismatch"
+    );
     anyhow::ensure!(
         metadata.compatibility_fingerprint == compatibility_fingerprint(metadata.tx_count)?,
         "proof pool compatibility fingerprint mismatch"
@@ -408,7 +427,8 @@ pub fn load_proof_tx_pool(pool_dir: &Path) -> Result<(ProofTxPool, ProofTxPoolMe
 }
 
 pub fn verify_proof_tx_pool(pool_dir: &Path) -> Result<ProofTxPoolMetadata> {
-    let (_pool, metadata) = load_proof_tx_pool(pool_dir)?;
+    let expected_tx_count = read_metadata(pool_dir)?.tx_count;
+    let (_pool, metadata) = load_proof_tx_pool(pool_dir, expected_tx_count)?;
     Ok(metadata)
 }
 
@@ -496,25 +516,58 @@ fn compatibility_fingerprint(tx_count: usize) -> Result<String> {
     hasher.update((tx_count as u64).to_le_bytes());
     hasher.update(env!("CARGO_PKG_VERSION").as_bytes());
     hasher.update(transfer_verifying_key_digest()?.as_bytes());
-    hasher.update(bytes_digest(shieldd_sdk_proof_params::transfer_proving_key_bytes()).as_bytes());
-    hasher.update(bytes_digest(shieldd_sdk_proof_params::transfer_circuit_metadata()).as_bytes());
-    if let Some(commit) = git_commit() {
-        hasher.update(commit.as_bytes());
-    }
-    hasher.update(git_tree_state().as_bytes());
+    hasher.update(registry()?.id());
+    hasher.update(executable_digest()?.as_bytes());
     Ok(hex::encode(hasher.finalize()))
 }
 
-fn transfer_verifying_key_digest() -> Result<String> {
-    let mut bytes = Vec::new();
-    shieldd_sdk_proof_params::transfer_proof_verification_key()
-        .serialize_compressed(&mut bytes)
-        .context("serializing transfer verifying key")?;
-    Ok(bytes_digest(&bytes))
+fn executable_digest() -> Result<String> {
+    static DIGEST: std::sync::OnceLock<Result<String, String>> = std::sync::OnceLock::new();
+    DIGEST
+        .get_or_init(|| {
+            let digest = (|| -> Result<String> {
+                let mut file =
+                    File::open(std::env::current_exe()?).context("opening benchmark executable")?;
+                let mut hasher = sha2::Sha256::new();
+                let mut buffer = [0u8; 65536];
+                loop {
+                    let read = file.read(&mut buffer)?;
+                    if read == 0 {
+                        break;
+                    }
+                    hasher.update(&buffer[..read]);
+                }
+                Ok(hex::encode(hasher.finalize()))
+            })();
+            digest.map_err(|error| format!("{error:#}"))
+        })
+        .as_ref()
+        .cloned()
+        .map_err(|error| anyhow::anyhow!("{error}"))
 }
 
-fn bytes_digest(bytes: &[u8]) -> String {
-    hex::encode(sha2::Sha256::digest(bytes))
+fn transfer_verifying_key_digest() -> Result<String> {
+    Ok(hex::encode(
+        registry()?
+            .verifying_key(shieldd_sdk_circuits::proof::Family::Transfer)?
+            .digest(),
+    ))
+}
+
+/// The benchmark process uses one operator-selected registry for fixtures and execution.
+pub fn registry() -> Result<Arc<shieldd_sdk_proof_params::pari::Registry>> {
+    static KEYS: std::sync::OnceLock<
+        Result<Arc<shieldd_sdk_proof_params::pari::Registry>, String>,
+    > = std::sync::OnceLock::new();
+    KEYS.get_or_init(|| {
+        let path = std::env::var("SHIELDD_PARI_KEYS").map_err(|e| e.to_string())?;
+        shieldd_sdk_proof_params::pari::Registry::load(path)
+            .map(Arc::new)
+            .map_err(|e| format!("{e:#}"))
+    })
+    .as_ref()
+    .map(Arc::clone)
+    .map_err(|error| anyhow::anyhow!("{error}"))
 }
 
 fn git_commit() -> Option<String> {
@@ -530,14 +583,18 @@ fn git_tree_state() -> String {
 }
 
 fn git_output<const N: usize>(args: [&str; N]) -> Option<String> {
-    let output = Command::new("git").args(args).output().ok()?;
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
+        .args(args)
+        .output()
+        .ok()?;
     if !output.status.success() {
         return None;
     }
     String::from_utf8(output.stdout)
         .ok()
         .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
 }
 
 fn unix_ts() -> u64 {
@@ -545,4 +602,58 @@ fn unix_ts() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn proof_storage_admits_regulated_non_fee_notes() -> Result<()> {
+        let (_storage, _host, client) = setup_proof_storage(1).await?;
+        assert_eq!(client.notes.len(), 1);
+        let note = client.notes.values().next().unwrap();
+        assert_ne!(note.asset_id(), *shieldd_sdk_asset::BASE_ASSET_ID);
+        assert_eq!(note.address(), test_keys::ADDRESS_0.deref().clone());
+        Ok(())
+    }
+
+    #[test]
+    fn corpus_cannot_be_reused_with_a_different_genesis_note_count() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let txs = (0..3)
+            .map(|i| {
+                let mut tx = Transaction::default();
+                tx.transaction_body.transaction_parameters.expiry_height = i;
+                Arc::new(tx.encode_to_vec())
+            })
+            .collect();
+        save_proof_tx_pool(directory.path(), &ProofTxPool { txs })?;
+        assert!(load_proof_tx_pool(directory.path(), 3).is_ok());
+        assert!(load_proof_tx_pool(directory.path(), 2).is_err());
+        assert!(load_proof_tx_pool(directory.path(), 4).is_err());
+        Ok(())
+    }
+    #[test]
+    fn corpus_rejects_changed_executable_before_reading_shards() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let pool = ProofTxPool {
+            txs: vec![Arc::new(Transaction::default().encode_to_vec())],
+        };
+        let mut metadata = save_proof_tx_pool(directory.path(), &pool)?;
+        std::fs::remove_dir_all(directory.path().join("txs"))?;
+        metadata.executable_sha256 = "00".repeat(32);
+        std::fs::write(
+            directory.path().join("metadata.json"),
+            serde_json::to_vec(&metadata)?,
+        )?;
+        let error = load_proof_tx_pool(directory.path(), 1)
+            .err()
+            .context("different build must fail")?;
+        assert!(
+            error.to_string().contains("executable identity"),
+            "{error:#}"
+        );
+        Ok(())
+    }
 }

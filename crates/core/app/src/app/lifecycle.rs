@@ -10,6 +10,7 @@ impl App {
         match app_state {
             AppState::Content(genesis) => {
                 crate::app_version::initialize_app_version(&mut state_tx);
+                crate::registry_binding::initialize(&mut state_tx, self.registry.id());
                 state_tx.put_chain_id(genesis.chain_id.clone());
                 state_tx.put_host_withdrawals_enabled(true);
                 Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
@@ -37,7 +38,6 @@ impl App {
         &mut self,
         begin_block: &cnidarium_component::BlockContext,
     ) -> Vec<abci::Event> {
-        self.pending_sct_append_log.clear();
         let mut state_tx = StateDelta::new(self.state.clone());
 
         clear_block_fee_price_cache(&mut state_tx);
@@ -58,10 +58,7 @@ impl App {
         self.flush_deferred_block_transactions()
             .await
             .expect("must be able to flush deferred block transactions in end_block");
-        let mut state_tx = StateDelta::new(self.state.clone());
-        self.materialize_pending_sct_append_log(&mut state_tx)
-            .await
-            .expect("must be able to materialize deferred SCT payloads in end_block");
+        let state_tx = StateDelta::new(self.state.clone());
 
         tracing::debug!("running host app components' `end_block` hooks");
         let mut arc_state_tx = Arc::new(state_tx);
@@ -140,25 +137,33 @@ impl App {
     }
 
     /// Persists host execution state and resets snapshots for the next host call.
-    pub async fn commit(&mut self, storage: Storage) -> RootHash {
+    pub async fn commit(&mut self, storage: Storage) -> Result<RootHash> {
         self.state
             .ensure_nullifier_block_materialized()
-            .expect("cannot commit an open nullifier block");
+            .context("cannot commit an open nullifier block")?;
         let commit_start = Instant::now();
         let flush_start = Instant::now();
         self.flush_deferred_block_transactions()
             .await
-            .expect("must be able to flush deferred block transactions before commit");
+            .context("flushing deferred block transactions before commit")?;
         let flush_ms = flush_start.elapsed().as_secs_f64() * 1000.0;
         let dummy_state = StateDelta::new(storage.latest_snapshot());
         let state = Arc::try_unwrap(std::mem::replace(&mut self.state, Arc::new(dummy_state)))
-            .expect("we have exclusive ownership of the State at commit()");
+            .map_err(|_| {
+                anyhow::anyhow!("commit requires exclusive ownership of application state")
+            })?;
+
+        #[cfg(test)]
+        if let Some(extracted) = self.commit_extracted.take() {
+            extracted.notify_one();
+            std::future::pending::<()>().await;
+        }
 
         let storage_commit_start = Instant::now();
         let jmt_root = storage
             .commit(state)
             .await
-            .expect("must be able to successfully commit to storage");
+            .context("committing application state to storage")?;
         let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
 
         tracing::debug!(?jmt_root, "finished committing host state");
@@ -168,7 +173,6 @@ impl App {
         self.snapshot_version = latest_snapshot.version();
         self.committed_snapshot = latest_snapshot.clone();
         self.state = Arc::new(StateDelta::new(latest_snapshot));
-        self.pending_sct_append_log.clear();
         let snapshot_reset_ms = snapshot_reset_start.elapsed().as_secs_f64() * 1000.0;
         let total_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
         tracing::info!(
@@ -178,6 +182,6 @@ impl App {
             commit_snapshot_reset_ms = snapshot_reset_ms,
             "host_commit_phase_profile"
         );
-        jmt_root
+        Ok(jmt_root)
     }
 }

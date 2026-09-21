@@ -5,8 +5,8 @@ use std::{
 
 use anyhow::anyhow;
 
-use decaf377_ka as ka;
 use shieldd_sdk_asset::balance;
+use shieldd_sdk_crypto::ka;
 use shieldd_sdk_keys::{
     address::ADDRESS_LEN_BYTES,
     keys::OutgoingViewingKey,
@@ -260,11 +260,12 @@ impl TryFrom<pbt::MemoPlaintext> for MemoPlaintext {
 
 #[cfg(test)]
 mod tests {
+    use ff::Field;
     use rand_core::OsRng;
 
     use super::*;
-    use decaf377::Fr;
     use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 
     use proptest::prelude::*;
@@ -298,7 +299,9 @@ mod tests {
         );
 
         // On the recipient side, we have to decrypt the wrapped memo key, and then the memo.
-        let epk = esk.diversified_public(dest.diversified_generator());
+        let epk = esk
+            .diversified_public(dest.diversified_generator())
+            .expect("nonidentity generator");
         let decrypted_memo_key = wrapped_memo_key
             .decrypt(epk, ivk)
             .expect("can decrypt memo key");
@@ -344,12 +347,14 @@ mod tests {
             dest.diversified_generator(),
         );
 
-        let value_blinding = Fr::rand(&mut rng);
+        let value_blinding = Fr::random(&mut rng);
         let cv = note.value().commit(value_blinding);
         let wrapped_ovk = note.encrypt_key(ovk, cv);
 
         // Later, still on the sender side, we decrypt the memo by using the decrypt_outgoing method.
-        let epk = esk.diversified_public(dest.diversified_generator());
+        let epk = esk
+            .diversified_public(dest.diversified_generator())
+            .expect("nonidentity generator");
         let plaintext = MemoCiphertext::decrypt_outgoing(
             &wrapped_memo_key,
             wrapped_ovk,

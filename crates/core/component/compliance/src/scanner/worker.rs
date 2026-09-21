@@ -430,7 +430,7 @@ mod tests {
             }
             let (worker, _) = IssuerComplianceWorker::new(
                 DetectionKey::demo(),
-                asset::Id(decaf377::Fq::from(12345u64)),
+                asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
                 store.clone(),
                 source,
             )
@@ -458,7 +458,7 @@ mod tests {
         let identity = Arc::new(MemoryBlockIdentity::default());
         let (_worker, handle) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(12345u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
             Arc::new(store),
             identity,
         )
@@ -480,7 +480,7 @@ mod tests {
         identity.insert(b1);
         let (worker, _) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(1u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(1u64)),
             store,
             identity,
         )
@@ -509,7 +509,7 @@ mod tests {
         identity.insert(block(3, 30, 20));
         let (worker, _) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(1u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(1u64)),
             store,
             identity,
         )
@@ -585,7 +585,7 @@ mod tests {
         source.failures.lock().unwrap().insert(2, 1);
         let (worker, _) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(1u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(1u64)),
             Arc::new(SqliteScannerStore::new(":memory:").unwrap()),
             source.clone(),
         )

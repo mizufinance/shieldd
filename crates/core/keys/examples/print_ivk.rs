@@ -1,7 +1,7 @@
 //! Print the incoming viewing key for a wallet, as hex.
 //!
 //! The ivk is the one piece `tools/shieldd-note-reader` needs to decrypt an
-//! output note, and it cannot be derived anywhere else: it takes Poseidon377,
+//! output note, and it cannot be derived anywhere else: it takes Poseidon-381,
 //! which lives in this crate. The admin's decrypt route carries a list of them
 //! for the local dev wallets, and this is how that list is produced.
 //!

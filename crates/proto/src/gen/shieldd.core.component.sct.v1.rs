@@ -213,7 +213,7 @@ impl ::prost::Name for NullifierWindow {
         "/shieldd.core.component.sct.v1.NullifierWindow".into()
     }
 }
-/// One BLS12-377 proof of nonmembership in a retired generation.
+/// One suite-identified Pari proof of nonmembership in a retired generation.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerationNonmembershipProof {
     #[prost(uint64, tag = "1")]
@@ -225,7 +225,7 @@ pub struct GenerationNonmembershipProof {
     #[prost(uint64, tag = "4")]
     pub generation_end_position: u64,
     #[prost(bytes = "vec", tag = "5")]
-    pub groth16_proof: ::prost::alloc::vec::Vec<u8>,
+    pub proof: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for GenerationNonmembershipProof {
     const NAME: &'static str = "GenerationNonmembershipProof";
@@ -237,7 +237,7 @@ impl ::prost::Name for GenerationNonmembershipProof {
         "/shieldd.core.component.sct.v1.GenerationNonmembershipProof".into()
     }
 }
-/// One BW6-761 proof covering a canonical fixed-width history chunk.
+/// One Pari proof covering ten raw generation nonmembership witnesses.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HistoricalChunkProof {
     #[prost(uint64, tag = "1")]
@@ -245,7 +245,7 @@ pub struct HistoricalChunkProof {
     #[prost(bytes = "vec", tag = "2")]
     pub end_history_head: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "3")]
-    pub groth16_proof: ::prost::alloc::vec::Vec<u8>,
+    pub proof: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for HistoricalChunkProof {
     const NAME: &'static str = "HistoricalChunkProof";

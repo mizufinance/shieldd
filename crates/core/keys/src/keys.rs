@@ -21,5 +21,5 @@ mod ivk;
 mod ovk;
 
 pub use fvk::{FullViewingKey, FullViewingKeyError};
-pub use ivk::{IncomingViewingKey, IVK_LEN_BYTES};
+pub use ivk::IncomingViewingKey;
 pub use ovk::{OutgoingViewingKey, OVK_LEN_BYTES};

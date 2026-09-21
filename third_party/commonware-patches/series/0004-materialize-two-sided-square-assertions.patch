@@ -1,0 +1,73 @@
+--- a/cryptography/src/zk/pari/circuit.rs
++++ b/cryptography/src/zk/pari/circuit.rs
+@@ -529,6 +529,19 @@
+             // A deferred square `base^2` asserted equal to `other` becomes the
+             // single row `base^2 == other` directly.
+             if let Some((base, other)) = self.assertion_square(left, right) {
++                // The opposite side must not be read through a deferred square's
++                // zero placeholder. Materialize it before fusing this assertion.
++                if let CircuitIdx::Node(index) = other
++                    && let Some(other_base) = self.square_nodes.remove(&(index as usize))
++                {
++                    let output = self.allocate(ValueSource::Circuit(other))?;
++                    let expression = LinearCombination::coordinate(output);
++                    self.rows.push(Row {
++                        squared: other_base,
++                        linear: expression.clone(),
++                    });
++                    self.node_expressions[index as usize] = expression;
++                }
+                 self.rows.push(Row {
+                     squared: base,
+                     linear: self.expression(other)?,
+@@ -1461,4 +1474,49 @@
+             Some(Error::RelationMismatch)
+         );
+     }
+-}
++    #[test]
++    fn two_sided_square_assertions_preserve_source_satisfaction() {
++        for (x_value, y_value) in [(2, 2), (0, 2), (2, 0), (0, 0), (2, 3)] {
++            for reverse in [false, true] {
++                for negate in [false, true] {
++                    for folded in [false, true] {
++                        let (valued, selected) = build_with_values(|ctx| {
++                            let x = Var::witness(ctx, |_| scalar(x_value));
++                            let y = Var::witness(ctx, |_| {
++                                if negate {
++                                    -scalar(y_value)
++                                } else {
++                                    scalar(y_value)
++                                }
++                            });
++                            let factor = if folded {
++                                x.clone() + &Var::constant(ctx, scalar(0))
++                            } else {
++                                x.clone()
++                            };
++                            let x_squared = x.clone() * &factor;
++                            let y_squared = y.clone() * &y;
++                            if reverse {
++                                y_squared.assert_eq(&x_squared);
++                            } else {
++                                x_squared.assert_eq(&y_squared);
++                            }
++                            vec![x, y]
++                        });
++                        let layout =
++                            InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
++                        let source_satisfied = valued.is_satisfied();
++                        assert_eq!(source_satisfied, x_value == y_value);
++                        let relation = compile(&valued.circuit, &layout).unwrap();
++                        let assignment = compile_valued(&valued, &layout, &relation).unwrap();
++                        assert_eq!(
++                            source_satisfied,
++                            relation.is_satisfied(&assignment),
++                            "x={x_value}, y={y_value}, reverse={reverse}, negate={negate}, folded={folded}"
++                        );
++                    }
++                }
++            }
++        }
++    }
++}

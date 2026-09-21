@@ -54,7 +54,7 @@ pub struct DetectionEvent {
     pub record_ref: ComplianceRecordRef,
     pub asset_id: asset::Id,
     pub is_flagged: bool,
-    pub salt: decaf377::Fq,
+    pub salt: shieldd_sdk_crypto::Fq,
     pub routing_tags: [u32; 2],
     pub ciphertext: ComplianceCiphertext,
     pub raw_bytes: Vec<u8>,

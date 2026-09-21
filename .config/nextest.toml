@@ -2,5 +2,5 @@
 test-threads = 2
 
 [[profile.default.overrides]]
-filter = 'package(shieldd-sdk-app-tests)'
+filter = 'package(shieldd-sdk-app-tests) or package(shieldd-sdk-circuits)'
 threads-required = 2

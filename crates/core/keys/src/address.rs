@@ -3,15 +3,15 @@
 use std::{
     fmt::Display,
     io::{Cursor, Read, Write},
-    sync::OnceLock,
 };
 
 use anyhow::Context;
-use decaf377::{Element, Encoding, Fq};
 use f4jumble::{f4jumble, f4jumble_inv};
+use group::Group;
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use shieldd_sdk_crypto::SubgroupPoint;
 use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::keys::v1 as pb, DomainType};
 
 mod view;
@@ -22,7 +22,7 @@ use crate::{ka, keys::Diversifier};
 pub const TRANSPARENT_ADDRESS_BECH32_PREFIX: &str = "tshieldd";
 
 /// The length of an [`Address`] in bytes.
-pub const ADDRESS_LEN_BYTES: usize = 48;
+pub const ADDRESS_LEN_BYTES: usize = 49;
 
 /// Number of bits in the address short form divided by the number of bits per Bech32m character
 pub const ADDRESS_NUM_CHARS_SHORT_FORM: usize = 24;
@@ -33,59 +33,19 @@ pub const ADDRESS_NUM_CHARS_SHORT_FORM: usize = 24;
 pub struct Address {
     /// The address diversifier.
     d: Diversifier,
-    /// A cached copy of the diversified base.
-    g_d: OnceLock<decaf377::Element>,
-
-    /// The public key for this payment address.
-    ///
-    /// The bytes are a canonical field encoding of a valid, nonidentity
-    /// Decaf377 point, so note commitments can hash its s-coordinate safely.
+    g_d: SubgroupPoint,
     pk_d: ka::Public,
-    /// The transmission key s value.
-    transmission_key_s: Fq,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum AddressError {
-    #[error("diversified generator is the Decaf377 identity")]
+    #[error("diversified generator is the Jubjub identity")]
     IdentityDiversifiedGenerator,
-    #[error("transmission key has a noncanonical field encoding")]
-    NoncanonicalTransmissionKey,
-    #[error("transmission key is not a valid Decaf377 point")]
-    InvalidTransmissionKey,
-    #[error("transmission key is the Decaf377 identity")]
-    IdentityTransmissionKey,
 }
 
-impl std::cmp::PartialEq for Address {
-    fn eq(
-        &self,
-        rhs @ Self {
-            d: rhs_d,
-            g_d: rhs_g_d,
-            pk_d: rhs_pk_d,
-            transmission_key_s: rhs_transmission_key_s,
-        }: &Self,
-    ) -> bool {
-        let lhs @ Self {
-            d: lhs_d,
-            g_d: lhs_g_d,
-            pk_d: lhs_pk_d,
-            transmission_key_s: lhs_transmission_key_s,
-        } = self;
-
-        // When a `OnceLock<T>` value is compared, it will only call `get()`, refraining from
-        // initializing the value. To make sure that an address that *hasn't* yet accessed its
-        // diversified base is considered equal to an address that *has*, compute the base points
-        // if they have not already been generated.
-        lhs.diversified_generator();
-        rhs.diversified_generator();
-
-        // Compare all of the fields.
-        lhs_d.eq(rhs_d)
-            && lhs_g_d.eq(rhs_g_d)
-            && lhs_pk_d.eq(rhs_pk_d)
-            && lhs_transmission_key_s.eq(rhs_transmission_key_s)
+impl PartialEq for Address {
+    fn eq(&self, other: &Self) -> bool {
+        self.d == other.d && self.pk_d == other.pk_d
     }
 }
 
@@ -119,25 +79,16 @@ impl Address {
 
     fn from_components_with_diversified_generator(
         d: Diversifier,
-        diversified_generator: Element,
+        diversified_generator: SubgroupPoint,
         pk_d: ka::Public,
     ) -> Result<Self, AddressError> {
-        if diversified_generator == Element::default() {
+        if bool::from(diversified_generator.is_identity()) {
             return Err(AddressError::IdentityDiversifiedGenerator);
-        }
-        let transmission_key_s = Fq::from_bytes_checked(&pk_d.0)
-            .map_err(|_| AddressError::NoncanonicalTransmissionKey)?;
-        let transmission_key = Encoding(pk_d.0)
-            .vartime_decompress()
-            .map_err(|_| AddressError::InvalidTransmissionKey)?;
-        if transmission_key == Element::default() {
-            return Err(AddressError::IdentityTransmissionKey);
         }
         Ok(Self {
             d,
-            g_d: OnceLock::from(diversified_generator),
+            g_d: diversified_generator,
             pk_d,
-            transmission_key_s,
         })
     }
 
@@ -146,23 +97,16 @@ impl Address {
         &self.d
     }
 
-    /// Returns a reference to the diversified base.
-    ///
-    /// This method computes the diversified base if it has not been computed yet. This value is
-    /// cached after it has been computed once.
-    pub fn diversified_generator(&self) -> &decaf377::Element {
-        self.g_d
-            .get_or_init(|| self.diversifier().diversified_generator())
+    pub fn diversified_generator(&self) -> &SubgroupPoint {
+        &self.g_d
     }
 
-    /// Returns a reference to the transmission key.
     pub fn transmission_key(&self) -> &ka::Public {
         &self.pk_d
     }
 
-    /// Returns a reference to the transmission key `s` value.
-    pub fn transmission_key_s(&self) -> &Fq {
-        &self.transmission_key_s
+    pub fn transmission_point(&self) -> &SubgroupPoint {
+        self.pk_d.point()
     }
 
     /// Converts this address to a vector of bytes.
@@ -172,9 +116,11 @@ impl Address {
             .write_all(&self.diversifier().0)
             .expect("can write diversifier into vec");
         bytes
-            .write_all(&self.transmission_key().0)
+            .write_all(&self.transmission_key().to_bytes())
             .expect("can write transmission key into vec");
-        f4jumble(bytes.get_ref()).expect("can jumble")
+        let mut encoded = vec![shieldd_sdk_crypto::SUITE];
+        encoded.extend(f4jumble(bytes.get_ref()).expect("48-byte address payload"));
+        encoded
     }
 
     /// Generates a randomized dummy address.
@@ -187,7 +133,10 @@ impl Address {
             rng.fill_bytes(&mut pk_d_bytes);
 
             let diversifier = Diversifier(diversifier_bytes);
-            let addr = Address::from_components(diversifier, ka::Public(pk_d_bytes));
+            let Ok(public) = ka::Public::try_from(pk_d_bytes) else {
+                continue;
+            };
+            let addr = Address::from_components(diversifier, public);
 
             if let Ok(addr) = addr {
                 return addr;
@@ -198,7 +147,6 @@ impl Address {
     /// Short form suitable for displaying in a UI.
     pub fn display_short_form(&self) -> String {
         let full_address = format!("{self}");
-        // Fixed prefix is `shielddv2t` plus the Bech32m separator `1`.
         let fixed_prefix = format!("{}{}", bech32str::address::BECH32_PREFIX, '1');
         let num_chars_to_display = fixed_prefix.len() + ADDRESS_NUM_CHARS_SHORT_FORM;
 
@@ -223,7 +171,11 @@ impl Address {
 
         // Encode the transmission key.
         Some(bech32str::encode(
-            &self.transmission_key().0,
+            &[
+                &[shieldd_sdk_crypto::SUITE][..],
+                &self.transmission_key().to_bytes(),
+            ]
+            .concat(),
             TRANSPARENT_ADDRESS_BECH32_PREFIX,
             bech32str::Bech32,
         ))
@@ -326,13 +278,13 @@ impl std::str::FromStr for Address {
         if s.starts_with(TRANSPARENT_ADDRESS_BECH32_PREFIX) {
             let dzero = Diversifier([0u8; 16]);
 
-            let pk_dzero_bytes: [u8; 32] =
-                bech32str::decode(s, TRANSPARENT_ADDRESS_BECH32_PREFIX, bech32str::Bech32)?
-                    .try_into()
-                    .map_err(|bytes: Vec<u8>| {
-                        anyhow::anyhow!("wrong length {}, expected 32", bytes.len())
-                    })?;
-            let pk_dzero = ka::Public(pk_dzero_bytes);
+            let encoded =
+                bech32str::decode(s, TRANSPARENT_ADDRESS_BECH32_PREFIX, bech32str::Bech32)?;
+            anyhow::ensure!(
+                encoded.len() == 33 && encoded[0] == shieldd_sdk_crypto::SUITE,
+                "unsupported transparent address suite or length"
+            );
+            let pk_dzero = ka::Public::try_from(&encoded[1..])?;
 
             let address = Self::from_components(dzero, pk_dzero)
                 .context("could not reconstruct transparent address")?;
@@ -377,7 +329,11 @@ impl TryFrom<&[u8]> for Address {
             anyhow::bail!("address malformed");
         }
 
-        let unjumbled_bytes = f4jumble_inv(jumbled_bytes).context("invalid address")?;
+        anyhow::ensure!(
+            jumbled_bytes[0] == shieldd_sdk_crypto::SUITE,
+            "unsupported address suite"
+        );
+        let unjumbled_bytes = f4jumble_inv(&jumbled_bytes[1..]).context("invalid address")?;
         let mut bytes = Cursor::new(unjumbled_bytes);
 
         let mut diversifier_bytes = [0u8; 16];
@@ -392,7 +348,7 @@ impl TryFrom<&[u8]> for Address {
 
         let diversifier = Diversifier(diversifier_bytes);
 
-        Address::from_components(diversifier, ka::Public(pk_d_bytes))
+        Address::from_components(diversifier, ka::Public::try_from(pk_d_bytes)?)
             .context("could not create address from components")
     }
 }
@@ -482,7 +438,7 @@ mod tests {
         assert_eq!(
             Address::from_components_with_diversified_generator(
                 *known.diversifier(),
-                Element::default(),
+                SubgroupPoint::identity(),
                 *known.transmission_key(),
             ),
             Err(AddressError::IdentityDiversifiedGenerator)
@@ -490,22 +446,17 @@ mod tests {
     }
 
     #[test]
-    fn address_components_reject_identity_or_invalid_transmission_key() {
-        let known = crate::test_keys::ADDRESS_0.clone();
-        let identity = ka::Public(Element::default().vartime_compress().0);
-        assert_eq!(
-            Address::from_components(*known.diversifier(), identity),
-            Err(AddressError::IdentityTransmissionKey)
-        );
-
-        let invalid_point = (0u64..)
-            .map(Fq::from)
-            .map(|field| ka::Public(field.to_bytes()))
-            .find(|candidate| Encoding(candidate.0).vartime_decompress().is_err())
-            .expect("some canonical field encodings are not valid Decaf377 points");
-        assert_eq!(
-            Address::from_components(*known.diversifier(), invalid_point),
-            Err(AddressError::InvalidTransmissionKey)
-        );
+    fn address_wire_rejects_identity_and_noncanonical_transmission_keys() {
+        use group::GroupEncoding;
+        for key in [SubgroupPoint::identity().to_bytes(), [255; 32]] {
+            let mut raw = [0; ADDRESS_LEN_BYTES - 1];
+            raw[16..].copy_from_slice(&key);
+            let wire = [
+                &[shieldd_sdk_crypto::SUITE][..],
+                f4jumble(&raw).unwrap().as_slice(),
+            ]
+            .concat();
+            assert!(Address::try_from(wire).is_err());
+        }
     }
 }

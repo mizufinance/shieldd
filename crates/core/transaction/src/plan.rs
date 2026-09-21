@@ -280,9 +280,10 @@ impl TryFrom<pb::TransactionPlan> for TransactionPlan {
 mod tests {
     use super::*;
     use crate::{Transaction, TransactionBody};
-    use decaf377::Fr;
+    use ff::Field;
     use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_shielded_pool::{
@@ -423,7 +424,7 @@ mod tests {
             shieldd_sdk_shielded_pool::TransferPlan::new(
                 vec![spend],
                 vec![output],
-                Fr::rand(&mut rng),
+                Fr::random(&mut rng),
                 context.clone(),
                 shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(context.timestamp),
                 shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
@@ -729,7 +730,14 @@ mod tests {
                 ShieldedInputPlan::new(&mut rng, note, 0u64.into())
             })
             .collect();
-        let output = ShieldedOutputPlan::new(&mut rng, value, test_keys::ADDRESS_0.deref().clone());
+        let output = ShieldedOutputPlan::new(
+            &mut rng,
+            Value {
+                amount: 2u64.into(),
+                ..value
+            },
+            test_keys::ADDRESS_0.deref().clone(),
+        );
         let note_reshape = shieldd_sdk_shielded_pool::test_plan_helpers::note_reshape(
             NoteReshapeFamilyId::EightByOne,
             spends,

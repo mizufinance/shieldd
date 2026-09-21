@@ -7,16 +7,15 @@ use std::{
     ops::RangeInclusive,
 };
 
-use ark_ff::{One, Zero};
+use ff::Field;
 use once_cell::sync::Lazy;
-use poseidon377::{hash_1, hash_4, Fq};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{domains, poseidon, Fq};
 
 use crate::prelude::*;
 
 mod cache;
-mod option;
-pub use {cache::CachedHash, option::OptionHash};
+pub use cache::CachedHash;
 
 /// A type which can be transformed into a [`struct@Hash`], either by retrieving a cached hash, computing a
 /// hash for it, or some combination of both.
@@ -71,13 +70,33 @@ impl<T: GetHash> GetHash for &mut T {
 }
 
 /// The hash of an individual [`Commitment`] or internal node in the tree.
-#[derive(Clone, Copy, PartialEq, Eq, std::hash::Hash, Serialize, Deserialize)]
-pub struct Hash(#[serde(with = "crate::storage::serialize::fq")] Fq);
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Hash(Option<Fq>);
+
+impl std::hash::Hash for Hash {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::hash::Hash::hash(&self.0.map(|value| value.to_bytes()), state);
+    }
+}
+impl Serialize for Hash {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let value = self
+            .0
+            .as_ref()
+            .ok_or_else(|| <S::Error as serde::ser::Error>::custom("uninitialized tree hash"))?;
+        crate::storage::serialize::fq::serialize(value, serializer)
+    }
+}
+impl<'de> Deserialize<'de> for Hash {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        crate::storage::serialize::fq::deserialize(deserializer).map(Self::new)
+    }
+}
 
 impl From<Hash> for Fq {
     #[inline]
     fn from(hash: Hash) -> Self {
-        hash.0
+        hash.0.expect("initialized tree hash")
     }
 }
 
@@ -95,64 +114,56 @@ impl Debug for Hash {
     }
 }
 
-/// The domain separator used for leaves in the tree, and used as a base index for the domain
-/// separators of nodes in the tree (nodes get a domain separator of the form `DOMAIN_SEPARATOR +
-/// HEIGHT`).
-pub static DOMAIN_SEPARATOR: Lazy<Fq> =
-    Lazy::new(|| Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.tct").as_bytes()));
-
 #[allow(unused)]
 impl Hash {
     /// Create a hash from an arbitrary [`Fq`].
     pub fn new(fq: Fq) -> Self {
-        Self(fq)
+        Self(Some(fq))
     }
 
     /// Get an array of bytes representing the hash
     pub fn to_bytes(self) -> [u8; 32] {
-        self.0.to_bytes()
+        Fq::from(self).to_bytes()
     }
 
     /// Decode a hash from bytes representing it
-    pub fn from_bytes(bytes: [u8; 32]) -> Result<Self, decaf377::EncodingError> {
-        Ok(Self(Fq::from_bytes_checked(&bytes)?))
+    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
+        Ok(Self::new(shieldd_sdk_crypto::encoding::field(&bytes)?))
     }
 
     /// The zero hash, used for padding of frontier nodes.
     pub fn zero() -> Hash {
-        Self(Fq::zero())
+        Self::new(Fq::ZERO)
     }
 
     /// Checks if the hash is zero.
     pub fn is_zero(&self) -> bool {
-        self.0.is_zero()
+        self.0 == Some(Fq::ZERO)
     }
 
     /// The one hash, used for padding of complete nodes.
     pub fn one() -> Hash {
-        Self(Fq::one())
+        Self::new(Fq::ONE)
     }
 
     /// Checks if the hash is one.
     pub fn is_one(&self) -> bool {
-        self.0.is_one()
+        self.0 == Some(Fq::ONE)
     }
 
-    /// A stand-in hash that is out-of-range for `Fq`, to be used during intermediate construction
-    /// of the tree as a sentinel value for uninitialized nodes.
+    /// Marks nodes that still require reconstruction from durable storage.
     pub(crate) fn uninitialized() -> Hash {
-        Self(Fq::SENTINEL)
+        Self(None)
     }
 
-    /// Checks if the hash is uninitialized.
     pub(crate) fn is_uninitialized(&self) -> bool {
-        *self == Self::uninitialized()
+        self.0.is_none()
     }
 
     /// Hash an individual commitment to be inserted into the tree.
     #[inline]
     pub fn of(item: StateCommitment) -> Hash {
-        Self(hash_1(&DOMAIN_SEPARATOR, item.0))
+        Self::new(item.0)
     }
 
     /// Construct a hash for an internal node of the tree, given its height and the hashes of its
@@ -161,8 +172,16 @@ impl Hash {
     pub fn node(height: u8, a: Hash, b: Hash, c: Hash, d: Hash) -> Hash {
         // Definition of hash of node without cache optimization
         fn hash_node(height: u8, a: Hash, b: Hash, c: Hash, d: Hash) -> Hash {
-            let height = Fq::from_le_bytes_mod_order(&height.to_le_bytes());
-            Hash(hash_4(&(*DOMAIN_SEPARATOR + height), (a.0, b.0, c.0, d.0)))
+            Hash::new(poseidon::hash(
+                domains::STATE_TREE,
+                &[
+                    Fq::from(u64::from(height)),
+                    a.into(),
+                    b.into(),
+                    c.into(),
+                    d.into(),
+                ],
+            ))
         }
 
         // The range of hashes to precompute: this captures hashes starting at the first internal node
@@ -271,7 +290,7 @@ impl From<u64> for Forgotten {
 
 #[cfg(any(test, feature = "arbitrary"))]
 mod arbitrary {
-    use poseidon377::Fq;
+    use shieldd_sdk_crypto::Fq;
 
     use super::Hash;
 
@@ -301,9 +320,11 @@ mod arbitrary {
             let rng = runner.rng();
             let mut bytes = [0u8; 32];
             rng.fill_bytes(&mut bytes);
-            Ok(proptest::strategy::Just(Hash(Fq::from_le_bytes_mod_order(
-                &bytes,
-            ))))
+            Ok(proptest::strategy::Just(Hash::new(Fq::from_bytes_wide(&{
+                let mut wide = [0; 64];
+                wide[..32].copy_from_slice(&bytes);
+                wide
+            }))))
         }
     }
 }

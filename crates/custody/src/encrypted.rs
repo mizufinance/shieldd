@@ -279,7 +279,7 @@ mod disclosure_tests {
     #[test]
     fn encrypted_software_custody_signs_only_its_selected_authority() -> anyhow::Result<()> {
         let key = SpendKey::try_from(SpendKeyBytes([19; 32]))?;
-        let randomizer = decaf377::Fr::from(5u64);
+        let randomizer = shieldd_sdk_crypto::Fr::from(5u64);
         let verification_key = key
             .full_viewing_key()
             .spend_verification_key()
@@ -322,7 +322,11 @@ mod disclosure_tests {
             .sign_disclosure(&request, &public, [255; 32])
             .is_err());
         assert!(signer
-            .sign_disclosure(&request, &public, decaf377::Fr::from(6u64).to_bytes())
+            .sign_disclosure(
+                &request,
+                &public,
+                shieldd_sdk_crypto::Fr::from(6u64).to_bytes()
+            )
             .is_err());
         let config = Config::create("disclosure-test-password", InnerConfig::SoftKms(soft))?;
         let signature = config.sign_disclosure(

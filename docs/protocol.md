@@ -73,8 +73,8 @@ including private fee funding, must sum to zero. Frozen signing vectors live in
 Supported user action families are defined by [Action](../crates/core/transaction/src/action.rs).
 Transfer binds its receiver ciphertext, metadata, owner accumulator payload and
 proof context. NoteReshape preserves sender ownership and regulated Active status.
-Withdrawals bind the complete destination and withdrawn value. AggregateBundle
-is an internal action and is rejected in user-submitted transactions.
+Withdrawals bind the complete destination and withdrawn value. Each action carries
+its own proof; [native verification](proof-system.md) batches compatible statements.
 
 Host deposits, registrations, status changes and seizure use canonical host
 source locations and replay-protected receipts. Bankd supplies their authorization;
@@ -89,16 +89,9 @@ Bankd settles the resulting host effects and owns all IBC execution.
 `ShieldedWithdrawalProof` binds the host destination effect hash, value and
 compliance facts; the canonical proof family is `shielded_withdrawal`.
 
-[Gnark circuits](../tools/gnark/internal/circuits) and Rust public-input projection
-must agree on fields, canonical encodings, hash domains, dummy branches and
-statement ordering. Exact relation coverage is in the
-[Transfer](transfer-circuit/constraint-checklist.md) and
-[compliance](compliance/constraint-checklist.md) checklists. Proof metadata and
-staged manifests bind exact artifacts. Setup changes require fresh proof checks
-and coordinated deployment of verifiers and proving clients.
-
-[SnarkPack](snarkpack/design.md) retains full-target v1 and torus v2 encodings
-with the existing transcript, statement and SRS semantics. Independent reference,
-interoperability and fuzz tests remain verification roots. External
-[Shieldd Security](https://github.com/mizufinance/shieldd-security) owns formal
-specifications and certification evidence for exact commits.
+[Native circuits](../crates/crypto/circuits/src) and Rust witness projections
+share Jubjub encodings and Poseidon-381 domains. Exact relation coverage is in
+the [Transfer](transfer-circuit/constraint-checklist.md) and
+[compliance](compliance/constraint-checklist.md) checklists. The
+[proof registry](proof-system.md) binds each circuit relation and its configured
+verification key. Key changes require fresh pool and wallet state.

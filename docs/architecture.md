@@ -6,12 +6,12 @@ flowchart TD
     ABI --> Host[HostExecution lifecycle]
     Host --> App[App validation and ordered execution]
     App --> State[Cnidarium component state]
-    App --> Proofs[Proof and aggregate verification]
+    App --> Proofs[Native Pari proof and batch verification]
     State --> Blocks[Committed compact blocks and typed history]
     Blocks --> Wallet[Wallet SyncWorker / SQLite]
     Blocks --> Scanner[Issuer scanner / SQLite]
     Wallet --> Plan[Fixed-height planning and authorization]
-    Plan --> Prover[Native prover library or daemon]
+    Plan --> Prover[Native Commonware prover library]
     Prover --> Bankd
 ```
 
@@ -23,15 +23,20 @@ flowchart TD
 | `App` and components | Verify transactions, execute in order, publish roots and compact data atomically |
 | Wallet | Validate supplied roots, retain owned witnesses, persist issued addresses and planning state at a fixed height |
 | Issuer scanner | Validate canonical block identities, persist detections/evidence, roll back reorgs and bound invalid outcomes |
-| Native prover | Build proof artifacts from private witnesses through validated library or daemon transports |
+| Native prover | Build proof artifacts from private witnesses using the explicit Pari registry |
 
-The host supplies height and signed time. State changes remain provisional until
-commit; rollback discards the block. Queries use committed snapshots. Component
+The host supplies height and signed time and calls begin/end/commit for every
+host block, including blocks without pool actions. After genesis at height zero,
+begin requires the next committed height; rollback permits retrying that height.
+An interrupted or failed commit requires rollback before replaying the block or
+reinitializing uncommitted content genesis; commit cannot be retried directly.
+These hooks maintain epoch and compact-block continuity; consensus remains with
+the host. State changes remain provisional until commit. Queries use committed snapshots. Component
 logic receives `StateRead`/`StateWrite`; external wallet and scanner reads use
 `PlanningIo`, `HistoricalWitnessSource`, and `ScannerSource`.
 
 Validator builds verify proofs without enabling native proving. `prover` enables
-native proof construction; `bundled-proving-keys` also enables `prover`. Scanner
+native proof construction using an explicit Pari registry. Scanner
 storage is independent of validator component storage. View’s `rpc` feature adds
 the historical-witness RPC adapter.
 

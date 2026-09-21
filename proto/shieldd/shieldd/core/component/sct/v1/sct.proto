@@ -88,20 +88,20 @@ message NullifierWindow {
   bytes archived_history_head = 5;
 }
 
-// One BLS12-377 proof of nonmembership in a retired generation.
+// One suite-identified Pari proof of nonmembership in a retired generation.
 message GenerationNonmembershipProof {
   uint64 generation_index = 1;
   bytes generation_root = 2;
   uint64 generation_start_position = 3;
   uint64 generation_end_position = 4;
-  bytes groth16_proof = 5;
+  bytes proof = 5;
 }
 
-// One BW6-761 proof covering a canonical fixed-width history chunk.
+// One Pari proof covering ten raw generation nonmembership witnesses.
 message HistoricalChunkProof {
   uint64 chunk_index = 1;
   bytes end_history_head = 2;
-  bytes groth16_proof = 3;
+  bytes proof = 3;
 }
 
 // Complete retired-prefix proof for one public nullifier.

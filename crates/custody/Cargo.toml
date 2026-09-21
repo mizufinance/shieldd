@@ -11,14 +11,13 @@ edition = {workspace = true}
 shieldd-sdk-disclosure = { workspace = true }
 anyhow = {workspace = true}
 argon2 = "0.5"
-ark-serialize = {workspace = true}
 base64 = {workspace = true}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true, features = ["serde"]}
 chacha20poly1305 = {workspace = true}
-decaf377 = {workspace = true}
-decaf377-frost = { version = "2.1.0", path = "../crypto/decaf377-frost" }
-decaf377-ka = {workspace = true}
+shieldd-sdk-crypto.workspace = true
+ff.workspace = true
+redjubjub-frost = { version = "2.1.0", path = "../crypto/redjubjub-frost" }
 ed25519-consensus = {workspace = true}
 hex = {workspace = true}
 shieldd-sdk-keys = {workspace = true, default-features = true}

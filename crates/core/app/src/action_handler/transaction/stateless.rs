@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use group::{Group, GroupEncoding};
 use shieldd_sdk_transaction::{is_no_binding_signature, Action, Transaction};
 use shieldd_sdk_txhash::AuthorizingData;
 
@@ -10,9 +11,7 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
             Action::NoteReshape(note_reshape) => note_reshape.body.outputs.len(),
 
             Action::ShieldedHostWithdrawal(_) => 1,
-            Action::ComplianceRegisterAsset(_)
-            | Action::ComplianceRegisterUser(_)
-            | Action::AggregateBundle(_) => 0,
+            Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => 0,
         })
         .sum::<usize>();
 
@@ -32,7 +31,7 @@ pub(crate) fn valid_binding_signature(tx: &Transaction) -> Result<()> {
 
     tracing::debug!(?bvk, ?auth_hash);
 
-    if bvk.is_identity() {
+    if <[u8; 32]>::from(bvk) == shieldd_sdk_crypto::SubgroupPoint::identity().to_bytes() {
         // Shielded proof actions carry ordered spend-authorization bytes in the
         // transaction body. Their aggregate binding signature must authenticate
         // that exact ordering, even when individual action balance commitments
@@ -84,10 +83,13 @@ pub fn check_non_empty_transaction(tx: &Transaction) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use decaf377::{Fq, Fr};
-    use decaf377_rdsa::{Binding, SigningKey, SpendAuth, VerificationKey};
     use rand_core::OsRng;
+    use reddsa::{
+        sapling::{Binding, SpendAuth},
+        SigningKey, VerificationKey,
+    };
     use shieldd_sdk_asset::Balance;
+    use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_sct::Nullifier;
     use shieldd_sdk_shielded_pool::{
         EncryptedBackref, Transfer, TransferBody, TransferInputBody, TransferProof,
@@ -106,8 +108,8 @@ mod tests {
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 target_timestamp: 0,
-                compliance_anchor: StateCommitment(decaf377::Fq::from(0u64)),
-                asset_anchor: StateCommitment(decaf377::Fq::from(0u64)),
+                compliance_anchor: StateCommitment(shieldd_sdk_crypto::Fq::from(0u64)),
+                asset_anchor: StateCommitment(shieldd_sdk_crypto::Fq::from(0u64)),
                 routing: Default::default(),
                 routing_parameter_set_id: Fq::from(0u64),
                 volume_accumulator:
@@ -124,7 +126,7 @@ mod tests {
     fn binding_signature_rejects_wrong_authorization_hash() {
         let binding_blinding = Fr::from(7u64);
         let mut tx = transaction_with_binding_blinding(binding_blinding);
-        let signing_key = SigningKey::<Binding>::from(binding_blinding);
+        let signing_key = SigningKey::<Binding>::try_from(binding_blinding.to_bytes()).unwrap();
 
         let inverse_error = valid_binding_signature(&tx)
             .expect_err("a nonidentity binding key must reject the no-binding placeholder");
@@ -135,7 +137,7 @@ mod tests {
             "unexpected rejection reason: {inverse_error:#}"
         );
 
-        tx.binding_sig = signing_key.sign_deterministic(tx.auth_hash().as_bytes());
+        tx.binding_sig = signing_key.sign(rand_core::OsRng, tx.auth_hash().as_bytes());
         valid_binding_signature(&tx)
             .expect("binding signature must accept its exact authorization hash");
 
@@ -153,7 +155,11 @@ mod tests {
     #[test]
     fn identity_binding_key_requires_canonical_no_binding_signature() {
         let mut tx = Transaction::default();
-        assert!(tx.binding_verification_key().is_identity());
+        assert!(bool::from(
+            shieldd_sdk_crypto::encoding::point(&tx.binding_verification_key().into())
+                .unwrap()
+                .is_identity()
+        ));
         valid_binding_signature(&tx)
             .expect("identity binding mode must accept its canonical placeholder");
 
@@ -162,8 +168,8 @@ mod tests {
             "identity binding mode carries no message authorization; action checks provide it",
         );
 
-        let zero_key = SigningKey::<Binding>::from(Fr::from(0u64));
-        tx.binding_sig = zero_key.sign_deterministic(tx.auth_hash().as_bytes());
+        let zero_key = SigningKey::<Binding>::try_from(Fr::from(0u64).to_bytes()).unwrap();
+        tx.binding_sig = zero_key.sign(rand_core::OsRng, tx.auth_hash().as_bytes());
         let error = valid_binding_signature(&tx)
             .expect_err("identity binding mode must reject a message-dependent RDSA encoding");
         assert!(
@@ -176,7 +182,7 @@ mod tests {
 
     #[test]
     fn proof_bearing_transaction_rejects_identity_binding_key_signature_permutation() {
-        let signing_key = SigningKey::<SpendAuth>::from(Fr::from(9u64));
+        let signing_key = SigningKey::<SpendAuth>::try_from(Fr::from(9u64).to_bytes()).unwrap();
         let rk = VerificationKey::from(&signing_key);
         let mut tx = Transaction::default();
         tx.transaction_body.actions.push(Action::Transfer(Transfer {
@@ -221,8 +227,8 @@ mod tests {
         let first = signing_key.sign(&mut OsRng, effect_hash.as_ref());
         let second = signing_key.sign(&mut OsRng, effect_hash.as_ref());
         assert_ne!(
-            first.to_bytes(),
-            second.to_bytes(),
+            <[u8; 64]>::from(first),
+            <[u8; 64]>::from(second),
             "the regression needs two distinct interchangeable signatures"
         );
         let Action::Transfer(transfer) = &mut tx.transaction_body.actions[0] else {
@@ -265,7 +271,8 @@ mod tests {
         );
 
         let binding_blinding = Fr::from(7u64);
-        let binding_signing_key = SigningKey::<Binding>::from(binding_blinding);
+        let binding_signing_key =
+            SigningKey::<Binding>::try_from(binding_blinding.to_bytes()).unwrap();
         let Action::Transfer(transfer) = &mut tx.transaction_body.actions[0] else {
             unreachable!("test constructed a Transfer")
         };
@@ -277,7 +284,7 @@ mod tests {
             unreachable!("test constructed a Transfer")
         };
         transfer.auth_sigs = vec![bound_first, bound_second];
-        tx.binding_sig = binding_signing_key.sign_deterministic(tx.auth_hash().as_bytes());
+        tx.binding_sig = binding_signing_key.sign(rand_core::OsRng, tx.auth_hash().as_bytes());
         valid_binding_signature(&tx)
             .expect("a nonidentity binding key authenticates the original signature ordering");
 

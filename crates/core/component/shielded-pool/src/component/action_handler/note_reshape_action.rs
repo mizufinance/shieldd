@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
 use shieldd_sdk_compliance::ComplianceRegistryRead as _;
-use shieldd_sdk_proof_params::batch::{self, BatchItem, VerifiedBatchItem};
+use shieldd_sdk_proof_params::pari::{Verification, Verified};
 use shieldd_sdk_txhash::TransactionContext;
 
 use crate::{
@@ -78,14 +78,14 @@ fn note_reshape_extract_public(
 fn note_reshape_to_batch_item(
     note_reshape: &NoteReshape,
     public: NoteReshapeProofPublic,
-) -> Result<BatchItem> {
+) -> Result<Verification> {
     note_reshape.proof.to_batch_item(&public)
 }
 
 pub fn note_reshape_check_stateless_and_extract(
     note_reshape: &NoteReshape,
     context: &TransactionContext,
-) -> Result<BatchItem> {
+) -> Result<Verification> {
     note_reshape::validate_action_anchor("note_reshape", note_reshape.body.anchor, context)?;
     note_reshape.body.validate_shape()?;
     note_reshape_verify_auth_sigs(note_reshape, context)?;
@@ -97,12 +97,12 @@ pub fn note_reshape_check_stateless_and_extract(
 pub async fn note_reshape_execute_verified<S: StateWrite>(
     note_reshape: &NoteReshape,
     context: &TransactionContext,
-    verified_proof: &VerifiedBatchItem,
+    verified_proof: &Verified,
     mut state: S,
 ) -> Result<()> {
     let item = note_reshape_check_stateless_and_extract(note_reshape, context)?;
     verified_proof
-        .ensure_binds(note_reshape.body.family_id.deployed_proof_key(), &item)
+        .ensure_binds(note_reshape.body.family_id.proof_family(), &item)
         .context("note_reshape verified proof capability mismatch")?;
     state
         .validate_compliance_anchors(
@@ -122,15 +122,12 @@ pub async fn note_reshape_execute_verified<S: StateWrite>(
 
 #[async_trait]
 impl ActionHandler for NoteReshape {
-    type CheckStatelessContext = TransactionContext;
+    type CheckStatelessContext = crate::ProofVerificationContext;
 
-    async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
+    async fn check_stateless(&self, proof_context: crate::ProofVerificationContext) -> Result<()> {
+        let context = proof_context.transaction;
         let item = note_reshape_check_stateless_and_extract(self, &context)?;
-        batch::verify_each(
-            self.body.family_id.proof_verification_key(),
-            std::slice::from_ref(&item),
-        )
-        .map_err(|e| anyhow::anyhow!("note_reshape proof did not verify: {e}"))?;
+        proof_context.registry.verify_item(&item)?;
         Ok(())
     }
 
@@ -216,7 +213,7 @@ mod tests {
                 family_id,
                 spends,
                 outputs,
-                decaf377::Fr::from(7u64),
+                shieldd_sdk_crypto::Fr::from(7u64),
             )
             .expect("canonical family plan");
             let (proving_public, _) = plan

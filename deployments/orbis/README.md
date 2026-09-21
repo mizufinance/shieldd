@@ -12,7 +12,7 @@ Current contract line:
 - The locked Orbis source revision must match all three `orbis-rs` git
   dependencies in
   [crates/util/orbis-client/Cargo.toml](../../crates/util/orbis-client/Cargo.toml).
-- The Orbis crypto feature is `decaf377`.
+- The Orbis PRE delivery feature is `bls12-381`; Shieldd audit openings use Jubjub.
 - `ORBIS_IMAGE`, `VERA_IMAGE`, and `VERA_REF` may be overridden for explicit
   local testing. CI rejects runtime revision overrides.
 - The published Orbis images do not self-fund. `orbis-funder` uses a dedicated

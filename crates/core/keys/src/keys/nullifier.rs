@@ -1,4 +1,4 @@
-use decaf377::Fq;
+use shieldd_sdk_crypto::Fq;
 
 pub const NK_LEN_BYTES: usize = 32;
 

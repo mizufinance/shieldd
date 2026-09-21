@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::{ensure, Context};
-use decaf377::Fq;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, view::v1::AssetsResponse, DomainType};
@@ -224,12 +223,7 @@ impl Inner {
     /// The base denom is added as a unit, so `units` can be empty and should
     /// not include a unit for the base denomination.
     pub fn new(base_denom: String, mut units: Vec<BareDenomUnit>) -> Self {
-        let id = Id(Fq::from_le_bytes_mod_order(
-            blake2b_simd::Params::default()
-                .personal(b"Shieldd_AssetID")
-                .hash(base_denom.as_bytes())
-                .as_bytes(),
-        ));
+        let id = Id::from_raw_denom(&base_denom);
 
         // Perform validity check for each unit.
 

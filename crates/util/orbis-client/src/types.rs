@@ -1,4 +1,4 @@
-use decaf377::Element;
+use orbis_crypto::GroupAffine;
 
 #[derive(Debug, Clone)]
 pub struct DkgResult {
@@ -19,7 +19,7 @@ pub struct NodeInfo {
 #[derive(Debug, Clone)]
 pub struct RingInfo {
     pub ring_id: String,
-    pub ring_pk: Element,
+    pub ring_pk: GroupAffine,
     pub ring_pk_hex: String,
 }
 

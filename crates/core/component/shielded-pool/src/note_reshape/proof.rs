@@ -1,10 +1,8 @@
-use anyhow::{anyhow, bail, ensure, Result};
-use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_snark::SNARK;
-use decaf377::{Bls12_377, Fq, Fr};
-use decaf377_rdsa::{SpendAuth, VerificationKey};
+use anyhow::{bail, ensure, Result};
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
@@ -12,35 +10,19 @@ use shieldd_sdk_tct as tct;
 
 use crate::{
     discovery::{Parameters as RoutingParameters, RoutingTag},
-    public_input_hash::{note_reshape_statement_hash_from_public, StatementHashError},
+    public_input_hash::note_reshape_statement_hash_from_public,
     Note,
 };
 
 use super::NoteReshapeFamilyId;
 
 impl NoteReshapeFamilyId {
-    pub fn deployed_proof_key(self) -> shieldd_sdk_proof_params::DeployedProofKey {
-        match self.get() {
-            2 => shieldd_sdk_proof_params::DeployedProofKey::NoteReshapeOneByEight,
-            3 => shieldd_sdk_proof_params::DeployedProofKey::NoteReshapeEightByOne,
-            unknown => panic!("validated note reshape family has unknown id {unknown}"),
+    pub fn proof_family(self) -> shieldd_sdk_circuits::proof::Family {
+        match self {
+            Self::OneByEight => shieldd_sdk_circuits::proof::Family::ReshapeOneToEight,
+            Self::EightByOne => shieldd_sdk_circuits::proof::Family::ReshapeEightToOne,
+            _ => unreachable!("validated reshape family"),
         }
-    }
-
-    pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        self.deployed_proof_key().bundled_pvk()
-    }
-
-    pub fn proving_key_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::note_reshape_proving_key_bytes(self.get())
-    }
-
-    pub fn verifying_key_json_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::note_reshape_verifying_key_json_bytes(self.get())
-    }
-
-    pub fn circuit_metadata_bytes(self) -> &'static [u8] {
-        shieldd_sdk_proof_params::note_reshape_circuit_metadata(self.get())
     }
 }
 
@@ -91,7 +73,7 @@ impl NoteReshapeProofPublic {
         Ok(())
     }
 
-    pub fn statement_hash(&self) -> Result<Fq, StatementHashError> {
+    pub fn statement_hash(&self) -> Result<Fq> {
         note_reshape_statement_hash_from_public(self)
     }
 }
@@ -159,7 +141,7 @@ impl NoteReshapeProofPrivate {
             self.outputs.len()
         );
         if self.family_id.spec().input_padding
-            == super::generated::InputPaddingPolicy::SyntheticPrivate
+            == super::family::InputPaddingPolicy::SyntheticPrivate
         {
             validate_dummy_suffix(
                 "private input",
@@ -194,78 +176,63 @@ pub struct NoteReshapeProof {
 }
 
 impl NoteReshapeProof {
-    pub fn new(inner: Vec<u8>) -> Self {
-        Self { inner }
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.inner
-    }
-
-    fn decoded_proof(&self) -> anyhow::Result<Proof<Bls12_377>> {
-        crate::groth16_proof::decode(&self.inner)
-    }
-
     pub(crate) fn to_batch_item(
         &self,
         public: &NoteReshapeProofPublic,
-    ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
-        let proof = self.decoded_proof()?;
-        let statement_hash = public.statement_hash()?;
-
-        Ok(shieldd_sdk_proof_params::batch::BatchItem {
-            proof,
-            public_inputs: vec![statement_hash],
+    ) -> Result<shieldd_sdk_proof_params::pari::Verification> {
+        let envelope = crate::proof::decode(&self.inner, public.family_id.proof_family())?;
+        Ok(shieldd_sdk_proof_params::pari::Verification {
+            family: public.family_id.proof_family(),
+            statement: shieldd_sdk_circuits::encoding::field(&public.statement_hash()?),
+            envelope,
         })
     }
 
-    pub fn verify(&self, public: &NoteReshapeProofPublic) -> anyhow::Result<()> {
-        self.verify_with_prepared_vk(public, public.family_id.proof_verification_key())
-    }
-
-    pub fn verify_with_prepared_vk(
+    pub fn verify(
         &self,
         public: &NoteReshapeProofPublic,
-        vk: &PreparedVerifyingKey<Bls12_377>,
-    ) -> anyhow::Result<()> {
-        let item = self.to_batch_item(public)?;
-        let proof_result = Groth16::<Bls12_377, LibsnarkReduction>::verify_with_processed_vk(
-            vk,
-            item.public_inputs.as_slice(),
-            &item.proof,
-        )
-        .map_err(|err| anyhow!(err))?;
-
-        proof_result
-            .then_some(())
-            .ok_or_else(|| anyhow!("{} proof did not verify", public.family_id.label()))
+        registry: &shieldd_sdk_proof_params::pari::Registry,
+    ) -> Result<()> {
+        registry
+            .verify_item(&self.to_batch_item(public)?)
+            .map(|_| ())
     }
 
-    #[cfg(all(feature = "prover", any(unix, windows)))]
+    pub fn validate_encoding(&self) -> Result<()> {
+        let decoded = shieldd_sdk_circuits::proof::Envelope::from_bytes(&self.inner)?;
+        ensure!(
+            matches!(
+                decoded.family(),
+                shieldd_sdk_circuits::proof::Family::ReshapeOneToEight
+                    | shieldd_sdk_circuits::proof::Family::ReshapeEightToOne
+            ),
+            "wrong reshape proof family"
+        );
+        Ok(())
+    }
+
     pub fn prove(
         public: NoteReshapeProofPublic,
         private: NoteReshapeProofPrivate,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Self, crate::ProofError> {
-        let family_id = public.family_id;
-        public
-            .validate_shape()
-            .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        private
-            .validate_shape()
-            .map_err(|e| crate::ProofError::InvalidPrivateInput(e.to_string()))?;
-        if private.family_id != family_id {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "note_reshape family mismatch: public={} private={}",
-                family_id.label(),
-                private.family_id.label(),
-            )));
-        }
-
-        super::prover_runtime::prove_with_runtime(public, private).map_err(|e| {
-            crate::ProofError::ProofGenerationFailed(format!(
-                "gnark {} prove: {e}",
-                family_id.label()
-            ))
+        (|| -> Result<Self> {
+            let witness = crate::pari::reshape(&public, &private)?;
+            let proof = registry.prove(
+                &witness,
+                shieldd_sdk_proof_params::pari::proving_strategy()?,
+            )?;
+            registry.verify(
+                public.family_id.proof_family(),
+                &shieldd_sdk_circuits::encoding::field(&public.statement_hash()?),
+                &proof,
+            )?;
+            Ok(Self {
+                inner: proof.to_bytes(),
+            })
+        })()
+        .map_err(|error| {
+            crate::ProofError::ProofGenerationFailed(format!("Pari reshape: {error:#}"))
         })
     }
 }
@@ -285,7 +252,7 @@ impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
 
     fn try_from(value: pb::ZkNoteReshapeProof) -> Result<Self, Self::Error> {
         let proof = Self { inner: value.inner };
-        proof.decoded_proof()?;
+        proof.validate_encoding()?;
         Ok(proof)
     }
 }
@@ -293,16 +260,19 @@ impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
 #[cfg(test)]
 mod tests {
     use super::NoteReshapeProof;
+    use crate::test_proof_helpers::proof_test_helpers::registry;
     use crate::{note_reshape::NoteReshapeFamilyId, test_proof_helpers::proof_test_helpers};
 
     #[test]
-    fn note_reshape_deployed_key_mapping_matches_generated_registry_for_every_family() {
-        for family in NoteReshapeFamilyId::ALL {
-            assert!(std::ptr::eq(
-                family.deployed_proof_key().bundled_pvk(),
-                shieldd_sdk_proof_params::note_reshape_proof_verification_key(family.get()),
-            ));
-        }
+    fn reshape_families_match_native_catalogue() {
+        assert_eq!(
+            NoteReshapeFamilyId::OneByEight.proof_family(),
+            shieldd_sdk_circuits::proof::Family::ReshapeOneToEight
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::EightByOne.proof_family(),
+            shieldd_sdk_circuits::proof::Family::ReshapeEightToOne
+        );
     }
 
     #[test]
@@ -330,35 +300,39 @@ mod tests {
 
     #[cfg(all(feature = "prover", any(unix, windows)))]
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_note_reshape_1x8_roundtrip() {
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn pari_proof_note_reshape_1x8_roundtrip() {
         assert_roundtrip(NoteReshapeFamilyId::ALL[0]);
     }
 
     #[cfg(all(feature = "prover", any(unix, windows)))]
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_note_reshape_8x1_roundtrip() {
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn pari_proof_note_reshape_8x1_roundtrip() {
         assert_roundtrip(NoteReshapeFamilyId::ALL[1]);
     }
 
     #[cfg(all(feature = "prover", any(unix, windows)))]
     fn assert_roundtrip(family_id: NoteReshapeFamilyId) {
-        crate::gnark::require_proof_test_runtime(crate::gnark::ProofTestFamily::NoteReshape(
-            family_id,
-        ))
-        .expect("proof test prerequisites must be present");
+        let _ = registry();
         let (public, private) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
-        let proof = NoteReshapeProof::prove(public.clone(), private)
+        let proof = NoteReshapeProof::prove(public.clone(), private, registry())
             .unwrap_or_else(|error| panic!("prove {} fixture: {error}", family_id.label()));
         proof
-            .verify(&public)
+            .verify(&public, registry())
             .unwrap_or_else(|error| panic!("verify {} fixture: {error}", family_id.label()));
         for other_family in NoteReshapeFamilyId::ALL {
             if other_family != family_id {
                 assert!(
-                    proof
-                        .verify_with_prepared_vk(&public, other_family.proof_verification_key())
+                    registry()
+                        .verify(
+                            other_family.proof_family(),
+                            &shieldd_sdk_circuits::encoding::field(
+                                &public.statement_hash().unwrap()
+                            ),
+                            &shieldd_sdk_circuits::proof::Envelope::from_bytes(&proof.inner)
+                                .unwrap()
+                        )
                         .is_err(),
                     "{} proof must not verify with {} VK",
                     family_id.label(),

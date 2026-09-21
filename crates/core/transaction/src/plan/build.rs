@@ -1,14 +1,10 @@
 use anyhow::Result;
-use ark_ff::Zero;
-use decaf377::Fr;
-use decaf377_rdsa as rdsa;
-#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
-use shieldd_sdk_keys::symmetric::PayloadKey;
+use ff::Field;
+use reddsa as rdsa;
+use shieldd_sdk_crypto::Fr;
 #[cfg(all(feature = "prover", any(unix, windows)))]
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_txhash::{AuthorizingData, EffectingData};
-#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
-use tokio::sync::oneshot;
 
 use super::TransactionPlan;
 use crate::ActionPlan;
@@ -67,7 +63,7 @@ impl TransactionPlan {
             synthetic_blinding_factor += fee_funding.value_blinding();
         }
         anyhow::ensure!(
-            self.num_proofs() == 0 || !synthetic_blinding_factor.is_zero(),
+            self.num_proofs() == 0 || !bool::from(synthetic_blinding_factor.is_zero()),
             "proof-bearing transaction plan has an identity aggregate binding key; rebuild with fresh balance blindings"
         );
         anyhow::ensure!(
@@ -291,37 +287,17 @@ impl TransactionPlan {
             "transaction proof count does not match plan"
         );
 
-        transaction.binding_sig = if synthetic_blinding_factor.is_zero() {
+        transaction.binding_sig = if bool::from(synthetic_blinding_factor.is_zero()) {
             crate::no_binding_signature()
         } else {
-            let binding_signing_key = rdsa::SigningKey::from(synthetic_blinding_factor);
+            let binding_signing_key = rdsa::SigningKey::<rdsa::sapling::Binding>::try_from(
+                synthetic_blinding_factor.to_bytes(),
+            )?;
             let auth_hash = transaction.transaction_body.auth_hash();
-            binding_signing_key.sign_deterministic(auth_hash.as_bytes())
+            binding_signing_key.sign(rand_core::OsRng, auth_hash.as_bytes())
         };
 
         Ok(transaction)
-    }
-
-    #[cfg(all(feature = "prover", any(unix, windows)))]
-    fn initialize_provers(&self) -> Result<()> {
-        use shieldd_sdk_shielded_pool::gnark::{initialize_prover, ProverCapability};
-        for action in &self.actions {
-            match action {
-                ActionPlan::Transfer(_) => initialize_prover(ProverCapability::Transfer)?,
-                ActionPlan::NoteReshape(plan) => {
-                    initialize_prover(ProverCapability::NoteReshape(plan.family_id))?
-                }
-
-                ActionPlan::ShieldedHostWithdrawal(plan) => {
-                    initialize_prover(ProverCapability::Withdrawal(plan.family_id()))?
-                }
-                _ => {}
-            }
-        }
-        if self.fee_funding.is_some() {
-            initialize_prover(ProverCapability::Transfer)?;
-        }
-        Ok(())
     }
 
     #[cfg(all(feature = "prover", any(unix, windows)))]
@@ -330,8 +306,8 @@ impl TransactionPlan {
         full_viewing_key: &FullViewingKey,
         witness_data: &WitnessData,
         auth_data: &AuthorizationData,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Transaction> {
-        self.initialize_provers()?;
         let recent_position_floor = self.recent_position_floor()?;
         let actions = self
             .actions
@@ -343,6 +319,7 @@ impl TransactionPlan {
                     witness_data,
                     self.memo_key(),
                     recent_position_floor,
+                    registry,
                 )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -356,6 +333,7 @@ impl TransactionPlan {
                     witness_data,
                     &memo_key,
                     recent_position_floor,
+                    registry,
                 )
             })
             .transpose()?;
@@ -363,50 +341,6 @@ impl TransactionPlan {
         let tx = self
             .clone()
             .build_unauth_with_actions(actions, fee_funding, witness_data)?;
-        self.apply_auth_data(auth_data, tx)
-    }
-
-    #[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
-    pub async fn build_concurrent(
-        self,
-        full_viewing_key: &FullViewingKey,
-        witness_data: &WitnessData,
-        auth_data: &AuthorizationData,
-    ) -> Result<Transaction> {
-        self.initialize_provers()?;
-        let recent_position_floor = self.recent_position_floor()?;
-        let witness_data = std::sync::Arc::new(witness_data.clone());
-
-        let scheduler = ActionBuildScheduler::new(
-            self.memo_key(),
-            full_viewing_key,
-            witness_data.clone(),
-            recent_position_floor,
-        );
-        let action_tasks = self
-            .actions
-            .iter()
-            .cloned()
-            .map(|action_plan| scheduler.spawn(action_plan))
-            .collect::<Result<Vec<_>>>()?;
-        let actions = scheduler.collect(action_tasks).await?;
-        let memo_key = self.memo_key().unwrap_or([0u8; 32].into());
-        let fee_funding = self
-            .fee_funding
-            .as_ref()
-            .map(|fee_funding| {
-                fee_funding.build_unauth(
-                    full_viewing_key,
-                    &witness_data,
-                    &memo_key,
-                    recent_position_floor,
-                )
-            })
-            .transpose()?;
-
-        let tx = self
-            .clone()
-            .build_unauth_with_actions(actions, fee_funding, &*witness_data)?;
         self.apply_auth_data(auth_data, tx)
     }
 
@@ -452,85 +386,4 @@ impl TransactionPlan {
             historical_nullifier_proofs: Vec::new(),
         })
     }
-}
-
-#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
-struct ActionBuildScheduler {
-    memo_key: Option<PayloadKey>,
-    full_viewing_key: FullViewingKey,
-    witness_data: std::sync::Arc<WitnessData>,
-    recent_position_floor: u64,
-}
-
-#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
-impl ActionBuildScheduler {
-    fn new(
-        memo_key: Option<PayloadKey>,
-        full_viewing_key: &FullViewingKey,
-        witness_data: std::sync::Arc<WitnessData>,
-        recent_position_floor: u64,
-    ) -> Self {
-        Self {
-            memo_key,
-            full_viewing_key: full_viewing_key.clone(),
-            witness_data,
-            recent_position_floor,
-        }
-    }
-
-    fn spawn(&self, action_plan: ActionPlan) -> Result<PendingActionTask> {
-        let fvk = self.full_viewing_key.clone();
-        let witness_data = self.witness_data.clone();
-        let memo_key = self.memo_key;
-        let recent_position_floor = self.recent_position_floor;
-
-        match action_plan {
-            transfer @ ActionPlan::Transfer(_) => {
-                let (tx, rx) = oneshot::channel();
-                std::thread::Builder::new()
-                    .name("transfer-action-build".to_string())
-                    .spawn(move || {
-                        let _ = tx.send(ActionPlan::build_unauth(
-                            transfer,
-                            &fvk,
-                            &witness_data,
-                            memo_key,
-                            recent_position_floor,
-                        ));
-                    })
-                    .map_err(|e| anyhow::anyhow!("spawn transfer action build thread: {e}"))?;
-                Ok(PendingActionTask::Thread(rx))
-            }
-            other => Ok(PendingActionTask::Tokio(tokio::task::spawn_blocking(
-                move || {
-                    ActionPlan::build_unauth(
-                        other,
-                        &fvk,
-                        &witness_data,
-                        memo_key,
-                        recent_position_floor,
-                    )
-                },
-            ))),
-        }
-    }
-
-    async fn collect(&self, tasks: Vec<PendingActionTask>) -> Result<Vec<Action>> {
-        let mut actions = Vec::with_capacity(tasks.len());
-        for task in tasks {
-            actions.push(match task {
-                PendingActionTask::Tokio(handle) => handle.await??,
-                PendingActionTask::Thread(receiver) => receiver.await.map_err(|_| {
-                    anyhow::anyhow!("transfer action build thread exited before replying")
-                })??,
-            });
-        }
-        Ok(actions)
-    }
-}
-
-#[cfg(all(feature = "parallel", all(feature = "prover", any(unix, windows))))]
-enum PendingActionTask {
-    Tokio(tokio::task::JoinHandle<Result<Action>>),
-    Thread(oneshot::Receiver<Result<Action>>),
 }

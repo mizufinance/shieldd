@@ -1,23 +1,23 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+#[cfg(feature = "rpc")]
 use async_trait::async_trait;
 #[cfg(feature = "rpc")]
 use shieldd_sdk_proto::core::component::sct::v1::{
     query_service_client::QueryServiceClient as SctQueryServiceClient,
     ArchivedNullifierProofRequest,
 };
-use shieldd_sdk_sct::{
-    nullifier_generation::{ArchivedNullifierProof, NullifierWindow},
-    Nullifier,
-};
-use tokio::sync::watch;
+use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
+#[cfg(feature = "rpc")]
+use shieldd_sdk_sct::{nullifier_generation::ArchivedNullifierProof, Nullifier};
 #[cfg(feature = "rpc")]
 use tonic::transport::Channel;
 
 use crate::{
-    advance_historical_proof_cache, HistoricalProofCache, HistoricalProofCacheState,
-    HistoricalProofProvider, HistoricalProofUpdateError, HistoricalWitnessSource, Storage,
+    advance_historical_proof_cache, historical_proof_cache::stage_historical_witness,
+    storage::HistoricalCacheWrite, HistoricalProofCache, HistoricalProofCacheState,
+    HistoricalProofUpdateError, HistoricalWitnessSource, Storage,
 };
 
 #[cfg(feature = "rpc")]
@@ -49,28 +49,28 @@ impl HistoricalWitnessSource for RpcHistoricalWitnessSource {
 pub struct HistoricalProofWorker {
     storage: Storage,
     witness_source: Arc<dyn HistoricalWitnessSource>,
-    prover: Option<Arc<dyn HistoricalProofProvider>>,
-    sync_height_rx: watch::Receiver<u64>,
+    registry: Arc<shieldd_sdk_proof_params::pari::Registry>,
 }
 
 impl HistoricalProofWorker {
-    pub fn new(
+    pub async fn new(
         storage: Storage,
         witness_source: Arc<dyn HistoricalWitnessSource>,
-        prover: Option<Arc<dyn HistoricalProofProvider>>,
-        sync_height_rx: watch::Receiver<u64>,
-    ) -> Self {
-        Self {
+        registry: Arc<shieldd_sdk_proof_params::pari::Registry>,
+    ) -> anyhow::Result<Self> {
+        storage.bind_registry(registry.id()).await?;
+        Ok(Self {
             storage,
             witness_source,
-            prover,
-            sync_height_rx,
-        }
+            registry,
+        })
     }
 
     async fn persist_failure(
         &self,
         mut cache: HistoricalProofCache,
+        expected: HistoricalProofCache,
+        window: NullifierWindow,
         error: HistoricalProofUpdateError,
     ) -> anyhow::Result<()> {
         cache.recover_after_restart()?;
@@ -78,6 +78,12 @@ impl HistoricalProofWorker {
             cache.transition(HistoricalProofCacheState::Updating)?;
         }
         match error {
+            HistoricalProofUpdateError::InvalidPrefix(error) => {
+                cache = HistoricalProofCache::pending(cache.proof.nullifier);
+                cache.registry_id = Some(self.registry.id());
+                cache.transition(HistoricalProofCacheState::Updating)?;
+                cache.block_on_witness_source(format!("discarded mismatched history prefix; backfill restarts on next pass: {error:#}"))?;
+            }
             HistoricalProofUpdateError::WitnessSource(error) => {
                 cache.block_on_witness_source(format!("{error:#}"))?;
             }
@@ -89,7 +95,10 @@ impl HistoricalProofWorker {
                 cache.set_error(format!("{error:#}"));
             }
         }
-        self.storage.put_historical_proof_cache(cache).await
+        self.storage
+            .update_historical_proof_cache(expected, window, cache)
+            .await
+            .map(|_| ())
     }
 
     async fn update_cache(
@@ -97,49 +106,65 @@ impl HistoricalProofWorker {
         mut cache: HistoricalProofCache,
         window: NullifierWindow,
     ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            cache.registry_id.is_none() || cache.registry_id == Some(self.registry.id()),
+            "history cache belongs to another Pari registry"
+        );
+        if cache.state == HistoricalProofCacheState::Ready
+            && cache.ensure_ready_for(window, self.registry.id()).is_ok()
+        {
+            return Ok(());
+        }
+        let mut expected = cache.clone();
         cache.recover_after_restart()?;
         if cache.state == HistoricalProofCacheState::Invalid {
             return Ok(());
         }
-        if cache.proof.coverage()?.generation_count < window.archived_generation_count
-            && self.prover.is_none()
-        {
-            if cache.state != HistoricalProofCacheState::Updating {
-                cache.transition(HistoricalProofCacheState::Updating)?;
-            }
-            cache.block_on_prover(
-                "historical prover is not configured; set ceremony-backed generation and chunk proving keys",
-            )?;
-            return self.storage.put_historical_proof_cache(cache).await;
-        }
-
         loop {
-            let before = cache.clone();
-            let prover = self.prover.as_deref().unwrap_or(&NoopHistoricalProver);
-            match advance_historical_proof_cache(
-                cache,
+            if let Err(error) = stage_historical_witness(
+                &mut cache,
                 window,
                 self.witness_source.as_ref(),
-                prover,
+                self.registry.id(),
             )
             .await
             {
-                Ok(updated) => {
-                    let complete = updated.state == HistoricalProofCacheState::Ready;
-                    self.storage
-                        .put_historical_proof_cache(updated.clone())
-                        .await?;
-                    cache = updated;
-                    if complete {
+                return self.persist_failure(cache, expected, window, error).await;
+            }
+            if self
+                .storage
+                .update_historical_proof_cache(expected.clone(), window, cache.clone())
+                .await?
+                != HistoricalCacheWrite::Stored
+            {
+                return Ok(());
+            }
+            expected = cache.clone();
+            if cache.state == HistoricalProofCacheState::Ready {
+                return Ok(());
+            }
+            if !cache.has_staged_proof(window)? {
+                continue;
+            }
+            match advance_historical_proof_cache(&mut cache, window, self.registry.clone()).await {
+                Ok(()) => {
+                    if self
+                        .storage
+                        .update_historical_proof_cache(expected.clone(), window, cache.clone())
+                        .await?
+                        != HistoricalCacheWrite::Stored
+                        || cache.state == HistoricalProofCacheState::Ready
+                    {
                         return Ok(());
                     }
+                    expected = cache.clone();
                 }
-                Err(error) => return self.persist_failure(before, error).await,
+                Err(error) => return self.persist_failure(cache, expected, window, error).await,
             }
         }
     }
 
-    async fn update_all(&self) -> anyhow::Result<()> {
+    pub async fn update(&mut self) -> anyhow::Result<()> {
         let Some(window) = self
             .storage
             .nullifier_window_if_initialized()
@@ -148,54 +173,19 @@ impl HistoricalProofWorker {
         else {
             return Ok(());
         };
-        for cache in self
-            .storage
-            .historical_proof_caches_for_unspent_notes()
-            .await?
-        {
-            if let Err(error) = self.update_cache(cache, window).await {
-                tracing::warn!(?error, "historical proof cache update failed");
+        let mut cursor = None;
+        loop {
+            let page = self.storage.historical_proof_cache_page(cursor).await?;
+            if page.is_empty() {
+                break;
+            }
+            for cache in page {
+                cursor = Some(cache.proof.nullifier);
+                if let Err(error) = self.update_cache(cache, window).await {
+                    tracing::warn!(?error, "historical proof cache update failed");
+                }
             }
         }
         Ok(())
-    }
-
-    pub async fn run(mut self) {
-        loop {
-            if let Err(error) = self.update_all().await {
-                tracing::warn!(?error, "historical proof worker pass failed");
-            }
-            if self.sync_height_rx.changed().await.is_err() {
-                return;
-            }
-        }
-    }
-}
-
-struct NoopHistoricalProver;
-
-#[async_trait]
-impl HistoricalProofProvider for NoopHistoricalProver {
-    async fn prove_generation(
-        &self,
-        _nullifier: Nullifier,
-        _archived: ArchivedNullifierProof,
-        _start_history_head: [u8; 32],
-        _end_history_head: [u8; 32],
-    ) -> anyhow::Result<shieldd_sdk_sct::nullifier_generation::GenerationNonmembershipProof> {
-        anyhow::bail!("historical prover is not configured")
-    }
-
-    async fn prove_chunk(
-        &self,
-        _nullifier: Nullifier,
-        _chunk_index: u64,
-        _start_history_head: [u8; 32],
-        _end_history_head: [u8; 32],
-        _generation_proofs: Vec<
-            shieldd_sdk_sct::nullifier_generation::GenerationNonmembershipProof,
-        >,
-    ) -> anyhow::Result<shieldd_sdk_sct::nullifier_generation::HistoricalChunkProof> {
-        anyhow::bail!("historical prover is not configured")
     }
 }

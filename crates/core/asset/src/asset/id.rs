@@ -1,10 +1,7 @@
 use crate::Value;
-use ark_ff::ToConstraintField;
-use ark_serialize::CanonicalDeserialize;
 use base64::Engine;
-use decaf377::Fq;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::asset::v1 as pb, DomainType};
 
@@ -26,9 +23,28 @@ use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::asset::v1 as pb, 
 ///
 /// [ADR001]:
 /// https://github.com/cosmos/ibc-go/blob/main/docs/architecture/adr-001-coin-source-tracing.md
-#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq)]
 #[serde(try_from = "pb::AssetId", into = "pb::AssetId")]
 pub struct Id(pub Fq);
+
+impl std::hash::Hash for Id {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write(&self.to_bytes());
+    }
+}
+impl Ord for Id {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.to_bytes()
+            .iter()
+            .rev()
+            .cmp(other.to_bytes().iter().rev())
+    }
+}
+impl PartialOrd for Id {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 impl From<Id> for pb::AssetId {
     fn from(id: Id) -> Self {
@@ -45,21 +61,15 @@ impl From<Id> for pb::AssetId {
 impl TryFrom<pb::AssetId> for Id {
     type Error = anyhow::Error;
     fn try_from(value: pb::AssetId) -> Result<Self, Self::Error> {
-        if !value.inner.is_empty() {
-            if !value.alt_base_denom.is_empty() || !value.alt_bech32m.is_empty() {
-                anyhow::bail!(
-                    "AssetId proto has both inner and alt_bech32m or alt_base_denom fields set"
-                );
-            }
-            value.inner.as_slice().try_into()
-        } else if !value.alt_bech32m.is_empty() {
-            value.alt_bech32m.parse()
-        } else if !value.alt_base_denom.is_empty() {
-            Ok(Self::from_raw_denom(&value.alt_base_denom))
-        } else {
-            Err(anyhow::anyhow!(
-                "AssetId proto has neither inner nor alt_bech32m nor alt_base_denom fields set"
-            ))
+        match (
+            value.inner.is_empty(),
+            value.alt_bech32m.is_empty(),
+            value.alt_base_denom.is_empty(),
+        ) {
+            (false, true, true) => value.inner.as_slice().try_into(),
+            (true, false, true) => value.alt_bech32m.parse(),
+            (true, true, false) => Ok(Self::from_raw_denom(&value.alt_base_denom)),
+            _ => anyhow::bail!("AssetId proto must have exactly one representation set"),
         }
     }
 }
@@ -72,7 +82,7 @@ impl TryFrom<&[u8]> for Id {
     type Error = anyhow::Error;
 
     fn try_from(slice: &[u8]) -> Result<Id, Self::Error> {
-        Ok(Id(Fq::deserialize_compressed(slice)?))
+        Ok(Id(shieldd_sdk_crypto::encoding::field(&slice.try_into()?)?))
     }
 }
 
@@ -80,7 +90,7 @@ impl TryFrom<[u8; 32]> for Id {
     type Error = anyhow::Error;
 
     fn try_from(bytes: [u8; 32]) -> Result<Id, Self::Error> {
-        Ok(Id(Fq::from_bytes_checked(&bytes).expect("convert to bytes")))
+        Ok(Id(shieldd_sdk_crypto::encoding::field(&bytes)?))
     }
 }
 
@@ -119,25 +129,12 @@ impl std::str::FromStr for Id {
     }
 }
 
-impl ToConstraintField<Fq> for Id {
-    fn to_field_elements(&self) -> Option<Vec<Fq>> {
-        let mut elements = Vec::new();
-        elements.extend_from_slice(&[self.0]);
-        Some(elements)
-    }
-}
-
-/// The domain separator used to hash asset ids to value generators.
-pub static VALUE_GENERATOR_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.value.generator").as_bytes())
-});
-
 impl Id {
     /// Compute the value generator for this asset, used for computing balance commitments.
-    pub fn value_generator(&self) -> decaf377::Element {
-        decaf377::Element::encode_to_curve(&poseidon377::hash_1(
-            &VALUE_GENERATOR_DOMAIN_SEP,
-            self.0,
+    pub fn value_generator(&self) -> shieldd_sdk_crypto::SubgroupPoint {
+        shieldd_sdk_crypto::map::to_subgroup(&shieldd_sdk_crypto::poseidon::hash(
+            shieldd_sdk_crypto::domains::ASSET_GENERATOR,
+            &[self.0],
         ))
     }
 
@@ -155,12 +152,11 @@ impl Id {
     }
 
     pub(super) fn from_raw_denom(base_denom: &str) -> Self {
-        Id(Fq::from_le_bytes_mod_order(
-            // XXX choice of hash function?
-            blake2b_simd::Params::default()
-                .personal(b"Shieldd_AssetID")
-                .hash(base_denom.as_bytes())
-                .as_bytes(),
+        let hash = blake2b_simd::Params::default()
+            .personal(b"Shieldd_AssetID")
+            .hash(base_denom.as_bytes());
+        Id(Fq::from_bytes_wide(
+            hash.as_bytes().try_into().expect("64-byte asset digest"),
         ))
     }
 
@@ -174,6 +170,45 @@ mod tests {
     use super::*;
     use hex;
     use std::str::FromStr;
+
+    #[test]
+    fn asset_id_proto_requires_exactly_one_representation() {
+        let raw_id = Id::from_raw_denom("ushieldd");
+        let alternate_id = Id::from_raw_denom("uusd");
+        for (name, raw, bech32m, denom, expected) in [
+            ("raw", true, false, false, Some(raw_id)),
+            ("bech32m", false, true, false, Some(raw_id)),
+            ("denom", false, false, true, Some(alternate_id)),
+            ("empty", false, false, false, None),
+            ("raw and bech32m", true, true, false, None),
+            ("raw and denom", true, false, true, None),
+            ("bech32m and denom", false, true, true, None),
+            ("all representations", true, true, true, None),
+        ] {
+            let proto = pb::AssetId {
+                inner: if raw {
+                    raw_id.to_bytes().to_vec()
+                } else {
+                    Vec::new()
+                },
+                alt_bech32m: if bech32m {
+                    raw_id.to_string()
+                } else {
+                    String::new()
+                },
+                alt_base_denom: if denom {
+                    "uusd".to_owned()
+                } else {
+                    String::new()
+                },
+            };
+            let result = Id::try_from(proto);
+            match expected {
+                Some(id) => assert_eq!(result.expect(name), id, "{name}"),
+                None => assert!(result.is_err(), "{name} unexpectedly accepted: {result:?}"),
+            }
+        }
+    }
 
     #[test]
     fn asset_id_encoding() {

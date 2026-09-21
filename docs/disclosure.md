@@ -7,7 +7,7 @@ payment proofs, commitments, consensus, or spendable balances. PET-gated complia
 | --- | --- |
 | Payload keys | Selected note plaintext, including its seed, and transaction-wide memo decryption capability |
 | Full openings | Amount, asset, recipient and commitment blinding/recovery values, without note seeds or payload keys |
-| Groth16 | Selected public fields and explicit true/false predicate results |
+| Pari | Selected public fields and explicit true/false predicate results |
 
 Full openings require all three field selectors. Memo revelation uses payload-key
 exports. There is no structured metadata framework. An asset identifier and a
@@ -132,9 +132,8 @@ capability; flagged payload fields remain issuer-only.
 The asset ring authenticates independent amount, sender-address,
 receiver-address and ownership-checking keys plus an epoch. User leaves contain
 ordinary capability/nullifier registration, not per-person encryption keys.
-The fingerprint is `EncodeToCurve(Poseidon377_hash_2(domain, generator,
-transmission_key))`, with domain `shieldd.audit.ownership.v1` hashed using the
-existing Blake2b-to-Fq convention. Each party gets full ElGamal R/C points with
+The fingerprint maps the Poseidon-381 `OWNERSHIP` hash of the four affine
+coordinates of the two address points into the Jubjub subgroup. Each party gets full ElGamal R/C points with
 independent fresh nonzero randomness. Role is bound by proof position and audit
 selection. Unregulated proofs select sink keys.
 
@@ -154,16 +153,13 @@ shared and bound to an exact version. The complete upstream capability and
 trusted-tester restrictions register is maintained in
 [Bankd GAPS.md](https://github.com/mizufinance/bankd/blob/codex/disclosure-integration/infra/disclosure-audit/GAPS.md).
 
-The integrated development Transfer circuit has 185,155 constraints. Its compliance
-ciphertext is 832 bytes: the two checking ciphertexts add 128 bytes, with a net
-32-byte increase after deleting the replaced fields. These are integrated
-measurements, not the earlier isolated-probe estimates. The proved regulated
-2×2 Transfer action protobuf measured 3,200 bytes; the complete host test
-transaction measured 7,105 bytes. Transaction size varies with its contents.
+Native circuit domains, proof sizes and measured costs are recorded in
+[Native proof benchmarks](benchmarks.md). Transaction size depends on its actions
+and payloads.
 
-Prototype state must be reset after the format change: start a new development
-chain/scanner, and run `pcli view reset` for the wallet. There is no migration or
-legacy audit-selection path. Production proof setup approval is still required.
+Pool, wallet and scanner stores reject incompatible prototype schemas. Start
+with fresh local stores and the shared [Pari registry](proof-system.md); there
+is no data migration.
 
 ## Spending-authority control
 
@@ -180,69 +176,31 @@ fresh challenges; replaying a stored proof does not demonstrate fresh control.
 
 ## Local proving artifacts
 
-The fixed circuit uses gnark Groth16 over BLS12-377 and the existing Poseidon377
-note-commitment gadget. It constrains selectors, inactive padding, field revelation,
-128-bit amounts, totals, predicates and a statement-context hash. The verifier
-reconstructs all public inputs and rejects unknown circuit or key identities.
-
-For a development build:
+The fixed 32-slot native circuit constrains selectors, inactive padding, field
+revelation, 128-bit amounts, totals, predicates and a statement-context hash.
+The verifier reconstructs public inputs and requires the configured registry's
+exact relation and verification-key identity. See [Proof system](proof-system.md).
 
 ```sh
-cd tools/gnark
-GOMAXPROCS=1 go build -p 1 -o /tmp/shieldd-disclosure-backend ./cmd/disclosure
-/tmp/shieldd-disclosure-backend setup-development /tmp/disclosure-artifacts
-cd ../..
-CARGO_BUILD_JOBS=1 RAYON_NUM_THREADS=1 cargo build -p pcli --features disclosure-prover,development-disclosure-artifacts
-export SHIELDD_DISCLOSURE_BACKEND=/tmp/shieldd-disclosure-backend
-export SHIELDD_DISCLOSURE_ARTIFACTS=/tmp/disclosure-artifacts
+just pari-setup
+export SHIELDD_PARI_KEYS="$PWD/target/dev-pari-keys"
+cargo build --profile ci -p pcli --features disclosure-prover
 ```
 
-Artifacts come from local configuration, never submitted packages. Development
-setup is explicitly labelled. Release builds reject it even if the development
-feature is enabled. Production ZK acceptance remains disabled until an approved
-ceremony and its keys are pinned. Full openings and payload-key verification do
-not depend on proving artifacts.
-
-The backend caps Go concurrency at two and respects a lower GOMAXPROCS setting. Run only one heavy verification job at
-a time, with the resource checks in [development.md](development.md).
+Full openings and payload-key verification do not need proving keys. Pari
+verification needs the configured registry's verification keys; proving also
+needs the matching proving key. Submitted packages cannot select key files.
 
 ## Verification fixtures
 
-The real proof test is `cargo test -p shieldd-sdk-disclosure --features
-prover,development-artifacts --test claims real_proofs -- --ignored --nocapture
---test-threads=1`, using the configured development backend/artifacts. It covers
-one, eight and 32 selected outputs, revealed fields, true/false predicates and
-public-statement mutations. Run it with `GOMAXPROCS=1 RAYON_NUM_THREADS=1` when
-using the one-worker resource bound.
+Run the ignored `real_proofs` test in `crates/disclosure/tests/claims.rs`
+with the `prover` feature and `SHIELDD_PARI_KEYS`. It exercises one, eight and
+32 selected outputs, revealed fields, predicates and statement mutations.
+`just pari-proof-tests` also runs the runtime bridge proof test. These are real
+proof-generation checks and must run serially under the local resource bounds.
 
-The app tests `accepted_disclosure_opening` and
-`export_import_between_wallet_directories` require a payment proving runtime.
-Set `SHIELDD_GNARK_TRANSFER_LIB` to the library built from `tools/gnark/cmd/transferlib`
-and `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR` to `tools/gnark/artifacts/transfer`.
-The latter test uses `SHIELDD_PCLI_BIN` pointing to an explicitly enabled debug
-prover: release builds correctly reject development disclosure keys.
-
-For the direct evidence and endorsement workflow, use Bankd's isolated fixture:
-`DISCLOSURE_DEFRA_BIN=/absolute/path/to/pinned/defradb GOMAXPROCS=2 go test -p 2
-./supervisor/disclosure ./cmd/disclosure-audit -count=1 -v` from the Bankd repository.
-See [the fixture instructions](https://github.com/mizufinance/bankd/blob/codex/disclosure-integration/infra/disclosure-audit/README.md).
-It uses synthetic evidence, native document access control and disabled node access
-control. Connected clients retain administrative API access; this is trusted-tester
-storage verification, not live PET or protected collection verification.
-
-Measured on native macOS ARM64 with one worker and development setup artifacts:
-
-| Selected outputs | Proving and local verification | Package bytes |
-| --- | --- | --- |
-| 1, including amount/recipient revelation | 81.90 s | 4,535 |
-| 8, hidden amounts with a selected-output total predicate | 81.94 s | 29,246 |
-| 32, hidden amounts with a selected-output total predicate | 83.02 s | 114,397 |
-
-The separate wallet workflow produced a 244-byte Groth16 receipt. Package sizes
-also include public transaction material and requests. The three-proof suite
-reached 1,052,360,704 bytes maximum RSS with zero swaps. The fixed circuit has
-approximately constant proving cost across these batch sizes; these measurements
-do not establish production setup approval or query completeness.
+The wallet fixtures use the same configured registry. Canonical handoff vectors
+use synthetic accepted transactions and do not demonstrate distributed PET.
 
 ## Issuer submissions
 
@@ -273,8 +231,8 @@ asserted canonical address. Issuer predicate proofs are not supported.
 
 The `shieldd-sdk-disclosure` default feature set provides request preparation,
 openings/payload-key export, inspection and local verification. `proof` enables
-the native Groth16 verifier; `prover` additionally enables proving. Without that
-backend, Groth16 verification returns `VerificationUnavailable`.
+the native Pari verifier; `prover` additionally enables proving. Without that
+backend, Pari verification returns `VerificationUnavailable`.
 
 The WASM API keeps witnesses local and does not change wallet balances or note
 reservations. Payload-key previews report transaction-wide memo access. Node
@@ -287,7 +245,7 @@ issuer-key rotation.
 ## Cross-client fixtures
 
 `crates/disclosure/tests/handoff.rs` generates the canonical handoff vectors in
-`tools/gnark/internal/compliance/handoff_vectors.json`; Rust and Go check the same
+`crates/disclosure/tests/fixtures/handoff_vectors.json`; Rust checks the
 sender/receiver, self-transfer, alternate-owner, field and epoch bindings. The
 fixture uses synthetic acceptance and local checking keys, not distributed PET.
 Changed policy, chain, height, output and unregulated selections are rejected.
@@ -313,4 +271,5 @@ ring and distinct field keys. This demo does not implement PET or Orbis issuance
 of registration capabilities. Restricted subject filtering happens on the demo
 server; it does not provide cryptographic subject isolation. No fixture secret
 substitutes for PRE. The [build adapter](../third_party/orbis-crypto/README.md)
-keeps upstream Rust source unchanged and bridges the two Decaf versions by bytes.
+keeps upstream Rust source unchanged. BLS12-381 PRE delivers opaque openings;
+the audit opening itself uses Jubjub and its selected role key.

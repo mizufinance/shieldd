@@ -6,7 +6,7 @@ import "shieldd/core/component/compliance/v1/compliance.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/core/num/v1/num.proto";
-import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
+import "shieldd/crypto/redjubjub_rdsa/v1/redjubjub_rdsa.proto";
 import "shieldd/crypto/tct/v1/tct.proto";
 
 // Configuration data for the shielded pool component.
@@ -160,7 +160,7 @@ message NoteSeizure {
   reserved 7, 9, 10, 11;
 
   NoteSeizureAuthorizationBody authorization = 1;
-  crypto.decaf377_rdsa.v1.SpendAuthSignature authority_signature = 2;
+  crypto.redjubjub_rdsa.v1.SpendAuthSignature authority_signature = 2;
   crypto.tct.v1.MerkleRoot anchor = 3;
   bool history_required = 4;
   uint64 recent_position_floor = 5;
@@ -176,7 +176,7 @@ message TransferInputBody {
   // The nullifier of the spent note.
   sct.v1.Nullifier nullifier = 1;
   // The randomized validating key for the spend authorization signature.
-  crypto.decaf377_rdsa.v1.SpendVerificationKey rk = 2;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey rk = 2;
   // An encryption of the commitment of the input note to the sender's OVK.
   bytes encrypted_backref = 3;
   // Compliance ciphertext encrypting spent note details for the asset issuer.
@@ -204,7 +204,7 @@ message Transfer {
   // The effecting data of the transfer.
   TransferBody body = 1;
   // The authorizing signatures for each transfer input.
-  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  repeated crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sigs = 2;
   // The proof that the transfer is well-formed.
   ZKTransferProof proof = 3;
 }
@@ -336,7 +336,7 @@ message ShieldedHostWithdrawal {
   // The effecting data of the withdrawal.
   ShieldedHostWithdrawalBody body = 1;
   // The authorizing signatures for each consumed input.
-  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  repeated crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sigs = 2;
   // The proof that the withdrawal is well-formed.
   ZKShieldedWithdrawalProof proof = 3;
 }
@@ -417,7 +417,7 @@ message NoteReshapeInputBody {
   // The nullifier of the spent note.
   sct.v1.Nullifier nullifier = 1;
   // The randomized validating key for the spend authorization signature.
-  crypto.decaf377_rdsa.v1.SpendVerificationKey rk = 2;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey rk = 2;
   // An encryption of the commitment of the input note to the sender's OVK.
   bytes encrypted_backref = 3;
   // Whether this real input must carry a complete retired-history proof.
@@ -438,7 +438,7 @@ message NoteReshape {
   // The effecting data of the note reshape action.
   NoteReshapeBody body = 1;
   // The authorizing signatures for each consumed input.
-  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  repeated crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sigs = 2;
   // The proof that the note reshape action is well-formed.
   ZKNoteReshapeProof proof = 3;
 }

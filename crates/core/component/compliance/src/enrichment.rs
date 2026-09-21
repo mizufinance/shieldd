@@ -54,7 +54,7 @@ pub struct BatchComplianceData {
 
 impl Default for BatchComplianceData {
     fn default() -> Self {
-        use decaf377::Fq;
+        use shieldd_sdk_crypto::Fq;
         Self {
             compliance_anchor: StateCommitment(Fq::from(0u64)),
             asset_anchor: StateCommitment(Fq::from(0u64)),

@@ -123,7 +123,13 @@ pub fn spawn_worker(
                     return Ok::<_, anyhow::Error>(());
                 };
                 for generation_index in 0..generation_state.archived_generation_count {
-                    if repository.contains(generation_index) {
+                    let repository_for_check = repository.clone();
+                    if tokio::task::spawn_blocking(move || {
+                        repository_for_check.contains(generation_index)
+                    })
+                    .await
+                    .context("generation pack existence task panicked")?
+                    {
                         continue;
                     }
                     let archived =
@@ -147,17 +153,23 @@ async fn ensure_pack<S: StateRead + ?Sized>(
     archived: NullifierGenerationArchived,
     trusted_receipt: Option<&NullifierGenerationPackReceipt>,
 ) -> Result<NullifierGenerationPackReceipt> {
-    if repository.contains(archived.generation_index) {
+    let repository_for_check = repository.clone();
+    let trusted_receipt = trusted_receipt.cloned();
+    let existing = tokio::task::spawn_blocking(move || {
+        let repository = repository_for_check;
+        if !repository.contains(archived.generation_index) {
+            return Ok::<_, anyhow::Error>(None);
+        }
         let started = Instant::now();
         let inspected = repository.inspect(archived);
         let existing = match inspected {
-            Ok(receipt) if trusted_receipt == Some(&receipt) => Ok(receipt),
+            Ok(receipt) if trusted_receipt.as_ref() == Some(&receipt) => Ok(receipt),
             Ok(_) => repository.verify(archived),
             Err(error) => Err(error),
         };
         metrics::histogram!(PACK_VERIFY_DURATION).record(started.elapsed().as_secs_f64());
         match existing {
-            Ok(receipt) => return Ok(receipt),
+            Ok(receipt) => return Ok(Some(receipt)),
             Err(error) => {
                 let quarantine = repository.quarantine(archived.generation_index)?;
                 tracing::warn!(
@@ -168,6 +180,12 @@ async fn ensure_pack<S: StateRead + ?Sized>(
                 );
             }
         }
+        Ok(None)
+    })
+    .await
+    .context("generation pack inspection task panicked")??;
+    if let Some(receipt) = existing {
+        return Ok(receipt);
     }
 
     let started = Instant::now();
@@ -184,11 +202,17 @@ async fn ensure_pack<S: StateRead + ?Sized>(
                 .context("expanded tree and compact-block recovery both failed")?
         }
     };
-    let receipt = repository.write(&pack)?;
-    anyhow::ensure!(
-        repository.verify(archived)? == receipt,
-        "generation pack changed after durable write"
-    );
+    let repository_for_write = repository.clone();
+    let receipt = tokio::task::spawn_blocking(move || {
+        let receipt = repository_for_write.write(&pack)?;
+        anyhow::ensure!(
+            repository_for_write.inspect(archived)? == receipt,
+            "generation pack changed after durable write"
+        );
+        Ok::<_, anyhow::Error>(receipt)
+    })
+    .await
+    .context("generation pack publication task panicked")??;
     metrics::histogram!(PACK_BUILD_DURATION).record(started.elapsed().as_secs_f64());
     tracing::info!(
         generation_index = archived.generation_index,
@@ -221,9 +245,13 @@ async fn recover_from_compact_blocks<S: StateRead + ?Sized>(
             if active_generation == archived.generation_index
                 && window.current_generation > archived.generation_index
             {
-                let pack = NullifierGenerationPack::new(archived, nullifiers)?;
-                pack.reconstruct()?;
-                return Ok(pack);
+                return tokio::task::spawn_blocking(move || {
+                    let pack = NullifierGenerationPack::new(archived, nullifiers)?;
+                    pack.reconstruct()?;
+                    Ok(pack)
+                })
+                .await
+                .context("recovered generation pack validation task panicked")?;
             }
             active_generation = window.current_generation;
         }
@@ -238,7 +266,7 @@ async fn recover_from_compact_blocks<S: StateRead + ?Sized>(
 mod tests {
     use super::*;
     use cnidarium::{StateWrite as _, TempStorage};
-    use decaf377::Fq;
+    use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_proto::DomainType as _;
     use shieldd_sdk_sct::{nullifier_tree, Nullifier};
 
@@ -281,6 +309,37 @@ mod tests {
         assert_eq!(rebuilt.metadata.generation_root, archived.generation_root);
         assert_eq!(rebuilt.nullifiers, vec![nullifier(7), nullifier(1)]);
         rebuilt.reconstruct()?;
+
+        // The persisted root still matches the archive, but the expanded leaf stream is corrupt.
+        let leaf_key = shieldd_sdk_sct::state_key::nullifier_generations::leaf(
+            shieldd_sdk_sct::nullifier_generation::NullifierTreeId::Generation(0),
+            1,
+        );
+        let leaf_bytes = state
+            .nonverifiable_get_raw(&leaf_key)
+            .await?
+            .context("expanded leaf")?;
+        let mut leaf: shieldd_sdk_sct::indexed_nullifier_tree::IndexedNullifierLeaf =
+            bincode::deserialize(&leaf_bytes)?;
+        leaf.value = nullifier(8).to_bytes();
+        state.nonverifiable_put_raw(leaf_key, bincode::serialize(&leaf)?);
+        let error = nullifier_tree::build_generation_pack(&state, 0)
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("reconstructed generation root"),
+            "{error:#}"
+        );
+        let directory = tempfile::tempdir()?;
+        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
+        let receipt = ensure_pack(&state, &repository, archived, None).await?;
+        assert_eq!(repository.verify(archived)?, receipt);
+        assert!(repository
+            .nonmembership_proof(archived, nullifier(7))
+            .is_err());
+        repository
+            .nonmembership_proof(archived, nullifier(8))?
+            .verify_for(nullifier(8))?;
         Ok(())
     }
 

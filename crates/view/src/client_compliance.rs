@@ -1,16 +1,17 @@
 //! Compliance decoding and completion of wallet intent.
 use anyhow::Result;
-use decaf377::Fr;
+use ff::Field;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_compliance::BatchComplianceData;
 use shieldd_sdk_compliance::ComplianceQuery;
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_transaction::plan::{ActionPlan, TransactionPlan};
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug)]
 pub struct VolumeRecoveryRecord {
-    pub subject: decaf377::Fq,
+    pub subject: shieldd_sdk_crypto::Fq,
     pub day_start: u64,
     pub recovery: crate::storage::VolumeAccumulatorRecovery,
 }
@@ -51,7 +52,7 @@ fn select_volume_accumulator(
         .find(|record| record.subject == subject && record.day_start == day_start)
         .ok_or_else(|| anyhow::anyhow!("missing volume accumulator recovery"))?
         .recovery;
-    let blinding = decaf377::Fq::rand(rng);
+    let blinding = shieldd_sdk_crypto::Fq::random(rng);
     match recovery {
         VolumeAccumulatorRecovery::Absent => match accumulated_volume(0, amount, limit) {
             Some(undisclosed_volume) => Ok(VolumeAccumulatorPlan::origin(VolumeAccumulatorState {
@@ -252,6 +253,28 @@ where
         memo: intent.memo,
         nullifier_window: intent.nullifier_window,
     };
+    let mut volume_heads = BTreeSet::new();
+    let volumes = plan
+        .actions
+        .iter()
+        .filter_map(|action| match action {
+            ActionPlan::Transfer(plan) => Some(&plan.volume_accumulator),
+            ActionPlan::ShieldedHostWithdrawal(plan) => Some(&plan.volume_accumulator),
+            _ => None,
+        })
+        .chain(
+            plan.fee_funding
+                .iter()
+                .map(|fee| &fee.transfer.volume_accumulator),
+        );
+    for volume in volumes {
+        if let Some(state) = volume.successor_state() {
+            anyhow::ensure!(
+                volume_heads.insert((state.subject.to_bytes(), state.day_start)),
+                "more than one real accumulator transition for the same subject and day"
+            );
+        }
+    }
     plan.sort_actions();
     Ok(plan)
 }
@@ -359,7 +382,7 @@ fn fresh_action_nonce(
     rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
     used: &mut BTreeSet<[u8; 32]>,
 ) -> Result<Fr> {
-    let nonce = Fr::rand(rng);
+    let nonce = Fr::random(&mut *rng);
     anyhow::ensure!(
         used.insert(nonce.to_bytes()),
         "compliance RNG generated a duplicate shielded action nonce"
@@ -373,7 +396,7 @@ mod tests {
     use crate::planning_intent::{
         ActionIntent, NoteReshapeIntent, TransactionIntent, TransferIntent,
     };
-    use decaf377::Fr;
+    use ff::Field;
     use rand::{rngs::StdRng, SeedableRng};
     use rand_core::{CryptoRng, Error as RandError, RngCore};
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
@@ -381,6 +404,7 @@ mod tests {
         AssetProofData, BatchComplianceData, ComplianceLeaf, ComplianceQuery, MerklePath,
         UserProofData,
     };
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_shielded_pool::{
         Note, NoteReshapeFamilyId, ShieldedInputPlan, ShieldedOutputPlan,
@@ -453,7 +477,7 @@ mod tests {
         TransferIntent {
             spends: vec![spend],
             outputs: vec![output],
-            value_blinding: Fr::rand(rng),
+            value_blinding: Fr::random(&mut *rng),
         }
     }
 
@@ -481,7 +505,7 @@ mod tests {
             family_id: NoteReshapeFamilyId::EightByOne,
             spends,
             outputs: vec![output],
-            value_blinding: Fr::rand(rng),
+            value_blinding: Fr::random(&mut *rng),
         }
     }
 
@@ -596,7 +620,7 @@ mod tests {
         };
         assert_eq!(
             plan.compliance.witness.user_root,
-            StateCommitment(decaf377::Fq::from(0u64))
+            StateCommitment(shieldd_sdk_crypto::Fq::from(0u64))
         );
         plan.validate().expect("complete context must be valid");
     }
@@ -647,5 +671,174 @@ mod tests {
                 .to_bytes()
         ));
         assert_eq!(nonces.len(), 3);
+    }
+    #[tokio::test]
+    async fn completion_rejects_two_real_volume_transitions_for_one_subject_day() {
+        use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::generate_base_test_data;
+        use shieldd_sdk_shielded_pool::{select_accumulator_day, Rseed, VolumeAccumulatorState};
+
+        let mut rng = StdRng::seed_from_u64(72);
+        let base = generate_base_test_data(&mut rng, 1, 10, true);
+        assert!(base.asset_policy.params.daily_volume_limit >= 20);
+        assert_ne!(base.address, base.sender_address);
+        let timestamp = base.target_timestamp;
+        let mut tree = shieldd_sdk_compliance::QuadTree::new();
+        tree.update(0, base.user_leaf.commit()).unwrap();
+        tree.update(1, base.counterparty_leaf.commit()).unwrap();
+        let mut batch = BatchComplianceData {
+            asset_anchor: base.asset_anchor,
+            compliance_anchor: tree.root(),
+            ..Default::default()
+        };
+        batch.asset_proofs.insert(
+            base.value.asset_id,
+            AssetProofData {
+                indexed_leaf: base.asset_indexed_leaf.clone(),
+                position: base.asset_position,
+                auth_path: base.asset_path.clone(),
+                is_regulated: true,
+            },
+        );
+        batch
+            .asset_policies
+            .insert(base.value.asset_id, base.asset_policy.clone());
+        for (position, leaf) in [
+            (0, base.user_leaf.clone()),
+            (1, base.counterparty_leaf.clone()),
+        ] {
+            batch.user_proofs.insert(
+                (leaf.address.clone(), base.value.asset_id),
+                UserProofData {
+                    leaf,
+                    position,
+                    auth_path: MerklePath::from_auth_path(tree.auth_path(position).unwrap()),
+                },
+            );
+        }
+        let mut actions = Vec::new();
+        for position in 0..2u64 {
+            let (note, _) = Note::from_parts_with_recovery(
+                base.address.clone(),
+                base.value,
+                Rseed::generate(&mut rng),
+                base.user_leaf.capk,
+            )
+            .unwrap();
+            actions.push(ActionIntent::Transfer(TransferIntent {
+                spends: vec![ShieldedInputPlan::new(&mut rng, note, position.into())],
+                outputs: vec![ShieldedOutputPlan::new(
+                    &mut rng,
+                    base.value,
+                    base.sender_address.clone(),
+                )],
+                value_blinding: Fr::random(&mut rng),
+            }));
+        }
+        let volumes = vec![super::VolumeRecoveryRecord {
+            subject: VolumeAccumulatorState::subject(&base.address, base.value.asset_id),
+            day_start: select_accumulator_day(timestamp),
+            recovery: crate::storage::VolumeAccumulatorRecovery::Absent,
+        }];
+        let intent = |actions| TransactionIntent {
+            actions,
+            transaction_parameters: Default::default(),
+            fee_funding: None,
+            memo: None,
+            nullifier_window: None,
+        };
+        let fetch = |_: Vec<ComplianceQuery>| {
+            let compliance = batch.clone();
+            let volumes = volumes.clone();
+            async move {
+                Ok(super::CompletionData {
+                    compliance,
+                    volumes,
+                })
+            }
+        };
+        let mut completed = Vec::new();
+        for action in &actions {
+            let plan = complete_plan_with_compliance(
+                intent(vec![action.clone()]),
+                fetch,
+                &mut rng,
+                Default::default(),
+                Some(timestamp),
+                false,
+            )
+            .await
+            .unwrap();
+            let ActionPlan::Transfer(transfer) = &plan.actions[0] else {
+                panic!("transfer");
+            };
+            transfer.validate().unwrap();
+            assert!(transfer.volume_accumulator.is_real());
+            completed.push(ActionIntent::Complete(plan.actions[0].clone()));
+        }
+        for candidate in [
+            actions.clone(),
+            completed.clone(),
+            vec![completed[0].clone(), actions[1].clone()],
+        ] {
+            let error = complete_plan_with_compliance(
+                intent(candidate),
+                fetch,
+                &mut rng,
+                Default::default(),
+                Some(timestamp),
+                false,
+            )
+            .await
+            .unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains("more than one real accumulator transition"),
+                "{error:#}"
+            );
+        }
+        // Explicit disclosure uses padding and can complete both outbound transfers.
+        let disclosed = complete_plan_with_compliance(
+            intent(actions),
+            fetch,
+            &mut rng,
+            Default::default(),
+            Some(timestamp),
+            true,
+        )
+        .await
+        .unwrap();
+        for action in disclosed.actions {
+            let ActionPlan::Transfer(transfer) = action else {
+                panic!("transfer");
+            };
+            transfer.validate().unwrap();
+            assert!(!transfer.volume_accumulator.is_real());
+        }
+        // Independent subject/day budgets remain compatible, including precompleted actions.
+        for different_day in [false, true] {
+            let mut independent = completed.clone();
+            let ActionIntent::Complete(ActionPlan::Transfer(second)) = &mut independent[1] else {
+                panic!("transfer");
+            };
+            let mut successor = second.volume_accumulator.successor_state().unwrap();
+            if different_day {
+                successor.day_start += 86_400;
+            } else {
+                successor.subject += shieldd_sdk_crypto::Fq::from(1);
+            }
+            second.volume_accumulator =
+                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::origin(successor);
+            complete_plan_with_compliance(
+                intent(independent),
+                fetch,
+                &mut rng,
+                Default::default(),
+                Some(timestamp),
+                false,
+            )
+            .await
+            .unwrap();
+        }
     }
 }

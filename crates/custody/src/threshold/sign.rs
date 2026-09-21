@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet},
     iter,
 };
 
@@ -8,8 +8,8 @@ use ed25519_consensus::{Signature, SigningKey, VerificationKey};
 use rand_core::CryptoRngCore;
 use shieldd_sdk_keys::FullViewingKey;
 
-use decaf377_frost as frost;
 use frost::round1::SigningCommitments;
+use redjubjub_frost as frost;
 use shieldd_sdk_proto::{shieldd::custody::threshold::v1 as pb, DomainType, Message};
 use shieldd_sdk_transaction::{AuthorizationData, TransactionPlan};
 use shieldd_sdk_txhash::EffectHash;
@@ -302,7 +302,7 @@ fn required_signatures(request: &SigningRequest) -> usize {
     plan.num_spends()
 }
 
-fn spend_randomizers(plan: &TransactionPlan) -> impl Iterator<Item = decaf377::Fr> + '_ {
+fn spend_randomizers(plan: &TransactionPlan) -> impl Iterator<Item = shieldd_sdk_crypto::Fr> + '_ {
     plan.actions
         .iter()
         .flat_map(|action| action.spends().iter().map(|spend| spend.randomizer))
@@ -385,14 +385,24 @@ pub fn coordinator_round2(
     state: CoordinatorState1,
     follower_messages: &[FollowerRound1],
 ) -> Result<(CoordinatorRound2, CoordinatorState2)> {
-    let mut all_commitments = vec![BTreeMap::new(); required_signatures(&state.request)];
+    let required = required_signatures(&state.request);
+    let allowed = config.verification_keys();
+    anyhow::ensure!(
+        follower_messages.len() + 1 >= usize::from(config.threshold())
+            && follower_messages.len() < allowed.len(),
+        "invalid signing participant count"
+    );
+    let mut seen = BTreeSet::new();
+    let mut all_commitments = vec![BTreeMap::new(); required];
     for message in follower_messages
         .iter()
         .cloned()
         .chain(iter::once(state.my_round1_reply))
     {
         let (pk, commitments) = message.checked_commitments()?;
-        if !config.verification_keys().contains(&pk) {
+        anyhow::ensure!(seen.insert(pk), "duplicate signing participant");
+        anyhow::ensure!(commitments.len() == required, "incorrect commitment count");
+        if !allowed.contains(&pk) {
             anyhow::bail!("unknown verification key: {:?}", pk);
         }
         // The public key acts as the identifier
@@ -428,18 +438,29 @@ pub fn coordinator_round3(
     state: CoordinatorState2,
     follower_messages: &[FollowerRound2],
 ) -> Result<SigningResponse> {
-    let mut share_maps: Vec<HashMap<frost::Identifier, frost::round2::SignatureShare>> =
-        vec![HashMap::new(); required_signatures(&state.request)];
+    let required = required_signatures(&state.request);
+    let mut seen = BTreeSet::new();
+    let mut share_maps: Vec<BTreeMap<frost::Identifier, frost::round2::SignatureShare>> =
+        vec![BTreeMap::new(); required];
     for message in follower_messages
         .iter()
         .cloned()
         .chain(iter::once(state.my_round2_reply))
     {
         let (pk, shares) = message.checked_shares()?;
+        anyhow::ensure!(seen.insert(pk), "duplicate signing participant");
+        anyhow::ensure!(shares.len() == required, "incorrect signature share count");
         if !config.verification_keys().contains(&pk) {
             anyhow::bail!("unknown verification key: {:?}", pk);
         }
         let identifier = frost::Identifier::derive(pk.as_bytes().as_slice())?;
+        anyhow::ensure!(
+            state
+                .signing_packages
+                .iter()
+                .all(|package| package.signing_commitment(&identifier).is_some()),
+            "share from unselected participant"
+        );
         for (map_i, share_i) in share_maps.iter_mut().zip(shares.into_iter()) {
             map_i.insert(identifier, share_i);
         }
@@ -471,7 +492,7 @@ pub fn follower_round1(
 ) -> Result<(FollowerRound1, FollowerState)> {
     let required = required_signatures(&coordinator.request);
     let (nonces, commitments) = (0..required)
-        .map(|_| frost::round1::commit(&config.key_package().secret_share(), rng))
+        .map(|_| frost::round1::commit(&config.key_package().signing_share(), rng))
         .unzip();
     let reply = FollowerRound1::make(config.signing_key(), commitments);
     let state = FollowerState {
@@ -486,6 +507,28 @@ pub fn follower_round2(
     state: FollowerState,
     coordinator: CoordinatorRound2,
 ) -> Result<FollowerRound2> {
+    let required = required_signatures(&state.request);
+    anyhow::ensure!(
+        coordinator.all_commitments.len() == required && state.nonces.len() == required,
+        "incorrect signing package count"
+    );
+    let allowed = config
+        .verification_keys()
+        .into_iter()
+        .map(|pk| frost::Identifier::derive(pk.as_bytes()))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let own = frost::Identifier::derive(config.signing_key().verification_key().as_bytes())?;
+    for commitments in &coordinator.all_commitments {
+        anyhow::ensure!(
+            commitments.len() >= usize::from(config.threshold())
+                && commitments.len() <= allowed.len(),
+            "invalid signing participant count"
+        );
+        anyhow::ensure!(
+            commitments.contains_key(&own) && commitments.keys().all(|id| allowed.contains(id)),
+            "unknown or missing signing participant"
+        );
+    }
     let to_be_signed = state.request.to_be_signed(config)?;
     let signing_packages = coordinator
         .all_commitments
@@ -506,4 +549,81 @@ pub fn follower_round2(
         })
         .collect::<Result<_, _>>()?;
     Ok(FollowerRound2::make(config.signing_key(), shares))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand_core::OsRng;
+    fn request(config: &Config) -> SigningRequest {
+        use shieldd_sdk_shielded_pool::{
+            Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan,
+        };
+        let address = config.fvk().incoming().payment_address(0u32.into());
+        let value = shieldd_sdk_asset::Value {
+            amount: 1000u64.into(),
+            asset_id: *shieldd_sdk_asset::BASE_ASSET_ID,
+        };
+        let note = Note::from_parts(
+            address.clone(),
+            value,
+            Rseed::generate(&mut OsRng),
+            RecoveryCommitment::unavailable(),
+        )
+        .unwrap();
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let output = ShieldedOutputPlan::new(&mut OsRng, value, address);
+        let transfer = shieldd_sdk_shielded_pool::test_plan_helpers::transfer(
+            vec![spend],
+            vec![output],
+            shieldd_sdk_crypto::Fr::from(7),
+        )
+        .unwrap();
+        SigningRequest::TransactionPlan(TransactionPlan {
+            actions: vec![shieldd_sdk_transaction::ActionPlan::Transfer(transfer)],
+            memo: None,
+            fee_funding: None,
+            transaction_parameters: Default::default(),
+            nullifier_window: Some(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
+                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
+                current_generation: 0,
+                recent_position_floor: 0,
+                archived_generation_count: 0,
+                archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
+            }),
+        })
+    }
+    #[test]
+    fn follower_rejects_missing_signing_packages() {
+        let configs = Config::deal(&mut OsRng, 2, 2).unwrap();
+        let message = CoordinatorRound1 {
+            request: request(&configs[0]),
+        };
+        let (_, state) = follower_round1(&mut OsRng, &configs[1], message).unwrap();
+        assert!(follower_round2(
+            &configs[1],
+            state,
+            CoordinatorRound2 {
+                all_commitments: vec![]
+            }
+        )
+        .is_err());
+    }
+    #[test]
+    fn coordinator_rejects_duplicate_followers_and_extra_commitments() {
+        let configs = Config::deal(&mut OsRng, 2, 2).unwrap();
+        for duplicate in [true, false] {
+            let (message, state) =
+                coordinator_round1(&mut OsRng, &configs[0], request(&configs[0])).unwrap();
+            let (reply, _) = follower_round1(&mut OsRng, &configs[1], message).unwrap();
+            let replies = if duplicate {
+                vec![reply.clone(), reply]
+            } else {
+                let mut commitments = reply.commitments;
+                commitments.push(commitments[0].clone());
+                vec![FollowerRound1::make(configs[1].signing_key(), commitments)]
+            };
+            assert!(coordinator_round2(&configs[0], state, &replies).is_err());
+        }
+    }
 }

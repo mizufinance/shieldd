@@ -18,14 +18,14 @@ python3 scripts/stage_artifacts.py verify
 ```
 
 The output is `target/shieldd`: `include/shieldd.h`, `lib/libshieldd.a`,
-`bin/` tools, `lib/gnark/` prover libraries, and `manifest.json`. Native builds
-need no prover hydration. Prover builds use the existing Git-backed proving keys;
-SR1CS hydration remains an explicit constraint/proof-test operation.
+`bin/` tools, and `manifest.json`. Proof code is native Rust. Configure
+`SHIELDD_PARI_KEYS` separately with the shared [registry](proof-system.md);
+keys are not embedded in staged binaries. The manifest records source revision,
+target, suite, compiler profile, deliverable groups and SHA-256 checksums.
+Staging selects the native host target unless `--target` is explicit, regardless
+of Cargo's implicit target settings. Revision labels are supplied by the caller
+or taken from HEAD; they do not certify that the source tree is unmodified.
 
-Copy the complete staged directory to any location. Builders discover libraries
-relative to their executable, or through `SHIELDD_ARTIFACT_ROOT`. Explicit
-family-specific prover overrides remain available. The manifest records the
-exact source revision, target platform, deliverable groups, and SHA-256 checksums.
 Verify with an independently selected revision before using downloaded artifacts:
 
 ```sh

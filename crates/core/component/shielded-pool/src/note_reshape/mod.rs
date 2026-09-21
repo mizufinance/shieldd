@@ -1,13 +1,11 @@
 mod action;
-mod generated;
+mod family;
 mod plan;
 mod proof;
-#[cfg(all(feature = "prover", any(unix, windows)))]
-mod prover_runtime;
 mod view;
 
 pub use action::{NoteReshape, NoteReshapeBody, NoteReshapeInputBody, NoteReshapeOutputBody};
-pub use generated::{
+pub use family::{
     InputPaddingPolicy, NoteReshapeFamilyId, NoteReshapeFamilySpec, OutputPaddingPolicy,
     NOTE_RESHAPE_FAMILY_SPECS,
 };

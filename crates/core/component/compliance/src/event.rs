@@ -194,6 +194,33 @@ pub struct EventAssetRegistered {
     pub asset_policy: AssetPolicy,
 }
 
+impl EventAssetRegistered {
+    /// Bind identity and leaf-committed policy; authority keys remain host-supplied data.
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.is_regulated,
+            "asset tree events must register regulated assets"
+        );
+        crate::registration::ensure_regulated_asset_id(self.asset_id, true)?;
+        anyhow::ensure!(
+            self.asset_id.0 != shieldd_sdk_crypto::Fq::from(0u64),
+            "asset ID zero is reserved for the tree sentinel"
+        );
+        self.asset_policy.validate_regulated()?;
+        let expected = IndexedLeaf::from_policy(
+            self.asset_id.0,
+            self.indexed_leaf.next_index,
+            self.indexed_leaf.next_value,
+            &self.asset_policy,
+        );
+        anyhow::ensure!(
+            self.indexed_leaf == expected,
+            "asset registration identity or policy does not match the indexed leaf"
+        );
+        Ok(())
+    }
+}
+
 impl DomainType for EventAssetRegistered {
     type Proto = pb::EventAssetRegistered;
 }
@@ -203,7 +230,7 @@ impl TryFrom<pb::EventAssetRegistered> for EventAssetRegistered {
 
     fn try_from(value: pb::EventAssetRegistered) -> Result<Self, Self::Error> {
         fn inner(value: pb::EventAssetRegistered) -> anyhow::Result<EventAssetRegistered> {
-            Ok(EventAssetRegistered {
+            let event = EventAssetRegistered {
                 asset_id: value
                     .asset_id
                     .ok_or(anyhow!("missing `asset_id`"))?
@@ -223,7 +250,9 @@ impl TryFrom<pb::EventAssetRegistered> for EventAssetRegistered {
                     .asset_policy
                     .ok_or(anyhow!("missing `asset_policy`"))?
                     .try_into()?,
-            })
+            };
+            event.validate()?;
+            Ok(event)
         }
         inner(value).context(format!("parsing {}", pb::EventAssetRegistered::NAME))
     }
@@ -292,11 +321,57 @@ impl From<EventComplianceAnchor> for pb::EventComplianceAnchor {
 mod tests {
     use super::*;
 
+    #[test]
+    fn asset_registration_binds_identity_classification_and_policy() {
+        use shieldd_sdk_crypto::{generators::SPEND_AUTH, Fq, Fr};
+        let policy =
+            AssetPolicy::for_test(*SPEND_AUTH * Fr::from(11), 1000, *SPEND_AUTH * Fr::from(12));
+        let registered = EventAssetRegistered {
+            asset_id: asset::Id(Fq::from(7)),
+            is_regulated: true,
+            position: 1,
+            indexed_leaf: IndexedLeaf::from_policy(Fq::from(7), 0, Fq::from(99), &policy),
+            low_leaf_position: 0,
+            updated_low_leaf: IndexedLeaf::with_default_policy(Fq::from(0), 1, Fq::from(7)),
+            asset_policy: policy,
+        };
+        EventAssetRegistered::try_from(pb::EventAssetRegistered::from(registered.clone()))
+            .expect("matching regulated policy is accepted");
+        let mut wrong_id = registered.clone();
+        wrong_id.asset_id = asset::Id(Fq::from(8));
+        let mut wrong_limit = registered.clone();
+        wrong_limit.asset_policy.params.daily_volume_limit += 1;
+        let mut wrong_ring = registered.clone();
+        wrong_ring.asset_policy.ring.policy_id.push('x');
+        let mut wrong_classification = registered.clone();
+        wrong_classification.is_regulated = false;
+        for id in [asset::Id(Fq::from(0)), *shieldd_sdk_asset::BASE_ASSET_ID] {
+            let mut forbidden = registered.clone();
+            forbidden.asset_id = id;
+            forbidden.indexed_leaf.value = id.0;
+            assert!(EventAssetRegistered::try_from(pb::EventAssetRegistered::from(forbidden)).is_err(),
+                "reserved identities cannot become regulated tree entries even with matching leaf data");
+        }
+        let mut invalid_policy = registered;
+        invalid_policy.asset_policy.registration_authority_vk = None;
+        for event in [
+            wrong_id,
+            wrong_limit,
+            wrong_ring,
+            wrong_classification,
+            invalid_policy,
+        ] {
+            EventAssetRegistered::try_from(pb::EventAssetRegistered::from(event)).expect_err(
+                "asset event must agree with its authenticated leaf and regulated admission",
+            );
+        }
+    }
+
     fn leaf(status: UserAssetStatus) -> ComplianceLeaf {
         let mut rng = rand::thread_rng();
         let mut leaf = ComplianceLeaf::registered_for_test(
             shieldd_sdk_keys::Address::dummy(&mut rng),
-            asset::Id(decaf377::Fq::from(7u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(7u64)),
         );
         if status == UserAssetStatus::Frozen {
             leaf.apply_status_action(crate::UserAssetStatusAction::Freeze, 1)

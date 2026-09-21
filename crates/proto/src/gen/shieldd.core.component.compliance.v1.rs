@@ -106,7 +106,7 @@ pub struct MsgRegisterAsset {
     /// Immutable authority key that signs user registration grants for this asset.
     #[prost(message, optional, tag = "11")]
     pub registration_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     /// Registrar authorization for this asset registration.
     #[prost(message, optional, tag = "12")]
@@ -117,7 +117,7 @@ pub struct MsgRegisterAsset {
     /// Immutable authority key that authorizes note seizures for this asset.
     #[prost(message, optional, tag = "14")]
     pub seizure_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(bytes = "vec", tag = "16")]
     pub audit_keys: ::prost::alloc::vec::Vec<u8>,
@@ -159,7 +159,7 @@ pub struct AssetRegistrationGrantBody {
     pub resource: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "11")]
     pub registration_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(uint64, tag = "12")]
     pub valid_until_unix: u64,
@@ -167,7 +167,7 @@ pub struct AssetRegistrationGrantBody {
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
     #[prost(message, optional, tag = "14")]
     pub seizure_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(bytes = "vec", tag = "15")]
     pub audit_keys: ::prost::alloc::vec::Vec<u8>,
@@ -231,11 +231,11 @@ pub struct AssetRegistrationGrant {
     pub body: ::core::option::Option<AssetRegistrationGrantBody>,
     #[prost(message, optional, tag = "2")]
     pub registrar_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(message, optional, tag = "3")]
     pub signature: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
 }
 impl ::prost::Name for AssetRegistrationGrant {
@@ -277,7 +277,7 @@ pub struct UserRegistrationGrant {
     pub body: ::core::option::Option<UserRegistrationGrantBody>,
     #[prost(message, optional, tag = "2")]
     pub signature: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
 }
 impl ::prost::Name for UserRegistrationGrant {
@@ -705,13 +705,13 @@ pub struct AssetPolicy {
     pub resource: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "9")]
     pub registration_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(message, optional, tag = "10")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
     #[prost(message, optional, tag = "11")]
     pub seizure_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(bytes = "vec", tag = "12")]
     pub audit_keys: ::prost::alloc::vec::Vec<u8>,
@@ -733,7 +733,7 @@ pub struct GenesisContent {
     pub native_assets: ::prost::alloc::vec::Vec<NativeAssetRegistration>,
     #[prost(message, repeated, tag = "2")]
     pub compliance_registrar_vk: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(message, optional, tag = "3")]
     pub compliance_params: ::core::option::Option<ComplianceParameters>,
@@ -780,11 +780,11 @@ pub struct NativeAssetRegistration {
     pub dk_pub: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "4")]
     pub registration_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(message, optional, tag = "5")]
     pub seizure_authority_vk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     #[prost(bytes = "vec", tag = "6")]
     pub ring_pk: ::prost::alloc::vec::Vec<u8>,

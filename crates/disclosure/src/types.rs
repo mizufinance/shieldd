@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 pub const MAX_OUTPUTS: usize = 32;
 pub const MAX_DOCUMENT_BYTES: usize = 64 * 1024;
 pub const MAX_WITNESS_BYTES: usize = 16 * 1024 * 1024;
@@ -133,9 +133,9 @@ pub struct DisclosurePackage {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Evidence {
-    Groth16 {
+    Pari {
         circuit: String,
-        verification_key_sha256: String,
+        verification_key_digest: String,
         #[serde(with = "receipt_encoding")]
         proof: Vec<u8>,
         control_signatures: Vec<Option<Vec<u8>>>,

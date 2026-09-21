@@ -1,8 +1,5 @@
 //! Asset values and their display metadata.
 
-use ark_ff::ToConstraintField;
-use decaf377::Fq;
-
 use std::{
     convert::{TryFrom, TryInto},
     str::FromStr,
@@ -279,15 +276,6 @@ impl Value {
     }
 }
 
-impl ToConstraintField<Fq> for Value {
-    fn to_field_elements(&self) -> Option<Vec<Fq>> {
-        let mut elements = Vec::new();
-        elements.extend_from_slice(&self.amount.to_field_elements()?);
-        elements.extend_from_slice(&self.asset_id.to_field_elements()?);
-        Some(elements)
-    }
-}
-
 impl FromStr for Value {
     type Err = anyhow::Error;
 
@@ -343,10 +331,10 @@ impl FromStr for Value {
 
 #[cfg(test)]
 mod tests {
-    use decaf377::Fr;
-    use std::ops::Deref;
+    use shieldd_sdk_crypto::Fr;
 
-    use crate::{balance::commitment::VALUE_BLINDING_GENERATOR, Balance};
+    use crate::Balance;
+    use shieldd_sdk_crypto::generators::VALUE_BLINDING;
 
     use super::*;
 
@@ -391,12 +379,12 @@ mod tests {
         };
 
         // some random-looking blinding factors
-        let b1 = Fr::from(129u64).inverse().unwrap();
-        let b2 = Fr::from(199u64).inverse().unwrap();
-        let b3 = Fr::from(121u64).inverse().unwrap();
-        let b4 = Fr::from(179u64).inverse().unwrap();
-        let b5 = Fr::from(379u64).inverse().unwrap();
-        let b6 = Fr::from(879u64).inverse().unwrap();
+        let b1 = Fr::from(129u64).invert().unwrap();
+        let b2 = Fr::from(199u64).invert().unwrap();
+        let b3 = Fr::from(121u64).invert().unwrap();
+        let b4 = Fr::from(179u64).invert().unwrap();
+        let b5 = Fr::from(379u64).invert().unwrap();
+        let b6 = Fr::from(879u64).invert().unwrap();
 
         // form commitments
         let c1 = v1.commit(b1);
@@ -412,7 +400,7 @@ mod tests {
         let b0 = b1 - b2 - b3 + b4 + b5 - b6;
 
         // so c0 = 0 * G_pen + 0 * G_atom + b0 * H
-        assert_eq!(c0.0, b0 * VALUE_BLINDING_GENERATOR.deref());
+        assert_eq!(c0.0, *VALUE_BLINDING * b0);
 
         // Now we do the same, but using the `Balance` structure.
         let balance1 = Balance::from(v1);

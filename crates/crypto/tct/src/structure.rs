@@ -358,7 +358,8 @@ mod test {
 
         let mut top: frontier::Top<Item> = frontier::Top::new(frontier::TrackForgotten::No);
         for i in 0..MAX_SIZE_TO_TEST {
-            top.insert(StateCommitment(i.into()).into()).unwrap();
+            top.insert(StateCommitment(shieldd_sdk_crypto::Fq::from(u64::from(i))).into())
+                .unwrap();
         }
 
         fn check_leaves(index: &mut [u64; 9], node: Node) {
@@ -380,7 +381,8 @@ mod test {
 
         let mut top: frontier::Top<Item> = frontier::Top::new(frontier::TrackForgotten::No);
         for i in 0..MAX_SIZE_TO_TEST {
-            top.insert(StateCommitment(i.into()).into()).unwrap();
+            top.insert(StateCommitment(shieldd_sdk_crypto::Fq::from(u64::from(i))).into())
+                .unwrap();
             let root = Node::root(&top);
             check(root, Place::Frontier);
         }
@@ -419,8 +421,11 @@ mod test {
         let mut tree = crate::Tree::new();
 
         for i in 0..MAX_SIZE_TO_TEST {
-            tree.insert(crate::Witness::Keep, StateCommitment(i.into()))
-                .unwrap();
+            tree.insert(
+                crate::Witness::Keep,
+                StateCommitment(shieldd_sdk_crypto::Fq::from(u64::from(i))),
+            )
+            .unwrap();
             let root = tree.structure();
             check(root, 24);
         }

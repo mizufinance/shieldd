@@ -3,7 +3,6 @@ use rand_core::{CryptoRng, RngCore};
 use super::{AddressIndex, Diversifier, DiversifierKey};
 use crate::{ka, Address};
 
-pub const IVK_LEN_BYTES: usize = 64;
 /// Allows viewing incoming notes, i.e., notes sent to the spending key this
 /// key is derived from.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -17,7 +16,10 @@ impl IncomingViewingKey {
     pub fn payment_address(&self, index: AddressIndex) -> Address {
         let d = self.dk.diversifier_for_index(&index);
         let g_d = d.diversified_generator();
-        let pk_d = self.ivk.diversified_public(&g_d);
+        let pk_d = self
+            .ivk
+            .diversified_public(&g_d)
+            .expect("nonidentity diversified base");
 
         Address::from_components(d, pk_d).expect("pk_d is valid")
     }
@@ -30,7 +32,10 @@ impl IncomingViewingKey {
         // The transparent address uses an all-zero diversifier.
         let dzero = Diversifier([0u8; 16]);
         let g_dzero = dzero.diversified_generator();
-        let pk_dzero = self.ivk.diversified_public(&g_dzero);
+        let pk_dzero = self
+            .ivk
+            .diversified_public(&g_dzero)
+            .expect("nonidentity diversified base");
         let address = Address::from_components(dzero, pk_dzero).expect("valid address");
 
         // This should never fail as we just constructed a valid transparent address
@@ -55,32 +60,30 @@ impl IncomingViewingKey {
     }
 
     /// Perform key agreement with a given public key.
-    pub fn key_agreement_with(&self, pk: &ka::Public) -> Result<ka::SharedSecret, ka::Error> {
+    pub fn key_agreement_with(&self, pk: &ka::Public) -> ka::SharedSecret {
         self.ivk.key_agreement_with(pk)
     }
 
-    /// Perform key agreement with a compressed Decaf377 point.
+    /// Perform key agreement with a Jubjub subgroup point.
     pub fn key_agreement_with_element(
         &self,
-        point: decaf377::Element,
-    ) -> Result<[u8; 32], ka::Error> {
-        self.ivk
-            .key_agreement_with(&ka::Public(point.vartime_compress().0))
-            .map(|shared| shared.0)
+        point: shieldd_sdk_crypto::SubgroupPoint,
+    ) -> anyhow::Result<[u8; 32]> {
+        Ok(self
+            .ivk
+            .key_agreement_with(&ka::Public::from_point(point)?)
+            .to_bytes())
     }
 
     /// Derive a transmission key from the given diversified base.
-    pub fn diversified_public(&self, diversified_generator: &decaf377::Element) -> ka::Public {
+    pub fn diversified_public(
+        &self,
+        diversified_generator: &shieldd_sdk_crypto::SubgroupPoint,
+    ) -> anyhow::Result<ka::Public> {
         self.ivk.diversified_public(diversified_generator)
     }
 
-    /// The raw ivk scalar.
-    ///
-    /// Deriving an ivk needs Poseidon377, so it can only happen in here, but
-    /// decrypting an output note with one is plain ECDH, and tools outside the
-    /// wallet do that: `tools/shieldd-note-reader` in bankd takes exactly these
-    /// bytes. Handing them out hands out the ability to read every note
-    /// addressed to this key, so treat the result as secret.
+    /// Canonical secret scalar; possession permits reading this account's incoming notes.
     pub fn to_bytes(&self) -> [u8; 32] {
         self.ivk.to_bytes()
     }
@@ -93,7 +96,8 @@ impl IncomingViewingKey {
 
     /// Check whether this address is viewable by this incoming viewing key.
     pub fn views_address(&self, address: &Address) -> bool {
-        self.ivk.diversified_public(address.diversified_generator()) == *address.transmission_key()
+        self.diversified_public(address.diversified_generator())
+            .is_ok_and(|key| key == *address.transmission_key())
     }
 
     /// Returns the index of the given address, if the address is viewed by this

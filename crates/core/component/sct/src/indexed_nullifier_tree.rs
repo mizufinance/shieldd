@@ -1,8 +1,7 @@
 use anyhow::{ensure, Context};
-use ark_ff::{BigInteger, PrimeField};
-use decaf377::Fq;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{domains, poseidon, Fq};
 use shieldd_sdk_proto::{core::component::sct::v1 as pb, DomainType};
 
 use crate::Nullifier;
@@ -10,24 +9,15 @@ use crate::Nullifier;
 pub const DEPTH: u8 = 20;
 pub const CAPACITY: u64 = 1u64 << (DEPTH as u32 * 2);
 
-pub static LEAF_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.nullifier.imt.leaf"));
-
 pub static ZERO_HASHES: Lazy<Vec<Fq>> = Lazy::new(|| {
     let mut hashes = Vec::with_capacity(DEPTH as usize + 1);
     hashes.push(Fq::from(0u64));
     for level in 1..=DEPTH as usize {
         let child = hashes[level - 1];
-        hashes.push(poseidon377::hash_4(
-            &Fq::from(0u64),
-            (child, child, child, child),
-        ));
+        hashes.push(hash_children(level as u8, [child; 4]));
     }
     hashes
 });
-
-fn domain(label: &[u8]) -> Fq {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label).as_bytes())
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct IndexedNullifierLeaf {
@@ -87,25 +77,26 @@ impl IndexedNullifierLeaf {
     }
 
     pub fn value_fq(&self) -> anyhow::Result<Fq> {
-        Fq::from_bytes_checked(&self.value).map_err(|_| anyhow::anyhow!("invalid leaf value"))
+        shieldd_sdk_crypto::encoding::field(&self.value)
+            .map_err(|_| anyhow::anyhow!("invalid leaf value"))
     }
 
     pub fn next_value_fq(&self) -> anyhow::Result<Fq> {
-        Fq::from_bytes_checked(&self.next_value)
+        shieldd_sdk_crypto::encoding::field(&self.next_value)
             .map_err(|_| anyhow::anyhow!("invalid leaf successor value"))
     }
 
     pub fn commitment(&self) -> anyhow::Result<Fq> {
         self.validate()?;
-        Ok(poseidon377::hash_5(
-            &LEAF_DOMAIN,
-            (
+        Ok(poseidon::hash(
+            domains::HISTORY_LEAF,
+            &[
                 self.value_fq()?,
                 Fq::from(self.next_index),
                 self.next_value_fq()?,
                 Fq::from(self.is_lower_sentinel as u64),
                 Fq::from(self.is_terminal as u64),
-            ),
+            ],
         ))
     }
 }
@@ -166,7 +157,7 @@ impl IndexedNullifierWitness {
         );
         for layer in &self.auth_path {
             for sibling in layer {
-                let _ = Fq::from_bytes_checked(sibling)
+                let _ = shieldd_sdk_crypto::encoding::field(sibling)
                     .map_err(|_| anyhow::anyhow!("invalid indexed path sibling"))?;
             }
         }
@@ -177,11 +168,11 @@ impl IndexedNullifierWitness {
         self.validate()?;
         let mut current = self.leaf.commitment()?;
         let mut position = self.leaf_position;
-        for layer in &self.auth_path {
+        for (level, layer) in self.auth_path.iter().enumerate() {
             let siblings = layer
                 .iter()
                 .map(|bytes| {
-                    Fq::from_bytes_checked(bytes)
+                    shieldd_sdk_crypto::encoding::field(bytes)
                         .map_err(|_| anyhow::anyhow!("invalid indexed path sibling"))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
@@ -192,7 +183,7 @@ impl IndexedNullifierWitness {
                 3 => [siblings[0], siblings[1], siblings[2], current],
                 _ => unreachable!(),
             };
-            current = hash_children(children);
+            current = hash_children(level as u8 + 1, children);
             position /= 4;
         }
         Ok(current.to_bytes())
@@ -304,17 +295,22 @@ pub struct FqOrdKey(pub [u8; 32]);
 
 impl From<Fq> for FqOrdKey {
     fn from(value: Fq) -> Self {
-        let bytes = value.into_bigint().to_bytes_be();
-        let mut key = [0u8; 32];
-        key[32 - bytes.len()..].copy_from_slice(&bytes);
+        let mut key = value.to_bytes();
+        key.reverse();
         Self(key)
     }
 }
 
-pub fn hash_children(children: [Fq; 4]) -> Fq {
-    poseidon377::hash_4(
-        &Fq::from(0u64),
-        (children[0], children[1], children[2], children[3]),
+pub fn hash_children(height: u8, children: [Fq; 4]) -> Fq {
+    poseidon::hash(
+        domains::HISTORY_TREE,
+        &[
+            Fq::from(u64::from(height)),
+            children[0],
+            children[1],
+            children[2],
+            children[3],
+        ],
     )
 }
 

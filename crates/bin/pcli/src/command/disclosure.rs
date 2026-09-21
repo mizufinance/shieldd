@@ -314,7 +314,6 @@ struct MachineResult {
     protocol: u32,
     package_version: u32,
     circuit: &'static str,
-    development_artifacts: bool,
     status: MachineStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     result: Option<sdk::VerificationResult>,
@@ -324,15 +323,27 @@ struct MachineResult {
     method: Option<&'static str>,
 }
 
-async fn verify_machine(input: &[u8], node: &str) -> MachineResult {
+fn load_registry(keys: Option<&Utf8Path>) -> Result<shieldd_sdk_proof_params::pari::Registry> {
+    shieldd_sdk_proof_params::pari::Registry::load(keys.context("--pari-keys is required")?)
+}
+fn verify_package(
+    package: &sdk::DisclosurePackage,
+    keys: Option<&Utf8Path>,
+) -> Result<sdk::VerificationResult> {
+    if matches!(package.evidence, sdk::Evidence::Pari { .. }) {
+        let registry =
+            load_registry(keys).map_err(|error| error.context(sdk::VerificationUnavailable))?;
+        sdk::verify(package, Some(&registry))
+    } else {
+        sdk::verify(package, None)
+    }
+}
+
+async fn verify_machine(input: &[u8], node: &str, keys: Option<&Utf8Path>) -> MachineResult {
     let mut response = MachineResult {
         protocol: 2,
         package_version: sdk::VERSION,
         circuit: sdk::CIRCUIT_ID,
-        development_artifacts: cfg!(all(
-            feature = "development-disclosure-artifacts",
-            debug_assertions
-        )),
         status: MachineStatus::Rejected,
         result: None,
         statement: None,
@@ -360,7 +371,7 @@ async fn verify_machine(input: &[u8], node: &str) -> MachineResult {
         if !candidates.is_empty() {
             sdk::verify_candidates(&package.statement, &candidates)?;
         }
-        let result = sdk::verify(&package)?;
+        let result = verify_package(&package, keys)?;
         Ok((package, result))
     })();
     let (package, mut result) = match verified {
@@ -386,7 +397,7 @@ async fn verify_machine(input: &[u8], node: &str) -> MachineResult {
     response.result = Some(result);
     response.statement = Some(package.statement);
     response.method = Some(match package.evidence {
-        sdk::Evidence::Groth16 { .. } => "Groth16",
+        sdk::Evidence::Pari { .. } => "Pari",
         sdk::Evidence::Openings { .. } => "Openings",
         sdk::Evidence::PayloadKeys { .. } => "PayloadKeys",
     });
@@ -447,7 +458,7 @@ async fn asset_policy(
 }
 
 impl DisclosureCmd {
-    pub async fn exec(&self, home: &Utf8Path) -> Result<()> {
+    pub async fn exec(&self, home: &Utf8Path, keys: Option<&Utf8Path>) -> Result<()> {
         match self {
             #[cfg(feature = "orbis")]
             Self::OrbisRegister { node } | Self::OrbisAudit { node } => {
@@ -464,7 +475,7 @@ impl DisclosureCmd {
                 )?);
                 println!(
                     "{}",
-                    serde_json::to_string(&verify_machine(&input, node).await)?
+                    serde_json::to_string(&verify_machine(&input, node, keys).await)?
                 );
             }
             Self::IssuerCreate { node, output } => {
@@ -482,8 +493,8 @@ impl DisclosureCmd {
                 let secret = zeroize::Zeroizing::new(request.issuer_secret);
                 use zeroize::Zeroize;
                 request.issuer_secret.zeroize();
-                let mut key = shieldd_sdk_compliance::DetectionKey::new(
-                    decaf377::Fr::from_bytes_checked(&secret)
+                let key = shieldd_sdk_compliance::DetectionKey::new(
+                    shieldd_sdk_crypto::encoding::scalar(&secret)
                         .map_err(|_| anyhow::anyhow!("invalid issuer secret"))?,
                 );
                 let result = async {
@@ -499,7 +510,6 @@ impl DisclosureCmd {
                     eprintln!("{}", serde_json::to_string_pretty(&preview)?);
                     publish(output, &serde_json::to_vec(&package)?)
                 }.await;
-                key.0.zeroize();
                 result?;
             }
             Self::IssuerVerify { package, node } => {
@@ -631,7 +641,7 @@ impl DisclosureCmd {
             }
             Self::Capabilities => println!(
                 "{}",
-                serde_json::json!({"protocol":1,"package_version":sdk::VERSION,"audit_ciphertext_version":3,"live_pet":false,"protected_delivery":false,"issuer_disclosure_version":1,"circuit":sdk::CIRCUIT_ID,"development_artifacts":cfg!(all(feature="development-disclosure-artifacts",debug_assertions))})
+                serde_json::json!({"protocol":2,"package_version":sdk::VERSION,"audit_ciphertext_version":3,"live_pet":false,"protected_delivery":false,"issuer_disclosure_version":1,"circuit":sdk::CIRCUIT_ID})
             ),
             Self::Inspect { package } => {
                 let package = sdk::decode_package(&read_bounded(package, sdk::MAX_PACKAGE_BYTES)?)?;
@@ -661,7 +671,7 @@ impl DisclosureCmd {
                         .collect::<Result<Vec<_>>>()?;
                     sdk::verify_candidates(&package.statement, &txs)?;
                 }
-                let mut result = sdk::verify(&package)?;
+                let mut result = verify_package(&package, keys)?;
                 if let Some(node) = node {
                     match acceptance(&package, node).await {
                         Ok(acceptance) => result.acceptance = acceptance,
@@ -687,7 +697,7 @@ impl DisclosureCmd {
                 let bytes = read_bounded(package, sdk::MAX_PACKAGE_BYTES)?;
                 let package = sdk::decode_package(&bytes)?;
                 check_request(&package, request.as_deref())?;
-                let mut result = sdk::verify(&package)?;
+                let mut result = verify_package(&package, keys)?;
                 result.acceptance = acceptance(&package, node).await?;
                 ensure!(result.fully_verified(), "receipt is not fully verified");
                 publish(output, &bytes)?;
@@ -714,7 +724,7 @@ impl DisclosureCmd {
                 } else if *openings {
                     eprintln!("Shares all committed note fields and blinding, without note seeds or decryption keys.");
                 } else {
-                    eprintln!("Shares selected fields and explicit predicate results using a local Groth16 proof.");
+                    eprintln!("Shares selected fields and explicit predicate results using a local Pari proof.");
                 }
                 if witness.request.outputs.iter().any(|c| c.spending_control) {
                     use crate::config::{CustodyConfig, PcliConfig};
@@ -766,9 +776,14 @@ impl DisclosureCmd {
                 } else if *openings {
                     sdk::export_openings(&witness)?
                 } else {
-                    run_worker(&witness, &std::env::current_exe()?).await?
+                    run_worker(
+                        &witness,
+                        &std::env::current_exe()?,
+                        Some(keys.context("--pari-keys is required for proving")?),
+                    )
+                    .await?
                 };
-                sdk::verify(&package)?;
+                verify_package(&package, keys)?;
                 publish(output, &serde_json::to_vec(&package)?)?;
                 println!("Exported disclosure: {output}");
             }
@@ -779,7 +794,8 @@ impl DisclosureCmd {
                     std::io::stdin()
                         .take(sdk::MAX_WITNESS_BYTES as u64 + 1)
                         .read_to_end(&mut bytes)?;
-                    let package = sdk::prove(&sdk::decode_witness(&bytes)?)?;
+                    let registry = load_registry(keys)?;
+                    let package = sdk::prove(&sdk::decode_witness(&bytes)?, &registry)?;
                     let bytes = serde_json::to_vec(&package)?;
                     ensure!(bytes.len() <= sdk::MAX_PACKAGE_BYTES, "package too large");
                     std::fs::write(output, bytes)?;
@@ -818,6 +834,7 @@ impl Drop for WorkerGroup {
 async fn run_worker(
     witness: &sdk::DisclosureWitness,
     executable: &std::path::Path,
+    keys: Option<&Utf8Path>,
 ) -> Result<sdk::DisclosurePackage> {
     #[cfg(not(unix))]
     anyhow::bail!("local disclosure proving currently requires macOS or Linux");
@@ -835,6 +852,9 @@ async fn run_worker(
         .stderr(Stdio::inherit())
         .env_remove("RUST_LOG")
         .kill_on_drop(true);
+    if let Some(keys) = keys {
+        command.env("SHIELDD_PARI_KEYS", keys);
+    }
     // All descendants belong to this job, so cancellation also stops the native prover.
     #[cfg(unix)]
     command.process_group(0);
@@ -969,12 +989,13 @@ mod tests {
                 outputs: vec![],
             },
             &executable,
+            None,
         )
         .await
         .unwrap();
         assert_eq!(result.statement, package.statement);
         // Successful transport never makes a worker's unverified evidence acceptable.
-        assert!(sdk::verify(&result).is_err());
+        assert!(sdk::verify(&result, None).is_err());
     }
 
     #[cfg(unix)]
@@ -1002,7 +1023,7 @@ mod tests {
         };
         let result = tokio::time::timeout(
             std::time::Duration::from_millis(300),
-            run_worker(&witness, &executable),
+            run_worker(&witness, &executable, None),
         )
         .await;
         assert!(result.is_err());

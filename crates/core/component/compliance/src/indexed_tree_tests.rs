@@ -273,8 +273,14 @@ fn test_imt_non_membership_proof() {
     let (pos, leaf, path) = tree.non_membership_proof(value).unwrap();
 
     assert_eq!(leaf.value, Fq::from(100u64));
-    assert!(leaf.value < value);
-    assert!(value < leaf.next_value);
+    assert!(
+        crate::indexed_tree::FqOrdKey::from(leaf.value)
+            < crate::indexed_tree::FqOrdKey::from(value)
+    );
+    assert!(
+        crate::indexed_tree::FqOrdKey::from(value)
+            < crate::indexed_tree::FqOrdKey::from(leaf.next_value)
+    );
 
     let root = tree.root();
     assert!(IndexedMerkleTree::verify_auth_path(
@@ -294,8 +300,14 @@ fn test_imt_non_membership_empty_tree() {
 
     assert_eq!(pos, 0);
     assert_eq!(leaf.value, Fq::from(0u64));
-    assert!(leaf.value < value);
-    assert!(value < leaf.next_value);
+    assert!(
+        crate::indexed_tree::FqOrdKey::from(leaf.value)
+            < crate::indexed_tree::FqOrdKey::from(value)
+    );
+    assert!(
+        crate::indexed_tree::FqOrdKey::from(value)
+            < crate::indexed_tree::FqOrdKey::from(leaf.next_value)
+    );
 
     let root = tree.root();
     assert!(IndexedMerkleTree::verify_auth_path(
@@ -669,7 +681,7 @@ fn test_leaf_commit_includes_policy() {
         next_index: 0,
         next_value: *FQ_MAX,
         params: LeafParams {
-            dk_pub: decaf377::Element::default(),
+            dk_pub: shieldd_sdk_crypto::SubgroupPoint::default(),
             daily_volume_limit: 1000u128,
             route_policy_hash: string_to_fq(""),
         },
@@ -689,7 +701,7 @@ fn test_leaf_from_policy() {
     let leaf = IndexedLeaf::from_policy(Fq::from(42u64), 0, *FQ_MAX, &policy);
 
     assert_eq!(leaf.value, Fq::from(42u64));
-    assert_eq!(leaf.params.dk_pub, *crate::crypto::UNREGULATED_SINK_DK_PUB);
+    assert_eq!(leaf.params.dk_pub, *crate::crypto::UNREGULATED_DETECTION);
     assert_eq!(leaf.params.daily_volume_limit, u128::MAX);
-    assert_eq!(leaf.ring.ring_pk, *crate::crypto::UNREGULATED_SINK_RING_PK);
+    assert_eq!(leaf.ring.ring_pk, *crate::crypto::UNREGULATED_RING);
 }

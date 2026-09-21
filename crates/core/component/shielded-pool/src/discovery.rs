@@ -4,9 +4,8 @@
 //! Full compact-block scanning remains the authoritative recovery path.
 
 use anyhow::Result;
-use decaf377::Fq;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{audit::point_fields, domains, poseidon, Fq};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 
@@ -15,15 +14,6 @@ pub mod state_key;
 pub const DEFAULT_REGULATED_PRECISION_BITS: u8 = 12;
 pub const DEFAULT_UNREGULATED_PRECISION_BITS: u8 = 18;
 pub const DEFAULT_GRACE_PERIOD_BLOCKS: u64 = 16;
-
-static ROUTE_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.discovery.route"));
-static TAG_RANDOM_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.discovery.tag_random"));
-static TAG_PERMUTATION_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.discovery.permutation"));
-static PARAMETERS_DOMAIN: Lazy<Fq> = Lazy::new(|| domain(b"shieldd.discovery.parameters"));
-
-fn domain(label: &[u8]) -> Fq {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label).as_bytes())
-}
 
 fn trunc32(value: Fq) -> u32 {
     u32::from_le_bytes(
@@ -229,13 +219,13 @@ impl Parameters {
 
     /// A proof-bound identifier for this complete parameter set.
     pub fn id(&self) -> Fq {
-        poseidon377::hash_3(
-            &PARAMETERS_DOMAIN,
-            (
-                Fq::from(self.regulated_precision.bits()),
-                Fq::from(self.unregulated_precision.bits()),
+        poseidon::hash(
+            domains::ROUTE_PARAMETERS,
+            &[
+                Fq::from(u64::from(self.regulated_precision.bits())),
+                Fq::from(u64::from(self.unregulated_precision.bits())),
                 Fq::from(self.as_of_height),
-            ),
+            ],
         )
     }
 
@@ -290,21 +280,21 @@ impl From<Parameters> for pb::DiscoveryParameters {
 }
 
 pub fn route_word(address: &Address) -> u32 {
-    trunc32(poseidon377::hash_1(
-        &ROUTE_DOMAIN,
-        *address.transmission_key_s(),
+    trunc32(poseidon::hash(
+        domains::ROUTE,
+        &point_fields(address.transmission_point()),
     ))
 }
 
 pub fn random_word(routing_nonce: Fq, tag_slot: u8) -> u32 {
-    trunc32(poseidon377::hash_2(
-        &TAG_RANDOM_DOMAIN,
-        (routing_nonce, Fq::from(tag_slot)),
+    trunc32(poseidon::hash(
+        domains::ROUTE_RANDOMNESS,
+        &[routing_nonce, Fq::from(u64::from(tag_slot))],
     ))
 }
 
 pub fn permutation_bit(routing_nonce: Fq) -> bool {
-    trunc32(poseidon377::hash_1(&TAG_PERMUTATION_DOMAIN, routing_nonce)) & 1 == 1
+    trunc32(poseidon::hash(domains::ROUTE_PERMUTATION, &[routing_nonce])) & 1 == 1
 }
 
 fn tag_for_word(route_word: u32, precision: Precision, random_word: u32) -> RoutingTag {

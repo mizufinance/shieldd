@@ -9,49 +9,23 @@ const TAG_SIZE: usize = 16;
 /// The number of bytes in our nonce.
 const NONCE_SIZE: usize = 12;
 
-/// Generate a random shared secret.
-///
-/// I had to write this method because it didn't exist natively. That's probably
-/// a good idea. The reason I added it here is because we want to do the trick
-/// of using a fake shared secret to make key agreement infallible.
-fn random_shared_secret(rng: &mut impl CryptoRngCore) -> decaf377_ka::SharedSecret {
-    let mut data = [0u8; 32];
-    rng.fill_bytes(&mut data);
-    decaf377_ka::SharedSecret(data)
-}
-
-/// Perform key agreement in a way that cannot fail.
-///
-/// Whenever key agreement were to fail, instead we return a random shared secret.
-/// This means that if an invalid public key is announced, the ciphertexts encrypted
-/// to that key will not be decryptable. This is the same situation as announcing a
-/// public key whose corresponding secret key you do not know; this behavior thus seems fine.
-fn infallible_key_agreement(
-    rng: &mut impl CryptoRngCore,
-    sk: &decaf377_ka::Secret,
-    pk: &decaf377_ka::Public,
-) -> decaf377_ka::SharedSecret {
-    let fake_secret = random_shared_secret(rng);
-    sk.key_agreement_with(pk).unwrap_or(fake_secret)
-}
-
 /// Derive a symmetric key from the information used to produce a shared secret.
 ///
 /// `pk` is the target public key we're encrypting data to.
 /// `epk` is data we add to the ciphertext so that the owner of that public key can decrypt it.
 /// `secret` is the result of a key exchange between those two keys.
 fn derive_symmetric_key(
-    pk: &decaf377_ka::Public,
-    epk: &decaf377_ka::Public,
-    secret: &decaf377_ka::SharedSecret,
+    pk: &shieldd_sdk_crypto::ka::Public,
+    epk: &shieldd_sdk_crypto::ka::Public,
+    secret: &shieldd_sdk_crypto::ka::SharedSecret,
 ) -> SymmetricKey {
     TryInto::<[u8; 32]>::try_into(
         &blake2b_simd::Params::new()
             .personal(b"dkg-encryption")
             .to_state()
-            .update(&pk.0)
-            .update(&epk.0)
-            .update(&secret.0)
+            .update(&pk.to_bytes())
+            .update(&epk.to_bytes())
+            .update(&secret.to_bytes())
             .finalize()
             .as_array()[..32],
     )
@@ -63,20 +37,20 @@ fn derive_symmetric_key(
 ///
 /// This key has a corresponding decryption key which can decrypt the messages encrypted to it.
 #[derive(Clone, Copy)]
-pub struct EncryptionKey(decaf377_ka::Public);
+pub struct EncryptionKey(shieldd_sdk_crypto::ka::Public);
 
 impl EncryptionKey {
     /// Encrypt a message, producing a ciphertext.
     pub fn encrypt(&self, rng: &mut impl CryptoRngCore, message: &[u8]) -> Vec<u8> {
-        let esk = decaf377_ka::Secret::new(rng);
+        let esk = shieldd_sdk_crypto::ka::Secret::new(rng);
         let epk = esk.public();
-        let secret = infallible_key_agreement(rng, &esk, &self.0);
+        let secret = esk.key_agreement_with(&self.0);
         let key = derive_symmetric_key(&self.0, &epk, &secret);
         // ciphertext = EPK || <aead tag> || <encrypted data>
         // The tag will also include the EPK as associated data that gets authenticated.
         let ciphertext = {
             let mut ciphertext = Vec::new();
-            ciphertext.extend_from_slice(&epk.0);
+            ciphertext.extend_from_slice(&epk.to_bytes());
             // Reserve space for the tag
             ciphertext.extend_from_slice(&[0u8; TAG_SIZE]);
             // Include the message, which will be written over in place
@@ -84,7 +58,7 @@ impl EncryptionKey {
             let tag = ChaCha20Poly1305::new(&key)
                 .encrypt_in_place_detached(
                     &[0u8; NONCE_SIZE].into(),
-                    &epk.0,
+                    &epk.to_bytes(),
                     &mut ciphertext[PK_SIZE + TAG_SIZE..],
                 )
                 .expect("chacha20poly1305 encryption should not fail");
@@ -96,8 +70,8 @@ impl EncryptionKey {
     }
 
     /// Return a view of this value's underlying bytes
-    pub fn as_bytes(&self) -> &[u8; 32] {
-        &self.0 .0
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.0.to_bytes()
     }
 }
 
@@ -106,13 +80,13 @@ impl TryFrom<&[u8]> for EncryptionKey {
 
     fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
         let repr: [u8; 32] = value.try_into()?;
-        Ok(Self(decaf377_ka::Public(repr)))
+        Ok(Self(shieldd_sdk_crypto::ka::Public::try_from(repr)?))
     }
 }
 
 /// A key that allows decrypting ciphertexts sent to the corresponding encryption key.
 #[derive(Clone)]
-pub struct DecryptionKey(decaf377_ka::Secret);
+pub struct DecryptionKey(shieldd_sdk_crypto::ka::Secret);
 
 impl From<DecryptionKey> for EncryptionKey {
     fn from(value: DecryptionKey) -> Self {
@@ -122,7 +96,7 @@ impl From<DecryptionKey> for EncryptionKey {
 
 impl DecryptionKey {
     pub fn new(rng: &mut impl CryptoRngCore) -> Self {
-        Self(decaf377_ka::Secret::new(rng))
+        Self(shieldd_sdk_crypto::ka::Secret::new(rng))
     }
 
     /// Get the corresponding public encryption key for this decryption key.
@@ -135,22 +109,14 @@ impl DecryptionKey {
     /// Decrypt a ciphertext, extracitng out the corresponding message.
     ///
     /// This may potentially fail, if the ciphertext is malformed, or was tampered with.
-    pub fn decrypt(&self, rng: &mut impl CryptoRngCore, ciphertext: &[u8]) -> Result<Vec<u8>> {
+    pub fn decrypt(&self, ciphertext: &[u8]) -> Result<Vec<u8>> {
         if ciphertext.len() < PK_SIZE + TAG_SIZE {
             anyhow::bail!("failed to decrypt ciphertext");
         }
         let (header, message) = ciphertext.split_at(PK_SIZE + TAG_SIZE);
         let mut message = message.to_owned();
-        let epk = decaf377_ka::Public(
-            header[..PK_SIZE]
-                .try_into()
-                .expect("array conversion should not fail"),
-        );
-        // Not key committing, but shouldn't be a big concern.
-        //
-        // (By this I mean that decryption may still succeed even if the public key gets mangled in
-        // the ciphertext, but that's alright I guess).
-        let secret = infallible_key_agreement(rng, &self.0, &epk);
+        let epk = shieldd_sdk_crypto::ka::Public::try_from(&header[..PK_SIZE])?;
+        let secret = self.0.key_agreement_with(&epk);
         let key = derive_symmetric_key(&self.0.public(), &epk, &secret);
         ChaCha20Poly1305::new(&key)
             .decrypt_in_place_detached(
@@ -178,7 +144,7 @@ mod test {
         let ek = dk.public();
         let msg = "ペンブラが好きです".as_bytes();
         let ciphertext = ek.encrypt(&mut rng, msg);
-        let msg2 = dk.decrypt(&mut rng, &ciphertext)?;
+        let msg2 = dk.decrypt(&ciphertext)?;
         assert_eq!(msg, &msg2);
 
         Ok(())

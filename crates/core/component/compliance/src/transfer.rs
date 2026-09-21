@@ -1,15 +1,17 @@
 use anyhow::{anyhow, Context, Result};
-use decaf377::{Element, Fq, Fr};
+use ff::Field;
+use group::GroupEncoding;
 use rand_core::{CryptoRng, RngCore};
 use shieldd_sdk_asset::Value;
+use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 use shieldd_sdk_keys::Address;
 
 use crate::ownership::OwnershipCiphertext;
 
 use crate::{
     crypto::{
-        compliance_stream_block, encrypt_tier_bytes, transfer_key_confirmation,
-        ISSUER_DETECTION_DOMAIN,
+        compliance_stream_block, detection_seed, encrypt_tier_bytes, shared_secret,
+        transfer_key_confirmation,
     },
     issuer_keys::detection_flag_plaintext,
     structs::{C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
@@ -23,9 +25,10 @@ pub const TRANSFER_CIPHERTEXT_FQS: usize = TRANSFER_DETECTION_FQS
     + TRANSFER_EXT_CIPHERTEXT_FQS
     + TRANSFER_CORE_CIPHERTEXT_FQS
     + TRANSFER_EXT_CIPHERTEXT_FQS;
-pub const TRANSFER_WIRE_BYTES: usize = EPK_BYTES * 4
+pub const TRANSFER_WIRE_BYTES: usize = 1
+    + EPK_BYTES * 4
     + C2_BYTES * 4
-    + 128
+    + 130
     + FQ_BYTES * 2
     + DETECTION_TAG_BYTES
     + FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS
@@ -35,10 +38,10 @@ pub const TRANSFER_WIRE_BYTES: usize = EPK_BYTES * 4
 
 #[derive(Clone, Debug)]
 pub struct TransferComplianceCiphertext {
-    pub sender_core_epk: Element,
-    pub sender_ext_epk: Element,
-    pub output_core_epk: Element,
-    pub output_ext_epk: Element,
+    pub sender_core_epk: SubgroupPoint,
+    pub sender_ext_epk: SubgroupPoint,
+    pub output_core_epk: SubgroupPoint,
+    pub output_ext_epk: SubgroupPoint,
     pub sender_core_c2: Fq,
     pub sender_ext_c2: Fq,
     pub output_core_c2: Fq,
@@ -55,10 +58,10 @@ pub struct TransferComplianceCiphertext {
 
 #[derive(Clone, Debug)]
 pub struct TransferCompliancePublicInputs {
-    pub sender_core_epk: Element,
-    pub sender_ext_epk: Element,
-    pub output_core_epk: Element,
-    pub output_ext_epk: Element,
+    pub sender_core_epk: SubgroupPoint,
+    pub sender_ext_epk: SubgroupPoint,
+    pub output_core_epk: SubgroupPoint,
+    pub output_ext_epk: SubgroupPoint,
     pub sender_core_c2: Fq,
     pub sender_ext_c2: Fq,
     pub output_core_c2: Fq,
@@ -95,7 +98,7 @@ pub struct TransferEncryptionResult {
 
 fn sample_nonzero_scalar(rng: &mut (impl RngCore + CryptoRng)) -> Fr {
     loop {
-        let scalar = Fr::rand(&mut *rng);
+        let scalar = Fr::random(&mut *rng);
         if scalar != Fr::from(0u64) {
             return scalar;
         }
@@ -105,15 +108,16 @@ fn sample_nonzero_scalar(rng: &mut (impl RngCore + CryptoRng)) -> Fr {
 impl TransferComplianceCiphertext {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(TRANSFER_WIRE_BYTES);
-        bytes.extend_from_slice(&self.sender_core_epk.vartime_compress().0);
-        bytes.extend_from_slice(&self.sender_ext_epk.vartime_compress().0);
-        bytes.extend_from_slice(&self.output_core_epk.vartime_compress().0);
-        bytes.extend_from_slice(&self.output_ext_epk.vartime_compress().0);
+        bytes.push(shieldd_sdk_crypto::SUITE);
+        bytes.extend_from_slice(&self.sender_core_epk.to_bytes());
+        bytes.extend_from_slice(&self.sender_ext_epk.to_bytes());
+        bytes.extend_from_slice(&self.output_core_epk.to_bytes());
+        bytes.extend_from_slice(&self.output_ext_epk.to_bytes());
         bytes.extend_from_slice(&self.sender_core_c2.to_bytes());
         bytes.extend_from_slice(&self.sender_ext_c2.to_bytes());
         bytes.extend_from_slice(&self.output_core_c2.to_bytes());
         bytes.extend_from_slice(&self.output_ext_c2.to_bytes());
-        for ownership in self.ownership {
+        for ownership in &self.ownership {
             bytes.extend_from_slice(&ownership.to_bytes());
         }
         bytes.extend_from_slice(&self.sender_core_key_confirmation.to_bytes());
@@ -134,14 +138,17 @@ impl TransferComplianceCiphertext {
             );
         }
 
-        let mut offset = 0usize;
-        let read_point = |offset: &mut usize| -> Result<Element> {
+        anyhow::ensure!(
+            bytes[0] == shieldd_sdk_crypto::SUITE,
+            "unsupported transfer compliance suite"
+        );
+        let mut offset = 1usize;
+        let read_point = |offset: &mut usize| -> Result<SubgroupPoint> {
             let compressed: [u8; 32] = bytes[*offset..*offset + 32]
                 .try_into()
                 .context("read transfer compliance EPK")?;
             *offset += 32;
-            decaf377::Encoding(compressed)
-                .vartime_decompress()
+            shieldd_sdk_crypto::encoding::nonidentity(&compressed)
                 .map_err(|e| anyhow!("decompress transfer compliance EPK: {e:?}"))
         };
         let read_fq = |offset: &mut usize| -> Result<Fq> {
@@ -149,7 +156,8 @@ impl TransferComplianceCiphertext {
                 .try_into()
                 .context("read transfer compliance Fq")?;
             *offset += 32;
-            Fq::from_bytes_checked(&raw).map_err(|_| anyhow!("invalid transfer compliance Fq"))
+            shieldd_sdk_crypto::encoding::field(&raw)
+                .map_err(|_| anyhow!("invalid transfer compliance Fq"))
         };
         let read_fq_words =
             |offset: &mut usize, word_count: usize, label: &str| -> Result<Vec<u8>> {
@@ -162,7 +170,7 @@ impl TransferComplianceCiphertext {
                     let raw: [u8; FQ_BYTES] = chunk
                         .try_into()
                         .expect("chunks_exact yields one field element");
-                    Fq::from_bytes_checked(&raw)
+                    shieldd_sdk_crypto::encoding::field(&raw)
                         .map_err(|_| anyhow!("invalid canonical {label} field element {index}"))?;
                 }
                 Ok(value)
@@ -176,10 +184,10 @@ impl TransferComplianceCiphertext {
         let output_core_c2 = read_fq(&mut offset)?;
         let output_ext_c2 = read_fq(&mut offset)?;
         let ownership = [
-            OwnershipCiphertext::from_bytes(&bytes[offset..offset + 64])?,
-            OwnershipCiphertext::from_bytes(&bytes[offset + 64..offset + 128])?,
+            OwnershipCiphertext::from_bytes(&bytes[offset..offset + 65])?,
+            OwnershipCiphertext::from_bytes(&bytes[offset + 65..offset + 130])?,
         ];
-        offset += 128;
+        offset += 130;
         let sender_core_key_confirmation = read_fq(&mut offset)?;
         let output_core_key_confirmation = read_fq(&mut offset)?;
 
@@ -246,7 +254,7 @@ impl TransferComplianceCiphertext {
                 let raw: [u8; 32] = bytes[start..start + 32]
                     .try_into()
                     .expect("transfer ciphertext chunk must be 32 bytes");
-                Fq::from_le_bytes_mod_order(&raw)
+                shieldd_sdk_crypto::encoding::field(&raw).expect("validated ciphertext field")
             })
         }
 
@@ -271,21 +279,20 @@ impl TransferComplianceCiphertext {
     }
 }
 
-pub fn derive_transfer_salt(root: Fr, label: &[u8]) -> Fq {
-    let domain = Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"shieldd.transfer.compliance.salt").as_bytes(),
-    );
-    let label_fq = Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label).as_bytes());
-    poseidon377::hash_2(
-        &domain,
-        (Fq::from_le_bytes_mod_order(&root.to_bytes()), label_fq),
+pub fn derive_transfer_salt(root: Fr, index: u8) -> Fq {
+    assert!(index < 5, "transfer salt slot");
+    let root =
+        shieldd_sdk_crypto::encoding::field(&root.to_bytes()).expect("Jubjub scalar fits field");
+    shieldd_sdk_crypto::poseidon::hash(
+        shieldd_sdk_crypto::domains::SALT,
+        &[root, Fq::from(u64::from(index))],
     )
 }
 
 pub fn encrypt_transfer(
     mut rng: impl RngCore + CryptoRng,
     general_keys: &crate::AuditKeys,
-    dk_pub: &Element,
+    dk_pub: &SubgroupPoint,
     receiver_address: &Address,
     sender_address: &Address,
     receiver_value: Value,
@@ -298,30 +305,30 @@ pub fn encrypt_transfer(
     let sender = PartyTierMaterial {
         checking_randomness: sample_nonzero_scalar(&mut rng),
         core: TierSecretMaterial {
-            seed: Fq::rand(&mut rng),
+            seed: Fq::random(&mut rng),
             r: sample_nonzero_scalar(&mut rng),
         },
         ext: TierSecretMaterial {
-            seed: Fq::rand(&mut rng),
+            seed: Fq::random(&mut rng),
             r: sample_nonzero_scalar(&mut rng),
         },
     };
     let output = PartyTierMaterial {
         checking_randomness: sample_nonzero_scalar(&mut rng),
         core: TierSecretMaterial {
-            seed: Fq::rand(&mut rng),
+            seed: Fq::random(&mut rng),
             r: sample_nonzero_scalar(&mut rng),
         },
         ext: TierSecretMaterial {
-            seed: Fq::rand(&mut rng),
+            seed: Fq::random(&mut rng),
             r: sample_nonzero_scalar(&mut rng),
         },
     };
 
-    let sender_core_epk = Element::GENERATOR * sender.core.r;
-    let sender_ext_epk = Element::GENERATOR * sender.ext.r;
-    let output_core_epk = Element::GENERATOR * output.core.r;
-    let output_ext_epk = Element::GENERATOR * output.ext.r;
+    let sender_core_epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * sender.core.r;
+    let sender_ext_epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * sender.ext.r;
+    let output_core_epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * output.core.r;
+    let output_ext_epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * output.ext.r;
 
     let sender_core_shared = if is_flagged {
         *dk_pub * sender.core.r
@@ -344,39 +351,29 @@ pub fn encrypt_transfer(
         general_keys.sender * output.ext.r
     };
 
-    let sender_core_c2 = sender.core.seed + sender_core_shared.vartime_compress_to_field();
-    let sender_ext_c2 = sender.ext.seed + sender_ext_shared.vartime_compress_to_field();
-    let output_core_c2 = output.core.seed + output_core_shared.vartime_compress_to_field();
-    let output_ext_c2 = output.ext.seed + output_ext_shared.vartime_compress_to_field();
+    let sender_core_c2 = sender.core.seed + shared_secret(&sender_core_shared);
+    let sender_ext_c2 = sender.ext.seed + shared_secret(&sender_ext_shared);
+    let output_core_c2 = output.core.seed + shared_secret(&output_core_shared);
+    let output_ext_c2 = output.ext.seed + shared_secret(&output_ext_shared);
     let ownership = [
-        OwnershipCiphertext::encrypt(
+        crate::ownership::encrypt(
             sender_address,
             general_keys.checking,
             sender.checking_randomness,
         )?,
-        OwnershipCiphertext::encrypt(
+        crate::ownership::encrypt(
             receiver_address,
             general_keys.checking,
             output.checking_randomness,
         )?,
     ];
-    let sender_core_key_confirmation = transfer_key_confirmation(
-        sender.core.seed,
-        sender_core_epk.vartime_compress_to_field(),
-        sender_core_salt,
-    );
-    let output_core_key_confirmation = transfer_key_confirmation(
-        output.core.seed,
-        output_core_epk.vartime_compress_to_field(),
-        output_core_salt,
-    );
+    let sender_core_key_confirmation =
+        transfer_key_confirmation(sender.core.seed, &sender_core_epk, sender_core_salt);
+    let output_core_key_confirmation =
+        transfer_key_confirmation(output.core.seed, &output_core_epk, output_core_salt);
 
     let ss_detection = *dk_pub * sender.core.r;
-    let sender_core_epk_fq = sender_core_epk.vartime_compress_to_field();
-    let seed_detection = poseidon377::hash_2(
-        &ISSUER_DETECTION_DOMAIN,
-        (ss_detection.vartime_compress_to_field(), sender_core_epk_fq),
-    );
+    let seed_detection = detection_seed(&ss_detection, &sender_core_epk);
     let detection_0 = receiver_value.asset_id.0 + compliance_stream_block(seed_detection, 0);
     let detection_1 = detection_salt + compliance_stream_block(seed_detection, 1);
     let detection_2 =
@@ -432,8 +429,8 @@ pub fn encrypt_transfer(
 
 fn address_bytes(address: &Address) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(64);
-    bytes.extend_from_slice(&address.diversified_generator().vartime_compress().0);
-    bytes.extend_from_slice(&address.transmission_key().0);
+    bytes.extend_from_slice(&address.diversified_generator().to_bytes());
+    bytes.extend_from_slice(&address.transmission_key().to_bytes());
     bytes
 }
 
@@ -492,17 +489,17 @@ mod tests {
 
     fn canonical_ciphertext() -> TransferComplianceCiphertext {
         TransferComplianceCiphertext {
-            sender_core_epk: Element::GENERATOR,
-            sender_ext_epk: Element::GENERATOR,
-            output_core_epk: Element::GENERATOR,
-            output_ext_epk: Element::GENERATOR,
+            sender_core_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+            sender_ext_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+            output_core_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+            output_ext_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
             sender_core_c2: Fq::from(0u64),
             sender_ext_c2: Fq::from(0u64),
             output_core_c2: Fq::from(0u64),
             output_ext_c2: Fq::from(0u64),
             ownership: [OwnershipCiphertext {
-                r: Element::GENERATOR,
-                c: Element::GENERATOR,
+                r: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+                c: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
             }; 2],
             sender_core_key_confirmation: Fq::from(0u64),
             output_core_key_confirmation: Fq::from(0u64),
@@ -537,7 +534,7 @@ mod tests {
         let mut ciphertext = canonical_ciphertext();
         ciphertext.sender_core_key_confirmation = Fq::from(41u64);
         ciphertext.output_core_key_confirmation = Fq::from(42u64);
-        ciphertext.ownership[0].c += Element::GENERATOR;
+        ciphertext.ownership[0].c += *shieldd_sdk_crypto::generators::SPEND_AUTH;
 
         let encoded = ciphertext.to_bytes();
         assert_eq!(encoded.len(), TRANSFER_WIRE_BYTES);

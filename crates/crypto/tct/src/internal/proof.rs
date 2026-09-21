@@ -69,7 +69,6 @@ impl VerifyError {
 #[error("could not decode proof")]
 pub struct ProofDecodeError;
 
-use decaf377::Fq;
 use shieldd_sdk_proto::shieldd::crypto::tct::v1 as pb;
 
 impl<Tree: Height> From<Proof<Tree>> for pb::StateCommitmentProof
@@ -93,9 +92,12 @@ where
 
     fn try_from(proof: pb::StateCommitmentProof) -> Result<Self, Self::Error> {
         let position = proof.position;
+        if position >= 1u64 << (2 * Tree::Height::HEIGHT) {
+            return Err(ProofDecodeError);
+        }
         let auth_path = proof.auth_path.try_into().map_err(|_| ProofDecodeError)?;
         let leaf = StateCommitment(
-            Fq::from_bytes_checked(
+            shieldd_sdk_crypto::encoding::field(
                 &proof
                     .note_commitment
                     .ok_or(ProofDecodeError)?

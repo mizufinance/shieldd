@@ -1,10 +1,30 @@
-use decaf377::Fq;
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 
 /// A commitment to a note or swap.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "pb::StateCommitment", try_from = "pb::StateCommitment")]
 pub struct StateCommitment(pub Fq);
+
+impl std::hash::Hash for StateCommitment {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::hash::Hash::hash(&self.0.to_bytes(), state);
+    }
+}
+impl Ord for StateCommitment {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0
+            .to_bytes()
+            .iter()
+            .rev()
+            .cmp(other.0.to_bytes().iter().rev())
+    }
+}
+impl PartialOrd for StateCommitment {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 /// An error when decoding a commitment from a hex string.
 #[derive(Clone, Debug, thiserror::Error)]
@@ -77,7 +97,8 @@ impl TryFrom<pb::StateCommitment> for StateCommitment {
             .try_into()
             .map_err(|_| InvalidStateCommitment)?;
 
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| InvalidStateCommitment)?;
+        let inner =
+            shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| InvalidStateCommitment)?;
 
         Ok(StateCommitment(inner))
     }
@@ -108,7 +129,8 @@ impl TryFrom<[u8; 32]> for StateCommitment {
     type Error = InvalidStateCommitment;
 
     fn try_from(bytes: [u8; 32]) -> Result<StateCommitment, Self::Error> {
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| InvalidStateCommitment)?;
+        let inner =
+            shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| InvalidStateCommitment)?;
 
         Ok(StateCommitment(inner))
     }
@@ -121,7 +143,8 @@ impl TryFrom<&[u8]> for StateCommitment {
     fn try_from(slice: &[u8]) -> Result<StateCommitment, Self::Error> {
         let bytes: [u8; 32] = slice[..].try_into().map_err(|_| InvalidStateCommitment)?;
 
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| InvalidStateCommitment)?;
+        let inner =
+            shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| InvalidStateCommitment)?;
 
         Ok(StateCommitment(inner))
     }
@@ -132,8 +155,8 @@ pub use arbitrary::FqStrategy;
 
 #[cfg(feature = "arbitrary")]
 mod arbitrary {
-    use decaf377::Fq;
     use proptest::strategy::Strategy;
+    use shieldd_sdk_crypto::Fq;
 
     use super::StateCommitment;
 
@@ -185,7 +208,11 @@ mod arbitrary {
             } else {
                 let mut bytes = [0u8; 32];
                 rng.fill_bytes(&mut bytes);
-                proptest::strategy::Just(decaf377::Fq::from_le_bytes_mod_order(&bytes))
+                proptest::strategy::Just(Fq::from_bytes_wide(&{
+                    let mut wide = [0; 64];
+                    wide[..32].copy_from_slice(&bytes);
+                    wide
+                }))
             }
             .prop_filter("impossible", |_| true))
         }

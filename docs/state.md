@@ -61,16 +61,19 @@ scan.
 
 The view worker publishes an immutable pair of user and asset trees. Blocks with
 no compliance events validate their advertised anchors against the current pair
-and reuse the same snapshot without cloning either tree or writing SQLite.
+and reuse the same snapshot without cloning either tree or writing compliance-tree
+records.
 
 For an event-bearing block, the worker:
 
 1. clones the current pair once and applies ordered compact-block events;
 2. validates the resulting roots against the advertised anchors;
 3. extracts typed persistence records for dirty user and asset leaves;
-4. clears dirty tracking and publishes the updated pair;
+4. clears dirty tracking on the staged pair;
 5. commits tree records, scoped leaf data, policies, anchors, and sync height in
-   one SQLite transaction.
+   one SQLite transaction;
+6. publishes the staged SCT and compliance snapshots and their durable height
+   after the commit succeeds.
 
 The wallet TCT remains witness-aware and is independent of this compliance
 snapshot.

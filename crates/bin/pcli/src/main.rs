@@ -25,7 +25,9 @@ async fn run() -> Result<()> {
         }
         Command::Compliance(cmd) => return cmd.exec(),
         #[cfg(feature = "disclosure")]
-        Command::Disclosure(cmd) => return cmd.exec(opt.home.as_path()).await,
+        Command::Disclosure(cmd) => {
+            return cmd.exec(opt.home.as_path(), opt.pari_keys.as_deref()).await
+        }
         _ => {}
     }
     let (mut app, cmd) = opt.into_app().await?;

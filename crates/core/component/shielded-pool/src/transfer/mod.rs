@@ -3,7 +3,6 @@ pub(crate) mod compliance;
 mod generated;
 mod plan;
 mod proof;
-mod prover_runtime;
 mod view;
 
 pub use action::{Transfer, TransferBody, TransferInputBody, TransferOutputBody};

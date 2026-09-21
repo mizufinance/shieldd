@@ -40,18 +40,18 @@ case "$ACTION" in
             rm -f "$ORBIS_RUNTIME_FILE"
             exit 0
         fi
-        ensure_orbis_images
+        load_orbis_images
         run_orbis_compose "$COMPOSE_FILE" down -v --remove-orphans
         rm -f "$ORBIS_RUNTIME_FILE"
         log_success "Orbis stack stopped"
         ;;
     logs)
-        ensure_orbis_images
+        load_orbis_images
         ensure_docker_daemon
         run_orbis_compose "$COMPOSE_FILE" logs
         ;;
     ps)
-        ensure_orbis_images
+        load_orbis_images
         ensure_docker_daemon
         run_orbis_compose "$COMPOSE_FILE" ps
         ;;

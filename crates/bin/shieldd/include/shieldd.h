@@ -109,6 +109,7 @@ uint32_t shieldd_abi_version(void);
 /*
  * Opens RocksDB and creates one persistent execution handle.
  *
+ * SHIELDD_PARI_KEYS must name the trusted local Pari key registry.
  * db_path is UTF-8 and is not required to be NUL-terminated. out_handle is
  * set to NULL on failure. The caller must eventually pass a successful handle
  * to shieldd_close after all concurrent calls have completed.

@@ -1,20 +1,17 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use anyhow::{Context as _, Result};
 use async_trait::async_trait;
-use cnidarium::{Snapshot, StateRead, StateWrite};
-use shieldd_sdk_compact_block::{
-    component::RoutingManager as _, PendingRoutingAction, StatePayload,
-};
+use cnidarium::{StateRead, StateWrite};
+use futures::{stream::FuturesUnordered, TryStreamExt as _};
+use shieldd_sdk_compact_block::{component::RoutingManager as _, PendingRoutingAction};
 use shieldd_sdk_compliance::{
-    registry::{check_timestamp_freshness, ComplianceRegistryRead as _},
     AuditEffect, AuditEffectRecord, AuditLogWrite as _, AuditSource, WithdrawalKind,
 };
 use shieldd_sdk_fee::component::FeePay as _;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
-use shieldd_sdk_sct::component::tree::VerificationExt as _;
 use shieldd_sdk_sct::nullifier_generation::{empty_history_head, PROTOCOL_VERSION};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::component::{
@@ -24,12 +21,9 @@ use shieldd_sdk_shielded_pool::component::{
 };
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_shielded_pool::TransferProofContext;
-use shieldd_sdk_shielded_pool::VolumeNullifier;
-use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
-use shieldd_sdk_txhash::{AuthorizingData, EffectingData as _, TransactionId};
+use shieldd_sdk_txhash::{AuthorizingData, EffectingData as _};
 use tokio::sync::OnceCell;
-use tokio::task::JoinSet;
 use tracing::{instrument, Instrument};
 
 use super::AppActionHandler;
@@ -38,6 +32,8 @@ use crate::{
     stateless_cache::{ProofSlot, VerifiedTxArtifact},
 };
 
+#[cfg(test)]
+mod cancellation_tests;
 mod stateful;
 pub(crate) mod stateless;
 
@@ -51,16 +47,6 @@ use stateless::{
     valid_binding_signature,
 };
 
-#[derive(Clone, Debug, Default)]
-pub(crate) struct PreparedCandidateRead {
-    pub spend_nullifiers: Vec<Nullifier>,
-    pub volume_nullifiers: Vec<VolumeNullifier>,
-    pub sct_payloads: Vec<StatePayload>,
-    pub routing_actions: Vec<PendingRoutingAction>,
-    pub audit_effects: Vec<AuditEffectRecord>,
-}
-
-type AnchorValidationKey = (StateCommitment, StateCommitment, u64);
 type ClaimedAnchorKey = shieldd_sdk_tct::Root;
 type ValidationCell = Arc<OnceCell<std::result::Result<(), String>>>;
 
@@ -96,14 +82,7 @@ impl<K: Eq + std::hash::Hash> ValidationCache<K> {
     }
 }
 
-type AnchorValidationCache = ValidationCache<AnchorValidationKey>;
 type ClaimedAnchorValidationCache = ValidationCache<ClaimedAnchorKey>;
-
-#[derive(Clone, Debug)]
-struct TxExecutionContext {
-    block_timestamp: u64,
-    source: TransactionId,
-}
 
 fn transaction_routing_actions(tx: &Transaction) -> Result<Vec<PendingRoutingAction>> {
     let transaction_id = tx.id();
@@ -281,9 +260,6 @@ fn transaction_audit_effects(tx: &Transaction, height: u64) -> Result<Vec<AuditE
                     address: registration.leaf.address.clone(),
                 },
             ),
-            Action::AggregateBundle(_) => {
-                anyhow::bail!("aggregate bundles must be expanded before audit logging")
-            }
         }
     }
 
@@ -319,29 +295,19 @@ pub(crate) async fn append_transaction_audit_effects<S: StateWrite + ?Sized>(
 pub(crate) struct HistoricalCheckContext {
     pub chain_id: String,
     pub block_height: u64,
-    pub block_timestamp: u64,
     pub discovery_grace_period_blocks: u64,
     pub previous_discovery_parameters: discovery::Parameters,
     pub current_discovery_parameters: discovery::Parameters,
-    pub anchor_cache: Arc<AnchorValidationCache>,
     pub claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
     pub nullifier_window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
 }
 
 impl HistoricalCheckContext {
     pub(crate) async fn load<S: StateRead>(state: &S) -> Result<Self> {
-        Self::load_inner(state).await
-    }
-
-    pub(crate) async fn load_for_checktx<S: StateRead>(state: &S) -> Result<Self> {
-        Self::load_inner(state).await
-    }
-
-    async fn load_inner<S: StateRead>(state: &S) -> Result<Self> {
         let shielded_pool_params = state
             .get_shielded_pool_params()
             .await
-            .expect("chain params request must succeed");
+            .context("loading shielded pool parameters")?;
         let nullifier_window = shieldd_sdk_sct::nullifier_tree::generation_state(state)
             .await?
             .window();
@@ -349,17 +315,15 @@ impl HistoricalCheckContext {
         Ok(Self {
             chain_id: state.get_chain_id().await?,
             block_height: state.get_block_height().await?,
-            block_timestamp: state.get_current_block_timestamp().await?.unix_timestamp() as u64,
             discovery_grace_period_blocks: shielded_pool_params.discovery_grace_period_blocks,
             previous_discovery_parameters: state
                 .get_previous_discovery_parameters()
                 .await
-                .expect("chain params request must succeed"),
+                .context("loading previous discovery parameters")?,
             current_discovery_parameters: state
                 .get_current_discovery_parameters()
                 .await
-                .expect("chain params request must succeed"),
-            anchor_cache: Arc::new(AnchorValidationCache::default()),
+                .context("loading current discovery parameters")?,
             claimed_anchor_cache: Arc::new(ClaimedAnchorValidationCache::default()),
             nullifier_window,
         })
@@ -378,11 +342,8 @@ pub(crate) fn transaction_nullifier_count_allowed(nullifier_count: usize) -> boo
 }
 
 pub(crate) fn transaction_nullifier_count(tx: &Transaction) -> usize {
-    let volume_nullifiers = tx
-        .actions()
-        .filter(|action| matches!(action, Action::Transfer(_)))
-        .count();
-    tx.spent_nullifier_count().saturating_add(volume_nullifiers)
+    tx.spent_nullifier_count()
+        .saturating_add(tx.volume_nullifiers().count())
 }
 
 pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()> {
@@ -412,7 +373,10 @@ pub(crate) fn validate_transaction_envelope(tx: &Transaction) -> Result<()> {
     check_non_empty_transaction(tx)
 }
 
-pub(crate) fn verify_historical_proofs(tx: &Transaction) -> Result<Vec<VerifiedHistoricalInput>> {
+pub(crate) fn verify_historical_proofs(
+    tx: &Transaction,
+    registry: &shieldd_sdk_proof_params::pari::Registry,
+) -> Result<Vec<VerifiedHistoricalInput>> {
     tx.transaction_body.validate_nullifier_history()?;
     let old_nullifiers = tx.transaction_body.historical_nullifiers();
     if old_nullifiers.is_empty() {
@@ -427,7 +391,7 @@ pub(crate) fn verify_historical_proofs(tx: &Transaction) -> Result<Vec<VerifiedH
         .into_iter()
         .zip(&tx.transaction_body.historical_nullifier_proofs)
         .map(|(nullifier, bundle)| {
-            verify_historical_nullifier_proof(nullifier, window, bundle)?;
+            verify_historical_nullifier_proof(nullifier, window, bundle, registry)?;
             Ok(VerifiedHistoricalInput::new(nullifier, window, auth_hash))
         })
         .collect()
@@ -437,13 +401,14 @@ pub(crate) fn verify_historical_nullifier_proof(
     nullifier: Nullifier,
     window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
     bundle: &shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof,
+    registry: &shieldd_sdk_proof_params::pari::Registry,
 ) -> Result<()> {
     bundle.validate_structure(window)?;
     let nullifier_bytes: [u8; 32] = nullifier.into();
     let mut expected_head = empty_history_head();
     for chunk in &bundle.completed_chunks {
         shieldd_sdk_proof_params::historical::verify_chunk(
-            shieldd_sdk_proof_params::historical::chunk_verification_key(),
+            registry,
             shieldd_sdk_proof_params::historical::ChunkClaim {
                 protocol_version: PROTOCOL_VERSION,
                 nullifier: nullifier_bytes,
@@ -451,7 +416,7 @@ pub(crate) fn verify_historical_nullifier_proof(
                 start_history_head: expected_head,
                 end_history_head: chunk.end_history_head,
             },
-            &chunk.groth16_proof,
+            &chunk.proof,
         )?;
         expected_head = chunk.end_history_head;
     }
@@ -464,7 +429,7 @@ pub(crate) fn verify_historical_nullifier_proof(
             generation.generation_end_position,
         )?;
         shieldd_sdk_proof_params::historical::verify_generation(
-            shieldd_sdk_proof_params::historical::generation_verification_key(),
+            registry,
             shieldd_sdk_proof_params::historical::GenerationClaim {
                 protocol_version: PROTOCOL_VERSION,
                 nullifier: nullifier_bytes,
@@ -475,7 +440,7 @@ pub(crate) fn verify_historical_nullifier_proof(
                 start_history_head: expected_head,
                 end_history_head,
             },
-            &generation.groth16_proof,
+            &generation.proof,
         )?;
         expected_head = end_history_head;
     }
@@ -486,76 +451,9 @@ pub(crate) fn verify_historical_nullifier_proof(
     Ok(())
 }
 
-async fn check_nullifier_read_only<S>(
-    state: &S,
-    _context: &HistoricalCheckContext,
-    nullifier: shieldd_sdk_sct::Nullifier,
-) -> Result<()>
-where
-    S: StateRead,
-{
-    state.check_nullifier_unspent(nullifier).await?;
-    Ok(())
-}
-
-async fn check_volume_nullifier_read_only<S>(state: &S, scoped: VolumeNullifier) -> Result<()>
-where
-    S: StateRead,
-{
-    state
-        .check_volume_nullifier_unspent(scoped.day_start, scoped.nullifier)
-        .await?;
-    Ok(())
-}
-
-async fn validate_compliance_anchors_read_only<S: StateRead>(
-    state: &S,
-    user_anchor: &StateCommitment,
-    asset_anchor: &StateCommitment,
-    block_height: u64,
-    anchor_cache: Arc<AnchorValidationCache>,
-) -> Result<()> {
-    let anchor_key = (*user_anchor, *asset_anchor, block_height);
-
-    let cell = anchor_cache.entry(anchor_key);
-
-    let result = cell
-        .get_or_init(|| async move {
-            let current_user_anchor = state
-                .get_user_tree_root()
-                .await
-                .map_err(|e| e.to_string())?;
-            if *user_anchor != current_user_anchor {
-                return Err(
-                    "user compliance anchor does not match the current user compliance root"
-                        .to_string(),
-                );
-            }
-
-            let current_asset_anchor = state
-                .get_asset_imt_root()
-                .await
-                .map_err(|e| e.to_string())?;
-            if *asset_anchor != current_asset_anchor {
-                return Err(
-                    "asset compliance anchor does not match the current asset compliance root"
-                        .to_string(),
-                );
-            }
-
-            Ok(())
-        })
-        .await;
-
-    match result {
-        Ok(()) => Ok(()),
-        Err(error) => anyhow::bail!(error.clone()),
-    }
-}
-
 async fn validate_claimed_anchor_read_only<S: StateRead>(
     state: Arc<S>,
-    tx: Arc<Transaction>,
+    tx: &Transaction,
     claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
 ) -> Result<()> {
     let anchor = tx.anchor;
@@ -563,7 +461,7 @@ async fn validate_claimed_anchor_read_only<S: StateRead>(
     let cell = claimed_anchor_cache.entry(anchor);
     let result = cell
         .get_or_init(|| async move {
-            claimed_anchor_is_valid(state, Arc::as_ref(&tx))
+            claimed_anchor_is_valid(state, tx)
                 .await
                 .map_err(|e| e.to_string())
         })
@@ -575,125 +473,8 @@ async fn validate_claimed_anchor_read_only<S: StateRead>(
     }
 }
 
-pub(crate) fn supports_parallel_prepare(tx: &Transaction) -> bool {
-    tx.actions().all(|a| matches!(a, Action::Transfer(_)))
-}
-
 fn action_requires_historical_check(action: &Action) -> bool {
     matches!(action, Action::ShieldedHostWithdrawal(_))
-}
-
-fn check_nullifier_read_only_sync(
-    handle: &tokio::runtime::Handle,
-    snapshot: &Snapshot,
-    _context: &HistoricalCheckContext,
-    nullifier: shieldd_sdk_sct::Nullifier,
-) -> Result<()> {
-    handle.block_on(snapshot.check_nullifier_unspent(nullifier))?;
-    Ok(())
-}
-
-fn check_volume_nullifier_read_only_sync(
-    handle: &tokio::runtime::Handle,
-    snapshot: &Snapshot,
-    scoped: VolumeNullifier,
-) -> Result<()> {
-    handle.block_on(snapshot.check_volume_nullifier_unspent(scoped.day_start, scoped.nullifier))?;
-    Ok(())
-}
-
-fn validate_compliance_anchors_read_only_sync(
-    handle: &tokio::runtime::Handle,
-    snapshot: &Snapshot,
-    user_anchor: &StateCommitment,
-    asset_anchor: &StateCommitment,
-    block_height: u64,
-    anchor_cache: Arc<AnchorValidationCache>,
-) -> Result<()> {
-    let anchor_key = (*user_anchor, *asset_anchor, block_height);
-
-    let cell = anchor_cache.entry(anchor_key);
-    let snapshot = snapshot.clone();
-    let user_anchor = *user_anchor;
-    let asset_anchor = *asset_anchor;
-
-    let result = handle
-        .clone()
-        .block_on(cell.get_or_init(|| async move {
-            let current_user_anchor = snapshot
-                .get_user_tree_root()
-                .await
-                .map_err(|e| e.to_string())?;
-            if user_anchor != current_user_anchor {
-                return Err(
-                    "user compliance anchor does not match the current user compliance root"
-                        .to_string(),
-                );
-            }
-
-            let current_asset_anchor = snapshot
-                .get_asset_imt_root()
-                .await
-                .map_err(|e| e.to_string())?;
-            if asset_anchor != current_asset_anchor {
-                return Err(
-                    "asset compliance anchor does not match the current asset compliance root"
-                        .to_string(),
-                );
-            }
-
-            Ok(())
-        }))
-        .clone();
-
-    match result {
-        Ok(()) => Ok(()),
-        Err(error) => anyhow::bail!(error),
-    }
-}
-
-fn validate_claimed_anchor_read_only_sync(
-    handle: &tokio::runtime::Handle,
-    snapshot: &Snapshot,
-    tx: &Transaction,
-    claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
-) -> Result<()> {
-    let anchor = tx.anchor;
-
-    let cell = claimed_anchor_cache.entry(anchor);
-    let snapshot = snapshot.clone();
-
-    let result = handle
-        .clone()
-        .block_on(cell.get_or_init(|| async move {
-            if anchor.is_empty() {
-                return Ok(());
-            }
-            if snapshot
-                .get_raw(&shieldd_sdk_sct::state_key::tree::anchor_lookup(anchor))
-                .await
-                .map_err(|e| e.to_string())?
-                .map(|bytes| {
-                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
-                        .map_err(|e| anyhow::anyhow!(e).to_string())
-                })
-                .transpose()?
-                .is_some()
-            {
-                Ok(())
-            } else {
-                Err(format!(
-                    "provided anchor {} is not a valid SCT root",
-                    anchor
-                ))
-            }
-        }))
-        .clone();
-
-    match result {
-        Ok(()) => Ok(()),
-        Err(error) => anyhow::bail!(error),
-    }
 }
 
 pub(crate) async fn check_historical_with_context<S: StateRead + 'static>(
@@ -701,61 +482,27 @@ pub(crate) async fn check_historical_with_context<S: StateRead + 'static>(
     state: Arc<S>,
     context: &HistoricalCheckContext,
 ) -> Result<()> {
-    let mut action_checks = JoinSet::new();
+    let mut action_checks = FuturesUnordered::new();
 
     ensure_transaction_resource_bounds(tx)?;
     tx_parameters_historical_check_with_context(tx, context)?;
     stateful::nullifier_window_valid_with_context(tx, context)?;
     discovery_parameters_valid_with_context(tx, context)?;
 
-    let claimed_anchor_tx = Arc::new(tx.clone());
+    validate_claimed_anchor_read_only(state.clone(), tx, context.claimed_anchor_cache.clone())
+        .await?;
 
-    validate_claimed_anchor_read_only(
-        state.clone(),
-        claimed_anchor_tx,
-        context.claimed_anchor_cache.clone(),
-    )
-    .await?;
-
-    for (i, action) in tx.actions().cloned().enumerate() {
-        if !action_requires_historical_check(&action) {
+    for (i, action) in tx.actions().enumerate() {
+        if !action_requires_historical_check(action) {
             continue;
         }
 
-        let state2 = state.clone();
         let span = action.create_span(i);
-        action_checks.spawn(async move { action.check_historical(state2).await }.instrument(span));
+        action_checks.push(action.check_historical(state.clone()).instrument(span));
     }
 
-    while !action_checks.is_empty() {
-        let check = action_checks
-            .join_next()
-            .await
-            .expect("join set must yield while not empty");
-
-        check??;
-    }
-
-    Ok(())
-}
-
-pub(crate) fn check_historical_with_context_sync(
-    tx: &Transaction,
-    snapshot: &Snapshot,
-    context: &HistoricalCheckContext,
-    handle: &tokio::runtime::Handle,
-) -> Result<()> {
-    ensure_transaction_resource_bounds(tx)?;
-    tx_parameters_historical_check_with_context(tx, context)?;
-    stateful::nullifier_window_valid_with_context(tx, context)?;
-    discovery_parameters_valid_with_context(tx, context)?;
-
-    validate_claimed_anchor_read_only_sync(
-        handle,
-        snapshot,
-        tx,
-        context.claimed_anchor_cache.clone(),
-    )?;
+    // Dropping this scope releases every state borrow before execution can resume.
+    while action_checks.try_next().await?.is_some() {}
 
     Ok(())
 }
@@ -860,9 +607,6 @@ where
                     action.check_and_execute(&mut state).await?;
                 }
             }
-            Action::AggregateBundle(_) => anyhow::bail!(
-                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
-            ),
         }
     }
     if let Some(fee_funding) = &tx.transaction_body.fee_funding {
@@ -876,398 +620,6 @@ where
     }
     state.stage_routing_actions(transaction_routing_actions(tx)?);
 
-    Ok(())
-}
-
-pub(crate) async fn prepare_candidate_read<S: StateRead + 'static>(
-    tx: Arc<Transaction>,
-    state: Arc<S>,
-    context: HistoricalCheckContext,
-    skip_historical: bool,
-) -> Result<PreparedCandidateRead> {
-    let mut prepared = PreparedCandidateRead::default();
-    ensure_transaction_resource_bounds(tx.as_ref())?;
-
-    let execution_context = TxExecutionContext {
-        block_timestamp: context.block_timestamp,
-        source: tx.id(),
-    };
-    let mut anchor_pairs = BTreeSet::new();
-    let mut sct_payloads = Vec::new();
-    let mut spend_nullifiers = Vec::new();
-    let mut tx_nullifiers = HashSet::new();
-    let mut volume_nullifiers = Vec::new();
-    let mut tx_volume_nullifiers = HashSet::new();
-
-    for (i, action) in tx.actions().enumerate() {
-        match action {
-            Action::Transfer(transfer) => {
-                anyhow::ensure!(
-                    transfer.body.proof_context == TransferProofContext::Ordinary,
-                    "body transfer must use ordinary proof context"
-                );
-                check_action_timestamp_freshness(
-                    transfer.body.target_timestamp,
-                    execution_context.block_timestamp,
-                )?;
-                for input in &transfer.body.inputs {
-                    anyhow::ensure!(
-                        tx_nullifiers.insert(input.nullifier),
-                        "transaction contains duplicate spend nullifier {}",
-                        input.nullifier
-                    );
-                    spend_nullifiers.push(input.nullifier);
-                }
-                anchor_pairs.insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
-                sct_payloads.extend(
-                    transfer
-                        .body
-                        .outputs
-                        .iter()
-                        .map(|output| {
-                            (
-                                output.note_payload.clone(),
-                                execution_context.source.clone().into(),
-                            )
-                                .into()
-                        }),
-                );
-                let scoped = transfer.body.volume_accumulator.scoped_nullifier();
-                anyhow::ensure!(
-                    tx_volume_nullifiers.insert(scoped),
-                    "transaction contains duplicate daily volume nullifier {} for day {}",
-                    scoped.nullifier,
-                    scoped.day_start
-                );
-                volume_nullifiers.push(scoped);
-                sct_payloads.push(StatePayload::VolumeAccumulator {
-                    source: execution_context.source.clone().into(),
-                    payload: Box::new(transfer.body.volume_accumulator.clone()),
-                });
-            }
-            Action::ShieldedHostWithdrawal(withdrawal) => {
-                check_action_timestamp_freshness(
-                    withdrawal.body.target_timestamp,
-                    execution_context.block_timestamp,
-                )?;
-                for input in &withdrawal.body.inputs {
-                    anyhow::ensure!(
-                        tx_nullifiers.insert(input.nullifier),
-                        "transaction contains duplicate spend nullifier {}",
-                        input.nullifier
-                    );
-                    spend_nullifiers.push(input.nullifier);
-                }
-                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
-                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
-                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
-                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
-                volume_nullifiers.push(scoped);
-                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
-            }
-
-            Action::NoteReshape(note_reshape) => {
-                anchor_pairs.insert((
-                    note_reshape.body.compliance_anchor,
-                    note_reshape.body.asset_anchor,
-                ));
-                for input in &note_reshape.body.inputs {
-                    anyhow::ensure!(
-                        tx_nullifiers.insert(input.nullifier),
-                        "transaction contains duplicate spend nullifier {}",
-                        input.nullifier
-                    );
-                    spend_nullifiers.push(input.nullifier);
-                }
-                sct_payloads.extend(
-                    note_reshape
-                        .body
-                        .outputs
-                        .iter()
-                        .map(|output| {
-                            (
-                                output.note_payload.clone(),
-                                execution_context.source.clone().into(),
-                            )
-                                .into()
-                        }),
-                );
-            }
-            _ => anyhow::bail!(
-                "parallel prepare only supports transfer and note reshape actions, found unsupported action {:?} at index {}",
-                action,
-                i
-            ),
-        }
-    }
-    if let Some(fee_funding) = &tx.transaction_body.fee_funding {
-        anyhow::ensure!(
-            fee_funding.transfer.body.proof_context == TransferProofContext::FeeFunding,
-            "fee funding transfer must use fee-funding proof context"
-        );
-        check_action_timestamp_freshness(
-            fee_funding.transfer.body.target_timestamp,
-            execution_context.block_timestamp,
-        )?;
-        for input in &fee_funding.transfer.body.inputs {
-            anyhow::ensure!(
-                tx_nullifiers.insert(input.nullifier),
-                "transaction contains duplicate spend nullifier {}",
-                input.nullifier
-            );
-            spend_nullifiers.push(input.nullifier);
-        }
-        anchor_pairs.insert((
-            fee_funding.transfer.body.compliance_anchor,
-            fee_funding.transfer.body.asset_anchor,
-        ));
-        sct_payloads.extend(fee_funding.transfer.body.outputs.iter().map(|output| {
-            (
-                output.note_payload.clone(),
-                execution_context.source.clone().into(),
-            )
-                .into()
-        }));
-    }
-    let read_nullifiers = spend_nullifiers.clone();
-    let read_volume_nullifiers = volume_nullifiers.clone();
-
-    let historical_future = async {
-        if !skip_historical {
-            check_historical_with_context(tx.as_ref(), state.clone(), &context).await?;
-        }
-        Ok::<(), anyhow::Error>(())
-    };
-    let mut read_tasks = JoinSet::new();
-    for (user_anchor, asset_anchor) in anchor_pairs {
-        let state = state.clone();
-        let anchor_cache = context.anchor_cache.clone();
-        let block_height = context.block_height;
-        read_tasks.spawn(async move {
-            validate_compliance_anchors_read_only(
-                state.as_ref(),
-                &user_anchor,
-                &asset_anchor,
-                block_height,
-                anchor_cache,
-            )
-            .await
-        });
-    }
-    for nullifier in read_nullifiers {
-        let state = state.clone();
-        let context = context.clone();
-        read_tasks.spawn(async move {
-            check_nullifier_read_only(state.as_ref(), &context, nullifier).await
-        });
-    }
-    for scoped in read_volume_nullifiers {
-        let state = state.clone();
-        read_tasks.spawn(async move {
-            check_volume_nullifier_read_only(Arc::as_ref(&state), scoped).await
-        });
-    }
-    let read_task_future = async {
-        while let Some(result) = read_tasks.join_next().await {
-            result??;
-        }
-        Ok::<(), anyhow::Error>(())
-    };
-    tokio::try_join!(historical_future, read_task_future)?;
-
-    prepared.spend_nullifiers = spend_nullifiers;
-    prepared.volume_nullifiers = volume_nullifiers;
-    prepared.sct_payloads = sct_payloads;
-    prepared.routing_actions = transaction_routing_actions(tx.as_ref())?;
-    prepared.audit_effects = transaction_audit_effects(tx.as_ref(), context.block_height)?;
-    Ok(prepared)
-}
-
-pub(crate) fn prepare_candidate_read_blocking(
-    tx: Arc<Transaction>,
-    snapshot: Snapshot,
-    context: HistoricalCheckContext,
-    skip_historical: bool,
-    handle: tokio::runtime::Handle,
-) -> Result<PreparedCandidateRead> {
-    let mut prepared = PreparedCandidateRead::default();
-    ensure_transaction_resource_bounds(tx.as_ref())?;
-
-    let execution_context = TxExecutionContext {
-        block_timestamp: context.block_timestamp,
-        source: tx.id(),
-    };
-    let mut anchor_pairs = BTreeSet::new();
-    let mut sct_payloads = Vec::new();
-    let mut spend_nullifiers = Vec::new();
-    let mut tx_nullifiers = HashSet::new();
-    let mut volume_nullifiers = Vec::new();
-    let mut tx_volume_nullifiers = HashSet::new();
-
-    for (i, action) in tx.actions().enumerate() {
-        match action {
-            Action::Transfer(transfer) => {
-                anyhow::ensure!(
-                    transfer.body.proof_context == TransferProofContext::Ordinary,
-                    "body transfer must use ordinary proof context"
-                );
-                check_action_timestamp_freshness(
-                    transfer.body.target_timestamp,
-                    execution_context.block_timestamp,
-                )?;
-                for input in &transfer.body.inputs {
-                    anyhow::ensure!(
-                        tx_nullifiers.insert(input.nullifier),
-                        "transaction contains duplicate spend nullifier {}",
-                        input.nullifier
-                    );
-                    spend_nullifiers.push(input.nullifier);
-                }
-                anchor_pairs.insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
-                sct_payloads.extend(
-                    transfer
-                        .body
-                        .outputs
-                        .iter()
-                        .map(|output| {
-                            (
-                                output.note_payload.clone(),
-                                execution_context.source.clone().into(),
-                            )
-                                .into()
-                        }),
-                );
-                let scoped = transfer.body.volume_accumulator.scoped_nullifier();
-                anyhow::ensure!(
-                    tx_volume_nullifiers.insert(scoped),
-                    "transaction contains duplicate daily volume nullifier {} for day {}",
-                    scoped.nullifier,
-                    scoped.day_start
-                );
-                volume_nullifiers.push(scoped);
-                sct_payloads.push(StatePayload::VolumeAccumulator {
-                    source: execution_context.source.clone().into(),
-                    payload: Box::new(transfer.body.volume_accumulator.clone()),
-                });
-            }
-            Action::ShieldedHostWithdrawal(withdrawal) => {
-                check_action_timestamp_freshness(withdrawal.body.target_timestamp, execution_context.block_timestamp)?;
-                for input in &withdrawal.body.inputs {
-                    anyhow::ensure!(tx_nullifiers.insert(input.nullifier), "transaction contains duplicate spend nullifier {}", input.nullifier);
-                    spend_nullifiers.push(input.nullifier);
-                }
-                anchor_pairs.insert((withdrawal.body.compliance_anchor, withdrawal.body.asset_anchor));
-                sct_payloads.push((withdrawal.body.change_output.note_payload.clone(), execution_context.source.clone().into()).into());
-                let scoped = withdrawal.body.volume_accumulator.scoped_nullifier();
-                anyhow::ensure!(tx_volume_nullifiers.insert(scoped), "transaction contains duplicate daily volume nullifier {} for day {}", scoped.nullifier, scoped.day_start);
-                volume_nullifiers.push(scoped);
-                sct_payloads.push(StatePayload::VolumeAccumulator { source: execution_context.source.clone().into(), payload: Box::new(withdrawal.body.volume_accumulator.clone()) });
-            }
-
-            Action::NoteReshape(note_reshape) => {
-                anchor_pairs.insert((
-                    note_reshape.body.compliance_anchor,
-                    note_reshape.body.asset_anchor,
-                ));
-                for input in &note_reshape.body.inputs {
-                    anyhow::ensure!(
-                        tx_nullifiers.insert(input.nullifier),
-                        "transaction contains duplicate spend nullifier {}",
-                        input.nullifier
-                    );
-                    spend_nullifiers.push(input.nullifier);
-                }
-                sct_payloads.extend(
-                    note_reshape
-                        .body
-                        .outputs
-                        .iter()
-                        .map(|output| {
-                            (
-                                output.note_payload.clone(),
-                                execution_context.source.clone().into(),
-                            )
-                                .into()
-                        }),
-                );
-            }
-            _ => anyhow::bail!(
-                "parallel prepare only supports transfer and note reshape actions, found unsupported action {:?} at index {}",
-                action,
-                i
-            ),
-        }
-    }
-    if let Some(fee_funding) = &tx.transaction_body.fee_funding {
-        anyhow::ensure!(
-            fee_funding.transfer.body.proof_context == TransferProofContext::FeeFunding,
-            "fee funding transfer must use fee-funding proof context"
-        );
-        check_action_timestamp_freshness(
-            fee_funding.transfer.body.target_timestamp,
-            execution_context.block_timestamp,
-        )?;
-        for input in &fee_funding.transfer.body.inputs {
-            anyhow::ensure!(
-                tx_nullifiers.insert(input.nullifier),
-                "transaction contains duplicate spend nullifier {}",
-                input.nullifier
-            );
-            spend_nullifiers.push(input.nullifier);
-        }
-        anchor_pairs.insert((
-            fee_funding.transfer.body.compliance_anchor,
-            fee_funding.transfer.body.asset_anchor,
-        ));
-        sct_payloads.extend(fee_funding.transfer.body.outputs.iter().map(|output| {
-            (
-                output.note_payload.clone(),
-                execution_context.source.clone().into(),
-            )
-                .into()
-        }));
-    }
-    let read_nullifiers = spend_nullifiers.clone();
-    let read_volume_nullifiers = volume_nullifiers.clone();
-
-    if skip_historical {
-    } else {
-        check_historical_with_context_sync(Arc::as_ref(&tx), &snapshot, &context, &handle)?;
-    }
-
-    for (user_anchor, asset_anchor) in anchor_pairs {
-        validate_compliance_anchors_read_only_sync(
-            &handle,
-            &snapshot,
-            &user_anchor,
-            &asset_anchor,
-            context.block_height,
-            context.anchor_cache.clone(),
-        )?;
-    }
-    for nullifier in &read_nullifiers {
-        check_nullifier_read_only_sync(&handle, &snapshot, &context, *nullifier)?;
-    }
-    for scoped in read_volume_nullifiers {
-        check_volume_nullifier_read_only_sync(&handle, &snapshot, scoped)?;
-    }
-    prepared.spend_nullifiers = spend_nullifiers;
-    prepared.volume_nullifiers = volume_nullifiers;
-    prepared.sct_payloads = sct_payloads;
-    prepared.routing_actions = transaction_routing_actions(tx.as_ref())?;
-    prepared.audit_effects = transaction_audit_effects(tx.as_ref(), context.block_height)?;
-    Ok(prepared)
-}
-
-fn check_action_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) -> Result<()> {
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    if target_timestamp == 0 && crate::app::benchmark_zero_timestamp_allowed() {
-        return Ok(());
-    }
-    check_timestamp_freshness(
-        target_timestamp,
-        i64::try_from(block_timestamp).context("block timestamp exceeds i64 range")?,
-    )?;
     Ok(())
 }
 
@@ -1294,16 +646,11 @@ mod tests {
         Arc,
     };
 
-    // Serializes tests that read/write SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP to
-    // prevent env-var races when tests run in parallel.
-    static TIMESTAMP_ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
     use anyhow::Result;
-    use shieldd_sdk_tct as tct;
 
     use super::{
         transaction_action_count_allowed, transaction_nullifier_count_allowed,
-        AnchorValidationCache, ClaimedAnchorValidationCache,
+        ClaimedAnchorValidationCache,
     };
 
     #[test]
@@ -1320,44 +667,6 @@ mod tests {
         assert!(transaction_nullifier_count_allowed(256));
         assert!(!transaction_nullifier_count_allowed(257));
         assert!(!transaction_nullifier_count_allowed(usize::MAX));
-    }
-
-    #[tokio::test]
-    async fn anchor_validation_cache_counts_shared_pair_once() -> Result<()> {
-        let cache = Arc::new(AnchorValidationCache::default());
-        let key = (
-            tct::StateCommitment::try_from([0; 32]).expect("valid commitment"),
-            tct::StateCommitment::try_from([1; 32]).expect("valid commitment"),
-            100,
-        );
-
-        let initializations = Arc::new(AtomicUsize::new(0));
-        let mut tasks = tokio::task::JoinSet::new();
-        for _ in 0..8 {
-            let cache = cache.clone();
-            let initializations = initializations.clone();
-            tasks.spawn(async move {
-                let cell = cache.entry(key);
-                let result = cell
-                    .get_or_init(|| async {
-                        initializations.fetch_add(1, Ordering::Relaxed);
-                        Ok::<(), String>(())
-                    })
-                    .await
-                    .clone();
-                anyhow::ensure!(result.is_ok(), "cache cell should initialize successfully");
-                Ok::<(), anyhow::Error>(())
-            });
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            result??;
-        }
-
-        assert_eq!(initializations.load(Ordering::Relaxed), 1);
-        assert_eq!(cache.entries.read().unwrap().len(), 1);
-
-        Ok(())
     }
 
     #[tokio::test]
@@ -1395,28 +704,5 @@ mod tests {
         assert_eq!(cache.entries.read().unwrap().len(), 1);
 
         Ok(())
-    }
-
-    #[test]
-    fn zero_timestamp_requires_benchmark_override() {
-        let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
-        std::env::remove_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
-        assert!(super::check_action_timestamp_freshness(0, 1_700_000_000).is_err());
-    }
-
-    #[test]
-    fn zero_timestamp_is_allowed_when_benchmark_override_is_set() {
-        let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
-        std::env::set_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP", "1");
-        let result = super::check_action_timestamp_freshness(0, 1_700_000_000);
-        std::env::remove_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn nonzero_timestamps_still_enforce_timestamp_freshness() {
-        let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
-        assert!(super::check_action_timestamp_freshness(1_700_000_000, 1_700_000_100).is_ok());
-        assert!(super::check_action_timestamp_freshness(1_700_000_000, 1_700_003_700).is_err());
     }
 }

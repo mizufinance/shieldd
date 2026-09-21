@@ -1,6 +1,6 @@
 use anyhow::{anyhow, ensure, Result};
-use decaf377::Fq;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::Fq;
 
 use crate::indexed_tree::string_to_fq;
 
@@ -177,7 +177,7 @@ impl TransferComplianceMetadata {
 }
 
 fn parse_fq(bytes: [u8; 32], label: &str) -> Result<Fq> {
-    Fq::from_bytes_checked(&bytes).map_err(|_| anyhow!("invalid {label}"))
+    shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| anyhow!("invalid {label}"))
 }
 
 struct MetadataReader<'a> {

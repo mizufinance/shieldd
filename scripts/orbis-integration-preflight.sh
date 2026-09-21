@@ -33,6 +33,7 @@ for bin in curl jq; do
         exit 1
     fi
 done
+ensure_orbis_images
 require_docker_compose
 ensure_docker_daemon
 log_success "Runtime dependencies found"

@@ -28,7 +28,7 @@ use std::ops::Deref as _;
 
 async fn initialized_client() -> Result<(TempStorage, ExecutionService)> {
     let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut client = ExecutionService::new(storage.deref().clone());
+    let mut client = ExecutionService::new(storage.deref().clone(), crate::test_registry()).await?;
     client
         .init_genesis(InitGenesisRequest {
             genesis: Some(
@@ -212,7 +212,7 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
     use ibc_types::core::commitment::{MerklePath, MerkleProof, MerkleRoot};
     // ICS23 requires nonempty leaf values, including absence-proof neighbors.
     let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let client = ExecutionService::new(storage.deref().clone());
+    let client = ExecutionService::new(storage.deref().clone(), crate::test_registry()).await?;
     let mut delta = StateDelta::new(storage.latest_snapshot());
     delta.put_raw("query-proof-present".into(), b"main-store value".to_vec());
     delta.put_raw(

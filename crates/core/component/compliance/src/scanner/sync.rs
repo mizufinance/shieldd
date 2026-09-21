@@ -200,7 +200,7 @@ mod tests {
             host_withdrawal::Destination, HostTransfer, HostWithdrawal, ShieldedHostWithdrawal,
             ShieldedHostWithdrawalBody,
         };
-        let asset_id = shieldd_sdk_asset::asset::Id(decaf377::Fq::from(77u64));
+        let asset_id = shieldd_sdk_asset::asset::Id(shieldd_sdk_crypto::Fq::from(77u64));
         let tx = ProtoTransaction {
             body: Some(TransactionBody {
                 actions: vec![ActionProto {

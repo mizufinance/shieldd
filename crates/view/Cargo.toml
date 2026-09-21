@@ -15,13 +15,17 @@ prover = ["shieldd-sdk-transaction/prover"]
 rpc = ["dep:tonic", "shieldd-sdk-proto/rpc"]
 
 [dependencies]
+ff.workspace = true
+group.workspace = true
+shieldd-sdk-circuits.workspace = true
+shieldd-sdk-crypto.workspace = true
+commonware-parallel.workspace = true
 shieldd-sdk-disclosure = { workspace = true }
 shieldd-sdk-txhash = { workspace = true }
 anyhow = {workspace = true}
 async-trait = {workspace = true}
 bytes = {workspace = true, features = ["serde"]}
 camino = {workspace = true}
-decaf377 = {workspace = true, default-features = true}
 digest = "0.9"
 genawaiter = "0.99"
 hex = {workspace = true}

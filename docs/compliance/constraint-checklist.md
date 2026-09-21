@@ -9,7 +9,7 @@ nullifier, and value constraints are tracked in
 ### Asset Status And Effective Policy
 
 - Enforced by exact asset-tree membership or canonical non-membership-gap
-  verification in `transfer_circuit.go`.
+  verification in `crates/crypto/circuits/src/transfer.rs`.
 - Regulated values come from the committed asset leaf.
 - Asset id zero is rejected because it is the indexed-tree sentinel, not an
   asset policy.
@@ -25,7 +25,7 @@ nullifier, and value constraints are tracked in
 ### Sender And Receiver Compliance Leaves
 
 - Transfer rejects identity authorization keys and identity sender/receiver
-  diversified generators with three exact one-row Decaf predicates. This
+  diversified generators with explicit Jubjub nonidentity constraints. This
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
 - Regulated transfers bind the diversified generator, transmission key, asset
@@ -65,8 +65,8 @@ nullifier, and value constraints are tracked in
   `c2 = seed + compress(shared_secret)`, and every Poseidon stream word.
 - These equations are unconditional in both regulated and unregulated branches.
 - Each tier uses an independent witness randomizer and EPK.
-- Every published tier EPK is constrained outside both Decaf identity
-  representatives.
+- Every published tier EPK is constrained to the Jubjub prime subgroup and
+  checked for nonidentity.
 - Honest construction rejection-samples each tier scalar until nonzero.
 - Address tiers encrypt the canonical two-field, 64-byte address encoding split
   into 31-byte words. The circuit's native binary decomposition enforces
@@ -81,12 +81,13 @@ nullifier, and value constraints are tracked in
 ### Ownership checking ciphertexts
 
 - Each role binds the canonical actual address generator and transmission key to
-  `EncodeToCurve(Poseidon377_hash_2(domain, generator, transmission_key))`.
+  the native Poseidon-381 ownership hash over both affine coordinates of
+  each address point, followed by the shared field-to-Jubjub map.
 - Full ElGamal R/C points use independent nonzero checking randomizers and the
   committed checking key. Unregulated transfers select the fixed sink key.
 - All four compressed points enter the public statement. The role is structural;
   identical addresses intentionally have identical fingerprints across roles.
-- Coverage includes Rust/Go/gnark parity, valid ciphertexts for the wrong owner,
+- Coverage includes native/circuit parity, valid ciphertexts for the wrong owner,
   role substitution between distinct addresses, changed public points and zero scalars.
 - PET execution and authorization enforcement are unavailable upstream.
 
@@ -134,7 +135,7 @@ nullifier, and value constraints are tracked in
 
 ### Wire Shape
 
-- Only the receiver output may carry the 832-byte ciphertext and 272-byte
+- Only the receiver output may carry the 835-byte ciphertext and 272-byte
   metadata.
 - Inputs and the change output carry neither.
 - Point and Fq decoders reject noncanonical values and wrong lengths.

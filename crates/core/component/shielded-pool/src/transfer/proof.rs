@@ -1,10 +1,8 @@
-use anyhow::{anyhow, ensure, Result};
-use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_snark::SNARK;
-use decaf377::{Bls12_377, Fq, Fr};
-use decaf377_rdsa::{SpendAuth, VerificationKey};
+use anyhow::{ensure, Result};
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath, TransferComplianceMetadata};
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
@@ -12,7 +10,7 @@ use shieldd_sdk_tct as tct;
 
 use crate::{
     discovery::{Parameters as RoutingParameters, TransferRouting},
-    public_input_hash::{transfer_statement_hash_from_public, StatementHashError},
+    public_input_hash::transfer_statement_hash_from_public,
     transfer::{transfer_input_count, transfer_output_count, TRANSFER_PROOF_LABEL},
     Note, TransferProofContext, VolumeAccumulatorPrivate, VolumeAccumulatorPublic,
 };
@@ -32,7 +30,7 @@ pub struct TransferOutputPublic {
 
 #[derive(Clone, Debug)]
 pub struct TransferComplianceCiphertextPublic {
-    pub epk: decaf377::Element,
+    pub epk: shieldd_sdk_crypto::SubgroupPoint,
     pub c2: Fq,
     pub ciphertext: Vec<Fq>,
 }
@@ -86,7 +84,7 @@ impl TransferProofPublic {
         Ok(())
     }
 
-    pub fn statement_hash(&self) -> Result<Fq, StatementHashError> {
+    pub fn statement_hash(&self) -> Result<Fq> {
         transfer_statement_hash_from_public(self)
     }
 }
@@ -159,67 +157,60 @@ pub struct TransferProof {
 }
 
 impl TransferProof {
-    fn decoded_proof(&self) -> anyhow::Result<Proof<Bls12_377>> {
-        crate::groth16_proof::decode(&self.inner)
-    }
-
     pub(crate) fn to_batch_item(
         &self,
         public: &TransferProofPublic,
-    ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
-        let proof = self.decoded_proof()?;
-        let statement_hash = public.statement_hash()?;
-
-        Ok(shieldd_sdk_proof_params::batch::BatchItem {
-            proof,
-            public_inputs: vec![statement_hash],
+    ) -> Result<shieldd_sdk_proof_params::pari::Verification> {
+        let envelope =
+            crate::proof::decode(&self.inner, shieldd_sdk_circuits::proof::Family::Transfer)?;
+        Ok(shieldd_sdk_proof_params::pari::Verification {
+            family: shieldd_sdk_circuits::proof::Family::Transfer,
+            statement: shieldd_sdk_circuits::encoding::field(&public.statement_hash()?),
+            envelope,
         })
     }
 
-    pub fn verify(&self, public: &TransferProofPublic) -> anyhow::Result<()> {
-        self.verify_with_prepared_vk(
-            public,
-            shieldd_sdk_proof_params::transfer_proof_verification_key(),
-        )
-    }
-
-    pub fn verify_with_prepared_vk(
+    pub fn verify(
         &self,
         public: &TransferProofPublic,
-        vk: &PreparedVerifyingKey<Bls12_377>,
-    ) -> anyhow::Result<()> {
-        let item = self.to_batch_item(public)?;
-        let proof_result = Groth16::<Bls12_377, LibsnarkReduction>::verify_with_processed_vk(
-            vk,
-            item.public_inputs.as_slice(),
-            &item.proof,
-        )
-        .map_err(|err| anyhow!(err))?;
-
-        proof_result
-            .then_some(())
-            .ok_or_else(|| anyhow!("{TRANSFER_PROOF_LABEL} proof did not verify"))
+        registry: &shieldd_sdk_proof_params::pari::Registry,
+    ) -> Result<()> {
+        registry
+            .verify_item(&self.to_batch_item(public)?)
+            .map(|_| ())
     }
 
-    pub fn validate_encoding(&self) -> anyhow::Result<()> {
-        self.decoded_proof()?;
+    pub fn validate_encoding(&self) -> Result<()> {
+        let decoded = shieldd_sdk_circuits::proof::Envelope::from_bytes(&self.inner)?;
+        ensure!(
+            decoded.family() == shieldd_sdk_circuits::proof::Family::Transfer,
+            "wrong proof family"
+        );
         Ok(())
     }
 
-    #[cfg(all(feature = "prover", any(unix, windows)))]
     pub fn prove(
         public: TransferProofPublic,
         private: TransferProofPrivate,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Self, crate::ProofError> {
-        public
-            .validate_shape()
-            .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        let prove_result = super::prover_runtime::prove_with_runtime(public, private);
-
-        prove_result.map_err(|e| {
-            crate::ProofError::ProofGenerationFailed(format!(
-                "gnark {TRANSFER_PROOF_LABEL} prove: {e}"
-            ))
+        (|| -> Result<Self> {
+            let witness = crate::pari::transfer(&public, &private)?;
+            let proof = registry.prove(
+                &witness,
+                shieldd_sdk_proof_params::pari::proving_strategy()?,
+            )?;
+            registry.verify(
+                shieldd_sdk_circuits::proof::Family::Transfer,
+                &shieldd_sdk_circuits::encoding::field(&public.statement_hash()?),
+                &proof,
+            )?;
+            Ok(Self {
+                inner: proof.to_bytes(),
+            })
+        })()
+        .map_err(|error| {
+            crate::ProofError::ProofGenerationFailed(format!("Pari transfer: {error:#}"))
         })
     }
 }
@@ -247,9 +238,11 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
 #[cfg(feature = "component")]
 #[cfg(all(test, all(feature = "prover", any(unix, windows))))]
 mod tests {
+    use crate::test_proof_helpers::proof_test_helpers::registry;
+    use ff::Field;
+    use rand::SeedableRng;
     use std::sync::{LazyLock, Mutex};
 
-    use super::TransferProof;
     #[cfg(feature = "component")]
     use crate::component::transfer_extract_public;
     #[cfg(feature = "component")]
@@ -261,9 +254,9 @@ mod tests {
     use crate::{
         Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
-    use decaf377::Fr;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_compliance::{ComplianceLeaf, MerklePath, QuadTree};
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_tct as tct;
@@ -274,9 +267,87 @@ mod tests {
         let guard = TRANSFER_PROOF_TEST_MUTEX
             .lock()
             .expect("lock transfer test mutex");
-        crate::gnark::require_proof_test_runtime(crate::gnark::ProofTestFamily::Transfer)
-            .expect("proof test prerequisites must be present");
+        let _ = registry();
         guard
+    }
+
+    #[test]
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn prepared_registry_proves_distinct_witnesses_and_batches_with_existing_keys(
+    ) -> anyhow::Result<()> {
+        use rand::SeedableRng;
+        use shieldd_sdk_proof_params::pari::{proving_strategy, Registry, Verification};
+        let _guard = proof_runtime();
+        let registry = Registry::load(std::env::var("SHIELDD_PARI_KEYS")?)?;
+        let strategy = proving_strategy()?;
+        let mut items = Vec::new();
+        for seed in [42, 43] {
+            let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
+                &mut rand::rngs::StdRng::seed_from_u64(seed),
+                *BASE_ASSET_ID,
+                true,
+                false,
+            );
+            let witness = crate::pari::transfer(&public, &private)?;
+            let statement = shieldd_sdk_circuits::encoding::field(&public.statement_hash()?);
+            let envelope = registry.prove(&witness, strategy)?;
+            registry.verify(witness.family(), &statement, &envelope)?;
+            items.push(Verification {
+                family: witness.family(),
+                statement,
+                envelope,
+            });
+        }
+        assert_ne!(items[0].statement, items[1].statement);
+        assert_ne!(items[0].envelope.to_bytes(), items[1].envelope.to_bytes());
+        assert_eq!(registry.verify_items(&items, strategy)?.len(), 2);
+        Ok(())
+    }
+
+    fn compare_strategy(
+        label: &str,
+        strategy: &impl commonware_parallel::Strategy,
+    ) -> anyhow::Result<()> {
+        use rand::SeedableRng;
+        use std::time::Instant;
+        let started = Instant::now();
+        let registry =
+            shieldd_sdk_proof_params::pari::Registry::load(std::env::var("SHIELDD_PARI_KEYS")?)?;
+        eprintln!(
+            "strategy={label} registry_load_ms={:.3}",
+            started.elapsed().as_secs_f64() * 1000.0
+        );
+        let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
+            &mut rand::rngs::StdRng::seed_from_u64(42),
+            *BASE_ASSET_ID,
+            true,
+            false,
+        );
+        let witness = crate::pari::transfer(&public, &private)?;
+        let statement = shieldd_sdk_circuits::encoding::field(&public.statement_hash()?);
+        for index in 0..4 {
+            let started = Instant::now();
+            let proof = registry.prove(&witness, strategy)?;
+            let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
+            registry.verify(witness.family(), &statement, &proof)?;
+            eprintln!("strategy={label} family=transfer iteration={index} cold={} elapsed_ms={elapsed_ms:.3}", index == 0);
+        }
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "native proving strategy benchmark with local keys"]
+    fn prover_strategy_sequential() -> anyhow::Result<()> {
+        compare_strategy("sequential", &commonware_parallel::Sequential)
+    }
+
+    #[test]
+    #[ignore = "native proving strategy benchmark with local keys"]
+    fn prover_strategy_rayon_two() -> anyhow::Result<()> {
+        compare_strategy(
+            "rayon2",
+            &commonware_parallel::Rayon::new(std::num::NonZeroUsize::new(2).unwrap())?,
+        )
     }
 
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
@@ -314,6 +385,37 @@ mod tests {
         )
     }
 
+    fn assert_transfer_witness(
+        public: super::TransferProofPublic,
+        private: super::TransferProofPrivate,
+    ) {
+        use commonware_cryptography::{bls12381::primitives::group::Scalar, zk::pari::Opening};
+        use shieldd_sdk_circuits::{catalogue, hash::Parameters, map::Generators};
+
+        let witness = crate::pari::transfer(&public, &private).expect("map transfer witness");
+        let parameters = Parameters::load().unwrap();
+        let generators = Generators::derive(&parameters);
+        assert_eq!(
+            witness.digest(&parameters, &generators).unwrap(),
+            shieldd_sdk_circuits::encoding::field(&public.statement_hash().unwrap()),
+            "mapped witness must preserve the action statement",
+        );
+        let valued = catalogue::evaluate(&witness).expect("evaluate transfer witness");
+        assert!(
+            valued.is_satisfied(),
+            "transfer witness violates the relation"
+        );
+        let compiled = catalogue::compile(witness.family()).expect("compile canonical relation");
+        compiled
+            .relation
+            .witness(
+                &valued,
+                &compiled.layout,
+                vec![Opening::new(Scalar::from(1))],
+            )
+            .expect("witness must match the canonical relation shape");
+    }
+
     #[test]
     fn transfer_public_projection_matches_builder_without_proving() {
         for regulated in [false, true] {
@@ -328,153 +430,109 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_proof_roundtrip_regulated() {
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn pari_proof_transfer_proof_roundtrip_regulated() {
         let _guard = proof_runtime();
         full_proof_roundtrip(CircuitType::Transfer, true);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_proof_roundtrip_unregulated() {
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn pari_proof_transfer_proof_roundtrip_unregulated() {
         let _guard = proof_runtime();
         full_proof_roundtrip(CircuitType::Transfer, false);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_accumulator_origin() {
-        let _guard = proof_runtime();
-
+    fn witness_transfer_accumulator_origin() {
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_accumulating_hidden_arity_roundtrip_inputs_with_rng(
-                &mut rand::thread_rng(),
+                &mut rand::rngs::StdRng::seed_from_u64(42),
                 100,
             );
-        TransferProof::prove(public.clone(), private)
-            .expect("prove transfer with a daily accumulator origin")
-            .verify(&public)
-            .expect("verify transfer with a daily accumulator origin");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_accumulator_continuation() {
-        let _guard = proof_runtime();
-
+    fn witness_transfer_accumulator_continuation() {
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_continuing_accumulator_roundtrip_inputs_with_rng(
-                &mut rand::thread_rng(),
+                &mut rand::rngs::StdRng::seed_from_u64(42),
             );
-        TransferProof::prove(public.clone(), private)
-            .expect("prove transfer continuing a daily accumulator")
-            .verify(&public)
-            .expect("verify transfer continuing a daily accumulator");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_sender_to_self() {
-        let _guard = proof_runtime();
-
+    fn witness_transfer_hidden_arity_1x1_roundtrip_sender_to_self() {
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_with_rng(
-                &mut rand::thread_rng(),
+                &mut rand::rngs::StdRng::seed_from_u64(42),
                 false,
                 true,
             );
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity sender-to-self transfer")
-            .verify(&public)
-            .expect("verify hidden-arity sender-to-self transfer");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_repro_unregulated_nonbase_test_usd() {
-        let _guard = proof_runtime();
+    fn witness_repro_unregulated_nonbase_test_usd() {
         // test_usd real asset id (base denom wtest_usd).
         let test_usd = shieldd_sdk_asset::asset::REGISTRY
             .parse_unit("test_usd")
             .id();
-        eprintln!("test_usd id = {}", test_usd.0);
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
-                &mut rand::thread_rng(),
+                &mut rand::rngs::StdRng::seed_from_u64(42),
                 test_usd,
                 false,
                 false,
             );
-        TransferProof::prove(public.clone(), private)
-            .expect("prove unregulated non-base test_usd transfer")
-            .verify(&public)
-            .expect("verify unregulated non-base test_usd transfer");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_repro_unregulated_nonbase_test_usd_populated_tree() {
-        let _guard = proof_runtime();
+    fn witness_repro_unregulated_nonbase_test_usd_populated_tree() {
         let test_usd = shieldd_sdk_asset::asset::REGISTRY
             .parse_unit("test_usd")
             .id();
         // Predecessor (low) leaf is a regulated asset just below test_usd, mirroring
         // the live registry gap; daily_volume_limit = 5e20 like regulated_usd.
-        let low_asset_id = test_usd.0 - decaf377::Fq::from(1u64);
+        let low_asset_id = test_usd.0 - shieldd_sdk_crypto::Fq::from(1u64);
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
-                &mut rand::thread_rng(),
+                &mut rand::rngs::StdRng::seed_from_u64(42),
                 test_usd,
                 low_asset_id,
                 500_000_000_000_000_000_000u128,
                 false,
             );
-        TransferProof::prove(public.clone(), private)
-            .expect("prove unregulated non-base test_usd transfer (populated tree)")
-            .verify(&public)
-            .expect("verify unregulated non-base test_usd transfer (populated tree)");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_sender_to_other() {
-        let _guard = proof_runtime();
-
+    fn witness_transfer_hidden_arity_1x1_roundtrip_sender_to_other() {
         let (public, private) = crate::test_proof_helpers::proof_test_helpers::
             build_transfer_hidden_arity_roundtrip_inputs_with_rng(
-                &mut rand::thread_rng(),
+                &mut rand::rngs::StdRng::seed_from_u64(42),
                 false,
                 false,
             );
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity sender-to-other transfer")
-            .verify(&public)
-            .expect("verify hidden-arity sender-to-other transfer");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_base_asset_sender_to_other() {
-        let _guard = proof_runtime();
-
+    fn witness_transfer_hidden_arity_1x1_roundtrip_base_asset_sender_to_other() {
         let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
-            &mut rand::thread_rng(),
+            &mut rand::rngs::StdRng::seed_from_u64(42),
             *BASE_ASSET_ID,
             false,
             false,
         );
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity base-asset sender-to-other transfer")
-            .verify(&public)
-            .expect("verify hidden-arity base-asset sender-to-other transfer");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_test_keys_base_asset_sender_to_other() {
-        let _guard = proof_runtime();
-
-        let mut rng = rand::thread_rng();
+    fn witness_transfer_hidden_arity_1x1_roundtrip_test_keys_base_asset_sender_to_other() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
         let input_note = Note::from_parts(
             test_keys::ADDRESS_0.clone(),
             Value {
@@ -524,7 +582,7 @@ mod tests {
         let transfer = TransferPlan::new(
             vec![spend],
             vec![output],
-            Fr::rand(&mut rng),
+            Fr::random(&mut rng),
             compliance.clone(),
             crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
             crate::TransferProofContext::Ordinary,
@@ -540,18 +598,12 @@ mod tests {
             )
             .expect("derive test-key transfer public/private inputs");
 
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity test-key base-asset sender-to-other transfer")
-            .verify(&public)
-            .expect("verify hidden-arity test-key base-asset sender-to-other transfer");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other() {
-        let _guard = proof_runtime();
-
-        let mut rng = rand::thread_rng();
+    fn witness_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
         let input_note = Note::from_parts(
             test_keys::ADDRESS_0.clone(),
             Value {
@@ -610,7 +662,7 @@ mod tests {
         let transfer = TransferPlan::new(
             vec![spend],
             vec![output],
-            Fr::rand(&mut rng),
+            Fr::random(&mut rng),
             compliance.clone(),
             crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
             crate::TransferProofContext::Ordinary,
@@ -626,19 +678,13 @@ mod tests {
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity registered base-asset sender-to-other transfer")
-            .verify(&public)
-            .expect("verify hidden-arity registered base-asset sender-to-other transfer");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_high_position(
+    fn witness_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_high_position(
     ) {
-        let _guard = proof_runtime();
-
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
         let input_note = Note::from_parts(
             test_keys::ADDRESS_0.clone(),
             Value {
@@ -711,7 +757,7 @@ mod tests {
         let transfer = TransferPlan::new(
             vec![spend],
             vec![output],
-            Fr::rand(&mut rng),
+            Fr::random(&mut rng),
             compliance.clone(),
             crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
             crate::TransferProofContext::Ordinary,
@@ -727,19 +773,13 @@ mod tests {
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity registered base-asset sender-to-other transfer at high position")
-            .verify(&public)
-            .expect("verify hidden-arity registered base-asset sender-to-other transfer at high position");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_real_user_tree(
+    fn witness_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_real_user_tree(
     ) {
-        let _guard = proof_runtime();
-
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
         let input_note = Note::from_parts(
             test_keys::ADDRESS_0.clone(),
             Value {
@@ -798,7 +838,7 @@ mod tests {
         let transfer = TransferPlan::new(
             vec![spend],
             vec![output],
-            Fr::rand(&mut rng),
+            Fr::random(&mut rng),
             compliance.clone(),
             crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
             crate::TransferProofContext::Ordinary,
@@ -814,19 +854,13 @@ mod tests {
             )
             .expect("derive registered base-asset transfer public/private inputs");
 
-        TransferProof::prove(public.clone(), private)
-            .expect("prove hidden-arity registered base-asset transfer with real user tree")
-            .verify(&public)
-            .expect("verify hidden-arity registered base-asset transfer with real user tree");
+        assert_transfer_witness(public, private);
     }
 
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_hidden_arity_1x2_roundtrip_registered_base_asset_with_change_real_user_tree(
+    fn witness_transfer_hidden_arity_1x2_roundtrip_registered_base_asset_with_change_real_user_tree(
     ) {
-        let _guard = proof_runtime();
-
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
         let input_note = Note::from_parts(
             test_keys::ADDRESS_0.clone(),
             Value {
@@ -900,7 +934,7 @@ mod tests {
         let transfer = TransferPlan::new(
             vec![spend],
             vec![receiver_output, change_output],
-            Fr::rand(&mut rng),
+            Fr::random(&mut rng),
             compliance.clone(),
             crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
             crate::TransferProofContext::Ordinary,
@@ -916,120 +950,18 @@ mod tests {
             )
             .expect("derive registered base-asset transfer-with-change public/private inputs");
 
-        TransferProof::prove(public.clone(), private)
-            .expect(
-                "prove hidden-arity registered base-asset transfer with change and real user tree",
-            )
-            .verify(&public)
-            .expect(
-                "verify hidden-arity registered base-asset transfer with change and real user tree",
-            );
+        assert_transfer_witness(public, private);
     }
 
     #[cfg(feature = "component")]
     #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_transfer_action_public_matches_proving_public_regulated() {
+    #[ignore = "expensive: native Pari proof generation with local keys"]
+    fn pari_proof_transfer_action_public_matches_proving_public_regulated() {
         let _guard = proof_runtime();
 
         let (transfer, proving_public, context) = build_transfer_action_and_public(true);
-        use prost::Message;
-        let encoded: shieldd_sdk_proto::core::component::shielded_pool::v1::Transfer =
-            transfer.clone().into();
-        eprintln!(
-            "PET-ready regulated 2x2 Transfer protobuf: {} bytes",
-            encoded.encoded_len()
-        );
         let extracted_public =
             transfer_extract_public(&transfer, &context).expect("extract transfer public");
-
-        assert_eq!(proving_public.anchor, extracted_public.anchor);
-        assert_eq!(
-            proving_public.balance_commitment,
-            extracted_public.balance_commitment
-        );
-        assert_eq!(proving_public.asset_anchor, extracted_public.asset_anchor);
-        assert_eq!(
-            proving_public.compliance_anchor,
-            extracted_public.compliance_anchor
-        );
-        assert_eq!(
-            proving_public.target_timestamp,
-            extracted_public.target_timestamp
-        );
-        assert_eq!(proving_public.inputs.len(), extracted_public.inputs.len());
-        for (expected, actual) in proving_public
-            .inputs
-            .iter()
-            .zip(extracted_public.inputs.iter())
-        {
-            assert_eq!(expected.nullifier, actual.nullifier);
-            assert_eq!(expected.rk, actual.rk);
-        }
-        assert_eq!(proving_public.outputs.len(), extracted_public.outputs.len());
-        for (expected, actual) in proving_public
-            .outputs
-            .iter()
-            .zip(extracted_public.outputs.iter())
-        {
-            assert_eq!(expected.note_commitment, actual.note_commitment);
-        }
-        assert_eq!(
-            proving_public.compliance.detection_ciphertext,
-            extracted_public.compliance.detection_ciphertext
-        );
-        assert_eq!(
-            proving_public.compliance.sender_core.epk,
-            extracted_public.compliance.sender_core.epk
-        );
-        assert_eq!(
-            proving_public.compliance.sender_core.c2,
-            extracted_public.compliance.sender_core.c2
-        );
-        assert_eq!(
-            proving_public.compliance.sender_core.ciphertext,
-            extracted_public.compliance.sender_core.ciphertext
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.epk,
-            extracted_public.compliance.sender_ext.epk
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.c2,
-            extracted_public.compliance.sender_ext.c2
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.ciphertext,
-            extracted_public.compliance.sender_ext.ciphertext
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.epk,
-            extracted_public.compliance.output_core.epk
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.c2,
-            extracted_public.compliance.output_core.c2
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.ciphertext,
-            extracted_public.compliance.output_core.ciphertext
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.epk,
-            extracted_public.compliance.output_ext.epk
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.c2,
-            extracted_public.compliance.output_ext.c2
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.ciphertext,
-            extracted_public.compliance.output_ext.ciphertext
-        );
-        assert_eq!(
-            proving_public.compliance.metadata,
-            extracted_public.compliance.metadata
-        );
 
         assert_eq!(
             proving_public
@@ -1045,10 +977,8 @@ mod tests {
             .proof
             .to_batch_item(&extracted_public)
             .expect("build batch item from extracted transfer public");
-        shieldd_sdk_proof_params::batch::batch_verify(
-            shieldd_sdk_proof_params::transfer_proof_verification_key(),
-            std::slice::from_ref(&item),
-        )
-        .expect("single-item batch verification should succeed with extracted public");
+        registry()
+            .verify_item(&item)
+            .expect("single-item batch verification should succeed with extracted public");
     }
 }

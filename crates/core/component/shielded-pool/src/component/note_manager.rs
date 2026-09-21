@@ -72,57 +72,40 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
     }
 
     #[instrument(skip(self, note_payload, source), fields(commitment = ?note_payload.note_commitment))]
-    async fn add_note_payload(&mut self, note_payload: NotePayload, source: CommitmentSource) {
+    async fn add_note_payload(
+        &mut self,
+        note_payload: NotePayload,
+        source: CommitmentSource,
+    ) -> Result<()> {
         tracing::debug!(source = ?source);
 
         // Action handlers emit semantic note-created/nullifier-spent events.
         // NoteManager only stages SCT and compact-block state.
 
-        let position = self.add_sct_commitment(note_payload.note_commitment, source.clone())
-            .await
-            // TODO: why? can't we exceed the number of state commitments in a block?
-            .expect("inserting into the state commitment tree should not fail because we should budget commitments per block (currently unimplemented)");
+        let position = self
+            .add_sct_commitment(note_payload.note_commitment, source.clone())
+            .await?;
 
         // Queue the payload for compact-block emission after SCT insertion.
 
         let mut payloads = self.pending_note_payloads();
         payloads.push_back((position, note_payload, source));
         self.object_put(state_key::pending_notes(), payloads);
-    }
-
-    #[instrument(skip(self, note_commitment))]
-    async fn add_rolled_up_payload(
-        &mut self,
-        note_commitment: StateCommitment,
-        source: CommitmentSource,
-    ) {
-        tracing::debug!(?note_commitment);
-
-        // Rolled-up payloads are synchronization artifacts only; semantic events
-        // are emitted by the action handlers that created them.
-        let position = self.add_sct_commitment(note_commitment, source)
-            .await
-            // TODO: why? can't we exceed the number of state commitments in a block?
-            .expect("inserting into the state commitment tree should not fail because we should budget commitments per block (currently unimplemented)");
-
-        // Queue the rolled-up commitment for compact-block emission.
-        let mut payloads = self.pending_rolled_up_payloads();
-        payloads.push_back((position, note_commitment));
-        self.object_put(state_key::pending_rolled_up_payloads(), payloads);
+        Ok(())
     }
 
     async fn add_volume_accumulator_payload(
         &mut self,
         payload: VolumeAccumulatorPayload,
         source: CommitmentSource,
-    ) {
+    ) -> Result<()> {
         let position = self
             .add_sct_commitment(payload.commitment, source.clone())
-            .await
-            .expect("volume accumulator SCT insertion must fit in the block");
+            .await?;
         let mut payloads = self.pending_volume_accumulator_payloads();
         payloads.push_back((position, payload, source));
         self.object_put(state_key::pending_volume_accumulator_payloads(), payloads);
+        Ok(())
     }
 
     fn pending_note_payloads(
@@ -151,7 +134,7 @@ pub fn build_position_derived_mint_payload(
     value: Value,
     address: &Address,
     position: tct::Position,
-    recovery_capk: decaf377::Element,
+    recovery_capk: shieldd_sdk_crypto::SubgroupPoint,
 ) -> Result<NotePayload> {
     let (note, capsule) = Note::from_parts_with_recovery(
         address.clone(),
@@ -183,6 +166,34 @@ mod tests {
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_num::Amount;
     use std::ops::Deref as _;
+
+    #[tokio::test]
+    async fn exhausted_sct_returns_without_panicking_or_staging_payloads() -> Result<()> {
+        use futures::FutureExt;
+        let storage = TempStorage::new().await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let tree = tct::Tree::load(
+            tct::storage::StoredPosition::Full,
+            tct::Forgotten::default(),
+        )
+        .load_hashes()
+        .finish();
+        state.write_sct_cache(tree);
+        let result = std::panic::AssertUnwindSafe(async {
+            assert!(state
+                .add_note_payload(NotePayload::dummy(), CommitmentSource::Genesis)
+                .await
+                .is_err());
+        })
+        .catch_unwind()
+        .await;
+        assert!(
+            result.is_ok(),
+            "capacity rejection must return to the caller"
+        );
+        assert!(state.pending_note_payloads().is_empty());
+        Ok(())
+    }
 
     #[tokio::test]
     async fn mint_note_stages_position_derived_payloads() -> Result<()> {
@@ -219,7 +230,10 @@ mod tests {
             )?;
             let expected_payload = expected_note.payload(capsule);
             assert_eq!(payload.note_commitment, expected_payload.note_commitment);
-            assert_eq!(payload.ephemeral_key.0, expected_payload.ephemeral_key.0);
+            assert_eq!(
+                payload.ephemeral_key.to_bytes(),
+                expected_payload.ephemeral_key.to_bytes()
+            );
             assert_eq!(payload.encrypted_note.0, expected_payload.encrypted_note.0);
             assert_eq!(source, CommitmentSource::Genesis);
         }
@@ -253,8 +267,8 @@ mod tests {
             rebuilt_payload.note_commitment
         );
         assert_eq!(
-            immediate_payload.ephemeral_key.0,
-            rebuilt_payload.ephemeral_key.0
+            immediate_payload.ephemeral_key.to_bytes(),
+            rebuilt_payload.ephemeral_key.to_bytes()
         );
         assert_eq!(
             immediate_payload.encrypted_note.0,

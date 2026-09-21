@@ -170,11 +170,10 @@ pub async fn scan_block(
                                                     "regulated note is missing its compliance leaf"
                                                 )
                                             })?;
-                                        decaf377::Encoding(leaf.rnk_dh_pk)
-                                            .vartime_decompress()
+                                        shieldd_sdk_crypto::encoding::nonidentity(&leaf.rnk_dh_pk)
                                             .map_err(|_| {
-                                                anyhow::anyhow!("stored rnk_dh_pk is invalid")
-                                            })?
+                                            anyhow::anyhow!("stored rnk_dh_pk is invalid")
+                                        })?
                                     }
                                 };
                                 effective_nullifier_key(
