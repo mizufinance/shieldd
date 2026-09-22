@@ -65,14 +65,14 @@ impl IssuerDhEvidence {
             asset_id,
             ciphertext_epk,
             issuer_dk_pub: dk.public_key(),
-            shared_point: ciphertext_epk * dk.0,
+            shared_point: ciphertext_epk * *dk.inner(),
             proof: DleqProof {
                 commitment_g: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * nonce,
                 commitment_h: ciphertext_epk * nonce,
                 response: Fr::from(0u64),
             },
         };
-        evidence.proof.response = nonce + evidence_challenge(&evidence, request) * dk.0;
+        evidence.proof.response = nonce + evidence_challenge(&evidence, request) * *dk.inner();
         Ok(evidence)
     }
 
@@ -234,7 +234,7 @@ mod tests {
             evidence
                 .verify_bound_for(asset, dk.public_key(), epk, &request)
                 .unwrap(),
-            epk * dk.0
+            epk * *dk.inner()
         );
         assert!(evidence
             .verify_bound_for(asset, dk.public_key(), epk, &[43; 32])
@@ -280,7 +280,7 @@ mod tests {
         assert_ne!(first.proof.commitment_g, second.proof.commitment_g);
         assert_eq!(
             first.verify_for(asset, dk.public_key(), epk).unwrap(),
-            epk * dk.0
+            epk * *dk.inner()
         );
         assert!(first
             .verify_for(asset, *shieldd_sdk_crypto::generators::SPEND_AUTH, epk)

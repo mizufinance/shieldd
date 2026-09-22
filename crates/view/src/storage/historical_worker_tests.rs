@@ -456,3 +456,208 @@ async fn completed_history_write_requires_expected_row_and_window() -> anyhow::R
     assert_eq!(storage.historical_proof_cache(nf).await?, Some(completed));
     Ok(())
 }
+
+#[tokio::test]
+async fn pending_history_cannot_block_sync_and_is_cancelled_on_drop() -> anyhow::Result<()> {
+    struct PendingSource {
+        entered: tokio::sync::Notify,
+        cancelled: Arc<tokio::sync::Notify>,
+    }
+    struct RequestGuard(Arc<tokio::sync::Notify>);
+    impl Drop for RequestGuard {
+        fn drop(&mut self) {
+            self.0.notify_one();
+        }
+    }
+    #[async_trait]
+    impl HistoricalWitnessSource for PendingSource {
+        async fn nonmembership_proof(
+            &self,
+            _: Nullifier,
+            _: u64,
+        ) -> anyhow::Result<ArchivedNullifierProof> {
+            let _guard = RequestGuard(self.cancelled.clone());
+            self.entered.notify_one();
+            std::future::pending().await
+        }
+    }
+    let (storage, nf) = wallet(1).await?;
+    storage
+        .put_historical_proof_cache(HistoricalProofCache::pending(nf))
+        .await?;
+    let registry = registry();
+    // An ordinary source error must not prevent loading the same valid wallet.
+    drop(crate::SyncWorker::new(storage.clone(), registry.clone(), unavailable_source()).await?);
+    let source = Arc::new(PendingSource {
+        entered: tokio::sync::Notify::new(),
+        cancelled: Arc::new(tokio::sync::Notify::new()),
+    });
+    let startup = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        crate::SyncWorker::new(storage.clone(), registry, source.clone()),
+    )
+    .await;
+    tokio::time::timeout(std::time::Duration::from_secs(2), source.entered.notified())
+        .await
+        .context("the controlled witness request must actually be reached")?;
+    assert!(
+        startup.is_ok(),
+        "wallet startup must not await the history witness"
+    );
+    let mut worker = startup??;
+    let mut expected = storage.state_commitment_tree().await?;
+    for height in 0..2 {
+        let block = shieldd_sdk_compact_block::CompactBlock {
+            height,
+            compliance_user_anchor: Some(storage.compliance_user_tree().await?.root()),
+            compliance_asset_anchor: Some(storage.compliance_asset_tree().await?.root()),
+            ..Default::default()
+        };
+        expected.insert_block(block.block_root)?;
+        tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            worker.scan(crate::WalletBlock {
+                block,
+                expected_sct_root: expected.root(),
+                timestamp: height,
+                transactions: vec![],
+                assets: vec![],
+                updated_app_parameters: None,
+            }),
+        )
+        .await
+        .context("scan must progress while the history witness is pending")??;
+        assert_eq!(storage.last_sync_height().await?, Some(height));
+        assert_eq!(
+            storage.state_commitment_tree().await?.root(),
+            expected.root()
+        );
+    }
+    drop(worker);
+    tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        source.cancelled.notified(),
+    )
+    .await
+    .context("dropping sync worker must cancel its pending history request")?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn pending_history_times_out_persistently_and_retries() -> anyhow::Result<()> {
+    struct Source {
+        entered: tokio::sync::Notify,
+        first: std::sync::atomic::AtomicBool,
+    }
+    #[async_trait]
+    impl HistoricalWitnessSource for Source {
+        async fn nonmembership_proof(
+            &self,
+            _: Nullifier,
+            _: u64,
+        ) -> anyhow::Result<ArchivedNullifierProof> {
+            if self.first.swap(false, std::sync::atomic::Ordering::SeqCst) {
+                self.entered.notify_one();
+                std::future::pending::<()>().await;
+            }
+            anyhow::bail!("retry reached witness source")
+        }
+    }
+    let (storage, nf) = wallet(1).await?;
+    storage
+        .put_historical_proof_cache(HistoricalProofCache::pending(nf))
+        .await?;
+    let source = Arc::new(Source {
+        entered: tokio::sync::Notify::new(),
+        first: std::sync::atomic::AtomicBool::new(true),
+    });
+    let mut worker =
+        HistoricalProofWorker::new(storage.clone(), source.clone(), registry()).await?;
+    let running = tokio::spawn(async move {
+        worker.update().await?;
+        Ok::<_, anyhow::Error>(worker)
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(2), source.entered.notified()).await?;
+    // Advance only after the request is pending, then resume before blocking DB work.
+    tokio::time::pause();
+    tokio::time::advance(std::time::Duration::from_secs(31)).await;
+    tokio::time::resume();
+    let mut worker = tokio::time::timeout(std::time::Duration::from_secs(2), running).await???;
+    let cache = storage
+        .historical_proof_cache(nf)
+        .await?
+        .context("cache after timeout")?;
+    assert_eq!(
+        cache.state,
+        HistoricalProofCacheState::BlockedOnWitnessSource
+    );
+    assert!(cache.last_error.as_deref().unwrap().contains("timed out"));
+    assert!(cache.pending.is_empty() && cache.proof.completed_chunks.is_empty());
+    worker.update().await?;
+    let cache = storage
+        .historical_proof_cache(nf)
+        .await?
+        .context("cache after retry")?;
+    assert_eq!(
+        cache.state,
+        HistoricalProofCacheState::BlockedOnWitnessSource
+    );
+    assert!(cache
+        .last_error
+        .as_deref()
+        .unwrap()
+        .contains("retry reached witness source"));
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires local Pari keys and actual history chunk/tail proofs"]
+async fn history_pass_yields_after_one_proof_and_resumes() -> anyhow::Result<()> {
+    struct Source(Mutex<Vec<u64>>);
+    #[async_trait]
+    impl HistoricalWitnessSource for Source {
+        async fn nonmembership_proof(
+            &self,
+            _: Nullifier,
+            index: u64,
+        ) -> anyhow::Result<ArchivedNullifierProof> {
+            self.0.lock().unwrap().push(index);
+            Ok(archived(index))
+        }
+    }
+    let (storage, nf) = wallet(11).await?;
+    storage
+        .put_historical_proof_cache(HistoricalProofCache::pending(nf))
+        .await?;
+    let source = Arc::new(Source(Mutex::new(vec![])));
+    let registry = registry();
+    let mut worker =
+        HistoricalProofWorker::new(storage.clone(), source.clone(), registry.clone()).await?;
+    worker.update().await?;
+    let partial = storage
+        .historical_proof_cache(nf)
+        .await?
+        .context("first proof persisted")?;
+    assert_eq!(
+        *source.0.lock().unwrap(),
+        (0..10).collect::<Vec<_>>(),
+        "one pass must yield after the first chunk"
+    );
+    assert_eq!(partial.proof.completed_chunks.len(), 1);
+    assert!(partial.proof.tail.is_empty() && partial.pending.is_empty());
+    assert_ne!(partial.state, HistoricalProofCacheState::Ready);
+    worker.update().await?;
+    let ready = storage
+        .historical_proof_cache(nf)
+        .await?
+        .context("tail proof persisted")?;
+    ready.ensure_ready_for(window(11), registry.id())?;
+    assert_eq!(
+        *source.0.lock().unwrap(),
+        (0..11).collect::<Vec<_>>(),
+        "resume must not refetch the chunk"
+    );
+    assert_eq!(ready.proof.completed_chunks, partial.proof.completed_chunks);
+    assert_eq!(ready.proof.tail[0].generation_index, 10);
+    Ok(())
+}

@@ -1,7 +1,7 @@
 //! Standalone issuer detection keys for per-asset scanning and flagged decryption.
 
 use ff::Field;
-use group::{Group, GroupEncoding};
+use group::Group;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 
@@ -22,16 +22,22 @@ pub(crate) fn detection_flag_from_fq(value: Fq) -> anyhow::Result<bool> {
     Ok(value == Fq::from(1u64))
 }
 
-/// Detection Key (Per-Asset Secret, Held by Issuer).
-///
-/// Per-asset secret key generated and held by the issuer. Used for:
-/// - Scanning: Decrypting the detection tier to identify transfers of this asset
-/// - Flagged decryption: Decrypting core+extension data for flagged transactions
-///
-/// **Important**: DK is generated independently of Orbis keys.
-/// The issuer registers dk_pub on-chain; the private scalar never leaves the issuer.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DetectionKey(pub Fr);
+/// Issuer-held detection scalar; owned storage is erased on drop.
+#[derive(Clone, PartialEq, Eq)]
+pub struct DetectionKey(zeroize::Zeroizing<DetectionScalar>);
+
+// Jubjub does not implement Zeroize; zeroize's default overwrite is volatile.
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+struct DetectionScalar {
+    value: Fr,
+}
+impl zeroize::DefaultIsZeroes for DetectionScalar {}
+
+impl std::fmt::Debug for DetectionKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("DetectionKey([REDACTED])")
+    }
+}
 
 /// Decode detection data using a shared point authenticated by issuer DLEQ evidence.
 pub fn decrypt_detection(
@@ -75,7 +81,7 @@ pub fn decrypt_detection(
 impl DetectionKey {
     /// Create a new detection key from a scalar.
     pub fn new(scalar: Fr) -> Self {
-        Self(scalar)
+        Self(zeroize::Zeroizing::new(DetectionScalar { value: scalar }))
     }
 
     /// Generate a deterministic demo DK for testing.
@@ -114,16 +120,16 @@ impl DetectionKey {
     ///
     /// This is stored in the asset leaf for encryption.
     pub fn public_key(&self) -> SubgroupPoint {
-        (*shieldd_sdk_crypto::generators::SPEND_AUTH) * self.0
+        (*shieldd_sdk_crypto::generators::SPEND_AUTH) * *self.inner()
     }
 
     /// Access the inner scalar (use with caution - this is secret material).
     pub fn inner(&self) -> &Fr {
-        &self.0
+        &self.0.value
     }
 
     pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.to_bytes()
+        self.inner().to_bytes()
     }
 
     pub fn from_bytes(bytes: &[u8; 32]) -> anyhow::Result<Self> {
@@ -147,7 +153,7 @@ impl DetectionKey {
         expected_asset_id: &asset::Id,
     ) -> anyhow::Result<(asset::Id, bool, Fq)> {
         decrypt_detection(
-            &(*epk * self.0),
+            &(*epk * *self.inner()),
             epk,
             detection_ciphertext,
             expected_asset_id,
@@ -203,37 +209,6 @@ impl DetectionKey {
     }
 }
 
-/// Detection Key Public (Point).
-///
-/// The public component of the detection key, stored in the asset leaf.
-/// This is what senders encrypt the detection tier to.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DetectionKeyPublic(pub SubgroupPoint);
-
-impl DetectionKeyPublic {
-    pub fn new(point: SubgroupPoint) -> Self {
-        Self(point)
-    }
-
-    pub fn from_dk(dk: &DetectionKey) -> Self {
-        Self(dk.public_key())
-    }
-
-    pub fn inner(&self) -> &SubgroupPoint {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.to_bytes()
-    }
-
-    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
-        let point = shieldd_sdk_crypto::encoding::point(&bytes)
-            .map_err(|_| anyhow::anyhow!("invalid detection key public bytes"))?;
-        Ok(Self(point))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -242,10 +217,14 @@ mod tests {
     #[test]
     fn test_dk_basic() {
         let dk = DetectionKey::demo();
+        assert_eq!(format!("{dk:?}"), "DetectionKey([REDACTED])");
         let dk_pub = dk.public_key();
 
         // Verify public key is derived correctly
-        assert_eq!(dk_pub, (*shieldd_sdk_crypto::generators::SPEND_AUTH) * dk.0);
+        assert_eq!(
+            dk_pub,
+            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * *dk.inner()
+        );
 
         // Round-trip through bytes
         let bytes = dk.to_bytes();
@@ -291,17 +270,6 @@ mod tests {
         assert!(!detection_flag_from_fq(detection_flag_plaintext(false)).unwrap());
         assert!(detection_flag_from_fq(detection_flag_plaintext(true)).unwrap());
         assert!(detection_flag_from_fq(Fq::from(2u64)).is_err());
-    }
-
-    #[test]
-    fn test_detection_key_public_roundtrip() {
-        let dk = DetectionKey::demo();
-        let dk_pub = DetectionKeyPublic::from_dk(&dk);
-
-        let bytes = dk_pub.to_bytes();
-        let recovered = DetectionKeyPublic::from_bytes(bytes).unwrap();
-
-        assert_eq!(dk_pub, recovered);
     }
 
     #[test]

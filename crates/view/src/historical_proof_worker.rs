@@ -120,7 +120,8 @@ impl HistoricalProofWorker {
         if cache.state == HistoricalProofCacheState::Invalid {
             return Ok(());
         }
-        loop {
+        // A long archive must yield to the other notes after at most one proof.
+        for _ in 0..shieldd_sdk_circuits::history::CHUNK_SIZE {
             if let Err(error) = stage_historical_witness(
                 &mut cache,
                 window,
@@ -148,22 +149,19 @@ impl HistoricalProofWorker {
             }
             match advance_historical_proof_cache(&mut cache, window, self.registry.clone()).await {
                 Ok(()) => {
-                    if self
+                    return self
                         .storage
-                        .update_historical_proof_cache(expected.clone(), window, cache.clone())
-                        .await?
-                        != HistoricalCacheWrite::Stored
-                        || cache.state == HistoricalProofCacheState::Ready
-                    {
-                        return Ok(());
-                    }
-                    expected = cache.clone();
+                        .update_historical_proof_cache(expected, window, cache)
+                        .await
+                        .map(|_| ());
                 }
                 Err(error) => return self.persist_failure(cache, expected, window, error).await,
             }
         }
+        Ok(())
     }
 
+    /// Advance each unspent note by at most one proof, persisting staged paths first.
     pub async fn update(&mut self) -> anyhow::Result<()> {
         let Some(window) = self
             .storage

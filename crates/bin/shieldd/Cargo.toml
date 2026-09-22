@@ -7,7 +7,6 @@ description = "Embedded Shieldd execution library"
 repository = { workspace = true }
 license = { workspace = true }
 publish = false
-rust-version = "1.75"
 
 [lib]
 crate-type = ["rlib", "staticlib"]

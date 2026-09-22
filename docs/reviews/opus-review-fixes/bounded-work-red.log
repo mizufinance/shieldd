@@ -1,0 +1,33 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+   Compiling shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+   Compiling shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+   Compiling shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+   Compiling shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+   Compiling shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+   Compiling shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+    Finished `ci` profile [optimized] target(s) in 39.12s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_view-09d1210f681dcc90)
+
+running 1 test
+test storage::historical_worker_tests::history_pass_yields_after_one_proof_and_resumes ... FAILED
+
+failures:
+
+---- storage::historical_worker_tests::history_pass_yields_after_one_proof_and_resumes stdout ----
+
+thread 'storage::historical_worker_tests::history_pass_yields_after_one_proof_and_resumes' (39158414) panicked at crates/view/src/storage/historical_worker_tests.rs:639:5:
+assertion `left == right` failed: one pass must yield after the first chunk
+  left: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+ right: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    storage::historical_worker_tests::history_pass_yields_after_one_proof_and_resumes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 87 filtered out; finished in 43.02s
+
+error: test failed, to rerun pass `-p shieldd-sdk-view --lib`

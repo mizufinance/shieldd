@@ -33,16 +33,22 @@ internal hashes from their persisted positions and leaves. The schema hash rejec
 older wallet databases; reset and resynchronize them before use.
 See [tree persistence](state.md) for mutation and atomicity rules.
 
-`SyncWorker` owns a `HistoricalProofWorker`, an explicit configured Pari registry
-and a `HistoricalWitnessSource`. It advances history at startup and after each
-committed scan; `update_history` retries deferred work without replaying blocks. It persists blocked, invalid and useful failure states;
-The pass reads bounded pages and awaits proof work serially;
-work becomes ready only after archive/proof prerequisites validate. Every worker
-write compares its expected cache row and captured nullifier window atomically;
-stale work is discarded and retried on a subsequent pass. View’s optional
-`rpc` feature supplies `RpcHistoricalWitnessSource`; hosts may supply another real
-external source. [Nullifier history](nullifier-history.md) defines coverage,
-archive and pruning requirements.
+`SyncWorker` owns one background `HistoricalProofWorker`, an explicit configured
+Pari registry and a `HistoricalWitnessSource`. Startup and committed scans schedule
+history work without awaiting external witnesses or proving. `request_history_update`
+coalesces wake requests, and the worker also retries 30 seconds after each pass.
+Each pass reads bounded pages and advances each note by at most ten checked
+witnesses and one proof, serially; the number of notes in a pass is not capped.
+A witness request times out after 30 seconds and persists a retryable failure.
+Blocked, invalid and useful failure states remain durable; work becomes ready
+only after archive/proof prerequisites validate. Every worker write compares its
+expected cache row and captured nullifier window atomically; stale work is discarded.
+Dropping the sync worker cancels its history task. Already-started blocking proof
+work may finish without its cancelled caller publishing the result. Database
+writes already dispatched may also finish and remain guarded by the row/window
+comparison. The shared prover limit still bounds proof work. View's optional `rpc` feature supplies
+`RpcHistoricalWitnessSource`; hosts may supply another real external source.
+[Nullifier history](nullifier-history.md) defines coverage, archive and pruning requirements.
 
 Completion permits at most one real daily-volume transition per subject/day,
 including precompleted actions. A daily-volume transfer reserves one confirmed

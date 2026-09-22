@@ -2,7 +2,8 @@
 
 Artifact: `57eb44e8cae809c68974ed5d6723bdb904b2f8c1..c4b8b6d28e54b5e1d50769ee12209b56d613a60d`.
 Review paused with remaining coverage gaps. These findings have coordinator validation; raw reviewer
-hypotheses are preserved separately. No runtime fixes were applied in this review.
+hypotheses are preserved separately. No runtime fixes were applied in this review. Subsequent remediation is tracked in
+[Opus review fixes](../opus-review-fixes.md).
 
 ## Medium: history backfill can indefinitely block wallet startup and scanning
 

@@ -6,6 +6,7 @@ recommendation or passing check does not establish the state of a later revision
 
 | Work | Status and successor | Evidence identity |
 | --- | --- | --- |
+| [Opus review fixes](opus-review-fixes.md) | Validated findings fixed; selected tests, native history gates, workspace and WASM checks passed | `bac4f6b31e` baseline |
 | [Opus 5.5 branch review](opus-5.5-branch-review.md) | Partial; paused at usage reserve with 25 reports and 19 focused follow-ups saved | `57eb44e8ca..c4b8b6d28e` |
 | [Remaining usage review](remaining-usage-review.md) | Complete; [remediation](remaining-usage-fixes.md) records fixes | Original review/reproduction baseline, 2026-09-21 |
 | [Key and Commonware boundaries](key-and-commonware-boundaries.md) | Assessment implemented through the [plan](key-and-native-prover-implementation-plan.md) and [validation](key-native-implementation-validation.md) | `1dc62a7` plus the identified working-tree changes |

@@ -50,11 +50,12 @@ rand_core = {workspace = true, features = ["getrandom"]}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
-tokio = {workspace = true, features = ["macros", "rt-multi-thread", "sync"]}
+tokio = {workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"]}
 tonic = {workspace = true, optional = true, features = ["tls", "tls-webpki-roots"]}
 tracing = {workspace = true}
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
 pbjson-types = { workspace = true }
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false, features = ["benchmark-helpers"]}
 shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}

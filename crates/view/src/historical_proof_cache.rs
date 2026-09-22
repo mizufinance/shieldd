@@ -358,10 +358,13 @@ pub async fn stage_historical_witness(
         .checked_add((cache.pending.len() - cache.proof.tail.len()) as u64)
         .context("history index overflow")
         .map_err(Invalid)?;
-    let archived = source
-        .nonmembership_proof(cache.proof.nullifier, next_index)
-        .await
-        .map_err(WitnessSource)?;
+    let archived = tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        source.nonmembership_proof(cache.proof.nullifier, next_index),
+    )
+    .await
+    .map_err(|_| WitnessSource(anyhow::anyhow!("history witness request timed out")))?
+    .map_err(WitnessSource)?;
     if archived.generation_index != next_index {
         return Err(WitnessSource(anyhow::anyhow!("wrong archived generation")));
     }

@@ -16,7 +16,7 @@ pub mod issuer_keys;
 pub use event::{
     EventAssetRegistered, EventComplianceAnchor, EventUserAssetStatusChanged, EventUserRegistered,
 };
-pub use issuer_keys::{DetectionKey, DetectionKeyPublic, DETECTION_TIER_BYTES};
+pub use issuer_keys::{DetectionKey, DETECTION_TIER_BYTES};
 
 pub mod structs;
 pub use structs::{

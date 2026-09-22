@@ -588,7 +588,6 @@ impl Transaction {
         nullifiers.into_iter()
     }
 
-    /// Counts every proof-bound spend without allocating the iterator's buffer.
     /// Scoped volume nullifiers for body actions; fee funding has no volume effect.
     pub fn volume_nullifiers(
         &self,
@@ -602,6 +601,7 @@ impl Transaction {
         })
     }
 
+    /// Counts every proof-bound spend without allocating the iterator's buffer.
     pub fn spent_nullifier_count(&self) -> usize {
         let body_count = self.actions().fold(0usize, |count, action| {
             let action_count = match action {

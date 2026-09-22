@@ -494,10 +494,7 @@ impl DisclosureCmd {
                 let secret = zeroize::Zeroizing::new(request.issuer_secret);
                 use zeroize::Zeroize;
                 request.issuer_secret.zeroize();
-                let key = shieldd_sdk_compliance::DetectionKey::new(
-                    shieldd_sdk_crypto::encoding::scalar(&secret)
-                        .map_err(|_| anyhow::anyhow!("invalid issuer secret"))?,
-                );
+                let key = shieldd_sdk_compliance::DetectionKey::from_bytes(&secret)?;
                 let result = async {
                     let asset: shieldd_sdk_asset::asset::Id = request.request.asset.parse()?;
                     let policy = asset_policy(node, asset).await?;

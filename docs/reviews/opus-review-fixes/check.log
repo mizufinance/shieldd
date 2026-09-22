@@ -1,0 +1,97 @@
+cargo fmt --all -- --check
+just docs-check
+python3 scripts/check_docs.py
+python3 scripts/commonware.py check
+Commonware source inventory verified
+just tooling-test
+python3 -m unittest discover -s scripts/tests
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 0.261s
+
+OK
+python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.551s
+
+OK
+python3 -m unittest discover -s deployments/scripts/tests
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK
+cargo check --profile ci --workspace --all-targets --all-features
+    Checking tokio v1.52.3
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+    Checking tokio-util v0.7.11
+    Checking tokio-stream v0.1.17
+    Checking tokio-rustls v0.26.1
+    Checking h2 v0.4.17
+    Checking tower v0.5.2
+    Checking axum v0.7.9
+    Checking hyper v1.6.0
+    Checking hyper-util v0.1.17
+    Checking tower v0.4.13
+    Checking hyper-timeout v0.5.2
+    Checking commonware-macros v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/macros)
+    Checking commonware-formatting v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/formatting)
+    Checking commonware-codec v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/codec)
+    Checking tonic v0.12.3
+    Checking commonware-utils v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/utils)
+    Checking cnidarium v0.83.0
+    Checking commonware-parallel v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/parallel)
+    Checking commonware-math v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/math)
+    Checking commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/cryptography)
+    Checking shieldd-sdk-proto v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/proto)
+    Checking shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Checking cnidarium-component v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/cnidarium-component)
+    Checking shieldd-sdk-proof-params v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/proof-params)
+    Checking h2 v0.3.27 (/Users/antoinecyr/Documents/Source/shieldd/third_party/h2-0.3.27)
+    Checking hyper v0.14.29
+    Checking shieldd-sdk-tct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/tct)
+    Checking shieldd-sdk-num v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/num)
+    Checking shieldd-sdk-asset v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/asset)
+    Checking shieldd-sdk-fee v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/fee)
+    Checking axum v0.8.9
+    Checking shieldd-sdk-keys v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/keys)
+    Checking shieldd-sdk-txhash v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/txhash)
+    Checking shieldd-sdk-sct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/sct)
+    Checking tokio-rustls v0.24.1
+    Checking hyper-rustls v0.24.2
+    Checking tonic v0.14.5
+    Checking shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+    Checking reqwest v0.11.27
+    Checking tendermint-rpc v0.40.3
+    Checking shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+    Checking hyper-rustls v0.27.5
+    Checking reqwest v0.12.9
+    Checking cosmrs v0.22.0
+    Checking shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+    Checking shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+    Checking tonic-prost v0.14.5
+    Checking tokio-tungstenite v0.29.0
+    Checking shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+    Checking shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+    Checking backoff v0.4.0
+    Checking common v0.0.1 (https://github.com/sourcenetwork/orbis-rs?rev=0a0f935a85cc60e87561a9c7364fa80fdb3332df#0a0f935a)
+    Checking shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+    Checking shieldd-sdk-app-tests v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app-tests)
+    Checking proto v0.0.1 (https://github.com/sourcenetwork/orbis-rs?rev=0a0f935a85cc60e87561a9c7364fa80fdb3332df#0a0f935a)
+    Checking shieldd-sdk-mock-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/mock-client)
+    Checking authn v0.0.1 (https://github.com/sourcenetwork/orbis-rs?rev=0a0f935a85cc60e87561a9c7364fa80fdb3332df#0a0f935a)
+    Checking redjubjub-frost v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/redjubjub-frost)
+    Checking shieldd-orbis-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/util/orbis-client)
+    Checking shieldd-sdk-bench-support v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench-support)
+    Checking shieldd-sdk-custody v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/custody)
+    Checking shieldd-sdk-bench v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench)
+    Checking shieldd v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/shieldd)
+    Checking pcli v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/pcli)
+    Checking orbis-integration v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/orbis-integration)
+    Checking bankd-e2e-host-withdrawal-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-host-withdrawal-builder)
+    Checking bankd-e2e-spend-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-spend-builder)
+    Checking shieldd-sdk-tct-property-test v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/tct-property-test)
+    Finished `ci` profile [optimized] target(s) in 28.39s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`

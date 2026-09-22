@@ -72,7 +72,14 @@ pub struct SyncWorker {
     sct: shieldd_sdk_tct::Tree,
     fvk: FullViewingKey,
     compliance_snapshot: Arc<ComplianceSnapshot>,
-    history: crate::HistoricalProofWorker,
+    history_wake: Arc<tokio::sync::Notify>,
+    history_task: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for SyncWorker {
+    fn drop(&mut self) {
+        self.history_task.abort();
+    }
 }
 
 impl SyncWorker {
@@ -82,34 +89,48 @@ impl SyncWorker {
         witness_source: Arc<dyn crate::HistoricalWitnessSource>,
     ) -> anyhow::Result<Self> {
         let snapshot_height = storage.last_sync_height().await?;
-        let mut worker = Self {
-            snapshot_height,
-            sct: storage.state_commitment_tree().await?,
-            fvk: storage.full_viewing_key().await?,
-            compliance_snapshot: Arc::new(ComplianceSnapshot {
-                user_tree: storage.compliance_user_tree().await?,
-                asset_tree: storage.compliance_asset_tree().await?,
-            }),
-            history: crate::HistoricalProofWorker::new(storage.clone(), witness_source, registry)
-                .await?,
-            storage,
-        };
+        let sct = storage.state_commitment_tree().await?;
+        let fvk = storage.full_viewing_key().await?;
+        let compliance_snapshot = Arc::new(ComplianceSnapshot {
+            user_tree: storage.compliance_user_tree().await?,
+            asset_tree: storage.compliance_asset_tree().await?,
+        });
+        let mut history =
+            crate::HistoricalProofWorker::new(storage.clone(), witness_source, registry).await?;
         anyhow::ensure!(
-            worker.storage.last_sync_height().await? == snapshot_height,
+            storage.last_sync_height().await? == snapshot_height,
             "wallet advanced while loading snapshot; recreate sync worker"
         );
-        worker.update_history().await;
-        Ok(worker)
+        let history_wake = Arc::new(tokio::sync::Notify::new());
+        let wake = history_wake.clone();
+        let history_task = tokio::spawn(async move {
+            loop {
+                if let Err(error) = history.update().await {
+                    tracing::warn!(
+                        ?error,
+                        "history update deferred after committed wallet state"
+                    );
+                }
+                tokio::select! {
+                    _ = wake.notified() => {},
+                    _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {},
+                }
+            }
+        });
+        Ok(Self {
+            storage,
+            snapshot_height,
+            sct,
+            fvk,
+            compliance_snapshot,
+            history_wake,
+            history_task,
+        })
     }
 
-    /// Retry deferred history work without rescanning a committed block.
-    pub async fn update_history(&mut self) {
-        if let Err(error) = self.history.update().await {
-            tracing::warn!(
-                ?error,
-                "history update deferred after committed wallet state"
-            );
-        }
+    /// Schedule deferred history work without waiting for external witnesses or proving.
+    pub fn request_history_update(&self) {
+        self.history_wake.notify_one();
     }
 
     async fn prepare_compliance_block(
@@ -372,7 +393,7 @@ impl SyncWorker {
         self.sct = next_sct;
         self.compliance_snapshot = next_compliance_snapshot;
         self.snapshot_height = Some(height);
-        self.update_history().await;
+        self.request_history_update();
         Ok(())
     }
 }
