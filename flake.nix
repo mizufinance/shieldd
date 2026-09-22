@@ -105,6 +105,10 @@
 
           # Common shell hook content
           commonShellHook = ''
+            # Bare Wasm has no host libc or host-specific compiler hardening flags.
+            export CC_wasm32_unknown_unknown=${pkgs.llvmPackages.clang-unwrapped}/bin/clang
+            export AR_wasm32_unknown_unknown=${pkgs.llvmPackages.llvm}/bin/llvm-ar
+            export CFLAGS_wasm32_unknown_unknown="-resource-dir=${pkgs.llvmPackages.clang-unwrapped.lib}/lib/clang/${pkgs.lib.versions.major pkgs.llvmPackages.clang-unwrapped.version}"
             export LIBCLANG_PATH=${LIBCLANG_PATH}
             export RUST_SRC_PATH=${pkgs.rustPlatform.rustLibSrc} # Required for rust-analyzer
             export ROCKSDB_LIB_DIR=${ROCKSDB_LIB_DIR}

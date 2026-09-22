@@ -86,7 +86,10 @@ jobs:
           free-disk: "true"
 
       - name: Generate development Pari registry
-        run: nix develop .#ci --command just pari-setup
+        run: |
+          export SHIELDD_PARI_KEYS="$RUNNER_TEMP/shieldd-pari-keys"
+          printf 'SHIELDD_PARI_KEYS=%s\n' "$SHIELDD_PARI_KEYS" >> "$GITHUB_ENV"
+          nix develop .#ci --command just pari-setup
 
       - name: Reproduce pinned Commonware sources and patches
         run: nix develop .#ci --command python3 scripts/commonware.py reproduce
