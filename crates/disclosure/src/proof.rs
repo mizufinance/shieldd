@@ -15,9 +15,6 @@ use shieldd_sdk_circuits::{
 use shieldd_sdk_crypto::{domains, Fq};
 use shieldd_sdk_proof_params::pari::Registry;
 
-pub const CIRCUIT_ID_ONE: &str = "shieldd.disclosure.jubjub.pari.v2.1";
-pub const CIRCUIT_ID_MANY: &str = "shieldd.disclosure.jubjub.pari.v2.32";
-
 fn family(request: &DisclosureRequest) -> Result<Family> {
     validate_request(request)?;
     Ok(if request.outputs.len() == 1 {

@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 pub const VERSION: u32 = 2;
+pub const CIRCUIT_ID_ONE: &str = "shieldd.disclosure.jubjub.pari.v2.1";
+pub const CIRCUIT_ID_MANY: &str = "shieldd.disclosure.jubjub.pari.v2.32";
 pub const MAX_OUTPUTS: usize = 32;
 pub const MAX_DOCUMENT_BYTES: usize = 64 * 1024;
 pub const MAX_WITNESS_BYTES: usize = 16 * 1024 * 1024;
