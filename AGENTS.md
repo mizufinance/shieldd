@@ -75,6 +75,14 @@ Repository skills for investigation, planning, testing and review are linked fro
 - Keep docs concise without line quotas. Include non-obvious preconditions, trust sources, ownership, ordering, atomicity, cancellation and failure behavior; retain necessary cryptographic and storage invariants.
 - Define docs once; reference elsewhere.
 
+## Pull Request Descriptions
+
+- Start with a few short sentences stating the high-level goal of the full PR.
+- Follow with a flat bullet list of everything included, grouped by meaningful change or component. Cover the complete branch diff against the target branch, not just the latest commit or review fixes.
+- Describe the resulting design and behavior. Omit implementation chronology and conversation history.
+- Include material integration impact, verification results and unrun checks as concise bullets in that list. Link detailed evidence rather than turning the description into a test or review report.
+- Use this goal-then-list structure instead of separate Change, Verification and Integration impact sections. Follow [the PR template](.github/pull_request_template.md).
+
 ## Formal Verification Boundary
 
 Formal verification lives in `mizufinance/shieldd-security`, which pins an exact
