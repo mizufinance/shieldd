@@ -1,0 +1,29 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-proto v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/proto)
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+   Compiling shieldd-sdk-num v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/num)
+   Compiling shieldd-sdk-asset v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/asset)
+   Compiling shieldd-sdk-tct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/tct)
+   Compiling shieldd-sdk-keys v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/keys)
+   Compiling shieldd-sdk-txhash v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/txhash)
+   Compiling cnidarium-component v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/cnidarium-component)
+   Compiling shieldd-sdk-sct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/sct)
+   Compiling shieldd-sdk-proof-params v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/proof-params)
+   Compiling shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+   Compiling shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+   Compiling shieldd-sdk-fee v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/fee)
+   Compiling shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+   Compiling shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+   Compiling shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+   Compiling shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+   Compiling shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+    Finished `ci` profile [optimized] target(s) in 1m 01s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_view-b92b3277fd8a1cf0)
+
+running 1 test
+test storage::historical_worker_tests::opus_review_pending_history_blocks_sync_startup ... REPRODUCED: immediate witness error permits startup; pending witness blocks startup beyond 2 seconds
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 14.13s

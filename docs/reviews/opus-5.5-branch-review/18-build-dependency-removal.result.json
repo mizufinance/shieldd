@@ -1,0 +1,67 @@
+{
+  "subtype": "success",
+  "is_error": false,
+  "total_cost_usd": 1.0010412000000002,
+  "num_turns": 47,
+  "usage": {
+    "input_tokens": 70,
+    "cache_creation_input_tokens": 58792,
+    "cache_read_input_tokens": 1309326,
+    "output_tokens": 13428,
+    "output_tokens_details": {
+      "thinking_tokens": 4013
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 58792,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3664,
+        "cache_read_input_tokens": 61818,
+        "cache_creation_input_tokens": 903,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 903
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 70,
+      "outputTokens": 13428,
+      "cacheReadInputTokens": 1309326,
+      "cacheCreationInputTokens": 58792,
+      "webSearchRequests": 0,
+      "costUSD": 1.0010412000000002,
+      "contextWindow": 200000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4013,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "sector": "18-build-dependency-removal",
+  "exit_code": 0,
+  "seconds": 173.1,
+  "tool_calls": 46,
+  "models": [
+    "claude-opus-5-5"
+  ],
+  "partial_checkpoint_count": 4,
+  "report": "18-build-dependency-removal.md",
+  "checkpoint_report": "18-build-dependency-removal.checkpoints.md",
+  "status": "reviewed"
+}

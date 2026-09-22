@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--profile",
+    "ci",
+    "-p",
+    "shieldd-sdk-view",
+    "--all-features",
+    "--lib",
+    "opus_review_pending_history_blocks_sync_startup",
+    "--",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "exit_code": 0,
+  "seconds": 75.56904683297034,
+  "source_restored": true
+}

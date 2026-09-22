@@ -1,0 +1,352 @@
+{
+  "base": "57eb44e8cae809c68974ed5d6723bdb904b2f8c1",
+  "head": "c4b8b6d28e54b5e1d50769ee12209b56d613a60d",
+  "model": "claude-opus-5-5",
+  "execution": "One fresh bounded review at a time; durable checkpoint before advancing; read-only tools; no builds or nested agents.",
+  "sectors": [
+    {
+      "name": "01-native-prover-boundary",
+      "focus": "Native prove/verify/batch APIs, registry key/relation identity, soundness of four local vendor patches, decoding, upgrade boundary. Imported upstream is provenance/integration scope, not an exhaustive upstream audit.",
+      "files": 379,
+      "status": "partial",
+      "report": "01-native-prover-boundary.md",
+      "accounted_cost_usd": 0.3458024,
+      "seconds": 53.7
+    },
+    {
+      "name": "01b-native-provenance-followup",
+      "focus": "Finish sector 01 provenance/build/historical registry integration and verify native transcript binding assumptions. Inspect upstream cryptography/src/zk/pari/verifier.rs and relevant transcript code; avoid unrelated imported sources. Inventory exact files omitted or covered only via deletion/reference review.",
+      "files": 10,
+      "status": "reviewed",
+      "report": "01b-native-provenance-followup.md",
+      "accounted_cost_usd": 0.4399482,
+      "seconds": 68.1
+    },
+    {
+      "name": "02-crypto-primitives",
+      "focus": "Jubjub subgroup and canonical encoding, DH, generator/hash/domain separation, Poseidon parameter provenance and Orbis interoperability.",
+      "files": 12,
+      "status": "reviewed",
+      "report": "02-crypto-primitives.md",
+      "accounted_cost_usd": 0.4534668,
+      "seconds": 92.5
+    },
+    {
+      "name": "03-circuit-gadgets-catalogue",
+      "focus": "Arithmetic ranges/scalar decomposition, group operations, map, hash, tree position encoding, statement binding, family catalogue.",
+      "files": 19,
+      "status": "partial",
+      "report": "03-circuit-gadgets-catalogue.md",
+      "accounted_cost_usd": 0.8046513999999999,
+      "seconds": 115.8
+    },
+    {
+      "name": "03b-catalogue-encryption-tests-followup",
+      "focus": "Finish the explicitly unread runtime and tests from sector 03: hash width dispatch, catalogue template bodies, encryption outside constrain, fixtures and independent map tests, examples and crate/library wiring.",
+      "files": 12,
+      "status": "partial",
+      "report": "03b-catalogue-encryption-tests-followup.md",
+      "accounted_cost_usd": 0.3579382,
+      "seconds": 57.4
+    },
+    {
+      "name": "04-transaction-circuits",
+      "focus": "Transfer/withdrawal/reshape witness constraints; conservation, authorization, compliance, padding, public-input openings and recovery capsules.",
+      "files": 14,
+      "status": "partial",
+      "report": "04-transaction-circuits.md",
+      "accounted_cost_usd": 0.795333,
+      "seconds": 111.5
+    },
+    {
+      "name": "05-audit-history-circuits",
+      "focus": "Disclosure, history, seizure and recovery constraints: authorization scope, statement binding, completeness, nonmembership and recipient/RNK recovery.",
+      "files": 9,
+      "status": "partial",
+      "report": "05-audit-history-circuits.md",
+      "accounted_cost_usd": 0.43298059999999994,
+      "seconds": 70.1
+    },
+    {
+      "name": "06-compliance-registration-registry",
+      "focus": "Asset/user registration authority, key separation, tree commitments/paths, anchors, timestamp boundaries, leaf lifecycle and durable state.",
+      "files": 23,
+      "status": "partial",
+      "report": "06-compliance-registration-registry.md",
+      "accounted_cost_usd": 0.5433334,
+      "seconds": 88.2
+    },
+    {
+      "name": "07-scanner-audit",
+      "focus": "Screening versus audit authority, PET/decryption evidence, scanner concurrency/reorgs/failures, audit completion and validation.",
+      "files": 15,
+      "status": "partial",
+      "report": "07-scanner-audit.md",
+      "accounted_cost_usd": 0.592722,
+      "seconds": 65.4
+    },
+    {
+      "name": "08-shielded-pool-actions",
+      "focus": "Runtime witness adapters, proof/public-input parity, spend/nullifier/padding behavior, capsules, action execution and output scope.",
+      "files": 51,
+      "status": "partial",
+      "report": "08-shielded-pool-actions.md",
+      "accounted_cost_usd": 0.8942119999999998,
+      "seconds": 122.6
+    },
+    {
+      "name": "09-app-proof-admission",
+      "focus": "Native verification and batching, ordering, admission caches, registry binding, cancellation and transaction-to-state authorization.",
+      "files": 18,
+      "status": "partial",
+      "report": "09-app-proof-admission.md",
+      "accounted_cost_usd": 0.6876346,
+      "seconds": 100.0
+    },
+    {
+      "name": "10-host-lifecycle-persistence",
+      "focus": "Host state machine/C ABI, block failure/rollback, packed nullifier storage and maintenance, TCT persistence and canonical identifiers.",
+      "files": 46,
+      "status": "partial",
+      "report": "10-host-lifecycle-persistence.md",
+      "accounted_cost_usd": 0.8688806,
+      "seconds": 132.3
+    },
+    {
+      "name": "11-wallet-history-workers",
+      "focus": "Durable history jobs, stale ownership/CAS, retries, terminal completion, proof cache identity and bounded concurrency.",
+      "files": 4,
+      "status": "partial",
+      "report": "11-wallet-history-workers.md",
+      "accounted_cost_usd": 0.4847876,
+      "seconds": 80.4
+    },
+    {
+      "name": "12-wallet-storage-sync",
+      "focus": "Wallet SQLite schema, scan/replay/rollback, daily volume reservations/completion atomicity, tree adapter proofs and persistence.",
+      "files": 10,
+      "status": "reviewed",
+      "report": "12-wallet-storage-sync.md",
+      "accounted_cost_usd": 0.7596924000000002,
+      "seconds": 96.1
+    },
+    {
+      "name": "13-wallet-planning",
+      "focus": "Regulated/unregulated planning, capsule and accumulator binding, action shape/fees, reservation lifetime and error paths.",
+      "files": 8,
+      "status": "partial",
+      "report": "13-wallet-planning.md",
+      "accounted_cost_usd": 0.5692300000000001,
+      "seconds": 96.3
+    },
+    {
+      "name": "14-keys-assets-signing",
+      "focus": "Key encodings/derivations and signatures, address scopes, asset/balance codecs, curve migration effects and removed obsolete key surfaces.",
+      "files": 45,
+      "status": "partial",
+      "report": "14-keys-assets-signing.md",
+      "accounted_cost_usd": 0.8519857999999999,
+      "seconds": 91.8
+    },
+    {
+      "name": "15-transactions-custody",
+      "focus": "Transaction auth/effect/public binding, witness/planning plumbing, threshold import validation, custody and removed Ledger support.",
+      "files": 68,
+      "status": "partial",
+      "report": "15-transactions-custody.md",
+      "accounted_cost_usd": 0.7994180000000001,
+      "seconds": 102.8
+    },
+    {
+      "name": "16-disclosure-packages",
+      "focus": "Disclosure request/evidence binding, selective openings, proof verification outcomes, issuer/Orbis claims and ciphertext scope.",
+      "files": 14,
+      "status": "partial",
+      "report": "16-disclosure-packages.md",
+      "accounted_cost_usd": 0.5974607999999999,
+      "seconds": 72.1
+    },
+    {
+      "name": "17-cli-protobuf-external-contracts",
+      "focus": "CLI invocation/cancellation/export, protobuf/domain parity, Orbis client expectations, host builders and integration scenarios.",
+      "files": 65,
+      "status": "partial",
+      "report": "17-cli-protobuf-external-contracts.md",
+      "accounted_cost_usd": 0.6822592,
+      "seconds": 82.6
+    },
+    {
+      "name": "18-build-dependency-removal",
+      "focus": "Build and artifact integrity, CI gates/features/platforms, dependency provenance, obsolete Groth16/SnarkPack/gnark removal, benchmark validity.",
+      "files": 317,
+      "status": "partial",
+      "report": "18-build-dependency-removal.md",
+      "accounted_cost_usd": 1.0010412000000002,
+      "seconds": 173.1
+    },
+    {
+      "name": "19-docs-guidance-evidence",
+      "focus": "Current contract/doc consistency, agent workflow simplicity and correctness, test-cleanup decision quality, archival evidence provenance. Do not consume historical logs wholesale.",
+      "files": 292,
+      "status": "partial",
+      "report": "19-docs-guidance-evidence.md",
+      "accounted_cost_usd": 1.0583748,
+      "seconds": 160.2
+    },
+    {
+      "name": "20a-shared-circuit-test-fixtures",
+      "focus": "Finish shared circuit test/fixture/example files left unread in sectors 03/03b. Check independent oracles, intended negative boundaries, shape coverage, fixture correctness and crate feature wiring. Read all assigned current files; this is a deliberately small follow-up.",
+      "files": 6,
+      "status": "pending"
+    },
+    {
+      "name": "20b-transaction-circuit-tests",
+      "focus": "Finish the transaction circuit tests plus routing::constrain_single and volume tests left unread in sector 04. Check negative controls, distinct behavior coverage, runtime/circuit parity and flags without adding mirror tests.",
+      "files": 6,
+      "status": "pending"
+    },
+    {
+      "name": "20c-audit-history-circuit-tests",
+      "focus": "Finish audit/disclosure/history/seizure circuit test modules left unread in sector 05. Inspect every assigned test body for independent assertions, negative reachability and distinct current invariants. Cross-check claimed weaknesses against existing tests.",
+      "files": 4,
+      "status": "pending"
+    },
+    {
+      "name": "06b-compliance-encryption-codecs",
+      "focus": "Finish compliance cryptography, issuer keys, ciphertext codecs, events, queries and genesis references left unread in sector 06. Read every assigned runtime file and tests relevant to boundary changes; identify exact gaps if any.",
+      "files": 12,
+      "status": "partial",
+      "report": "06b-compliance-encryption-codecs.md",
+      "accounted_cost_usd": 0.8014551999999999,
+      "seconds": 93.5
+    },
+    {
+      "name": "06c-compliance-trees-lifecycle-tests",
+      "focus": "Finish tree/hash/path changes, certificate timestamp/expiry validation, status/freeze/seizure lifecycle, and associated tests. Registration/insertion/key validation were covered in sector 06; focus on its unread portions. Inspect current requirement coverage and loss from consolidated tests.",
+      "files": 9,
+      "status": "pending"
+    },
+    {
+      "name": "08b-proof-adapters-capsules",
+      "focus": "Finish the assigned branch diffs left unread in sector 08. Review every assigned diff, follow current callers as needed, and focus on actual current regressions. Public statement/adaptor/capsule parity is critical; plans and tests must match the same canonical families. Do not repeat the already-settled fee-context, anchor and zero-withdrawal hypotheses.",
+      "files": 6,
+      "status": "partial",
+      "report": "08b-proof-adapters-capsules.md",
+      "accounted_cost_usd": 0.40791440000000007,
+      "seconds": 56.7
+    },
+    {
+      "name": "08c-proof-plans-families",
+      "focus": "Finish the assigned branch diffs left unread in sector 08. Review every assigned diff, follow current callers as needed, and focus on actual current regressions. Public statement/adaptor/capsule parity is critical; plans and tests must match the same canonical families. Do not repeat the already-settled fee-context, anchor and zero-withdrawal hypotheses.",
+      "files": 17,
+      "status": "pending"
+    },
+    {
+      "name": "08d-action-plumbing-tests",
+      "focus": "Finish the assigned branch diffs left unread in sector 08. Review every assigned diff, follow current callers as needed, and focus on actual current regressions. Public statement/adaptor/capsule parity is critical; plans and tests must match the same canonical families. Do not repeat the already-settled fee-context, anchor and zero-withdrawal hypotheses.",
+      "files": 30,
+      "status": "pending"
+    },
+    {
+      "name": "09b-admission-runtime-residual",
+      "focus": "Finish sector 09 unread runtime diff regions: transaction.rs outside 368\u2013416 and 510\u2013600, PrepareProposal mod.rs fallback and changes not covered by prior report, small stateless/candidate/batch/config/library/support patches; audit surviving references after deleted preconsensus/aggregate diagnostics. Prior report is available; avoid repeating capability registry trace already confirmed. Investigate Invalid cache insertion of JoinError only if introduced and practically triggered; compare baseline. Read every assigned residual diff.",
+      "files": 10,
+      "status": "pending"
+    },
+    {
+      "name": "09c-admission-tests",
+      "focus": "Finish all changed current admission and cancellation tests, accounting for deleted tests by current invariant owners. Check the proof gate genuinely calls the native backend, negative cases reach intended boundary, and ordering/cache cancellation faults would fail. Do not re-read discarded backend test code wholesale.",
+      "files": 3,
+      "status": "pending"
+    },
+    {
+      "name": "10b-host-service-residual",
+      "focus": "Finish host diff outside seizure/commit sections and service diff after first 260 lines, including all associated C ABI headers, examples, tests, config/library and app-version changes. Assess partial state and rollback at host calls. Sector10 constructor cleanup claim requires real async-drop leak evidence, not missing explicit release alone; cnidarium dispatcher exits when sender drops.",
+      "files": 10,
+      "status": "pending"
+    },
+    {
+      "name": "10c-nullifier-pack-residual",
+      "focus": "Finish all SCT/nullifier packed-storage diffs and tests left unread in sector10; that pass read maintain_one_page/ensure_pack and readiness/receipt/prune snippets only. Check pack bounds/hash/receipt identity, pruning, crash/reopen/failure paths, current tests and cursor behavior. Read all assigned changed regions.",
+      "files": 10,
+      "status": "pending"
+    },
+    {
+      "name": "10d-tct-residual",
+      "focus": "Finish TCT changed-file diffs and tests. Sector10 covered commitment/hash/jubjub_path parity; concentrate on serialization, cache sentinel, path/proof, frontier/tree/structure and error changes. Leaf=commitment with 0/1 padding is a documented deliberate domain choice; a current exploit requires ability to open a corresponding note commitment, not arbitrary tree insertion alone. Check field canonicality and empty sentinel persistence.",
+      "files": 25,
+      "status": "pending"
+    },
+    {
+      "name": "11b-history-cache-tests-residual",
+      "focus": "Finish sector11 unread historical_proof_cache.rs lines225\u2013309 and after549 plus every new test body in historical_proof_cache/tests.rs and storage/historical_worker_tests.rs. Assess real negative boundary reachability and current distinct requirements, rather than names. Worker/CAS runtime already reviewed. Inline sync liveness issue is being reproduced by coordinator; do not repeat that investigation.",
+      "files": 3,
+      "status": "pending"
+    },
+    {
+      "name": "13b-planning-test-residual",
+      "focus": "Finish note_manager.rs test diff lines700\u20132101 (runtime already reviewed in13), evaluate deleted/consolidated cases by current failure detection, and check whether fee-funding successor_state returns None in context2 even if base asset regulated. Sector13 suggested two volume transitions might reject paid regulated-base withdrawal; verify actual construction before calling a bug. Synthetic unregulated membership gating is already assigned circuits/runtime adapters.",
+      "files": 2,
+      "status": "pending"
+    },
+    {
+      "name": "14b-frost-keys-test-residual",
+      "focus": "Finish full FROST lib.rs/dkg.rs and tests plus added key/commitment tests left unread in14. Trace DKG/dealer/import validation and subgroup behavior using pinned upstream sources in the Cargo cache if needed (read-only cache permitted). Verify current min_signers policy without inventing compatibility. Randomized spend keys must have actual boundary subgroup/nonidentity guards; do not mistake arbitrary byte wrappers for accepted signatures.",
+      "files": 6,
+      "status": "reviewed",
+      "report": "14b-frost-keys-test-residual.md",
+      "accounted_cost_usd": 0.30835979999999996,
+      "seconds": 49.6
+    },
+    {
+      "name": "15b-transaction-custody-residual",
+      "focus": "Finish sector15 unread small transaction and remaining custody diffs and associated tests. Check DKG Config construction validates before persistence, randomized binding signature transaction-ID usage where callers actually depend on retries, and declared surfaces after Ledger deletion. Sector15 conservation/sign/config critical paths already reviewed; investigate FVK identity panic only if constructor accepts identity. Inventory-only deleted Ledger/reference files covered through removal references, not line-by-line dead code.",
+      "files": 16,
+      "status": "pending"
+    },
+    {
+      "name": "16b-disclosure-residual",
+      "focus": "Finish sector16 unread examples/claims tests and remaining audit/evidence/orbis changed diff/test regions; current critical runtime already reviewed. Check BLS delivery-key GroupAffine::from_bytes subgroup/canonical validation in pinned orbis_crypto source (read-only Cargo cache permitted). Crypto nonidentity subgroup validated in02. Ignored real proof tests run in mandatory CI just pari-proof-tests and all19 gates already passed in preceding verification; do not report ignored attribute alone as absent coverage. Separate optional runtime edge cases from current defects.",
+      "files": 6,
+      "status": "pending"
+    },
+    {
+      "name": "17b-cli-builders-test-residual",
+      "focus": "Finish unread small CLI/host builders/app integration tests/mock-client/proto wiring paths from sector17. Read all assigned diffs and validate current contract expectations, test negative reachability and obsolete Ledger/backend references. paid_wallet_withdrawal runtime test already reviewed; do not duplicate broad disclosure proof review. Generated protobuf bodies are codegen/provenance scope covered by18, not line-by-line audit.",
+      "files": 30,
+      "status": "pending"
+    },
+    {
+      "name": "18b-build-scripts-test-residual",
+      "focus": "Finish unread line-level changed build/documentation/feature/artifact Python scripts and tests from18. Review every assigned diff including negative-control preservation. Compiler version mismatch, stale deny comment and unavailable legacy Orbis tooling already noted in18; do not repeat. Coordinator is running wasm-check separately. Root Cargo.lock exhaustive diff is dependency provenance/removal scope; no need audit all dependency source.",
+      "files": 10,
+      "status": "pending"
+    },
+    {
+      "name": "19b-current-doc-residual",
+      "focus": "Finish every current-doc diff only spot-checked in19. Validate current protocol/API claims against source with bounded targeted lookups; especially envelope244bytes,batchfallback32,historytail10,onepayloadkey,RNK/issuer separation, durability/registry. Claude.md removal explicitly requested by user; do not add aliases or change harness support merely from missing Claude autoload. Coordinator explicitly injects AGENTS and review skill into every Opus CLI invocation. Archived historical logs are provenance/index scope already covered, not all byte-by-byte audit.",
+      "files": 11,
+      "status": "pending"
+    },
+    {
+      "name": "08e-statement-encoding-residual",
+      "focus": "Finish exact unread portions from08b. Read current public_input_hash.rs fully (transfer/reshape/audit especially), compare original diff by surviving changes rather than spending tokens retired encoding. Finish note_seizure changed validation/codec/tests outside already reviewed prove/verify; volume_accumulator new93byte layout/encryption and changed tests; note.rs remaining changed runtime/test hunks. Field ordering/public digest parity is critical. All adapters and capsule encryption already reviewed in08b. Prior reports available. Complete these four residuals before ending if within hard dollar cap; do not arbitrarily stop because runtime priority portion done.",
+      "files": 4,
+      "status": "reviewed",
+      "report": "08e-statement-encoding-residual.md",
+      "accounted_cost_usd": 0.8286034000000001,
+      "seconds": 118.6
+    },
+    {
+      "name": "06d-compliance-test-residual",
+      "focus": "Finish only unread test hunks from06b: issuer_keys diff after310, withdrawal diff after170, pari_runtime assertion tail after150. Runtime encryption/codecs already reviewed. Read every assigned changed current test body; check route/key/word-binding negative controls and absence of false coverage claims. Broad workspace tests and proof gates previously passed. No need repeat actual proving.",
+      "files": 3,
+      "status": "pending"
+    }
+  ],
+  "changed_files": 1409,
+  "review_state": "paused_usage_reserve",
+  "pause_reason": "Account five-hour allowance reached84%; pause before the default85% reserve boundary. Remaining follow-ups are incomplete.",
+  "completed_invocations": 25,
+  "pending_invocations": 19
+}

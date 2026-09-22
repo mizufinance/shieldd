@@ -1,0 +1,14 @@
+[
+  {
+    "file": "poseidon381.json",
+    "width": 3,
+    "nonsingular_square_minors": 19,
+    "all_square_minors_nonsingular": true
+  },
+  {
+    "file": "poseidon381-wide.json",
+    "width": 6,
+    "nonsingular_square_minors": 923,
+    "all_square_minors_nonsingular": true
+  }
+]
