@@ -19,8 +19,8 @@ counterexample in the owning test if the requirement still exists. Completed
 experiments should leave the correctness suite; ongoing measurements belong in
 benchmark tooling.
 
-For substantial consolidation, map removed cases to their retained assertions in
-the task report. Preserve distinct inputs and observations, not test counts.
+For substantial consolidation, explain retained coverage in the task or PR;
+do not commit a review inventory. Preserve distinct inputs and observations, not test counts.
 Avoid giant parameterized tests or fixture frameworks introduced merely to reduce
 the number of functions. Do not add tests for trivial forwarding or reversible
 documentation changes without a meaningful behavior to protect.

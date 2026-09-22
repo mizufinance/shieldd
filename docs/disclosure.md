@@ -1,4 +1,4 @@
-# Voluntary transaction disclosure
+# Disclosure and audit interfaces
 
 Disclosure is an off-chain wallet operation. It never reserves notes or modifies
 payment proofs, commitments, consensus, or spendable balances. PET-gated compliance collection is unavailable; local evidence review is separate.
@@ -89,34 +89,6 @@ kills its process group. A package is published atomically only after verificati
 existing files are never overwritten. Import stores the original verified receipt
 without adding spendable notes.
 
-## Target Orbis/Defra flow
-
-This is the target named-person audit flow. Live PET and direct share delivery
-are not implemented; the Orbis demo below remains separate.
-
-- Register KYC, approved address, and public keys in Defra.
-- Register the approved address and keys in Shieldd.
-- Encrypt transaction tiers and PET-ready ownership ciphertexts, with a ZK proof binding them to the transaction.
-- Store ciphertexts on-chain; Defra can keep pointers to Shinzo/Mizu.
-- Auditor requests access through ACP.
-- Auditor sends ciphertexts or references and authorization to Orbis.
-- Orbis checks authorization and performs PET for the requested person.
-- After a match, Orbis nodes produce verifiable PRE shares for the authorized fields.
-- Orbis nodes send the shares to the approved Defra nodes.
-- Auditor retrieves and verifies the shares, combines them, and decrypts.
-- Auditor optionally attests that the evidence was retrieved and verified.
-
-Before sending the Orbis request, create a result document referencing the
-transaction and request, without a decrypted result. Each share is a separate
-document linked to it and bound to the same request. The auditor needs enough
-valid shares from distinct Orbis participants, then may store the decrypted result
-under its own access policy. An attestation is not proof of durable replication.
-
-Use regular Defra collections with explicit read permissions and replication.
-Gather shares through collection replication or fetch known share document IDs;
-[filtered P2P discovery](https://github.com/sourcenetwork/defradb/issues/4032)
-would simplify finding them. Branchable collection history is not required.
-
 ## PET-ready audit selection
 
 `audit-ciphertext` resolves an ordinary Transfer from the chosen node using
@@ -132,33 +104,18 @@ PET or authorization. Voluntary and issuer verification remain separate supporte
 local operations. Issuer evidence retains its additional amount/detection
 capability; flagged payload fields remain issuer-only.
 
-The asset policy authenticates one payload key for amount, sender and receiver,
-and a separate ownership-checking key, plus an epoch. User leaves authenticate
-address-scoped RNK derivation and lifecycle.
-The fingerprint maps the Poseidon-381 `OWNERSHIP` hash of the four affine
-coordinates of the two address points into the Jubjub subgroup. Each party gets full ElGamal R/C points with
-independent fresh nonzero randomness. Role is bound by proof position and audit
-selection. Unregulated proofs select sink keys.
+The [compliance tier table](compliance/flow.md#transfer-visibility) defines the
+owner and payload for each selection. The [external contract](jubjub-external-contract.md#orbis)
+defines fingerprinting, ownership ciphertexts and request-bound PET/release.
 
-| Tier | Owner checked | Payload field |
-| --- | --- | --- |
-| sender_core | Sender | Amount |
-| sender_ext | Sender | Receiver address |
-| output_core | Receiver | Amount |
-| output_ext | Receiver | Sender address |
+The Shieldd adapter has no live distributed PET or direct participant-share
+delivery. It does not simulate collection or fall back to generic PRE.
+Development keys are synthetic. External authorization, share delivery and
+storage integration belong to Bankd and Orbis.
 
-Live distributed PET, authenticated multi-family provisioning and direct
-participant deposits are unavailable in the inspected upstream baseline. No
-ordinary command simulates collection or falls back to generic PRE. Development
-keys are synthetic. Bankd's local client stores exact evidence bytes and separate
-reader-signed manual endorsements directly in Defra; endorsements are explicitly
-shared and bound to an exact version. The complete upstream capability and
-trusted-tester restrictions register is maintained in
-[Bankd GAPS.md](https://github.com/mizufinance/bankd/blob/codex/disclosure-integration/infra/disclosure-audit/GAPS.md).
-
-Native circuit domains, proof sizes and measured costs are recorded in
-[Native proof benchmarks](benchmarks.md). Transaction size depends on its actions
-and payloads.
+See [Circuits](circuits.md) for relation coverage, [Proof system](proof-system.md)
+for proof envelopes, and [Benchmarks](benchmarks.md) for measurement commands.
+Transaction size depends on its actions and payloads.
 
 Pool, wallet and scanner stores reject incompatible prototype schemas. Start
 with fresh local stores and the shared [Pari registry](proof-system.md); there
@@ -179,7 +136,7 @@ fresh challenges; replaying a stored proof does not demonstrate fresh control.
 
 ## Local proving artifacts
 
-The fixed 32-slot native circuit constrains selectors, inactive padding, field
+The selected native disclosure circuit constrains selectors, inactive padding, field
 revelation, 128-bit amounts, totals, predicates and a statement-context hash.
 The verifier reconstructs public inputs and requires the configured registry's
 exact relation and verification-key identity. See [Proof system](proof-system.md).

@@ -1,8 +1,7 @@
 # Protocol reference
 
 This page describes current Shieldd records. Exact field ordering and encodings
-live in the linked code and schemas; cryptographic relations also have independent
-Rust/Go vectors. Internal format policy is in [AGENTS.md](../AGENTS.md).
+live in the linked code and schemas. Internal format policy is in [AGENTS.md](../AGENTS.md).
 
 ## Keys and addresses
 
@@ -14,8 +13,9 @@ sent-note data. Proving can be delegated without giving the builder signing keys
 Key constructors enforce the current nonzero/nonidentity refinements.
 
 [Addresses](../crates/core/keys/src/address.rs) contain a 16-byte diversifier and
-32-byte canonical transmission key. The 48-byte payload is F4Jumbled and Bech32m
-encoded. Diversifiers are AES-derived from address indices; the diversified
+32-byte canonical transmission key. The payload is F4Jumbled; serialized addresses
+include the suite tag defined in [interoperability](jubjub-external-contract.md#keys-and-encodings)
+and use Bech32m for text. Diversifiers are AES-derived from address indices; the diversified
 basepoint uses the `Shieldd_Divrsfy` domain, and the transmission key is
 `ivk * B_d`. There is no separate discovery key in the address. Exact key KDF
 labels and rejection rules live in [keys](../crates/core/keys/src/keys).
@@ -90,8 +90,7 @@ Bankd settles the resulting host effects and owns all IBC execution.
 compliance facts; the canonical proof family is `shielded_withdrawal`.
 
 [Native circuits](../crates/crypto/circuits/src) and Rust witness projections
-share Jubjub encodings and Poseidon-381 domains. Exact relation coverage is in
-the [Transfer](transfer-circuit/constraint-checklist.md) and
-[compliance](compliance/constraint-checklist.md) checklists. The
+share Jubjub encodings and Poseidon-381 domains. Relation coverage is defined in
+[Circuit constraints](circuits.md). The
 [proof registry](proof-system.md) binds each circuit relation and its configured
 verification key. Key changes require fresh pool and wallet state.

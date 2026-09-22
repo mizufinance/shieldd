@@ -1,8 +1,8 @@
 # Proof-bound note routing
 
-Shieldd addresses are exactly 48 bytes: a 16-byte diversifier followed by the
-32-byte transmission key. Routing derives directly from that transmission key
-and does not use fuzzy message detection.
+Routing derives directly from the address transmission key and does not use
+fuzzy message detection. [Interoperability](jubjub-external-contract.md#keys-and-encodings)
+defines the suite-tagged address encoding.
 
 For every address, the stable routing word is
 
@@ -61,18 +61,10 @@ recovery requires downloading the full range or adding one of those mechanisms.
 
 ## Issuer audit routing
 
-Detection-key screening authenticates the asset, regulated flag, sender and
-receiver routing classes, and the encrypted routing permutation. Slots do not
-identify an address and no registered subject selector prefilters ciphertexts.
-An authorized target-address history proof submits every required unflagged
-core tier in the authenticated range to Orbis for private match/non-match
-classification. Routing does not change consensus validity or grant an
-external system spending authority.
-
-## Performance baseline
-
-The `routing` Criterion benchmark scans two tags for each of 5,000 transfers and
-trial-decrypts matching action payloads. On the August 11, 2026 development
-machine, a 10-sample optimized run completed in 2.1051–2.1110 ms, or about
-2.37 million transfers per second. This is a local CPU baseline, not a network
-or end-to-end full-node throughput claim.
+Detection-key screening authenticates the asset, salt, flag and reserved zero;
+it does not reveal routing roles or their permutation. Slots do not identify an
+address and no registered subject selector prefilters ciphertexts. Named-person
+audit selection uses separate proof-bound ownership ciphertexts and requires
+external PET, which is not implemented. See [compliance](compliance/flow.md) and
+[audit selection](disclosure.md#pet-ready-audit-selection). Routing grants no
+spending or release authority.

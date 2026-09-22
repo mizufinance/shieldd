@@ -43,6 +43,7 @@ A witness request times out after 30 seconds and persists a retryable failure.
 Blocked, invalid and useful failure states remain durable; work becomes ready
 only after archive/proof prerequisites validate. Every worker write compares its
 expected cache row and captured nullifier window atomically; stale work is discarded.
+Spent notes cannot regain history cache rows.
 Dropping the sync worker cancels its history task. Already-started blocking proof
 work may finish without its cancelled caller publishing the result. Database
 writes already dispatched may also finish and remain guarded by the row/window

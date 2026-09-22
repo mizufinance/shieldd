@@ -1,9 +1,10 @@
-<!-- Start with a few short sentences stating the high-level goal of the full PR. -->
+## Goal
 
-<!-- Then list everything included, grouped by meaningful change or component.
-Cover the complete branch diff against the target branch, not just the latest
-commit or review fixes. Describe the resulting behavior, not the work history.
-Include material integration impact and actual verification/unrun checks as
-concise bullets; link detailed evidence. See AGENTS.md. -->
+<!-- A few sentences about the high-level purpose. Link the related issue. -->
 
--
+## What changed
+
+<!-- Summarize the major changes across the full branch. For a broad PR, use a
+few descriptive subsections with short bullets. Omit minor fixes, implementation
+inventories and work history. Mention material integration requirements and
+verification limits briefly; detailed logs belong in the task or CI, not the repo. -->

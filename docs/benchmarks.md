@@ -6,7 +6,7 @@ Use one heavy job at a time and the resource bounds in
 ```sh
 cargo bench --profile ci -p shieldd-sdk-bench --bench jubjub
 cargo run --profile ci -p shieldd-sdk-bench --bin transfer-benchmark -- \
-  --tx-count 8 --runs 3 --out target/bench/native-transfer.json
+  --tx-count 8 --runs 3 --out /tmp/shieldd-native-transfer.json
 ```
 
 The transfer benchmark generates and stores a real transaction corpus, then
@@ -27,11 +27,8 @@ The proof-only comparison uses the same extracted corpus for one-transaction
 batches and full same-family batches, alternates their order, and excludes
 extraction and warmup. Timings include task scheduling and verified receipts.
 
-
-The current nine-family artifact sizes and verification are recorded in
-[optimization implementation](reviews/circuit-state-optimization-implementation.md).
-No full application throughput benchmark was rerun after that implementation.
-Use [the experiment report](reviews/circuit-state-optimization-experiments.md) for
-the measured circuit candidates and [historical proof benchmarks](reviews/proof-benchmark-history-20260921.md)
-for earlier variants, including the 1.722 ms eight-proof verification sample.
-Those timings use their recorded relations and do not measure the current registry.
+Measure the checkout and registry being evaluated; do not reuse timings from a
+different relation or executable. Keep run outputs in local scratch space or CI
+artifacts outside the repository. Record hardware, profile, worker count, source
+revision and registry identity alongside results. [Circuits](circuits.md) owns
+family coverage; [Proof system](proof-system.md) owns registry configuration.

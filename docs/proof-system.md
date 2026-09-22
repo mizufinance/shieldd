@@ -10,10 +10,8 @@ Application commitments, key agreement and RedJubjub
 signatures use Jubjub. Poseidon operates over the BLS12-381 scalar field, which
 is Jubjub's base field. The suite is `shieldd-jubjub-pari-v1`.
 
-The [catalogue](../crates/crypto/circuits/src/catalogue.rs) fixes nine relations:
-transfer, reshape 1-to-8, reshape 8-to-1, withdrawal, seizure, one-note
-disclosure, disclosure with 32 slots, historical generation and historical chunk
-with ten raw witnesses.
+The [circuit specification](circuits.md) defines the nine relations and their
+constraint boundaries.
 Shieldd owns those relations, compliance semantics, witness construction and
 canonical encoding. Commonware owns the shared cryptographic implementation;
 [the source policy](../third_party/commonware-patches/README.md) describes its
@@ -60,14 +58,10 @@ one individual check per candidate when a batch fails. Canonical ordered
 execution admits candidates independently, counting only accepted bytes and
 spend/volume nullifiers. Validation rejects the whole proposed batch on failure.
 
-Historical generation proofs cover up to nine trailing generations. At ten,
-the wallet proves a chunk directly from ten retained raw nonmembership paths.
-It persists pending paths before proving, recovers after restart, and publishes
-only self-verified results. Catch-up stages complete raw chunks directly and
-proves individual generations only for the final incomplete tail. Historical
-proof verification and receipt attachment run on blocking workers. Spent notes
-cannot regain history cache rows.
-History format version 3 and pool application version 19 reject stale data.
+[Nullifier history](nullifier-history.md) owns generation/chunk coverage and
+archival proofs; [Wallet](wallet.md) owns durable proving and cancellation.
+Historical proof verification and receipt attachment run on blocking workers.
+Pool application version 19 rejects stale data.
 
 Run `just ci-test` and `just pari-proof-tests` with the same explicit registry.
 The latter runs ignored expensive real proofs. Circuit satisfaction, codec,

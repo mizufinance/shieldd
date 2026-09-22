@@ -47,11 +47,11 @@ Apply [Testing](../../../docs/testing.md): identify the current invariant and or
 existing tests to extend, and obsolete tests/helpers to remove. Preserve distinct
 failure cases when consolidating; do not plan a new regression for every edit.
 
-Use a short in-chat plan for bounded changes. For substantial work, maintain one
-task document indexed in [reviews](../../../docs/reviews/README.md): scope, chosen
-design and rationale, stages, verification and unresolved decisions. Do not expand
-it into full code listings, artificial five-minute tasks, or a mandatory worktree.
+Keep the plan in the conversation or task-local scratch space outside the repo:
+scope, chosen design, stages, verification and unresolved decisions. Do not commit
+plans or completed task reports unless explicitly requested. Update the existing
+current specification when a design is implemented.
 
 If independent review is requested, supply the requirements and exact plan version
 without a desired verdict. Evaluate findings and revise the plan before dependent
-work. Keep completed evidence and current specifications in their respective owners.
+work. Keep review evidence outside the repository; Git preserves design history.

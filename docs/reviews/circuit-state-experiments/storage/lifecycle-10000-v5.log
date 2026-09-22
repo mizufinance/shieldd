@@ -1,8 +1,0 @@
-warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
-    Finished `ci` profile [optimized] target(s) in 0.18s
-     Running `target/ci/lifecycle /tmp/shieldd-experiments/storage/lifecycle-10000-v5 10000 coordinated`
-phase=insert count=10000 elapsed_ms=640 physical_bytes=5721243
-phase=pack count=10000 elapsed_ms=561 pack_bytes=320108 physical_bytes=5730305
-phase=reconstruct count=10000 elapsed_ms=594
-phase=bounded_prune count=10000 coordinated=true elapsed_ms=159 deleted_records=43353 pages=173 page_limit=256 physical_bytes=7005022 root_same=true
-phase=reopen count=10000 physical_bytes=3884958

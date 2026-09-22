@@ -52,8 +52,8 @@ see the [external contract](jubjub-external-contract.md).
 
 Run formatting and cheap tooling checks before expensive compilation. Record
 commands, features, profile and relevant source/registry identity, distinguishing
-passed, failed, interrupted and unrun checks. Substantial results belong in the
-[task report](reviews/README.md); reuse completed checks unless changes or unresolved
+passed, failed, interrupted and unrun checks in the task or CI output, with logs
+outside the repository. Reuse completed checks unless changes or unresolved
 failures justify repeating them.
 
 The Markdown checker validates links and casing, not semantic claims or commands

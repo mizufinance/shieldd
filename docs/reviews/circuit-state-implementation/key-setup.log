@@ -1,8 +1,0 @@
-warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
-   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/cryptography)
-   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
-   Compiling shieldd-sdk-proof-params v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/proof-params)
-    Finished `ci` profile [optimized] target(s) in 10.21s
-warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
-note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
-     Running `target/ci/examples/pari_setup target/optimized-pari-keys-20260921`

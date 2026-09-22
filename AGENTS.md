@@ -17,7 +17,7 @@ Schema versions are guardrails against accidentally opening stale local data.
 They are not migration promises.
 
 For task-specific code, ownership and commands, start at [docs/README.md](docs/README.md).
-Read the area relevant to the user's task, not every document or historical report.
+Read the area relevant to the user's task, not every document.
 Repository skills for investigation, planning, testing and review are linked from that map.
 
 ## Workflow
@@ -28,7 +28,7 @@ Repository skills for investigation, planning, testing and review are linked fro
 - Preserve existing user authorization. A plan or skill does not introduce another approval stage for work already authorized, or authorize unrelated external actions.
 - Follow impact through every affected layer: circuits, domain, storage, services, CLI, tests, docs.
 - After a repeated failure, stop repeating the approach. Record the observation, form a new hypothesis and choose a check that distinguishes it; research alternatives when needed.
-- Identify the branch and dirty baseline before editing or reviewing. Preserve unrelated work; distinguish current specifications, proposed changes and historical evidence.
+- Identify the branch and dirty baseline before editing or reviewing. Preserve unrelated work; distinguish current specifications from proposed changes.
 - Delegate only when requested or otherwise explicitly authorized. When independent reviewers are requested, give them the requirements and exact artifact, not a desired verdict; the coordinator schedules heavy verification.
 
 ## Architecture
@@ -71,17 +71,17 @@ Repository skills for investigation, planning, testing and review are linked fro
 - Drop redundant module/crate names from function names.
 - Standard crypto abbreviations fine: `ss`, `ct`, `pt`, `esk`, `epk`, `dk`, `fq`.
 - Prefer clear code over comments. Document only non-obvious ownership, protocol or security invariants, and failure modes.
-- Keep code comments and current specifications about the current design. Preserve useful rationale and measurements in dated reports with status, source identity and successor links; historical recommendations are not operating instructions.
+- Document the current design. Git preserves replaced designs and implementation history; do not maintain review histories, completed plans, agent transcripts, experiment snapshots or verification logs in the repository.
+- Keep working plans, review notes and logs in the conversation or task-local scratch space outside the repository unless the user explicitly asks to commit them. Move lasting requirements into their existing documentation owner, not a new report.
 - Keep docs concise without line quotas. Include non-obvious preconditions, trust sources, ownership, ordering, atomicity, cancellation and failure behavior; retain necessary cryptographic and storage invariants.
-- Define docs once; reference elsewhere.
+- Define each contract once and link to it. Consolidate overlapping specs and checklists; source code owns exact field order and generated inventories.
 
 ## Pull Request Descriptions
 
-- Start with a few short sentences stating the high-level goal of the full PR.
-- Follow with a flat bullet list of everything included, grouped by meaningful change or component. Cover the complete branch diff against the target branch, not just the latest commit or review fixes.
-- Describe the resulting design and behavior. Omit implementation chronology and conversation history.
-- Include material integration impact, verification results and unrun checks as concise bullets in that list. Link detailed evidence rather than turning the description into a test or review report.
-- Use this goal-then-list structure instead of separate Change, Verification and Integration impact sections. Follow [the PR template](.github/pull_request_template.md).
+- Use `Goal` for a few sentences explaining the high-level purpose, then `What changed` for the major changes across the full branch.
+- Keep bullets high-level. For a broad PR, group them under a few descriptive subsections. Omit minor fixes, symbol/field inventories, implementation chronology and exhaustive test counts.
+- Link the related issue. Use a closing keyword only when the PR actually completes that issue's scope.
+- State material integration requirements and verification limits briefly where relevant; put detailed execution evidence in task or CI logs outside the repository. Follow [the PR template](.github/pull_request_template.md).
 
 ## Formal Verification Boundary
 
