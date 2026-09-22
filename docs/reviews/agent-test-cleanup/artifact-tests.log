@@ -1,0 +1,11 @@
+test_checksum_matching_external_file_is_rejected (test_stage_artifacts.StagedArtifactsTests.test_checksum_matching_external_file_is_rejected) ... ok
+test_default_build_pins_host_target_despite_cargo_environment (test_stage_artifacts.StagedArtifactsTests.test_default_build_pins_host_target_despite_cargo_environment) ... ok
+test_failed_build_cannot_publish_manifest (test_stage_artifacts.StagedArtifactsTests.test_failed_build_cannot_publish_manifest) ... ok
+test_manifest_binds_suite_revision_profile_and_bytes (test_stage_artifacts.StagedArtifactsTests.test_manifest_binds_suite_revision_profile_and_bytes) ... ok
+test_missing_required_deliverable_is_rejected (test_stage_artifacts.StagedArtifactsTests.test_missing_required_deliverable_is_rejected) ... ok
+test_sha256_known_answer (test_stage_artifacts.StagedArtifactsTests.test_sha256_known_answer) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.007s
+
+OK

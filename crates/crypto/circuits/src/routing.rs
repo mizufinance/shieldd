@@ -96,7 +96,7 @@ use crate::range::is_zero;
 fn precision<'ctx>(
     ctx: Context<'ctx, Scalar>,
     value: &Var<'ctx, Scalar>,
-) -> ([Var<'ctx, Scalar>; 32], [BoolVar<'ctx, Scalar>; 33]) {
+) -> [Var<'ctx, Scalar>; 32] {
     let matches: [BoolVar<'ctx, Scalar>; 33] = std::array::from_fn(|i| {
         is_zero(ctx, &(value.clone() - &Var::native(Scalar::from(i as u64))))
     });
@@ -104,12 +104,11 @@ fn precision<'ctx>(
         .iter()
         .fold(Var::zero(), |sum, bit| sum + bit.var())
         .assert_eq(&Var::one());
-    let active = std::array::from_fn(|i| {
+    std::array::from_fn(|i| {
         matches[i + 1..]
             .iter()
             .fold(Var::zero(), |sum, bit| sum + bit.var())
-    });
-    (active, matches)
+    })
 }
 
 struct BoundParameters<'a> {
@@ -128,15 +127,11 @@ fn constrain_parameters<'a>(
     let var = |s: &Scalar| Var::witness(ctx, |_| s.clone());
     let regulated_value = var(&Scalar::from(u64::from(regulated_precision)));
     let unregulated_value = var(&Scalar::from(u64::from(unregulated_precision)));
-    let (regulated_bits, regulated_matches) = precision(ctx, &regulated_value);
-    let (unregulated_bits, unregulated_matches) = precision(ctx, &unregulated_value);
-    let mut invalid = Var::zero();
-    for i in 1..=32 {
-        for j in 0..i {
-            invalid += &(regulated_matches[i].var().clone() * unregulated_matches[j].var());
-        }
+    let regulated_bits = precision(ctx, &regulated_value);
+    let unregulated_bits = precision(ctx, &unregulated_value);
+    for i in 0..32 {
+        (regulated_bits[i].clone() * &(Var::one() - &unregulated_bits[i])).assert_eq(&Var::zero());
     }
-    invalid.assert_eq(&Var::zero());
     let parameter_set = var(expected);
     params
         .circuit(

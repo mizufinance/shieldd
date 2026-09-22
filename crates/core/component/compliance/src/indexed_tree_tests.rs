@@ -6,7 +6,7 @@ fn test_policy() -> AssetPolicy {
 }
 
 #[test]
-fn test_imt_new_has_sentinel() {
+fn empty_tree_proves_only_the_open_sentinel_interval() {
     let tree = IndexedMerkleTree::new();
     assert_eq!(tree.leaf_count(), 1);
     tree.validate_well_formed().unwrap();
@@ -15,6 +15,30 @@ fn test_imt_new_has_sentinel() {
     assert_eq!(sentinel.value, Fq::from(0u64));
     assert_eq!(sentinel.next_index, 0);
     assert_eq!(sentinel.next_value, *FQ_MAX);
+    for value in [
+        Fq::from(1u64),
+        Fq::from(1000u64),
+        Fq::from(12345u64),
+        Fq::from(u64::MAX / 2),
+        Fq::from(u64::MAX),
+        *FQ_MAX - Fq::from(1u64),
+    ] {
+        let (position, leaf, path) = tree.non_membership_proof(value).unwrap();
+        assert_eq!(position, 0);
+        assert_eq!(&leaf, sentinel);
+        assert!(fq_less_than(&leaf.value, &value));
+        assert!(fq_less_than(&value, &leaf.next_value));
+        assert!(IndexedMerkleTree::verify_auth_path(
+            position,
+            &leaf,
+            &path,
+            tree.root(),
+            DEFAULT_DEPTH
+        ));
+    }
+    for endpoint in [Fq::from(0u64), *FQ_MAX] {
+        assert!(tree.non_membership_proof(endpoint).is_err());
+    }
 }
 
 fn populated_tree() -> IndexedMerkleTree {
@@ -186,11 +210,23 @@ fn insertion_and_policy_update_preserve_all_invariants() {
 }
 
 #[test]
-fn test_imt_insert_single() {
+fn insertion_returns_the_stored_leaf_and_updated_predecessor() {
     let mut tree = IndexedMerkleTree::new();
     let value = Fq::from(100u64);
 
+    let root_before = tree.root();
     let result = tree.insert(value, &test_policy()).unwrap();
+    assert_ne!(tree.root(), root_before);
+    assert_eq!(result.low_leaf_position, 0);
+    assert_eq!(
+        *tree.get_leaf(result.position).unwrap(),
+        result.indexed_leaf
+    );
+    assert_eq!(
+        *tree.get_leaf(result.low_leaf_position).unwrap(),
+        result.updated_low_leaf
+    );
+    assert_eq!(result.updated_low_leaf.value, Fq::from(0u64));
     assert_eq!(result.position, 1);
     assert_eq!(tree.leaf_count(), 2);
     assert!(tree.contains(value));
@@ -242,214 +278,90 @@ fn test_imt_insert_multiple_maintains_order() {
 }
 
 #[test]
-fn test_imt_membership_proof() {
-    let mut tree = IndexedMerkleTree::new();
-    let value = Fq::from(42u64);
-    tree.insert(value, &test_policy()).unwrap();
-
-    let (pos, leaf, path) = tree.membership_proof(value).unwrap();
-    assert_eq!(pos, 1);
-    assert_eq!(leaf.value, value);
-    assert_eq!(path.len(), DEFAULT_DEPTH as usize);
-
-    let root = tree.root();
-    assert!(IndexedMerkleTree::verify_auth_path(
-        pos,
-        &leaf,
-        &path,
-        root,
-        DEFAULT_DEPTH
-    ));
+fn membership_and_gap_proofs_authenticate_at_supported_depths() {
+    for depth in [4, DEFAULT_DEPTH] {
+        let mut tree = IndexedMerkleTree::with_depth(depth);
+        assert_eq!(tree.depth(), depth);
+        assert!(tree.membership_proof(Fq::from(100u64)).is_err());
+        for value in [100u64, 300] {
+            tree.insert(Fq::from(value), &test_policy()).unwrap();
+        }
+        for (value, present, predecessor) in [(100u64, true, 100u64), (200, false, 100)] {
+            let value = Fq::from(value);
+            let (position, leaf, path) = if present {
+                assert!(tree.non_membership_proof(value).is_err());
+                tree.membership_proof(value).unwrap()
+            } else {
+                assert!(tree.membership_proof(value).is_err());
+                tree.non_membership_proof(value).unwrap()
+            };
+            assert_eq!(position, 1);
+            assert_eq!(leaf.value, Fq::from(predecessor));
+            assert_eq!(path.len(), depth as usize);
+            if !present {
+                assert!(crate::indexed_tree::FqOrdKey::from(leaf.value) < value.into());
+                assert!(crate::indexed_tree::FqOrdKey::from(value) < leaf.next_value.into());
+            }
+            assert!(IndexedMerkleTree::verify_auth_path(
+                position,
+                &leaf,
+                &path,
+                tree.root(),
+                depth
+            ));
+            assert!(!IndexedMerkleTree::verify_auth_path(
+                position,
+                &leaf,
+                &path,
+                StateCommitment(tree.root().0 + Fq::from(1u64)),
+                depth
+            ));
+        }
+    }
 }
 
 #[test]
-fn test_imt_non_membership_proof() {
-    let mut tree = IndexedMerkleTree::new();
-    let policy = test_policy();
-    tree.insert(Fq::from(100u64), &policy).unwrap();
-    tree.insert(Fq::from(300u64), &policy).unwrap();
-
-    let value = Fq::from(200u64);
-    let (pos, leaf, path) = tree.non_membership_proof(value).unwrap();
-
-    assert_eq!(leaf.value, Fq::from(100u64));
-    assert!(
-        crate::indexed_tree::FqOrdKey::from(leaf.value)
-            < crate::indexed_tree::FqOrdKey::from(value)
-    );
-    assert!(
-        crate::indexed_tree::FqOrdKey::from(value)
-            < crate::indexed_tree::FqOrdKey::from(leaf.next_value)
-    );
-
-    let root = tree.root();
-    assert!(IndexedMerkleTree::verify_auth_path(
-        pos,
-        &leaf,
-        &path,
-        root,
-        DEFAULT_DEPTH
-    ));
-}
-
-#[test]
-fn test_imt_non_membership_empty_tree() {
-    let tree = IndexedMerkleTree::new();
-    let value = Fq::from(12345u64);
-    let (pos, leaf, path) = tree.non_membership_proof(value).unwrap();
-
-    assert_eq!(pos, 0);
-    assert_eq!(leaf.value, Fq::from(0u64));
-    assert!(
-        crate::indexed_tree::FqOrdKey::from(leaf.value)
-            < crate::indexed_tree::FqOrdKey::from(value)
-    );
-    assert!(
-        crate::indexed_tree::FqOrdKey::from(value)
-            < crate::indexed_tree::FqOrdKey::from(leaf.next_value)
-    );
-
-    let root = tree.root();
-    assert!(IndexedMerkleTree::verify_auth_path(
-        pos,
-        &leaf,
-        &path,
-        root,
-        DEFAULT_DEPTH
-    ));
-}
-
-#[test]
-fn test_imt_cannot_insert_duplicate() {
-    let mut tree = IndexedMerkleTree::new();
-    let value = Fq::from(100u64);
-
-    tree.insert(value, &test_policy()).unwrap();
-    let result = tree.insert(value, &test_policy());
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_imt_cannot_insert_zero() {
-    let mut tree = IndexedMerkleTree::new();
-    let result = tree.insert(Fq::from(0u64), &test_policy());
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_imt_serialization_json() {
-    let mut tree = IndexedMerkleTree::new();
-    let policy = test_policy();
-    tree.insert(Fq::from(100u64), &policy).unwrap();
-    tree.insert(Fq::from(200u64), &policy).unwrap();
-
-    let serialized = serde_json::to_string(&tree).expect("serialization failed");
-    let deserialized: IndexedMerkleTree =
-        serde_json::from_str(&serialized).expect("deserialization failed");
-
-    assert_eq!(tree.root().0, deserialized.root().0);
-    assert_eq!(tree.leaf_count(), deserialized.leaf_count());
-    assert!(deserialized.contains(Fq::from(100u64)));
-    assert!(deserialized.contains(Fq::from(200u64)));
-}
-
-#[test]
-fn test_imt_serialization_bincode() {
-    let mut tree = IndexedMerkleTree::new();
-    let policy = test_policy();
-    tree.insert(Fq::from(100u64), &policy).unwrap();
-    tree.insert(Fq::from(200u64), &policy).unwrap();
-
-    let serialized = bincode::serialize(&tree).expect("bincode serialization failed");
-    let deserialized: IndexedMerkleTree =
-        bincode::deserialize(&serialized).expect("bincode deserialization failed");
-
-    assert_eq!(tree.root().0, deserialized.root().0);
-    assert_eq!(tree.leaf_count(), deserialized.leaf_count());
-    assert!(deserialized.contains(Fq::from(100u64)));
-    assert!(deserialized.contains(Fq::from(200u64)));
-
-    let (pos1, leaf1, path1) = tree.non_membership_proof(Fq::from(999u64)).unwrap();
-    let (pos2, leaf2, path2) = deserialized.non_membership_proof(Fq::from(999u64)).unwrap();
-    assert_eq!(pos1, pos2);
-    assert_eq!(leaf1.value, leaf2.value);
-    assert_eq!(leaf1.next_index, leaf2.next_index);
-    assert_eq!(leaf1.next_value, leaf2.next_value);
-    assert_eq!(path1.len(), path2.len());
-
-    assert!(IndexedMerkleTree::verify_auth_path(
-        pos2,
-        &leaf2,
-        &path2,
-        deserialized.root(),
-        DEFAULT_DEPTH
-    ));
-}
-
-#[test]
-fn test_imt_root_changes_on_insert() {
-    let mut tree = IndexedMerkleTree::new();
-    let policy = test_policy();
-    let root1 = tree.root();
-
-    tree.insert(Fq::from(100u64), &policy).unwrap();
-    let root2 = tree.root();
-
-    tree.insert(Fq::from(200u64), &policy).unwrap();
-    let root3 = tree.root();
-
-    assert_ne!(root1.0, root2.0);
-    assert_ne!(root2.0, root3.0);
-    assert_ne!(root1.0, root3.0);
-}
-
-#[test]
-fn test_imt_membership_fails_for_missing() {
-    let tree = IndexedMerkleTree::new();
-    let result = tree.membership_proof(Fq::from(100u64));
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_imt_non_membership_fails_for_existing() {
+fn rejected_insertions_leave_the_tree_unchanged() {
     let mut tree = IndexedMerkleTree::new();
     tree.insert(Fq::from(100u64), &test_policy()).unwrap();
-
-    let result = tree.non_membership_proof(Fq::from(100u64));
-    assert!(result.is_err());
+    for value in [0u64, 100] {
+        let before = bincode::serialize(&tree).unwrap();
+        assert!(tree.insert(Fq::from(value), &test_policy()).is_err());
+        assert_eq!(bincode::serialize(&tree).unwrap(), before);
+    }
 }
 
 #[test]
-fn test_imt_with_custom_depth() {
-    let mut tree = IndexedMerkleTree::with_depth(4);
-    assert_eq!(tree.depth(), 4);
-
-    tree.insert(Fq::from(100u64), &test_policy()).unwrap();
-    let (_, leaf, path) = tree.membership_proof(Fq::from(100u64)).unwrap();
-    assert_eq!(path.len(), 4);
-
-    let root = tree.root();
-    assert!(IndexedMerkleTree::verify_auth_path(
-        1, &leaf, &path, root, 4
-    ));
-}
-
-#[test]
-fn test_imt_find_low_leaf_edge_cases() {
+fn tree_codecs_preserve_leaves_indexes_and_proofs() {
     let mut tree = IndexedMerkleTree::new();
     let policy = test_policy();
     tree.insert(Fq::from(100u64), &policy).unwrap();
     tree.insert(Fq::from(200u64), &policy).unwrap();
 
-    let (pos, leaf) = tree.find_low_leaf(Fq::from(50u64)).unwrap();
-    assert_eq!(pos, 0);
-    assert_eq!(leaf.value, Fq::from(0u64));
+    let decoded = [
+        bincode::deserialize::<IndexedMerkleTree>(&bincode::serialize(&tree).unwrap()).unwrap(),
+        serde_json::from_slice::<IndexedMerkleTree>(&serde_json::to_vec(&tree).unwrap()).unwrap(),
+    ];
+    for deserialized in decoded {
+        assert_eq!(tree.root(), deserialized.root());
+        assert_eq!(tree.leaf_count(), deserialized.leaf_count());
+        assert_eq!(tree.leaves, deserialized.leaves);
+        assert_eq!(tree.value_index, deserialized.value_index);
+        assert_eq!(tree.predecessor_index, deserialized.predecessor_index);
+        let (pos1, leaf1, path1) = tree.non_membership_proof(Fq::from(999u64)).unwrap();
+        let (pos2, leaf2, path2) = deserialized.non_membership_proof(Fq::from(999u64)).unwrap();
+        assert_eq!(pos1, pos2);
+        assert_eq!(leaf1, leaf2);
+        assert_eq!(path1, path2);
 
-    let (_, leaf) = tree.find_low_leaf(Fq::from(150u64)).unwrap();
-    assert_eq!(leaf.value, Fq::from(100u64));
-
-    let (_, leaf) = tree.find_low_leaf(Fq::from(100u64)).unwrap();
-    assert_eq!(leaf.value, Fq::from(100u64));
+        assert!(IndexedMerkleTree::verify_auth_path(
+            pos2,
+            &leaf2,
+            &path2,
+            deserialized.root(),
+            DEFAULT_DEPTH
+        ));
+    }
 }
 
 #[test]
@@ -477,22 +389,18 @@ fn test_imt_predecessor_index_matches_linear_scan() {
     }
 
     let linear_low_leaf = |target: Fq| -> Option<(u64, IndexedLeaf)> {
-        if let Some(&pos) = tree.value_index.get(&target.to_bytes()) {
-            return tree.leaves.get(&pos).cloned().map(|leaf| (pos, leaf));
-        }
-        let target_key = FqOrdKey::from(target);
         tree.leaves
             .iter()
-            .find(|(_, leaf)| {
-                FqOrdKey::from(leaf.value) < target_key
-                    && target_key < FqOrdKey::from(leaf.next_value)
-            })
-            .map(|(&pos, leaf)| (pos, leaf.clone()))
+            .filter(|(_, leaf)| FqOrdKey::from(leaf.value) <= FqOrdKey::from(target))
+            .max_by_key(|(_, leaf)| FqOrdKey::from(leaf.value))
+            .map(|(&position, leaf)| (position, leaf.clone()))
     };
 
     for target in [
         Fq::from(1u64),
+        Fq::from(50u64),
         Fq::from(100u64),
+        Fq::from(150u64),
         Fq::from(101u64),
         Fq::from(399u64),
         Fq::from(700u64),
@@ -502,8 +410,7 @@ fn test_imt_predecessor_index_matches_linear_scan() {
         let indexed = tree.find_low_leaf(target).unwrap();
         let linear = linear_low_leaf(target).unwrap();
         assert_eq!(indexed.0, linear.0);
-        assert_eq!(indexed.1.value, linear.1.value);
-        assert_eq!(indexed.1.next_value, linear.1.next_value);
+        assert_eq!(indexed.1, linear.1);
     }
 
     let mut changed_policy = test_policy();
@@ -525,67 +432,13 @@ fn test_fq_max_is_field_modulus_minus_one() {
 }
 
 #[test]
-fn test_non_membership_near_fq_max() {
-    let tree = IndexedMerkleTree::new();
-    let near_max = *FQ_MAX - Fq::from(1u64);
-    let (pos, leaf, path) = tree.non_membership_proof(near_max).unwrap();
-
-    assert_eq!(pos, 0);
-    assert_eq!(leaf.value, Fq::from(0u64));
-    assert_eq!(leaf.next_value, *FQ_MAX);
-    assert!(fq_less_than(&leaf.value, &near_max));
-    assert!(fq_less_than(&near_max, &leaf.next_value));
-
-    let root = tree.root();
-    assert!(IndexedMerkleTree::verify_auth_path(
-        pos,
-        &leaf,
-        &path,
-        root,
-        DEFAULT_DEPTH
-    ));
-}
-
-#[test]
-fn test_fq_max_no_non_membership_proof() {
-    let tree = IndexedMerkleTree::new();
-    let result = tree.non_membership_proof(*FQ_MAX);
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_sentinel_covers_full_range() {
-    let tree = IndexedMerkleTree::new();
-    let sentinel = tree.get_leaf(0).unwrap();
-
-    assert_eq!(sentinel.value, Fq::from(0u64));
-    assert_eq!(sentinel.next_value, *FQ_MAX);
-
-    for v in [1u64, 1000, u64::MAX / 2, u64::MAX] {
-        let value = Fq::from(v);
-        let result = tree.non_membership_proof(value);
-        assert!(result.is_ok(), "Should have proof for value {}", v);
-    }
-}
-
-#[test]
 fn test_indexed_leaf_proto_roundtrip() {
     let leaf = IndexedLeaf::with_default_policy(Fq::from(100u64), 2, Fq::from(200u64));
 
     let proto: pb::IndexedLeafData = leaf.clone().into();
     let back = IndexedLeaf::try_from(proto).unwrap();
 
-    assert_eq!(back.value, leaf.value);
-    assert_eq!(back.next_index, leaf.next_index);
-    assert_eq!(back.next_value, leaf.next_value);
-    assert_eq!(back.params.dk_pub, leaf.params.dk_pub);
-    assert_eq!(
-        back.params.daily_volume_limit,
-        leaf.params.daily_volume_limit
-    );
-    assert_eq!(back.params.route_policy_hash, leaf.params.route_policy_hash);
-    assert_eq!(back.ring.ring_pk, leaf.ring.ring_pk);
-    assert_eq!(back.ring.ring_id_hash, leaf.ring.ring_id_hash);
+    assert_eq!(back, leaf);
 }
 
 #[test]
@@ -630,35 +483,6 @@ fn test_indexed_leaf_bincode_roundtrip() {
 }
 
 #[test]
-fn test_insert_result_contains_correct_data() {
-    let mut tree = IndexedMerkleTree::with_depth(4);
-    let policy = test_policy();
-
-    let result = tree.insert(Fq::from(100u64), &policy).unwrap();
-
-    assert_eq!(result.indexed_leaf.value, Fq::from(100u64));
-    assert_eq!(result.updated_low_leaf.value, Fq::from(0u64));
-    assert_eq!(result.updated_low_leaf.next_index, 1);
-    assert_eq!(result.updated_low_leaf.next_value, Fq::from(100u64));
-
-    let stored_new_leaf = tree.get_leaf(result.position).unwrap();
-    assert_eq!(*stored_new_leaf, result.indexed_leaf);
-
-    let stored_low_leaf = tree.get_leaf(result.low_leaf_position).unwrap();
-    assert_eq!(*stored_low_leaf, result.updated_low_leaf);
-}
-
-#[test]
-fn test_string_to_fq_deterministic() {
-    let a = string_to_fq("hello");
-    let b = string_to_fq("hello");
-    assert_eq!(a, b);
-
-    let c = string_to_fq("world");
-    assert_ne!(a, c);
-}
-
-#[test]
 fn test_route_policy_to_fq_order_independent() {
     use crate::structs::IbcRoute;
     let mut a = AssetPolicy::default_unregulated().params;
@@ -672,27 +496,39 @@ fn test_route_policy_to_fq_order_independent() {
 }
 
 #[test]
-fn test_leaf_commit_includes_policy() {
-    let leaf1 = IndexedLeaf::with_default_policy(Fq::from(100u64), 0, *FQ_MAX);
-
-    // Same structural values but different policy
-    let leaf2 = IndexedLeaf {
-        value: Fq::from(100u64),
-        next_index: 0,
-        next_value: *FQ_MAX,
-        params: LeafParams {
-            dk_pub: shieldd_sdk_crypto::SubgroupPoint::default(),
-            daily_volume_limit: 1000u128,
-            route_policy_hash: string_to_fq(""),
-        },
-        ring: LeafRing::default(),
-    };
-
-    assert_ne!(
-        leaf1.commit().0,
-        leaf2.commit().0,
-        "Different policy should produce different commitment"
-    );
+fn indexed_leaf_commitment_binds_each_policy_and_link_field() {
+    let leaf = IndexedLeaf::from_policy(Fq::from(100u64), 0, *FQ_MAX, &test_policy());
+    let cases: &[(&str, fn(&mut IndexedLeaf))] = &[
+        ("value", |x| x.value += Fq::from(1u64)),
+        ("next index", |x| x.next_index += 1),
+        ("next value", |x| x.next_value -= Fq::from(1u64)),
+        ("detection key", |x| {
+            x.params.dk_pub += *shieldd_sdk_crypto::generators::SPEND_AUTH
+        }),
+        ("daily limit", |x| x.params.daily_volume_limit -= 1),
+        ("route policy", |x| {
+            x.params.route_policy_hash += Fq::from(1u64)
+        }),
+        ("ring key", |x| {
+            x.ring.ring_pk += *shieldd_sdk_crypto::generators::SPEND_AUTH
+        }),
+        ("ring id", |x| x.ring.ring_id_hash += Fq::from(1u64)),
+        ("policy id", |x| x.ring.policy_id_hash += Fq::from(1u64)),
+        ("permission", |x| x.ring.permission_hash += Fq::from(1u64)),
+        ("resource", |x| x.ring.resource_hash += Fq::from(1u64)),
+        ("audit epoch", |x| x.ring.audit_keys.epoch += 1),
+        ("audit payload", |x| {
+            x.ring.audit_keys.payload += *shieldd_sdk_crypto::generators::SPEND_AUTH
+        }),
+        ("audit checking", |x| {
+            x.ring.audit_keys.checking += *shieldd_sdk_crypto::generators::SPEND_AUTH
+        }),
+    ];
+    for (name, mutate) in cases {
+        let mut changed = leaf.clone();
+        mutate(&mut changed);
+        assert_ne!(changed.commit(), leaf.commit(), "unbound {name}");
+    }
 }
 
 #[test]

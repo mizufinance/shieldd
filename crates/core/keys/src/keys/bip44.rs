@@ -6,8 +6,8 @@ const SHIELDD_COIN_TYPE: u32 = 6532;
 ///
 /// BIP43 defines the purpose constant used for BIP44 derivation.
 ///
-/// BIP43: https://github.com/bitcoin/bips/blob/master/bip-0043.mediawiki
-/// BIP44: https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki
+/// BIP43: <https://github.com/bitcoin/bips/blob/master/bip-0043.mediawiki>
+/// BIP44: <https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki>
 pub struct Bip44Path {
     purpose: u32,
     coin_type: u32,

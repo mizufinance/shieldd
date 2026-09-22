@@ -65,7 +65,7 @@ impl NoteReshapePlan {
             first_spend_randomizer: first_spend.randomizer,
             sender_address: first_spend.note.address(),
             asset_id: first_spend.note.asset_id(),
-            capk: self.compliance.witness.sender.leaf.capk,
+            payload_key: self.compliance.witness.asset.payload_key(),
             nullifier_domain: shieldd_sdk_crypto::domains::RESHAPE_DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.note_reshape.synthetic_dummy.nullifier_seed",
             spend_auth_key_label: b"shieldd.note_reshape.synthetic_dummy.spend_auth_key",
@@ -224,7 +224,7 @@ impl NoteReshapePlan {
             .outputs
             .iter()
             .map(|output| {
-                let note = output.output_note(self.compliance.witness.sender.leaf.capk);
+                let note = output.output_note(self.compliance.witness.asset.payload_key());
                 Ok(NoteReshapeOutputPublic {
                     note_commitment: note.commit(),
                     recovery_commitment: note.recovery_commitment(),
@@ -275,7 +275,7 @@ impl NoteReshapePlan {
             .iter()
             .map(|output| {
                 Ok(NoteReshapeOutputPrivate {
-                    created_note: output.output_note(self.compliance.witness.sender.leaf.capk),
+                    created_note: output.output_note(self.compliance.witness.asset.payload_key()),
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -369,7 +369,7 @@ impl NoteReshapePlan {
             .iter()
             .map(|output| {
                 let (note, recovery_capsule) =
-                    output.output_note_and_capsule(self.compliance.witness.sender.leaf.capk);
+                    output.output_note_and_capsule(self.compliance.witness.asset.payload_key());
                 Self::encrypted_output_body(
                     note,
                     recovery_capsule,

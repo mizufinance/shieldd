@@ -1,9 +1,9 @@
 use super::{Error, circuit::Assignment, sample_scalar};
 use crate::bls12381::primitives::group::{G1, G2, Scalar, ScalarReadCfg};
 use bytes::{Buf, BufMut};
-use commonware_codec::{Encode, EncodeSize, FixedSize, RangeCfg, Read, ReadExt, Write};
+use commonware_codec::{Encode, EncodeSize, RangeCfg, Read, ReadExt, Write};
 use commonware_math::algebra::{Additive, Space};
-use commonware_parallel::{Sequential, Strategy};
+use commonware_parallel::Strategy;
 use rand_core::CryptoRng;
 use std::collections::BTreeMap;
 
@@ -585,30 +585,6 @@ impl Read for ProvingKey {
     type Cfg = (RangeCfg<usize>, RangeCfg<usize>);
 
     fn read_cfg(buf: &mut impl Buf, cfg: &Self::Cfg) -> Result<Self, commonware_codec::Error> {
-        Self::read_cfg_with_strategy(buf, cfg, &Sequential)
-    }
-}
-
-fn read_g1s(
-    buf: &mut impl Buf,
-    count: usize,
-    strategy: &impl Strategy,
-) -> Result<Vec<G1>, commonware_codec::Error> {
-    let count = usize::read_cfg(buf, &RangeCfg::exact(count))?;
-    if count > buf.remaining() / G1::SIZE {
-        return Err(commonware_codec::Error::EndOfBuffer);
-    }
-    let encoded = <[u8; G1::SIZE]>::read_vec(buf, count, &())?;
-    strategy.try_map_collect_vec(encoded, |bytes| G1::read(&mut bytes.as_slice()))
-}
-
-impl ProvingKey {
-    /// Decode checked proving bases using the supplied bounded worker strategy.
-    pub fn read_cfg_with_strategy(
-        buf: &mut impl Buf,
-        cfg: &<Self as Read>::Cfg,
-        strategy: &impl Strategy,
-    ) -> Result<Self, commonware_codec::Error> {
         let invalid =
             |message: &'static str| commonware_codec::Error::Invalid("ProvingKey", message);
 
@@ -653,19 +629,12 @@ impl ProvingKey {
             .and_then(|len| len.checked_add(2))
             .ok_or_else(|| invalid("domain size overflow"))?;
 
-        let entries_len = usize::read_cfg(buf, &RangeCfg::new(0..=witness_len))?;
-        if entries_len > buf.remaining() / (u32::SIZE + G1::SIZE) {
-            return Err(commonware_codec::Error::EndOfBuffer);
-        }
-        let encoded_entries = <(u32, [u8; G1::SIZE])>::read_vec(buf, entries_len, &((), ()))?;
-        let entries = strategy.try_map_collect_vec(encoded_entries, |(index, bytes)| {
-            G1::read(&mut bytes.as_slice()).map(|point| (index, point))
-        })?;
+        let entries = Vec::<(u32, G1)>::read_cfg(buf, &(RangeCfg::new(0..=witness_len), ((), ())))?;
         let sigma_mask_constant = G1::read(buf)?;
         let sigma_mask_linear = G1::read(buf)?;
-        let sigma_quotient = read_g1s(buf, quotient_len, strategy)?;
-        let sigma_a = read_g1s(buf, domain_size + 1, strategy)?;
-        let sigma_r = read_g1s(buf, opening_len, strategy)?;
+        let sigma_quotient = Vec::<G1>::read_cfg(buf, &(RangeCfg::exact(quotient_len), ()))?;
+        let sigma_a = Vec::<G1>::read_cfg(buf, &(RangeCfg::exact(domain_size + 1), ()))?;
+        let sigma_r = Vec::<G1>::read_cfg(buf, &(RangeCfg::exact(opening_len), ()))?;
 
         // Materialize the witness basis only after every buffer-backed field
         // has been read, so a short input cannot force a large allocation.
@@ -812,4 +781,87 @@ mod relation_shape_tests {
 }
 
 #[cfg(test)]
-mod decoding_tests;
+mod decoding_tests {
+    use super::*;
+    use commonware_codec::FixedSize;
+    use crate::zk::{
+        circuit::{Var, build},
+        pari::{InputLayout, Relation, setup},
+    };
+    use commonware_math::algebra::CryptoGroup;
+    use commonware_parallel::Sequential;
+    use rand::{SeedableRng, rngs::StdRng};
+
+    fn fixture() -> ProvingKey {
+        let (circuit, selected) = build(|ctx| {
+            let x = Var::witness(ctx, |_| Scalar::from(3));
+            let square = x.clone() * &x;
+            let fourth = square.clone() * &square;
+            vec![fourth, x]
+        });
+        let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
+        let relation = Relation::compile(&circuit, &layout).unwrap();
+        setup(&relation, &mut StdRng::seed_from_u64(91), &Sequential)
+            .unwrap()
+            .0
+    }
+
+    fn decode(bytes: &[u8]) -> Result<ProvingKey, commonware_codec::Error> {
+        let mut input = bytes;
+        let key = ProvingKey::read_cfg(
+            &mut input,
+            &(RangeCfg::exact(1), RangeCfg::exact(1)),
+        )?;
+        assert!(input.is_empty());
+        Ok(key)
+    }
+
+    fn encode_entries(key: &ProvingKey, entries: &[(u32, G1)]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        key.verifying_key.write(&mut bytes);
+        key.commitment_keys.write(&mut bytes);
+        entries.write(&mut bytes);
+        key.sigma_mask_constant.write(&mut bytes);
+        key.sigma_mask_linear.write(&mut bytes);
+        key.sigma_quotient.write(&mut bytes);
+        key.sigma_a.write(&mut bytes);
+        key.sigma_r.write(&mut bytes);
+        bytes
+    }
+
+    #[test]
+    fn native_key_decoding_rejects_truncation_and_malformed_points() {
+        let key = fixture();
+        let encoded = key.encode();
+        assert_eq!(decode(&encoded).unwrap(), key);
+        for length in [0, 1, encoded.len() / 2, encoded.len() - 1] {
+            assert!(decode(&encoded[..length]).is_err());
+        }
+        let mut identity = [0u8; G1::SIZE];
+        identity[0] = 0xc0;
+        // x=0, y=2 is on the curve but outside the prime-order subgroup.
+        let mut torsion = [0u8; G1::SIZE];
+        torsion[0] = 0x80;
+        for invalid in [[0u8; G1::SIZE], identity, torsion] {
+            let mut changed = encoded.to_vec();
+            let start = changed.len() - G1::SIZE;
+            changed[start..].copy_from_slice(&invalid);
+            assert!(decode(&changed).is_err());
+        }
+    }
+
+    #[test]
+    fn checked_key_decoding_rejects_noncanonical_sparse_indices() {
+        let key = fixture();
+        let point = G1::generator();
+        assert!(key.sigma_witness.len() >= 2);
+        for entries in [
+            vec![(0, point), (0, point)],
+            vec![(1, point), (0, point)],
+            vec![(key.sigma_witness.len() as u32, point)],
+        ] {
+            let encoded = encode_entries(&key, &entries);
+            assert!(decode(&encoded).is_err());
+        }
+    }
+}

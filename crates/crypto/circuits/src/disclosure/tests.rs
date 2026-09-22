@@ -28,7 +28,11 @@ fn empty_address() -> Address<Scalar> {
         },
     }
 }
-pub(crate) fn fixture(p: &Parameters, count: usize, amount: Scalar) -> Witness {
+pub(crate) fn fixture_for_capacity<const N: usize>(
+    p: &Parameters,
+    count: usize,
+    amount: Scalar,
+) -> Witness<N> {
     let notes = std::array::from_fn(|i| {
         if i < count {
             Opening {
@@ -86,10 +90,40 @@ pub(crate) fn fixture(p: &Parameters, count: usize, amount: Scalar) -> Witness {
         notes,
     }
 }
+pub(crate) fn fixture(p: &Parameters, count: usize, amount: Scalar) -> Witness {
+    fixture_for_capacity::<CAPACITY>(p, count, amount)
+}
 fn satisfied(p: &Parameters, w: &Witness) -> bool {
     build_with_values(|ctx| constrain(ctx, p, w, &w.statement.digest(p)))
         .0
         .is_satisfied()
+}
+#[test]
+fn one_note_family_has_distinct_relation_and_rejects_mutated_claims() {
+    let p = Parameters::load().unwrap();
+    let one = fixture_for_capacity::<1>(&p, 1, Scalar::from(5));
+    assert!(
+        build_with_values(|ctx| constrain(ctx, &p, &one, &one.statement.digest(&p)))
+            .0
+            .is_satisfied()
+    );
+    let mut bad = one.clone();
+    bad.statement.slots[0].commitment += &Scalar::one();
+    assert!(
+        !build_with_values(|ctx| constrain(ctx, &p, &bad, &bad.statement.digest(&p)))
+            .0
+            .is_satisfied()
+    );
+    assert_ne!(
+        crate::catalogue::compile(Family::DisclosureOne)
+            .unwrap()
+            .relation
+            .digest(),
+        crate::catalogue::compile(Family::Disclosure)
+            .unwrap()
+            .relation
+            .digest(),
+    );
 }
 #[test]
 fn predicates_constrain_both_true_and_false_results_and_canonical_bounds() {
@@ -195,11 +229,11 @@ fn disclosure_proof_binds_full_statement_and_context() {
     let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
     let relation = Relation::compile(&c, &layout).unwrap();
     let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let prepared = pari::PreparedProver::new(pk, &relation).unwrap();
+    let prover = pk;
     let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &w, &digest));
     let proof = Envelope::prove(
         Family::Disclosure,
-        &prepared,
+        &prover,
         &relation,
         &layout,
         values,
@@ -210,6 +244,33 @@ fn disclosure_proof_binds_full_statement_and_context() {
     assert!(
         proof
             .verify(Family::Disclosure, &vk, &(digest + &Scalar::one()))
+            .is_err()
+    );
+}
+#[test]
+fn one_note_proof_is_bound_to_its_family() {
+    let p = Parameters::load().unwrap();
+    let w = fixture_for_capacity::<1>(&p, 1, Scalar::from(5));
+    let digest = w.statement.digest(&p);
+    let (c, selected) = build(|ctx| constrain(ctx, &p, &w, &digest));
+    let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
+    let relation = Relation::compile(&c, &layout).unwrap();
+    let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
+    let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &w, &digest));
+    let proof = Envelope::prove(
+        Family::DisclosureOne,
+        &pk,
+        &relation,
+        &layout,
+        values,
+        &Sequential,
+    )
+    .unwrap();
+    proof.verify(Family::DisclosureOne, &vk, &digest).unwrap();
+    assert!(proof.verify(Family::Disclosure, &vk, &digest).is_err());
+    assert!(
+        proof
+            .verify(Family::DisclosureOne, &vk, &(digest + &Scalar::one()))
             .is_err()
     );
 }

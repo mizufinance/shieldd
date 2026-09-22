@@ -1,0 +1,79 @@
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/range_with_limbs.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/range_with_limbs.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/routing.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/routing.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/authorization.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/authorization.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/tree_position.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/tree_position.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/note_position_bounded.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/note_position_bounded.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/seizure_position_bounded.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/seizure_position_bounded.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/volume_bounded.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/volume_bounded.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/balance.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/balance.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/disclosure_combined.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/disclosure_combined.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/registry_limbs.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/registry_limbs.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/history_combined.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/history_combined.patch
+EXIT=0
+$ cargo run -p shieldd-sdk-circuits --example catalogue_shapes --profile ci --
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+warning: variable does not need to be mutable
+  --> crates/crypto/circuits/src/tree.rs:68:5
+   |
+68 |     mut node: Var<'ctx, Scalar>,
+   |     ----^^^^
+   |     |
+   |     help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `shieldd-sdk-circuits` (lib) generated 1 warning (run `cargo fix --lib -p shieldd-sdk-circuits` to apply 1 suggestion)
+    Finished `ci` profile [optimized] target(s) in 3.90s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running `target/ci/examples/catalogue_shapes`
+EXPERIMENT_METRICS rows=204757 columns=204672 squared_nnz=2071336 linear_nnz=258260 domain=262144
+transfer domain=262144 public=1 blocks=[1] relation=dc92fe519c680a25eb88f98e3d92914a9a0264e928411f1e72a05139b1303fe1
+EXPERIMENT_METRICS rows=153706 columns=153608 squared_nnz=1452396 linear_nnz=193299 domain=262144
+reshape1x8 domain=262144 public=1 blocks=[1] relation=63ed975c233c5e26ca6d5204ec532223e9dc3035d7e4f0ffc22ff28df0427f60
+EXPERIMENT_METRICS rows=179922 columns=180269 squared_nnz=2564546 linear_nnz=227262 domain=262144
+reshape8x1 domain=262144 public=1 blocks=[1] relation=8dd48bacdf22aec5a38ea7d239b70a845bff6db0ad08776be7eb95fed5e2662b
+EXPERIMENT_METRICS rows=114796 columns=114812 squared_nnz=1420891 linear_nnz=144629 domain=131072
+withdrawal domain=131072 public=1 blocks=[1] relation=42e9c244cee46e67502b840fbfbfed153f2ed5d20e8b6db59ff534412fb1b948
+EXPERIMENT_METRICS rows=16224 columns=16306 squared_nnz=310912 linear_nnz=20271 domain=16384
+seizure domain=16384 public=1 blocks=[1] relation=3a33b7e14486ad413f5419e3ee4245e5999ce3a46c6a3028665087902dcdce2a
+EXPERIMENT_METRICS rows=90949 columns=89846 squared_nnz=1195321 linear_nnz=104471 domain=131072
+disclosure domain=131072 public=1 blocks=[1] relation=9c6b6d1319d62a8225a7bb67a1585d8cd9cb59889b0432c15ad6041e65cfb5cb
+EXPERIMENT_METRICS rows=13576 columns=13614 squared_nnz=209498 linear_nnz=16910 domain=16384
+history_generation domain=16384 public=1 blocks=[1] relation=c36f13fa0aedabf99b9faa4efcf672dc941fcbc15a8433dcd7cca607ad48ac6b
+EXPERIMENT_METRICS rows=120993 columns=121353 squared_nnz=1918154 linear_nnz=150054 domain=131072
+history_chunk10 domain=131072 public=1 blocks=[1] relation=d6dddfb0284614d711d1a94e12eebc09fdae950f891ce0458e12065d63f6b2ff
+EXIT=0

@@ -14,8 +14,9 @@ use crate::{
         ZERO_HASHES,
     },
     nullifier_generation::{
-        ArchivedNullifierProof, NullifierGenerationArchived, NullifierGenerationPackReceipt,
-        NullifierGenerationState, NullifierGenerationTransition, NullifierTreeId,
+        ArchivedNullifierProof, ArchivedNullifierSpent, NullifierGenerationArchived,
+        NullifierGenerationPackReceipt, NullifierGenerationState, NullifierGenerationTransition,
+        NullifierTreeId,
     },
     state_key, Nullifier,
 };
@@ -1007,7 +1008,9 @@ pub async fn archived_nonmembership_proof<S: StateRead + ?Sized>(
         .await?
         .with_context(|| format!("nullifier generation {generation_index} is not archived"))?;
     let lookup = lookup_in_tree_at_root(state, tree, archived.generation_root, nullifier).await?;
-    ensure!(!lookup.spent, "nullifier was spent in archived generation");
+    if lookup.spent {
+        return Err(ArchivedNullifierSpent.into());
+    }
     Ok(ArchivedNullifierProof {
         generation_index,
         generation_root: archived.generation_root,
@@ -1125,10 +1128,13 @@ pub async fn generation_pack_receipt<S: StateRead + ?Sized>(
         .transpose()
 }
 
-pub async fn prune_packed_generation<S: StateWrite + ?Sized>(
+pub async fn prune_packed_generation_page<S: StateWrite + ?Sized>(
     state: &mut S,
     receipt: &NullifierGenerationPackReceipt,
+    prefix_index: u8,
+    limit: usize,
 ) -> Result<u64> {
+    ensure!(limit > 0, "pruning page limit must be positive");
     receipt.validate()?;
     let tree = NullifierTreeId::Generation(receipt.generation_index);
     let stored = state
@@ -1154,21 +1160,27 @@ pub async fn prune_packed_generation<S: StateWrite + ?Sized>(
             && archived.generation_end_position == receipt.generation_end_position,
         "pruning receipt does not match the retired generation"
     );
-    let mut keys = Vec::new();
-    for prefix in [
+    let prefixes = [
         state_key::nullifier_generations::tree_node_prefix(tree),
         state_key::nullifier_generations::leaf_prefix(tree),
         state_key::nullifier_generations::value_prefix(tree),
         state_key::nullifier_generations::value_desc_prefix(tree),
-    ] {
-        let stream = state.nonverifiable_prefix_raw(&prefix);
+    ];
+    let prefix = prefixes
+        .get(usize::from(prefix_index))
+        .context("invalid nullifier pruning prefix")?;
+    let keys = {
+        let mut keys = Vec::with_capacity(limit);
+        let stream = state.nonverifiable_prefix_raw(prefix);
         futures::pin_mut!(stream);
         while let Some(item) = stream.next().await {
             keys.push(item?.0);
+            if keys.len() == limit {
+                break;
+            }
         }
-    }
-    keys.sort();
-    keys.dedup();
+        keys
+    };
     let deleted = keys.len() as u64;
     for key in keys {
         state.nonverifiable_delete(key);
@@ -1399,7 +1411,18 @@ mod tests {
             .await?
             .verify_for(nullifier(9))?;
 
-        assert!(prune_packed_generation(&mut state, &receipt).await? > 0);
+        let mut deleted = 0;
+        for prefix_index in 0..4 {
+            loop {
+                let page =
+                    prune_packed_generation_page(&mut state, &receipt, prefix_index, 2).await?;
+                deleted += page;
+                if page < 2 {
+                    break;
+                }
+            }
+        }
+        assert!(deleted > 0);
         assert!(committed_root_for(&state, NullifierTreeId::Generation(0))
             .await?
             .is_none());

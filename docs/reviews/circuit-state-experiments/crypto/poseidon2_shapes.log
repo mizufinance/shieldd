@@ -1,0 +1,14 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Finished `ci` profile [optimized] target(s) in 0.83s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running `target/ci/examples/poseidon2_shapes`
+EXPERIMENT_METRICS rows=30724 columns=30774 squared_nnz=607528 linear_nnz=38400 domain=32768
+p2_binary_w3 domain=32768 compile_s=0.1854
+EXPERIMENT_METRICS rows=23236 columns=23286 squared_nnz=470727 linear_nnz=29040 domain=32768
+p2_binary_w8 domain=32768 compile_s=0.2102
+EXPERIMENT_METRICS rows=11620 columns=11694 squared_nnz=236439 linear_nnz=14520 domain=16384
+p2_quaternary_w8 domain=16384 compile_s=0.1049
+EXPERIMENT_METRICS rows=15492 columns=15606 squared_nnz=315687 linear_nnz=19360 domain=16384
+p2_octary_w8 domain=16384 compile_s=0.1439

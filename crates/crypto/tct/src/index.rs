@@ -258,27 +258,25 @@ mod test {
 
     proptest! {
         #[test]
-        fn u64_convert_eternity_inverse(e in 0u16..u16::MAX, b in 0u16..u16::MAX, c in 0u16..u16::MAX) {
+        fn tier_positions_follow_base_65536_packing(e in any::<u16>(), b in any::<u16>(), c in any::<u16>()) {
             let tree = within::Tree { epoch: e.into(), block: b.into(), commitment: c.into() };
             let position: u64 = tree.into();
-            let back_again = position.into();
-            assert_eq!(tree, back_again);
-        }
+            assert_eq!(position, (u64::from(e) * 65_536 + u64::from(b)) * 65_536 + u64::from(c));
+            assert_eq!(within::Tree::from(position), tree);
 
-        #[test]
-        fn u32_convert_epoch_inverse(b in 0u16..u16::MAX, c in 0u16..u16::MAX) {
             let epoch = within::Epoch { block: b.into(), commitment: c.into() };
             let position: u32 = epoch.into();
-            let back_again = position.into();
-            assert_eq!(epoch, back_again);
-        }
+            assert_eq!(position, u32::from(b) * 65_536 + u32::from(c));
+            assert_eq!(within::Epoch::from(position), epoch);
 
-        #[test]
-        fn u16_convert_block_inverse(c in 0u16..u16::MAX) {
             let block = within::Block { commitment: c.into() };
             let position: u16 = block.into();
-            let back_again = position.into();
-            assert_eq!(block, back_again);
+            assert_eq!(position, c);
+            assert_eq!(within::Block::from(position), block);
         }
+
+
+
+
     }
 }

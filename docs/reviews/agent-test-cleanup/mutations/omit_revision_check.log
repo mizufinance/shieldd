@@ -1,0 +1,20 @@
+test_checksum_matching_external_file_is_rejected (test_stage_artifacts.StagedArtifactsTests.test_checksum_matching_external_file_is_rejected) ... ok
+test_default_build_pins_host_target_despite_cargo_environment (test_stage_artifacts.StagedArtifactsTests.test_default_build_pins_host_target_despite_cargo_environment) ... ok
+test_failed_build_cannot_publish_manifest (test_stage_artifacts.StagedArtifactsTests.test_failed_build_cannot_publish_manifest) ... ok
+test_manifest_binds_suite_revision_profile_and_bytes (test_stage_artifacts.StagedArtifactsTests.test_manifest_binds_suite_revision_profile_and_bytes) ... FAIL
+test_missing_required_deliverable_is_rejected (test_stage_artifacts.StagedArtifactsTests.test_missing_required_deliverable_is_rejected) ... ok
+test_sha256_known_answer (test_stage_artifacts.StagedArtifactsTests.test_sha256_known_answer) ... ok
+
+======================================================================
+FAIL: test_manifest_binds_suite_revision_profile_and_bytes (test_stage_artifacts.StagedArtifactsTests.test_manifest_binds_suite_revision_profile_and_bytes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/qq/d97b8_zx5rqc8m0xwhcqrctw0000gn/T/shieldd-test-cleanup-mutant-8bimn1zc/scripts/tests/test_stage_artifacts.py", line 41, in test_manifest_binds_suite_revision_profile_and_bytes
+    with self.assertRaises(ValueError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.007s
+
+FAILED (failures=1)

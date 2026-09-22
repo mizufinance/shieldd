@@ -4,12 +4,11 @@ use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 
 /// An equivalent value in terms of a different numeraire.
-///
-/// This is used within
+/// Used by [`crate::ValueView`] to express an estimated value in another unit.
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 #[serde(try_from = "pb::EquivalentValue", into = "pb::EquivalentValue")]
 pub struct EquivalentValue {
-    /// The equivalent amount of the parent [`Value`] in terms of the numeraire.
+    /// The equivalent amount of the parent [`crate::Value`] in terms of the numeraire.
     pub equivalent_amount: Amount,
     /// Metadata describing the numeraire.
     pub numeraire: Metadata,

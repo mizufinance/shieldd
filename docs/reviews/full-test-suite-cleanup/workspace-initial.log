@@ -1,0 +1,702 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+   Compiling shieldd-sdk-tct-property-test v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/tct-property-test)
+   Compiling shieldd-sdk-mock-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/mock-client)
+   Compiling shieldd-sdk-bench-support v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench-support)
+   Compiling pcli v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/pcli)
+   Compiling shieldd-sdk-bench v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench)
+   Compiling shieldd-sdk-app-tests v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app-tests)
+   Compiling bankd-e2e-host-withdrawal-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-host-withdrawal-builder)
+   Compiling bankd-e2e-spend-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-spend-builder)
+   Compiling shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+   Compiling shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+   Compiling shieldd-sdk-custody v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/custody)
+   Compiling redjubjub-frost v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/redjubjub-frost)
+   Compiling shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+   Compiling shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+   Compiling shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+   Compiling shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+   Compiling shieldd-sdk-fee v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/fee)
+   Compiling shieldd-sdk-proof-params v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/proof-params)
+   Compiling shieldd-sdk-sct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/sct)
+   Compiling shieldd-sdk-keys v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/keys)
+   Compiling shieldd-sdk-asset v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/asset)
+   Compiling shieldd-sdk-tct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/tct)
+   Compiling shieldd-sdk-txhash v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/txhash)
+   Compiling shieldd-sdk-num v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/num)
+   Compiling shieldd-sdk-proto v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/proto)
+   Compiling cnidarium-component v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/cnidarium-component)
+    Finished `ci` profile [optimized] target(s) in 5m 39s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/main.rs (target/ci/deps/bankd_e2e_host_withdrawal_builder-ec2c7ce067b7da3d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/ci/deps/bankd_e2e_spend_builder-0326af851061c1b7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/cnidarium_component-a17bfc9682129cce)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/ci/deps/orbis_integration-8438c61b7f4c839a)
+
+running 6 tests
+test demo_config::tests::node_dial_host_can_be_env_configured ... ok
+test demo_config::tests::node_dial_host_empty_env_uses_default ... ok
+test demo_config::tests::runtime_endpoints_are_typed_and_complete ... ok
+test demo_config::tests::runtime_endpoints_reject_missing_schemes ... ok
+test tests::docker_peer_id_rewrites_host_only ... ok
+test tests::repo_discovery_prefers_shieldd_markers_and_falls_back_to_host_checkout ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/pcli-d3a3c44cbf75bd1b)
+
+running 11 tests
+test command::compliance::tests::authorization_key_parsers_reject_identity ... ok
+test command::compliance::tests::parse_ibc_origin_requires_base_denom_and_route ... ok
+test command::compliance::tests::parse_ibc_policy_args_reject_unregulated_assets ... ok
+test command::compliance::tests::parse_ibc_route_rejects_chain_id_shape ... ok
+test command::compliance::tests::parse_multiple_ibc_routes_defaults_transfer_ports ... ok
+test command::disclosure::tests::export_modes_parse_and_conflict ... ok
+test command::disclosure::tests::prover_stdout_does_not_corrupt_worker_result ... ok
+test command::disclosure::tests::publication_is_atomic_and_never_overwrites ... ok
+test command::disclosure::tests::worker_cancellation_stops_a_ready_process_group ... ok
+test config::tests::toml_config ... ok
+test config::tests::unavailable_hardware_backend_is_rejected ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running unittests src/main.rs (target/ci/deps/pcli-7fffec89cb3b3bbc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_surface.rs (target/ci/deps/cli_surface-3b80359dba851170)
+
+running 3 tests
+test generates_a_matching_detection_keypair_without_a_wallet ... ok
+test offline_compliance_commands_are_discoverable ... ok
+test wallet_initialization_methods_are_discoverable ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running unittests src/lib.rs (target/ci/deps/redjubjub_frost-7df6a34bd02ab84f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/frost.rs (target/ci/deps/frost-0eed8e541424d94f)
+
+running 1 test
+test simple_dkg_and_signing_flow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd-5bba2bb0753a20ac)
+
+running 35 tests
+test ffi::tests::abi_method_ids_map_to_their_dispatch_methods ... ok
+test ffi::tests::app_parameters_query_reads_committed_genesis ... ok
+test ffi::tests::buffer_free_is_idempotent_for_the_same_buffer_struct ... ok
+test ffi::tests::calls_sharing_a_handle_are_serialized ... ok
+test ffi::tests::committed_state_is_available_through_the_ffi ... ok
+test ffi::tests::compact_block_range_query_rejects_keep_alive ... ok
+test ffi::tests::compact_block_range_query_returns_length_delimited_blocks_in_order ... ok
+test ffi::tests::compliance_action_is_dispatched_through_the_ffi ... ok
+test ffi::tests::failed_open_clears_output_handle_before_validating_input ... ok
+test ffi::tests::ffi_execution_check_tx_rejects_invalid_transaction ... ok
+test ffi::tests::ffi_execution_deliver_tx_rejects_invalid_transaction ... ok
+test ffi::tests::frontend_queries_read_committed_state ... ok
+test ffi::tests::historical_witness_call_rejects_missing_nullifier ... ok
+test ffi::tests::invalid_inputs_return_c_safe_statuses ... ok
+test ffi::tests::open_once_call_repeatedly_and_close_releases_database ... ok
+test ffi::tests::panics_become_status_results ... ok
+test service::tests::cancelled_close_can_be_retried_before_worker_abort_is_polled ... ok
+test service::tests::close_releases_storage_and_rejects_later_operations ... ok
+test service::tests::committed_state_survives_reopening_the_service ... ok
+test service::tests::decode_host_block_converts_valid_time ... ok
+test service::tests::decode_host_block_requires_time ... ok
+test service::tests::deliver_tx_response_has_no_withdrawals_without_a_host_action ... ok
+test service::tests::dropping_service_stops_generation_pack_worker ... ok
+test service::tests::embedded_service_serves_a_pack_after_expanded_state_is_pruned ... ok
+test service::tests::encode_withdrawals_maps_transfer_and_coin ... ok
+test service::tests::encode_withdrawals_preserves_execution_call_order_and_refund_address ... ok
+test service::tests::reopening_rejects_incompatible_application_state ... ok
+test service_contract_tests::committed_transaction_query_rejects_invalid_ids ... ok
+test service_contract_tests::execution_check_tx_rejects_invalid_transaction ... ok
+test service_contract_tests::execution_deliver_tx_rejects_invalid_transaction ... ok
+test service_contract_tests::execution_exposes_embedded_frontend_queries ... ok
+test service_contract_tests::execution_reads_bounded_compact_block_ranges ... ok
+test service_contract_tests::key_value_proves_membership_and_absence_at_committed_root ... ok
+test service_contract_tests::transactions_by_height_reads_committed_blocks_only ... ok
+test service_contract_tests::transactions_query_rejects_uncommitted_height ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.88s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_orbis_client-6895ab751e9412ed)
+
+running 7 tests
+test client::tests::invalid_endpoint_is_rejected ... ok
+test client::tests::vera_already_exists_errors_are_idempotent_successes ... ok
+test client::tests::vera_sequence_errors_are_transient ... ok
+test pre::tests::canonical_document_rejects_context_tampering ... ok
+test pre::tests::current_wire_response_requires_the_verified_context ... ok
+test pre::tests::response_must_return_the_requested_ciphertext ... ok
+test pre::tests::wire_request_binds_the_reader_proof_and_document ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_app-d53ef4bd819cc720)
+
+running 96 tests
+test action_handler::transaction::cancellation_tests::cancelling_withdrawal_historical_check_releases_state_immediately ... ok
+test action_handler::transaction::cancellation_tests::historical_context_missing_parameters_returns_error ... ok
+test action_handler::transaction::stateless::tests::binding_signature_rejects_wrong_authorization_hash ... ok
+test action_handler::transaction::stateless::tests::identity_binding_key_requires_canonical_no_binding_signature ... ok
+test action_handler::transaction::stateless::tests::proof_bearing_transaction_rejects_identity_binding_key_signature_permutation ... ok
+test action_handler::transaction::tests::claimed_anchor_validation_cache_counts_shared_anchor_once ... ok
+test action_handler::transaction::tests::transaction_action_count_policy_is_fixed_at_boundary ... ok
+test action_handler::transaction::tests::transaction_nullifier_count_policy_is_fixed_at_boundary ... ok
+test app::delivery::tests::cancelling_delivery_releases_stateful_check_immediately ... ok
+test app::delivery::tests::cold_delivery_completes_with_one_blocking_worker ... 
+running 1 test
+test app::delivery::tests::cold_delivery_completes_with_one_blocking_worker ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 11.78s
+
+ok
+test app::host::tests::begin_block_before_genesis_rejects_without_mutation ... ok
+test app::host::tests::begin_block_rejects_committed_height_gap ... ok
+test app::host::tests::begin_block_rejects_incompatible_state_without_mutation ... ok
+test app::host::tests::begin_block_rejects_initial_height_gap ... ok
+test app::host::tests::begin_block_rejects_pre_epoch_time_without_mutation ... ok
+test app::host::tests::begin_block_requires_increasing_committed_height ... ok
+test app::host::tests::cancelled_block_commit_requires_rollback_and_replay ... ok
+test app::host::tests::cancelled_genesis_commit_requires_rollback_and_reinitialization ... ok
+test app::host::tests::compliance_actions_are_typed_atomic_and_replay_safe ... ok
+test app::host::tests::deposit_id_changes_with_host_message_index ... ok
+test app::host::tests::deposit_mints_note_and_exact_replay_returns_same_result ... ok
+test app::host::tests::failed_storage_commit_requires_rollback_before_replay ... ok
+test app::host::tests::host_end_block_rejects_mismatched_height_without_closing_block ... ok
+test app::host::tests::host_execution_accepts_withdrawals_for_registered_assets ... ok
+test app::host::tests::host_execution_check_tx_rejects_invalid_tx_without_entering_block ... ok
+test app::host::tests::host_execution_check_tx_requires_initialized_storage ... ok
+test app::host::tests::host_lifecycle_publishes_only_committed_state_and_refreshes_snapshot ... ok
+test app::host::tests::host_source_requires_32_byte_tx_hash ... ok
+test app::host::tests::host_withdrawals_preserve_withdrawal_order ... ok
+test app::host::tests::host_withdrawals_resolve_registered_asset_to_base_denom ... ok
+test app::host::tests::note_seizure_receipt_survives_storage_roundtrip ... ok
+test app::host::tests::note_seizure_verifies_capsule_release_and_commits_once ... ignored, requires local Pari keys and actual proof generation
+test app::host::tests::rollback_does_not_import_another_registry ... ok
+test app::host::tests::source_key_scopes_host_position_while_deposit_id_binds_contents ... ok
+test app::tests::app_readiness_fails_on_corrupted_compliance_nv ... ok
+test app::tests::app_readiness_fails_on_corrupted_nullifier_tree_nv ... ok
+test app::tests::app_readiness_fails_on_corrupted_sct_nv ... ok
+test app::tests::app_readiness_requires_initialized_state ... ok
+test app::tests::artifact_extraction_cannot_bypass_action_stateless_checks ... ok
+test app::tests::batched_nullify_matches_repeated_nullify_and_preserves_pending_order ... ok
+test app::tests::canonical_execution_rejects_same_block_nullifier_conflicts ... ok
+test app::tests::checktx_cache_hit_and_miss_match_for_supported_tx ... ok
+test app::tests::checktx_no_index_does_not_record_tx_log_entries_on_app_fork ... ok
+test app::tests::committed_transaction_query_is_bounded_for_large_logs ... ok
+test app::tests::deferred_batch_persists_full_tx_log_by_block_end ... ok
+test app::tests::execute_validated_candidate_envelope_rechecks_metadata ... ok
+test app::tests::failed_transaction_drops_all_staged_effects ... ok
+test app::tests::fee_funding_extraction_rejects_identity_randomized_key ... ok
+test app::tests::maintenance_error_keeps_pending_app_state_for_retry ... ok
+test app::tests::oversized_checktx_bytes_reject_before_decode_or_cache ... ok
+test app::tests::prepare_proposal_rechecks_spends_after_snapshot_changes ... ok
+test app::tests::prepare_proposal_reuses_fully_verified_checktx_cache_entries ... ok
+test app::tests::process_candidate_envelope_accepts_valid_fixture ... ok
+test app::tests::proof_acceptance_tests::artifact_build_rejects_decodable_invalid_pari ... ok
+test app::tests::proof_acceptance_tests::cache_promotion_never_exceeds_exact_pari_attestation ... ok
+test app::tests::proof_acceptance_tests::cold_deliver_rejects_invalid_pari_without_state_mutation ... ok
+test app::tests::proof_acceptance_tests::deferred_index_records_only_transactions_that_commit ... ok
+test app::tests::proof_acceptance_tests::fee_funding_process_proposal_rejects_invalid_pari ... ok
+test app::tests::proof_acceptance_tests::fee_funding_valid_proof_executes_and_persists ... ok
+test app::tests::proof_acceptance_tests::historical_attestation_stays_off_the_async_worker_in_both_verification_paths ... ok
+test app::tests::proof_acceptance_tests::host_delivery_rejects_invalid_pari_cold_and_after_checktx ... ok
+test app::tests::proof_acceptance_tests::output_capacity_rejection_rolls_back_all_transaction_effects ... ok
+test app::tests::proof_acceptance_tests::prepare_proposal_excludes_decodable_invalid_pari ... ok
+test app::tests::proof_acceptance_tests::prepare_proposal_keeps_multiple_candidates_with_one_worker ... ok
+test app::tests::proof_acceptance_tests::prepare_proposal_keeps_valid_candidate_after_invalid_proof ... ok
+test app::tests::proof_acceptance_tests::prepare_proposal_skips_unfitting_candidate_and_accepts_exact_limit ... ok
+test app::tests::proof_acceptance_tests::process_proposal_rejects_decodable_invalid_pari ... ok
+test app::tests::proposal_nullifier_count_policy_is_fixed_at_boundary ... ok
+test app::tests::proposal_payload_size_policy_is_fixed_at_boundary ... ok
+test app::tests::proposal_transaction_size_policy_is_fixed_at_boundary ... ok
+test app::tests::proposal_tx_count_policy_is_fixed_at_boundary ... ok
+test app::tests::regulated_genesis_note_transfers_through_host_and_compact_block ... ok
+test app_version::component::test::fresh_state_and_initialized_current_version_are_accepted ... ok
+test app_version::component::test::incompatible_version_is_rejected ... ok
+test app_version::component::test::populated_state_without_version_is_rejected ... ok
+test genesis::test::missing_compliance_content_uses_default ... ok
+test nullifier_generation_packs::tests::compact_blocks_rebuild_the_exact_retired_root ... ok
+test nullifier_generation_packs::tests::invalid_pack_with_a_stored_receipt_is_rebuilt_before_pruning ... ok
+test nullifier_generation_packs::tests::retired_pruning_is_bounded_and_resumes_after_reopen ... ok
+test nullifier_generation_packs::tests::startup_preparation_publishes_packs_for_bounded_maintenance ... ok
+test nullifier_generation_packs::tests::valid_receipt_allows_restart_after_expanded_state_is_pruned ... ok
+test nullifier_generation_packs::tests::worker_processes_generation_retired_after_preparation_before_first_poll ... ok
+test registry_binding::tests::registry_binding_is_committed_and_never_repaired_on_open ... ok
+test stateless_cache::tests::aggregate_raw_byte_budget_evicts_entries ... ok
+test stateless_cache::tests::artifact_association_requires_exact_canonical_bytes ... ok
+test stateless_cache::tests::cached_results_are_scoped_to_exact_registry ... ok
+test stateless_cache::tests::clock_invariant_drift_clears_cache_instead_of_exceeding_limits ... ok
+test stateless_cache::tests::digest_match_never_reuses_entry_for_different_bytes ... ok
+test stateless_cache::tests::distinct_raw_transactions_derive_distinct_cache_entries ... ok
+test stateless_cache::tests::entry_count_budget_evicts_independently_of_raw_byte_budget ... ok
+test stateless_cache::tests::oversized_transactions_are_never_retained ... ok
+test stateless_cache::tests::protected_only_clock_drift_is_bounded_and_clears_cache ... ok
+test stateless_cache::tests::reinsertion_of_same_bytes_preserves_raw_byte_accounting ... ok
+test stateless_cache::tests::sustained_post_cap_churn_stays_within_both_limits ... ok
+test stateless_cache::tests::valid_cache_entries_reject_raw_transaction_artifact_mismatch ... ok
+test stateless_cache::tests::verified_artifact_capability_rows_reject_every_coverage_and_binding_mismatch ... ok
+
+test result: ok. 95 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 335.49s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_app_tests-b7f4059a68fba361)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/app_can_sweep_a_collection_of_small_notes.rs (target/ci/deps/app_can_sweep_a_collection_of_small_notes-b263904d4640708b)
+
+running 1 test
+test app_can_sweep_a_collection_of_small_notes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 79.67s
+
+     Running tests/app_can_transfer_notes_and_detect_new_notes.rs (target/ci/deps/app_can_transfer_notes_and_detect_new_notes-2f4bb76dcf99a164)
+
+running 1 test
+test app_can_transfer_notes_and_detect_new_notes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 61.25s
+
+     Running tests/compliance_diversifier_fix.rs (target/ci/deps/compliance_diversifier_fix-38452262ae45e2d7)
+
+running 1 test
+test compliance_enrichment_preserves_sender_diversifier_on_supported_transfer ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.06s
+
+     Running tests/disclosure.rs (target/ci/deps/disclosure-c92927d9f8f8ce22)
+
+running 2 tests
+test accepted_disclosure_opening ... ignored, builds an accepted payment and verifies its commitment opening without proving
+test export_import_between_wallet_directories ... ignored, builds an accepted payment and generates a real local Pari disclosure
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/host_blocks.rs (target/ci/deps/host_blocks-8f9622df3f948729)
+
+running 1 test
+test host_commits_empty_blocks_with_exact_supplied_height_and_time ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.93s
+
+     Running tests/local_wallet_planning.rs (target/ci/deps/local_wallet_planning-e471c0aa67cd2181)
+
+running 2 tests
+test local_wallet_plan_preserves_inputs_outputs_context_and_insufficient_balance ... ok
+test wallet_catch_up_uses_each_blocks_timestamp ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.98s
+
+     Running tests/paid_wallet_withdrawal.rs (target/ci/deps/paid_wallet_withdrawal-94611ccd5857c7e1)
+
+running 1 test
+test paid_withdrawal_splits_fee_note_then_resumes_and_executes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 136.16s
+
+     Running tests/storage_query.rs (target/ci/deps/storage_query-c17753167a878f4d)
+
+running 1 test
+test host_storage_query_proves_committed_value_at_exact_root ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.94s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_asset-77d5efcf1adae14c)
+
+running 24 tests
+test asset::denom_metadata::ibc_transfer_path_tests::denom_traces ... ok
+test asset::denom_metadata::tests::can_parse_metadata_from_chain_registry ... ok
+test asset::denom_metadata::tests::metadata_codec_checks_the_denom_asset_binding ... ok
+test asset::id::tests::asset_id_encoding ... ok
+test asset::id::tests::asset_id_proto_requires_exactly_one_representation ... ok
+test asset::id::tests::distinct_denom_trace_examples_have_distinct_asset_ids ... ok
+test asset::tests::best_unit_for ... ok
+test asset::tests::displaydenom_parsing_formatting_roundtrip ... ok
+test asset::tests::test_displaydenom_format_value ... ok
+test asset::tests::test_displaydenom_parse_value ... ok
+test asset::tests::test_registry_native_token ... ok
+test balance::imbalance::test::addition ... ok
+test balance::imbalance::test::subtraction ... ok
+test balance::test::all_expressions_correct_commitment ... ok
+test balance::test::balance_decode_combines_signed_entries_for_the_same_asset ... ok
+test balance::test::cancellation_preserves_zero ... ok
+test balance::test::from_infallible_conversion ... ok
+test balance::test::test_balance_serialization_roundtripping ... ok
+test balance::test::try_from_fallible_conversion_different_asset_id ... ok
+test balance::test::try_from_fallible_conversion_failure ... ok
+test value::tests::format_picks_best_unit ... ok
+test value::tests::sum_balance_commitments ... ok
+test value::tests::value_parsing_errors ... ok
+test value::tests::value_parsing_happy ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/jubjub_commitments.rs (target/ci/deps/jubjub_commitments-89351cd3ed4efa25)
+
+running 1 test
+test runtime_value_commitments_match_the_pari_gadget ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_bench-d0e114f7b8c53747)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/transfer-benchmark.rs (target/ci/deps/transfer_benchmark-0e59913334374eea)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_bench_support-80bb331c15d8968e)
+
+running 6 tests
+test proof_txs::tests::corpus_cannot_be_reused_with_a_different_genesis_note_count ... ok
+test proof_txs::tests::corpus_rejects_changed_executable_before_reading_shards ... ok
+test proof_txs::tests::proof_storage_admits_regulated_non_fee_notes ... ok
+test tests::append_csv_scoped_upserts_only_matching_scope ... ok
+test tests::append_csv_upserts_and_keeps_stable_order ... ok
+test tests::sort_results_orders_versions_and_modes ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.09s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_circuits-fe8e353bfd143657)
+
+running 63 tests
+test audit::tests::commitments_and_registration_rules_match_runtime ... ok
+test audit::tests::ownership_runtime_circuit_and_encodings_agree ... ok
+test authorization::tests::ownership_and_regulated_key_bind_all_inputs_in_both_branches ... ok
+test balance::conservation_tests::conservation_supports_eight_maximum_amounts_without_field_wrap ... ok
+test balance::tests::full_integer_net_balance_and_blinding_match_native_without_field_wrap ... ok
+test balance::tests::real_pari_proof_binds_native_generator_map_and_committed_balance_blinding ... ok
+test balance::tests::signed_magnitude_rejects_wrong_sign_magnitude_and_field_wrap ... ok
+test catalogue::tests::catalogue_relations_match_all_nine_real_witness_shapes ... ok
+test compliance::tests::authenticated_leaf_and_active_lifecycle_reject_mutations_without_erasing_generation ... ok
+test disclosure::tests::disclosure_proof_binds_full_statement_and_context ... ok
+test disclosure::tests::one_note_family_has_distinct_relation_and_rejects_mutated_claims ... ok
+test disclosure::tests::one_note_proof_is_bound_to_its_family ... ok
+test disclosure::tests::predicates_constrain_both_true_and_false_results_and_canonical_bounds ... ok
+test disclosure::tests::prefix_padding_reveals_and_optional_total_preserve_full_u128_amounts ... ok
+test encoding::tests::encrypted_address_words_match_exact_native_bytes ... ok
+test encoding::tests::modulus_representative_cannot_encode_zero ... ok
+test encryption::tests::all_tiers_decrypt_for_the_selected_party_and_detection_always_for_issuer ... ok
+test encryption::tests::ciphertexts_bind_amount_asset_flag_and_ordered_addresses ... ok
+test encryption::tests::every_published_field_nonce_and_ephemeral_is_constrained_in_both_branches ... ok
+test encryption::tests::flagged_tiers_use_issuer_dk_and_ordinary_tiers_use_shared_payload_with_independent_openings ... ok
+test encryption::tests::native_pari_proves_all_four_tiers_and_binds_claim_and_commitment ... ok
+test group::tests::fixed_windows_match_variable_and_independent_group_boundaries ... ok
+test group::tests::native_generator_and_cofactor_subgroup_circuit_agree ... ok
+test group::tests::torsion_and_identity_are_rejected_at_ownership_boundary ... ok
+test hash::tests::immutable_parameters_and_generators_are_shared ... ok
+test hash::tests::matrix_has_no_singular_minor ... ok
+test hash::tests::native_and_circuit_match_pinned_arkworks_vectors ... ok
+test hash::tests::wrong_hash_and_cross_domain_are_rejected ... ok
+test history::tests::canonical_gap_sentinels_paths_and_position_ranges_are_bound ... ok
+test history::tests::chunk_requires_ten_ordered_complete_witnesses_with_checked_u64_indices ... ok
+test history::tests::generation_and_direct_chunk_proofs_verify_with_zero_committed_predecessors ... ok
+test map::tests::native_and_circuit_match_arkworks_elligator_including_zero_and_full_field ... ok
+test map::tests::quadratic_choice_and_domain_separated_generator_bindings_are_not_optional ... ok
+test note::tests::identity_randomized_keys_are_rejected_for_real_and_dummy_spends ... ok
+test note::tests::optional_dummy_enforces_gated_constraints_and_fixed_slot ... ok
+test note::tests::output_notes_bind_recovery_and_only_change_can_be_zero ... ok
+test note::tests::real_spends_bind_note_path_nullifier_authorization_and_history_boundary ... ok
+test range::tests::bounded_comparison_binds_both_results_at_supported_widths ... ok
+test range::tests::bounded_comparison_refuses_a_width_allowing_field_wrap - should panic ... ok
+test range::tests::bounded_difference_matches_integer_order ... ok
+test range::tests::full_u128_and_u129_sum_are_preserved ... ok
+test range::tests::limb_comparison_preserves_canonical_field_order ... ok
+test range::tests::limit_boundary_is_inclusive ... ok
+test recovery::tests::capsule_binds_every_word_and_private_value_for_zero_and_full_u128_amounts ... ok
+test registry::tests::membership_and_canonical_gap_bind_every_authenticated_leaf_fact ... ok
+test reshape::tests::both_shapes_conserve_and_authenticate_with_canonical_padding ... ok
+test reshape::tests::split_and_merge_prove_with_distinct_fixed_relations ... ok
+test routing::single_tests::single_route_preserves_precision_boundaries_and_parameter_binding ... ok
+test routing::tests::both_permutations_and_precision_boundaries_match_native_tags ... ok
+test routing::tests::tags_parameters_nonce_and_sender_relevance_are_bound ... ok
+test scalar::tests::subgroup_reduction_preserves_canonical_integer_equation ... ok
+test seizure::tests::released_seed_note_membership_and_every_public_fact_are_bound ... ok
+test seizure::tests::seizure_proof_uses_only_released_plaintext_not_encryption_secret ... ok
+test transfer::tests::all_branches_compile_to_one_relation_and_bind_current_audit_keys ... ok
+test transfer::tests::complete_transfer_proves_and_verifies_with_current_compliance ... ok
+test tree::tests::all_quaternary_slots_and_high_position_bits_are_bound ... ok
+test tree::tests::reused_bits_must_match_the_path_position ... ok
+test volume::tests::limit_overflow_timestamp_and_predecessor_mutations_are_rejected ... ok
+test volume::tests::origin_continuation_disclosure_and_fee_constraints_are_preserved ... ok
+test volume::tests::real_pari_proof_covers_full_depth_accumulator_relation ... ok
+test withdrawal::tests::withdrawal_binds_all_512_effect_hash_bits ... ok
+test withdrawal::tests::withdrawal_preserves_volume_encryption_and_exact_conservation ... ok
+test withdrawal::tests::withdrawal_proof_binds_external_effects ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 446.82s
+
+     Running tests/pari.rs (target/ci/deps/pari-22306c0c2651b697)
+
+running 1 test
+test real_proofs_bind_statement_family_key_and_complete_envelope ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_compact_block-e86cab1fd6f962b0)
+
+running 1 test
+test discovery::tests::tag_slot_is_narrowed_at_the_domain_boundary ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_compliance-83cef359fa30634f)
+
+running 197 tests
+test audit::tests::alias_records_transmission_key_for_shieldd_address ... ok
+test audit::tests::committed_detection_has_evidence_after_restart ... ok
+test audit::tests::empty_store_exports_stable_scan_shape ... ok
+test audit::tests::evidence_object_is_persisted_by_hash ... ok
+test audit::tests::evidence_object_rejects_mismatched_persisted_ciphertext ... ok
+test audit::tests::flagged_decrypt_requires_valid_evidence ... ok
+test audit::tests::malformed_candidate_commits_invalid_outcome_alongside_valid_output ... ok
+test audit::tests::persisted_audit_failure_reasons_are_bounded ... ok
+test audit::tests::persistence_failure_rolls_back_results_evidence_and_cursor ... ok
+test audit::tests::rollback_removes_evidence_objects_and_failures ... ok
+test audit::tests::withdrawal_scanning_preserves_public_asset_and_completes_flagged_audit ... ok
+test audit_log::tests::candidate_commitments_bind_canonical_ciphertext_projections ... ok
+test audit_log::tests::log_chain_binds_order_and_every_record_byte ... ok
+test audit_log::tests::note_seizure_effect_round_trips_and_binds_the_nullifier ... ok
+test audit_log::tests::replay_rejects_missing_or_tampered_records ... ok
+test audit_log::tests::state_persists_records_and_replays_the_authenticated_head ... ok
+test audit_log::tests::status_effect_commits_freeze_provenance ... ok
+test audit_records::tests::detected_ref_projection_preserves_fields_and_hex_encodes_tx_hash ... ok
+test audit_records::tests::subject_filter_applies_asset_before_each_registered_address_selector ... ok
+test audit_records::tests::subject_filter_marks_both_trial_roles_for_any_tag_hit ... ok
+test audit_records::tests::subject_filter_rejects_wrong_asset_or_prefix ... ok
+test audit_status::tests::audit_status_transition_table_is_explicit ... ok
+test audit_status::tests::screen_status_transition_table_is_explicit ... ok
+test audit_validation::tests::payload_tampering_is_rejected ... ok
+test audit_validation::tests::valid_metadata_only_evidence_is_accepted ... ok
+test component::query::tests::current_anchors_returns_both_mutable_roots ... ok
+test component::state::tests::asset_admission_rejects_audit_keys_shared_with_other_authorities ... ok
+test component::state::tests::registration_for_unregulated_assets_leaves_no_user_or_event ... ok
+test component::state::tests::registration_persists_distinct_address_scopes ... FAILED
+test component::state::tests::regulated_asset_registration_requires_explicit_orbis_ring_key ... ok
+test component::state::tests::test_asset_registration_rejects_expired_grant ... ok
+test component::state::tests::test_asset_registration_rejects_forged_grant ... ok
+test component::state::tests::test_asset_registration_rejects_unauthorized_registrar ... ok
+test component::state::tests::test_init_chain ... ok
+test component::state::tests::test_init_chain_with_custom_genesis ... ok
+test component::state::tests::test_init_chain_without_genesis ... ok
+test component::state::tests::test_msg_register_asset ... ok
+test component::state::tests::test_msg_register_regulated_without_dk_pub_fails ... ok
+test component::state::tests::test_msg_register_unregulated_asset_is_noop ... ok
+test component::state::tests::test_msg_register_user_for_regulated_asset ... ok
+test component::state::tests::test_msg_register_user_rejects_identity_rnk_dh ... ok
+test component::state::tests::test_user_registration_rejects_missing_wrong_and_expired_grants ... ok
+test crypto::tests::tier_round_trip_rejects_noncanonical_fields_padding_and_lengths ... ok
+test decode_object::tests::transfer_metadata_has_one_canonical_fixed_encoding ... ok
+test decode_object::tests::transfer_metadata_rejects_zero_timestamp_and_noncanonical_fields ... ok
+test dleq_evidence::tests::bound_evidence_rejects_other_request_unbound_verifier_and_version ... ok
+test dleq_evidence::tests::issuer_disclosure_uses_fresh_proof_and_pinned_chain_values ... ok
+test dleq_evidence::tests::issuer_evidence_binds_asset_epk_and_shared_point ... ok
+test event::tests::asset_registration_binds_identity_classification_and_policy ... ok
+test event::tests::user_registration_rejects_mismatched_commitment ... ok
+test event::tests::user_status_event_requires_legal_bound_transition ... ok
+test evidence::tests::evidence_hash_commits_to_every_metadata_field ... ok
+test evidence::tests::evidence_rejects_trailing_bytes_and_noncanonical_boolean ... ok
+test evidence::tests::evidence_round_trip_preserves_payload_hash_and_metadata ... ok
+test evidence::tests::withdrawal_evidence_hash_binds_public_amount_and_destination ... ok
+test evidence::tests::withdrawal_evidence_round_trips_host_reference ... ok
+test genesis::tests::genesis_rejects_identity_authorization_keys ... ok
+test genesis::tests::regulated_genesis_asset_requires_complete_orbis_configuration ... ok
+test genesis::tests::test_default_genesis ... ok
+test genesis::tests::test_serde_roundtrip ... ok
+test indexed_tree::tests::empty_tree_proves_only_the_open_sentinel_interval ... ok
+test indexed_tree::tests::indexed_leaf_commitment_binds_each_policy_and_link_field ... ok
+test indexed_tree::tests::indexed_leaf_proto_rejects_omitted_policy_facts_and_invalid_points ... ok
+test indexed_tree::tests::insertion_and_policy_update_preserve_all_invariants ... ok
+test indexed_tree::tests::insertion_returns_the_stored_leaf_and_updated_predecessor ... ok
+test indexed_tree::tests::membership_and_gap_proofs_authenticate_at_supported_depths ... ok
+test indexed_tree::tests::rejected_insertions_leave_the_tree_unchanged ... ok
+test indexed_tree::tests::sparse_reconstruction_and_deserialization_reject_corruption ... ok
+test indexed_tree::tests::test_fq_max_is_field_modulus_minus_one ... ok
+test indexed_tree::tests::test_fq_ord_key_numeric_order ... ok
+test indexed_tree::tests::test_imt_insert_multiple_maintains_order ... ok
+test indexed_tree::tests::test_imt_predecessor_index_matches_linear_scan ... ok
+test indexed_tree::tests::test_indexed_leaf_bincode_roundtrip ... ok
+test indexed_tree::tests::test_indexed_leaf_proto_roundtrip ... ok
+test indexed_tree::tests::test_leaf_from_policy ... ok
+test indexed_tree::tests::test_route_policy_to_fq_order_independent ... ok
+test indexed_tree::tests::tree_codecs_preserve_leaves_indexes_and_proofs ... ok
+test indexed_tree::tests::well_formedness_rejects_count_and_position_corruption ... ok
+test indexed_tree::tests::well_formedness_rejects_depth_and_capacity_corruption ... ok
+test indexed_tree::tests::well_formedness_rejects_derived_index_and_merkle_corruption ... ok
+test indexed_tree::tests::well_formedness_rejects_duplicate_values_and_noncanonical_sentinel ... ok
+test indexed_tree::tests::well_formedness_rejects_incomplete_and_inconsistent_successor_chains ... ok
+test issuer_keys::tests::detection_flag_is_boolean_and_canonical ... ok
+test issuer_keys::tests::detection_flags_roundtrip_across_asset_bits ... ok
+test issuer_keys::tests::high_bit_asset_alias_is_rejected ... ok
+test issuer_keys::tests::test_detection_key_public_roundtrip ... ok
+test issuer_keys::tests::test_dk_basic ... ok
+test issuer_keys::tests::test_dk_per_asset_isolation ... ok
+test issuer_keys::tests::test_encrypt_to_dk_pub_without_dk ... ok
+test issuer_keys::tests::test_wrong_dk_cannot_decrypt ... ok
+test registry::tests::add_compliance_leaf_rejects_identity_capability_before_mutation ... ok
+test registry::tests::add_compliance_leaf_rejects_zero_asset_before_mutation ... ok
+test registry::tests::asset_mutation_rejects_a_corrupted_touched_path ... ok
+test registry::tests::base_fee_asset_cannot_be_admitted_as_regulated ... ok
+test registry::tests::compliance_anchor_facts_require_current_user_root ... ok
+test registry::tests::current_roots_remain_valid_when_the_history_window_changes ... ok
+test registry::tests::freeze_and_unfreeze_replace_the_leaf_at_its_existing_position ... ok
+test registry::tests::full_asset_structure_validation_is_confined_to_readiness ... ok
+test registry::tests::historical_anchors_are_retained_but_only_the_current_root_is_accepted ... ok
+test registry::tests::missing_committed_roots_are_not_reconstructed ... ok
+test registry::tests::note_seizure_is_terminal_but_allows_more_notes_from_the_same_freeze ... ok
+test registry::tests::regulated_asset_identity_keys_fail_before_tree_mutation ... ok
+test registry::tests::stale_asset_anchor_is_rejected_immediately_after_policy_change ... ok
+test registry::tests::test_anchor_pruning_preserves_latest_lookup_for_reused_anchor ... ok
+test registry::tests::test_anchor_pruning_removes_expired_entries ... ok
+test registry::tests::test_asset_duplicate_prevention ... ok
+test registry::tests::test_asset_imt_root_check_fails_on_missing_nv_leaves ... ok
+test registry::tests::test_asset_imt_uses_nv_nodes_and_leaves_not_full_blob ... ok
+test registry::tests::test_asset_proof_direct_read_membership_and_gap_parity ... ok
+test registry::tests::test_direct_read_proofs_match_reconstructed_trees_random_trace ... ok
+test registry::tests::test_get_asset_policy_cached_matches_uncached ... ok
+test registry::tests::test_ibc_origin_lookup_rejects_duplicate_base_denom ... ok
+test registry::tests::test_invalid_anchor_rejected ... ok
+test registry::tests::test_record_and_validate_anchors ... ok
+test registry::tests::test_register_regulated_asset ... ok
+test registry::tests::test_replace_asset_ibc_policy_requires_expected_hash ... ok
+test registry::tests::test_shortened_anchor_window_pruning_catches_up ... ok
+test registry::tests::test_user_leaf_position_lookup ... ok
+test registry::tests::test_user_leaf_roundtrip ... ok
+test registry::tests::test_user_tree_full_returns_domain_error_without_mutation ... ok
+test registry::tests::test_user_tree_root_check_fails_on_missing_nv_nodes ... ok
+test registry::tests::test_user_tree_uses_nv_nodes_not_full_blob ... ok
+test registry::tests::timestamp_freshness_enforces_the_closed_hour_window ... FAILED
+test registry::tests::user_leaf_record_matches_its_committed_tree_position ... ok
+test registry::tests::user_root_change_invalidates_old_anchor_before_history_recording ... ok
+test scanner::screener::tests::screener_detects_matching_asset ... ok
+test scanner::screener::tests::screener_ignores_wrong_asset_or_key ... ok
+test scanner::screener::tests::screener_reports_invalid_ciphertext ... ok
+test scanner::storage::tests::sqlite_readers_see_committed_state_while_writer_is_active ... ok
+test scanner::storage::tests::sqlite_store_bounds_invalid_ciphertext_reasons ... ok
+test scanner::storage::tests::sqlite_store_caps_invalid_ciphertexts_per_block ... ok
+test scanner::storage::tests::sqlite_store_commits_and_deduplicates_detections ... ok
+test scanner::storage::tests::sqlite_store_commits_empty_block_advances_cursor ... ok
+test scanner::storage::tests::sqlite_store_configures_wal_checkpoint_and_vacuum_policy ... ok
+test scanner::storage::tests::sqlite_store_initializes_current_schema_and_rejects_wrong_identity ... ok
+test scanner::storage::tests::sqlite_store_persists_raw_ciphertext_screening_status ... ok
+test scanner::storage::tests::sqlite_store_records_runtime_started_heartbeat_and_error ... ok
+test scanner::storage::tests::sqlite_store_rejects_illegal_screen_status_transition ... ok
+test scanner::storage::tests::sqlite_store_rejects_unrecognized_db ... ok
+test scanner::storage::tests::sqlite_store_rolls_back_later_scanner_state ... ok
+test scanner::storage::tests::sqlite_store_status_constraints_reject_invalid_values ... ok
+test scanner::sync::tests::extract_ciphertexts_includes_action_and_output_indices ... ok
+test scanner::sync::tests::extract_ciphertexts_uses_typed_withdrawal_refs_and_public_facts ... ok
+test scanner::sync::tests::extract_empty_transaction ... ok
+test scanner::worker::tests::catch_up_rejects_skipped_empty_and_truncated_streams ... ok
+test scanner::worker::tests::host_identity_retries_transient_failure_and_rejects_wrong_height ... ok
+test scanner::worker::tests::reorg_decision_accepts_matching_parent ... ok
+test scanner::worker::tests::reorg_decision_walks_back_to_common_ancestor ... ok
+test scanner::worker::tests::worker_creation_uses_stored_height ... ok
+test scanner::worker::tests::worker_validates_detected_metadata_only_evidence ... ok
+test scanning::tests::core_key_confirmation_distinguishes_match_from_non_match ... ok
+test scanning::tests::test_decrypt_full_flagged_rejects_unflagged_transfer ... ok
+test scanning::tests::test_decrypt_full_flagged_transfer ... ok
+test structs::tests::asset_policy_rejects_identity_crypto_keys ... ok
+test structs::tests::asset_policy_rejects_identity_registration_authority_key ... ok
+test structs::tests::asset_registration_grant_rejects_identity_registrar_key ... ok
+test structs::tests::compliance_leaf_authenticates_freeze_generation_and_height ... ok
+test structs::tests::compliance_leaf_rejects_incoherent_lifecycle ... ok
+test structs::tests::diversified_dh_derivation_changes_with_every_scope_input ... ok
+test structs::tests::effective_nullifier_key_is_scoped_only_for_regulated_assets ... ok
+test structs::tests::general_audit_certificate_binds_chain_asset_policy_and_keys ... ok
+test structs::tests::issued_capability_certificate_verifies_and_uses_fresh_nonces ... ok
+test structs::tests::merkle_path_default_is_fixed_width_and_canonical ... ok
+test structs::tests::merkle_path_proto_rejects_noncanonical_shape_and_fields ... ok
+test structs::tests::orbis_capability_certificate_binds_the_complete_registration ... ok
+test structs::tests::regulated_policy_rejects_issuer_or_ring_encryption_key_reuse ... ok
+test structs::tests::regulated_policy_requires_complete_orbis_and_authority_configuration ... ok
+test structs::tests::seized_is_a_terminal_user_asset_status ... ok
+test structs::tests::synthetic_compliance_leaf_is_valid ... ok
+test structs::tests::test_asset_policy_bytes_roundtrip ... ok
+test structs::tests::test_asset_policy_from_bytes_rejects_missing_storage_fields ... ok
+test structs::tests::test_asset_policy_proto_rejects_missing_required_fields ... ok
+test structs::tests::test_asset_policy_proto_roundtrip ... ok
+test structs::tests::test_asset_policy_to_bytes_rejects_overlong_route_field ... ok
+test structs::tests::test_asset_policy_to_bytes_rejects_overlong_string ... ok
+test structs::tests::test_compliance_leaf_different_addresses_different_commits ... ok
+test structs::tests::test_compliance_leaf_proto_rejects_invalid_rnk_commitment ... ok
+test structs::tests::test_compliance_leaf_proto_roundtrip ... ok
+test structs::tests::test_default_unregulated_policy_uses_sink_keys ... ok
+test structs::tests::user_registration_grant_rejects_identity_registration_authority ... ok
+test tests::test_end_to_end_detection_and_decryption ... ok
+test transfer::tests::transfer_ciphertext_rejects_noncanonical_field_words ... ok
+test transfer::tests::transfer_ciphertext_roundtrip_preserves_key_confirmations ... ok
+test transfer::tests::transfer_nonce_sampling_rejects_zero ... ok
+test transfer_audit::tests::decrypt_original_transfer_tiers_with_selected_key ... ok
+test transfer_audit::tests::rejects_invalid_counterparty_transmission_point ... ok
+test tree::tests::authentication_paths_preserve_child_order_and_position_digits ... ok
+test tree::tests::empty_leaf_path_authenticates_against_the_sparse_zero_root ... ok
+test tree::tests::test_auth_path_invalid_position_returns_error ... ok
+test tree::tests::test_quad_tree_basic ... ok
+test tree::tests::test_serialization ... ok
+test tree::tests::test_sparse_storage ... ok
+test tree::tests::test_update_invalid_position_returns_error ... ok
+test tree::tests::test_verify_auth_path ... ok
+test tree::tests::test_zero_hashes_precomputed ... ok
+test withdrawal::tests::withdrawal_ciphertext_rejects_noncanonical_fields_and_identity_epk ... ok
+test withdrawal::tests::withdrawal_ciphertext_round_trips_and_classifies_wrong_keys ... ok
+
+failures:
+
+---- component::state::tests::registration_persists_distinct_address_scopes stdout ----
+
+thread 'component::state::tests::registration_persists_distinct_address_scopes' (38750819) panicked at crates/core/component/compliance/src/component/state.rs:729:9:
+assertion `left != right` failed
+  left: 0x6ea459eda5f80133140e77121d51b7e9418f8067a17d171030fea90f5087dcfe
+ right: 0x6ea459eda5f80133140e77121d51b7e9418f8067a17d171030fea90f5087dcfe
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- registry::tests::timestamp_freshness_enforces_the_closed_hour_window stdout ----
+
+thread 'registry::tests::timestamp_freshness_enforces_the_closed_hour_window' (38753206) panicked at crates/core/component/compliance/src/registry_tests.rs:1527:9:
+assertion `left == right` failed: target=1, consensus=3601
+  left: false
+ right: true
+
+
+failures:
+    component::state::tests::registration_persists_distinct_address_scopes
+    registry::tests::timestamp_freshness_enforces_the_closed_hour_window
+
+test result: FAILED. 195 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.11s
+
+error: test failed, to rerun pass `-p shieldd-sdk-compliance --lib`

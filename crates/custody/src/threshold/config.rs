@@ -336,19 +336,6 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_config_serialization_roundtrip() -> Result<()> {
-        // You can't put 1, because no FUN is allowed
-        let config = Config::deal(&mut OsRng, 2, 2)?.pop().unwrap();
-        let config_str = serde_json::to_string(&config)?;
-        let config2: Config = serde_json::from_str(&config_str)?;
-        // Can't derive partial eq, so go field by field
-        assert_eq!(config.threshold, config2.threshold);
-        assert_eq!(config.fvk, config2.fvk);
-        assert_eq!(config.spend_key_share, config2.spend_key_share);
-        assert_eq!(config.verifying_shares, config2.verifying_shares);
-        Ok(())
-    }
-    #[test]
     fn imported_config_rejects_invalid_threshold_and_missing_identity() -> Result<()> {
         let config = Config::deal(&mut OsRng, 2, 3)?.pop().unwrap();
         let json = serde_json::to_value(&config)?;

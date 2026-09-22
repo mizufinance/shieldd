@@ -16,7 +16,7 @@ pub struct AddressCmd {
     /// Output in base64 format, instead of the default bech32.
     #[clap(long)]
     base64: bool,
-    /// Use transparent (bech32, 32-byte) address encoding, for compatibility with some IBC chains.
+    /// Use transparent (bech32, suite byte plus 32-byte key) address encoding, for compatibility with some IBC chains.
     #[clap(long)]
     transparent: bool,
     /// Print the current FVK

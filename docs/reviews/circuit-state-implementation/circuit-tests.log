@@ -1,0 +1,88 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/cryptography)
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Finished `ci` profile [optimized] target(s) in 25.90s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_circuits-a2137c0189338891)
+
+running 63 tests
+test audit::tests::commitments_and_registration_rules_match_runtime ... ok
+test audit::tests::ownership_runtime_circuit_and_encodings_agree ... ok
+test authorization::tests::ownership_and_regulated_key_bind_all_inputs_in_both_branches ... ok
+test balance::conservation_tests::conservation_supports_eight_maximum_amounts_without_field_wrap ... ok
+test balance::tests::full_integer_net_balance_and_blinding_match_native_without_field_wrap ... ok
+test balance::tests::real_pari_proof_binds_native_generator_map_and_committed_balance_blinding ... ok
+test balance::tests::signed_magnitude_rejects_wrong_sign_magnitude_and_field_wrap ... ok
+test catalogue::tests::catalogue_relations_match_all_nine_real_witness_shapes ... ok
+test compliance::tests::authenticated_leaf_and_active_lifecycle_reject_mutations_without_erasing_generation ... ok
+test disclosure::tests::disclosure_proof_binds_full_statement_and_context ... ok
+test disclosure::tests::one_note_family_has_distinct_relation_and_rejects_mutated_claims ... ok
+test disclosure::tests::one_note_proof_is_bound_to_its_family ... ok
+test disclosure::tests::predicates_constrain_both_true_and_false_results_and_canonical_bounds ... ok
+test disclosure::tests::prefix_padding_reveals_and_optional_total_preserve_full_u128_amounts ... ok
+test encoding::tests::encrypted_address_words_match_exact_native_bytes ... ok
+test encoding::tests::modulus_representative_cannot_encode_zero ... ok
+test encryption::tests::all_tiers_decrypt_for_the_selected_party_and_detection_always_for_issuer ... ok
+test encryption::tests::ciphertexts_bind_amount_asset_flag_and_ordered_addresses ... ok
+test encryption::tests::every_published_field_nonce_and_ephemeral_is_constrained_in_both_branches ... ok
+test encryption::tests::flagged_tiers_use_issuer_dk_and_ordinary_tiers_use_shared_payload_with_independent_openings ... ok
+test encryption::tests::native_pari_proves_all_four_tiers_and_binds_claim_and_commitment ... ok
+test group::tests::fixed_windows_match_variable_and_independent_group_boundaries ... ok
+test group::tests::native_generator_and_cofactor_subgroup_circuit_agree ... ok
+test group::tests::torsion_and_identity_are_rejected_at_ownership_boundary ... ok
+test hash::tests::immutable_parameters_and_generators_are_shared ... ok
+test hash::tests::matrix_has_no_singular_minor ... ok
+test hash::tests::native_and_circuit_match_pinned_arkworks_vectors ... ok
+test hash::tests::wrong_hash_and_cross_domain_are_rejected ... ok
+test history::tests::canonical_gap_sentinels_paths_and_position_ranges_are_bound ... ok
+test history::tests::chunk_requires_ten_ordered_complete_witnesses_with_checked_u64_indices ... ok
+test history::tests::generation_and_direct_chunk_proofs_verify_with_zero_committed_predecessors ... ok
+test map::tests::native_and_circuit_match_arkworks_elligator_including_zero_and_full_field ... ok
+test map::tests::quadratic_choice_and_domain_separated_generator_bindings_are_not_optional ... ok
+test note::tests::identity_randomized_keys_are_rejected_for_real_and_dummy_spends ... ok
+test note::tests::optional_dummy_enforces_gated_constraints_and_fixed_slot ... ok
+test note::tests::output_notes_bind_recovery_and_only_change_can_be_zero ... ok
+test note::tests::real_spends_bind_note_path_nullifier_authorization_and_history_boundary ... ok
+test range::tests::bounded_comparison_binds_both_results_at_supported_widths ... ok
+test range::tests::bounded_comparison_refuses_a_width_allowing_field_wrap - should panic ... ok
+test range::tests::bounded_difference_matches_integer_order ... ok
+test range::tests::full_u128_and_u129_sum_are_preserved ... ok
+test range::tests::limb_comparison_preserves_canonical_field_order ... ok
+test range::tests::limit_boundary_is_inclusive ... ok
+test recovery::tests::capsule_binds_every_word_and_private_value_for_zero_and_full_u128_amounts ... ok
+test registry::tests::membership_and_canonical_gap_bind_every_authenticated_leaf_fact ... ok
+test reshape::tests::both_shapes_conserve_and_authenticate_with_canonical_padding ... ok
+test reshape::tests::split_and_merge_prove_with_distinct_fixed_relations ... ok
+test routing::single_tests::single_route_preserves_precision_boundaries_and_parameter_binding ... ok
+test routing::tests::both_permutations_and_precision_boundaries_match_native_tags ... ok
+test routing::tests::tags_parameters_nonce_and_sender_relevance_are_bound ... ok
+test scalar::tests::subgroup_reduction_preserves_canonical_integer_equation ... ok
+test seizure::tests::released_seed_note_membership_and_every_public_fact_are_bound ... ok
+test seizure::tests::seizure_proof_uses_only_released_plaintext_not_encryption_secret ... ok
+test transfer::tests::all_branches_compile_to_one_relation_and_bind_current_audit_keys ... ok
+test transfer::tests::complete_transfer_proves_and_verifies_with_current_compliance ... ok
+test tree::tests::all_quaternary_slots_and_high_position_bits_are_bound ... ok
+test tree::tests::reused_bits_must_match_the_path_position ... ok
+test volume::tests::limit_overflow_timestamp_and_predecessor_mutations_are_rejected ... ok
+test volume::tests::origin_continuation_disclosure_and_fee_constraints_are_preserved ... ok
+test volume::tests::real_pari_proof_covers_full_depth_accumulator_relation ... ok
+test withdrawal::tests::withdrawal_binds_all_512_effect_hash_bits ... ok
+test withdrawal::tests::withdrawal_preserves_volume_encryption_and_exact_conservation ... ok
+test withdrawal::tests::withdrawal_proof_binds_external_effects ... ok
+
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 453.37s
+
+     Running tests/pari.rs (target/ci/deps/pari-ad6925e579f9541c)
+
+running 1 test
+test real_proofs_bind_statement_family_key_and_complete_envelope ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+   Doc-tests shieldd_sdk_circuits
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

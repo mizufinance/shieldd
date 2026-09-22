@@ -14,7 +14,7 @@ pub(crate) struct HiddenArityPadder {
     pub first_spend_randomizer: Fr,
     pub sender_address: Address,
     pub asset_id: asset::Id,
-    pub capk: SubgroupPoint,
+    pub payload_key: SubgroupPoint,
     pub nullifier_domain: u8,
     pub nullifier_seed_label: &'static [u8],
     pub spend_auth_key_label: &'static [u8],
@@ -116,7 +116,7 @@ impl HiddenArityPadder {
                 asset_id: self.asset_id,
             },
             rseed,
-            self.capk,
+            self.payload_key,
         )
         .expect("synthetic hidden-arity dummy note is valid")
     }

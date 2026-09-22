@@ -1,0 +1,756 @@
+{
+  "baseline": {
+    "transfer": {
+      "rows": 212174,
+      "columns": 212126,
+      "squared_nnz": 2217505,
+      "linear_nnz": 269074,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 157049,
+      "columns": 156987,
+      "squared_nnz": 1586363,
+      "linear_nnz": 198771,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 185925,
+      "columns": 186308,
+      "squared_nnz": 2704476,
+      "linear_nnz": 236752,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 119090,
+      "columns": 119143,
+      "squared_nnz": 1557588,
+      "linear_nnz": 151601,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16604,
+      "columns": 16686,
+      "squared_nnz": 311780,
+      "linear_nnz": 20845,
+      "domain": 32768
+    },
+    "disclosure": {
+      "rows": 159226,
+      "columns": 158090,
+      "squared_nnz": 1714147,
+      "linear_nnz": 210236,
+      "domain": 262144
+    },
+    "history_generation": {
+      "rows": 15123,
+      "columns": 15166,
+      "squared_nnz": 216294,
+      "linear_nnz": 19664,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 143357,
+      "columns": 143740,
+      "squared_nnz": 2005662,
+      "linear_nnz": 186774,
+      "domain": 262144
+    }
+  },
+  "run-bundle-width11-eq": {
+    "transfer": {
+      "rows": 204511,
+      "columns": 204426,
+      "squared_nnz": 2072362,
+      "linear_nnz": 258018,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 153460,
+      "columns": 153362,
+      "squared_nnz": 1453422,
+      "linear_nnz": 193057,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 179676,
+      "columns": 180023,
+      "squared_nnz": 2565572,
+      "linear_nnz": 227020,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 114550,
+      "columns": 114566,
+      "squared_nnz": 1421917,
+      "linear_nnz": 144387,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16224,
+      "columns": 16306,
+      "squared_nnz": 310912,
+      "linear_nnz": 20271,
+      "domain": 16384
+    },
+    "disclosure": {
+      "rows": 90949,
+      "columns": 89846,
+      "squared_nnz": 1195321,
+      "linear_nnz": 104471,
+      "domain": 131072
+    },
+    "history_generation": {
+      "rows": 13330,
+      "columns": 13368,
+      "squared_nnz": 210524,
+      "linear_nnz": 16668,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 130261,
+      "columns": 130657,
+      "squared_nnz": 2120202,
+      "linear_nnz": 162237,
+      "domain": 131072
+    }
+  },
+  "run-bundle-width10": {
+    "transfer": {
+      "rows": 204757,
+      "columns": 204672,
+      "squared_nnz": 2071336,
+      "linear_nnz": 258260,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 153706,
+      "columns": 153608,
+      "squared_nnz": 1452396,
+      "linear_nnz": 193299,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 179922,
+      "columns": 180269,
+      "squared_nnz": 2564546,
+      "linear_nnz": 227262,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 114796,
+      "columns": 114812,
+      "squared_nnz": 1420891,
+      "linear_nnz": 144629,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16224,
+      "columns": 16306,
+      "squared_nnz": 310912,
+      "linear_nnz": 20271,
+      "domain": 16384
+    },
+    "disclosure": {
+      "rows": 90949,
+      "columns": 89846,
+      "squared_nnz": 1195321,
+      "linear_nnz": 104471,
+      "domain": 131072
+    },
+    "history_generation": {
+      "rows": 13576,
+      "columns": 13614,
+      "squared_nnz": 209498,
+      "linear_nnz": 16910,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 120993,
+      "columns": 121353,
+      "squared_nnz": 1918154,
+      "linear_nnz": 150054,
+      "domain": 131072
+    }
+  },
+  "run-authorization": {
+    "transfer": {
+      "rows": 211674,
+      "columns": 211627,
+      "squared_nnz": 2091005,
+      "linear_nnz": 268324,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 156549,
+      "columns": 156488,
+      "squared_nnz": 1459863,
+      "linear_nnz": 198021,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 185425,
+      "columns": 185809,
+      "squared_nnz": 2577976,
+      "linear_nnz": 236002,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 118590,
+      "columns": 118644,
+      "squared_nnz": 1431088,
+      "linear_nnz": 150851,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16604,
+      "columns": 16686,
+      "squared_nnz": 311780,
+      "linear_nnz": 20845,
+      "domain": 32768
+    },
+    "disclosure": {
+      "rows": 159226,
+      "columns": 158090,
+      "squared_nnz": 1714147,
+      "linear_nnz": 210236,
+      "domain": 262144
+    },
+    "history_generation": {
+      "rows": 15123,
+      "columns": 15166,
+      "squared_nnz": 216294,
+      "linear_nnz": 19664,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 143357,
+      "columns": 143740,
+      "squared_nnz": 2005662,
+      "linear_nnz": 186774,
+      "domain": 262144
+    }
+  },
+  "run-tree": {
+    "transfer": {
+      "rows": 211214,
+      "columns": 211166,
+      "squared_nnz": 2216785,
+      "linear_nnz": 267634,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 156601,
+      "columns": 156539,
+      "squared_nnz": 1586027,
+      "linear_nnz": 198099,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 184133,
+      "columns": 184516,
+      "squared_nnz": 2703132,
+      "linear_nnz": 234064,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 118258,
+      "columns": 118311,
+      "squared_nnz": 1556964,
+      "linear_nnz": 150353,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16412,
+      "columns": 16494,
+      "squared_nnz": 311621,
+      "linear_nnz": 20557,
+      "domain": 32768
+    },
+    "disclosure": {
+      "rows": 159226,
+      "columns": 158090,
+      "squared_nnz": 1714147,
+      "linear_nnz": 210236,
+      "domain": 262144
+    },
+    "history_generation": {
+      "rows": 14963,
+      "columns": 15006,
+      "squared_nnz": 216174,
+      "linear_nnz": 19424,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 141757,
+      "columns": 142140,
+      "squared_nnz": 2004462,
+      "linear_nnz": 184374,
+      "domain": 262144
+    }
+  },
+  "run-bundle-width8-eq": {
+    "transfer": {
+      "rows": 204511,
+      "columns": 204426,
+      "squared_nnz": 2072362,
+      "linear_nnz": 258018,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 153460,
+      "columns": 153362,
+      "squared_nnz": 1453422,
+      "linear_nnz": 193057,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 179676,
+      "columns": 180023,
+      "squared_nnz": 2565572,
+      "linear_nnz": 227020,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 114550,
+      "columns": 114566,
+      "squared_nnz": 1421917,
+      "linear_nnz": 144387,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16224,
+      "columns": 16306,
+      "squared_nnz": 310912,
+      "linear_nnz": 20271,
+      "domain": 16384
+    },
+    "disclosure": {
+      "rows": 90949,
+      "columns": 89846,
+      "squared_nnz": 1195321,
+      "linear_nnz": 104471,
+      "domain": 131072
+    },
+    "history_generation": {
+      "rows": 13330,
+      "columns": 13368,
+      "squared_nnz": 210524,
+      "linear_nnz": 16668,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 95077,
+      "columns": 95365,
+      "squared_nnz": 1544838,
+      "linear_nnz": 118428,
+      "domain": 131072
+    }
+  },
+  "run-bundle-width10-eq-cap1": {
+    "transfer": {
+      "rows": 204511,
+      "columns": 204426,
+      "squared_nnz": 2072362,
+      "linear_nnz": 258018,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 153460,
+      "columns": 153362,
+      "squared_nnz": 1453422,
+      "linear_nnz": 193057,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 179676,
+      "columns": 180023,
+      "squared_nnz": 2565572,
+      "linear_nnz": 227020,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 114550,
+      "columns": 114566,
+      "squared_nnz": 1421917,
+      "linear_nnz": 144387,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16224,
+      "columns": 16306,
+      "squared_nnz": 310912,
+      "linear_nnz": 20271,
+      "domain": 16384
+    },
+    "disclosure": {
+      "rows": 5172,
+      "columns": 5123,
+      "squared_nnz": 63108,
+      "linear_nnz": 5860,
+      "domain": 8192
+    },
+    "history_generation": {
+      "rows": 13330,
+      "columns": 13368,
+      "squared_nnz": 210524,
+      "linear_nnz": 16668,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 118533,
+      "columns": 118893,
+      "squared_nnz": 1928414,
+      "linear_nnz": 147634,
+      "domain": 131072
+    }
+  },
+  "run-routing-tree-authorization-range": {
+    "transfer": {
+      "rows": 209753,
+      "columns": 209675,
+      "squared_nnz": 2089853,
+      "linear_nnz": 265396,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 155140,
+      "columns": 155048,
+      "squared_nnz": 1459095,
+      "linear_nnz": 195861,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 182672,
+      "columns": 183025,
+      "squared_nnz": 2576200,
+      "linear_nnz": 231826,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 116797,
+      "columns": 116820,
+      "squared_nnz": 1430032,
+      "linear_nnz": 148115,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16412,
+      "columns": 16494,
+      "squared_nnz": 311621,
+      "linear_nnz": 20557,
+      "domain": 32768
+    },
+    "disclosure": {
+      "rows": 159226,
+      "columns": 158090,
+      "squared_nnz": 1714147,
+      "linear_nnz": 210236,
+      "domain": 262144
+    },
+    "history_generation": {
+      "rows": 14963,
+      "columns": 15006,
+      "squared_nnz": 216174,
+      "linear_nnz": 19424,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 141757,
+      "columns": 142140,
+      "squared_nnz": 2004462,
+      "linear_nnz": 184374,
+      "domain": 262144
+    }
+  },
+  "run-bundle-width10-eq": {
+    "transfer": {
+      "rows": 204511,
+      "columns": 204426,
+      "squared_nnz": 2072362,
+      "linear_nnz": 258018,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 153460,
+      "columns": 153362,
+      "squared_nnz": 1453422,
+      "linear_nnz": 193057,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 179676,
+      "columns": 180023,
+      "squared_nnz": 2565572,
+      "linear_nnz": 227020,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 114550,
+      "columns": 114566,
+      "squared_nnz": 1421917,
+      "linear_nnz": 144387,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16224,
+      "columns": 16306,
+      "squared_nnz": 310912,
+      "linear_nnz": 20271,
+      "domain": 16384
+    },
+    "disclosure": {
+      "rows": 90949,
+      "columns": 89846,
+      "squared_nnz": 1195321,
+      "linear_nnz": 104471,
+      "domain": 131072
+    },
+    "history_generation": {
+      "rows": 13330,
+      "columns": 13368,
+      "squared_nnz": 210524,
+      "linear_nnz": 16668,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 118533,
+      "columns": 118893,
+      "squared_nnz": 1928414,
+      "linear_nnz": 147634,
+      "domain": 131072
+    }
+  },
+  "run-routing": {
+    "transfer": {
+      "rows": 211213,
+      "columns": 211134,
+      "squared_nnz": 2217073,
+      "linear_nnz": 267586,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 156088,
+      "columns": 155995,
+      "squared_nnz": 1585931,
+      "linear_nnz": 197283,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 184964,
+      "columns": 185316,
+      "squared_nnz": 2704044,
+      "linear_nnz": 235264,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 118129,
+      "columns": 118151,
+      "squared_nnz": 1557156,
+      "linear_nnz": 150113,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16604,
+      "columns": 16686,
+      "squared_nnz": 311780,
+      "linear_nnz": 20845,
+      "domain": 32768
+    },
+    "disclosure": {
+      "rows": 159226,
+      "columns": 158090,
+      "squared_nnz": 1714147,
+      "linear_nnz": 210236,
+      "domain": 262144
+    },
+    "history_generation": {
+      "rows": 15123,
+      "columns": 15166,
+      "squared_nnz": 216294,
+      "linear_nnz": 19664,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 143357,
+      "columns": 143740,
+      "squared_nnz": 2005662,
+      "linear_nnz": 186774,
+      "domain": 262144
+    }
+  },
+  "run-bundle-width12-eq": {
+    "transfer": {
+      "rows": 204511,
+      "columns": 204426,
+      "squared_nnz": 2072362,
+      "linear_nnz": 258018,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 153460,
+      "columns": 153362,
+      "squared_nnz": 1453422,
+      "linear_nnz": 193057,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 179676,
+      "columns": 180023,
+      "squared_nnz": 2565572,
+      "linear_nnz": 227020,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 114550,
+      "columns": 114566,
+      "squared_nnz": 1421917,
+      "linear_nnz": 144387,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16224,
+      "columns": 16306,
+      "squared_nnz": 310912,
+      "linear_nnz": 20271,
+      "domain": 16384
+    },
+    "disclosure": {
+      "rows": 90949,
+      "columns": 89846,
+      "squared_nnz": 1195321,
+      "linear_nnz": 104471,
+      "domain": 131072
+    },
+    "history_generation": {
+      "rows": 13330,
+      "columns": 13368,
+      "squared_nnz": 210524,
+      "linear_nnz": 16668,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 141989,
+      "columns": 142421,
+      "squared_nnz": 2311990,
+      "linear_nnz": 176840,
+      "domain": 262144
+    }
+  },
+  "run-range-disclosure": {
+    "transfer": {
+      "rows": 212174,
+      "columns": 212126,
+      "squared_nnz": 2217505,
+      "linear_nnz": 269074,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 157049,
+      "columns": 156987,
+      "squared_nnz": 1586363,
+      "linear_nnz": 198771,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 185925,
+      "columns": 186308,
+      "squared_nnz": 2704476,
+      "linear_nnz": 236752,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 119090,
+      "columns": 119143,
+      "squared_nnz": 1557588,
+      "linear_nnz": 151601,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16604,
+      "columns": 16686,
+      "squared_nnz": 311780,
+      "linear_nnz": 20845,
+      "domain": 32768
+    },
+    "disclosure": {
+      "rows": 109066,
+      "columns": 107930,
+      "squared_nnz": 1478824,
+      "linear_nnz": 126020,
+      "domain": 131072
+    },
+    "history_generation": {
+      "rows": 15123,
+      "columns": 15166,
+      "squared_nnz": 216294,
+      "linear_nnz": 19664,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 143357,
+      "columns": 143740,
+      "squared_nnz": 2005662,
+      "linear_nnz": 186774,
+      "domain": 262144
+    }
+  },
+  "run-bundle-width9-eq": {
+    "transfer": {
+      "rows": 204511,
+      "columns": 204426,
+      "squared_nnz": 2072362,
+      "linear_nnz": 258018,
+      "domain": 262144
+    },
+    "reshape1x8": {
+      "rows": 153460,
+      "columns": 153362,
+      "squared_nnz": 1453422,
+      "linear_nnz": 193057,
+      "domain": 262144
+    },
+    "reshape8x1": {
+      "rows": 179676,
+      "columns": 180023,
+      "squared_nnz": 2565572,
+      "linear_nnz": 227020,
+      "domain": 262144
+    },
+    "withdrawal": {
+      "rows": 114550,
+      "columns": 114566,
+      "squared_nnz": 1421917,
+      "linear_nnz": 144387,
+      "domain": 131072
+    },
+    "seizure": {
+      "rows": 16224,
+      "columns": 16306,
+      "squared_nnz": 310912,
+      "linear_nnz": 20271,
+      "domain": 16384
+    },
+    "disclosure": {
+      "rows": 90949,
+      "columns": 89846,
+      "squared_nnz": 1195321,
+      "linear_nnz": 104471,
+      "domain": 131072
+    },
+    "history_generation": {
+      "rows": 13330,
+      "columns": 13368,
+      "squared_nnz": 210524,
+      "linear_nnz": 16668,
+      "domain": 16384
+    },
+    "history_chunk10": {
+      "rows": 106805,
+      "columns": 107129,
+      "squared_nnz": 1736626,
+      "linear_nnz": 133031,
+      "domain": 131072
+    }
+  }
+}

@@ -1,0 +1,15 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+    Finished `ci` profile [optimized] target(s) in 20.52s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_view-b92b3277fd8a1cf0)
+
+running 4 tests
+test storage::sct::test::missing_commitment_returns_none ... ok
+test storage::sct::test::hashes_have_one_value_per_position_height_across_deletion_and_rollback ... ok
+test storage::sct::test::tree_store_spot_check ... ok
+test storage::sct::test::tree_survives_incremental_append_forget_and_reopen ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 87 filtered out; finished in 0.01s
+

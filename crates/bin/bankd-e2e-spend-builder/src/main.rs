@@ -430,13 +430,8 @@ fn register_user_action(
     let ring_pk = parse_element(&ring.ring_pk_hex)?;
     let rnk_dh_pk = parse_element(&registration.rnk_dh_pk_hex)?;
     let rnk_commitment = parse_fq(&registration.rnk_commitment_hex)?;
-    let leaf = ComplianceLeaf::registered(
-        registration.address,
-        asset_id,
-        ring_pk,
-        rnk_dh_pk,
-        rnk_commitment,
-    )?;
+    let leaf =
+        ComplianceLeaf::registered(registration.address, asset_id, rnk_dh_pk, rnk_commitment)?;
     let capability_certificate = OrbisCapabilityCertificate::decode(
         hex::decode(&registration.capability_certificate_hex)
             .context("capability certificate must be hex")?

@@ -1,0 +1,58 @@
+cargo fmt --all -- --check
+just docs-check
+python3 scripts/check_docs.py
+python3 scripts/commonware.py check
+Commonware source inventory verified
+just tooling-test
+python3 -m unittest discover -s scripts/tests
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.241s
+
+OK
+python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.573s
+
+OK
+python3 -m unittest discover -s deployments/scripts/tests
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK
+cargo check --profile ci --workspace --all-targets --all-features
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+    Checking shieldd-sdk-proto v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/proto)
+    Checking shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Checking cnidarium-component v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/cnidarium-component)
+    Checking shieldd-sdk-proof-params v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/proof-params)
+    Checking shieldd-sdk-tct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/tct)
+    Checking shieldd-sdk-num v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/num)
+    Checking shieldd-sdk-asset v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/asset)
+    Checking shieldd-sdk-keys v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/keys)
+    Checking shieldd-sdk-txhash v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/txhash)
+    Checking shieldd-sdk-fee v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/fee)
+    Checking shieldd-sdk-sct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/sct)
+    Checking redjubjub-frost v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/redjubjub-frost)
+    Checking shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+    Checking shieldd-sdk-tct-property-test v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/tct-property-test)
+    Checking shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+    Checking shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+    Checking shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+    Checking shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+    Checking shieldd-sdk-custody v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/custody)
+    Checking shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+    Checking shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+    Checking shieldd-sdk-app-tests v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app-tests)
+    Checking shieldd v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/shieldd)
+    Checking shieldd-sdk-mock-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/mock-client)
+    Checking shieldd-sdk-bench-support v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench-support)
+    Checking shieldd-sdk-bench v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench)
+    Checking pcli v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/pcli)
+    Checking bankd-e2e-spend-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-spend-builder)
+    Checking bankd-e2e-host-withdrawal-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-host-withdrawal-builder)
+    Finished `ci` profile [optimized] target(s) in 17.51s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`

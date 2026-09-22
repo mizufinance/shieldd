@@ -8,7 +8,7 @@ use commonware_cryptography::{
     bls12381::primitives::group::Scalar,
     zk::circuit::{BoolVar, Context, Var},
 };
-use commonware_math::algebra::{Additive, Field};
+use commonware_math::algebra::{Additive, Field, Ring};
 
 use shieldd_sdk_crypto::domains::INCOMING_VIEWING_KEY as IVK;
 pub use shieldd_sdk_crypto::domains::REGULATED_NULLIFIER_COMMITMENT as RNK_COMMITMENT;
@@ -92,9 +92,14 @@ pub fn constrain<'ctx>(
     let nk = Var::witness(ctx, |_| w.nk.clone());
     let hash = params.circuit(IVK, &[nk.clone(), ak.x.clone(), ak.y.clone()]);
     let bits = scalar::constrain_reduction(ctx, &hash, &w.ivk);
-    bits.iter()
-        .fold(BoolVar::constant(false), |any, bit| any | bit.clone())
-        .assert_eq(&BoolVar::constant(true));
+    let ivk = bits
+        .iter()
+        .fold((Var::zero(), Scalar::one()), |(sum, weight), bit| {
+            let next = sum + &(bit.var().clone() * &Var::native(weight.clone()));
+            (next, weight.clone() + &weight)
+        })
+        .0;
+    let _ = ivk.inv();
     shared
         .address
         .diversified

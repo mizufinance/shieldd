@@ -1,9 +1,9 @@
 //! Local exact-key registry for the closed Shieldd Pari circuit catalogue.
 use anyhow::{bail, ensure, Context, Result};
-use commonware_codec::{Encode, RangeCfg, Read};
+use commonware_codec::{Encode, EncodeSize, RangeCfg, Read};
 use commonware_cryptography::{
     bls12381::primitives::group::Scalar,
-    zk::pari::{self, PreparedProver, ProvingKey, VerifyingKey},
+    zk::pari::{self, ProvingKey, VerifyingKey},
 };
 use commonware_parallel::{Sequential, Strategy};
 
@@ -22,7 +22,8 @@ use std::{
 };
 
 const MANIFEST_LIMIT: u64 = 64 * 1024;
-const VERIFYING_KEY_LIMIT: u64 = 1024 * 1024;
+const VERIFYING_KEY_LIMIT: u64 = 8 * 1024 * 1024;
+const DOMAIN_LIMIT: usize = 1 << 21;
 const PROVING_KEY_LIMIT: u64 = 512 * 1024 * 1024;
 const SCHEMA: &str = "shieldd.pari.keys.v1";
 
@@ -75,7 +76,7 @@ struct Key {
 }
 struct Prover {
     compiled: Compiled,
-    prepared: PreparedProver,
+    key: ProvingKey,
 }
 
 /// A proof paired with the action-derived canonical statement.
@@ -121,6 +122,21 @@ pub struct Registry {
     // The lease serializes proving and retains at most one large key/relation pair.
     prover: Mutex<Option<Prover>>,
 }
+fn validate_bounds(domain_size: usize, verifying_bytes: u64, proving_bytes: u64) -> Result<()> {
+    ensure!(
+        domain_size.is_power_of_two() && domain_size <= DOMAIN_LIMIT,
+        "invalid relation domain bound"
+    );
+    ensure!(
+        verifying_bytes > 0 && verifying_bytes <= VERIFYING_KEY_LIMIT,
+        "invalid verifying key size"
+    );
+    ensure!(
+        proving_bytes > 0 && proving_bytes <= PROVING_KEY_LIMIT,
+        "invalid proving key size"
+    );
+    Ok(())
+}
 fn bounded_read(path: &Path, limit: u64) -> Result<Vec<u8>> {
     let file = File::open(path).with_context(|| format!("opening {}", path.display()))?;
     ensure!(
@@ -151,16 +167,6 @@ fn read_artifact(path: &Path, expected: &Artifact, limit: u64) -> Result<Vec<u8>
 fn decode_key<T: Read<Cfg = (RangeCfg<usize>, RangeCfg<usize>)>>(bytes: &[u8]) -> Result<T> {
     let mut input = bytes;
     let key = T::read_cfg(&mut input, &(RangeCfg::exact(1), RangeCfg::exact(1)))?;
-    ensure!(input.is_empty(), "trailing key bytes");
-    Ok(key)
-}
-fn decode_proving_key(bytes: &[u8], strategy: &impl Strategy) -> Result<ProvingKey> {
-    let mut input = bytes;
-    let key = ProvingKey::read_cfg_with_strategy(
-        &mut input,
-        &(RangeCfg::exact(1), RangeCfg::exact(1)),
-        strategy,
-    )?;
     ensure!(input.is_empty(), "trailing key bytes");
     Ok(key)
 }
@@ -221,14 +227,11 @@ impl Registry {
         let mut keys = BTreeMap::new();
         for entry in manifest.entries {
             ensure!(!keys.contains_key(&entry.family), "duplicate proof family");
-            ensure!(
-                entry.domain_size.is_power_of_two() && entry.domain_size <= (1 << 21),
-                "invalid relation domain bound"
-            );
-            ensure!(
-                entry.proving_key.bytes > 0 && entry.proving_key.bytes <= PROVING_KEY_LIMIT,
-                "invalid proving key size"
-            );
+            validate_bounds(
+                entry.domain_size,
+                entry.verifying_key.bytes,
+                entry.proving_key.bytes,
+            )?;
             let vk: VerifyingKey = decode_key(&read_artifact(
                 &directory.join(format!("{}.vk", entry.family.label())),
                 &entry.verifying_key,
@@ -336,20 +339,19 @@ impl Registry {
                 &trusted.entry.proving_key,
                 PROVING_KEY_LIMIT,
             )?;
-            let key = decode_proving_key(&encoded, strategy)?;
+            let key = decode_key::<ProvingKey>(&encoded)?;
             ensure!(
                 key.verifying_key() == &trusted.verifying,
                 "proving key embeds a different verifying key"
             );
             drop(encoded);
-            let prepared = PreparedProver::new(key, &compiled.relation)?;
-            *cache = Some(Prover { compiled, prepared });
+            *cache = Some(Prover { compiled, key });
         }
         let prover = cache.as_ref().context("prover cache absent")?;
         let values = catalogue::evaluate(witness)?;
         Envelope::prove(
             family,
-            &prover.prepared,
+            &prover.key,
             &prover.compiled.relation,
             &prover.compiled.layout,
             values,
@@ -384,10 +386,19 @@ pub fn generate_development(directory: impl AsRef<Path>) -> Result<()> {
         let mut entries = Vec::new();
         for family in Family::ALL {
             let compiled = catalogue::compile(family)?;
+            ensure!(
+                compiled.relation.domain_size() <= DOMAIN_LIMIT,
+                "generated relation exceeds domain bound"
+            );
             let (pk, vk) = pari::setup(
                 &compiled.relation,
                 &mut rand10::rand_core::UnwrapErr(rand10::rngs::SysRng),
                 &Sequential,
+            )?;
+            validate_bounds(
+                compiled.relation.domain_size(),
+                vk.encode_size() as u64,
+                pk.encode_size() as u64,
             )?;
             let verifying_key = write_new(
                 &staging.join(format!("{}.vk", family.label())),
@@ -397,10 +408,6 @@ pub fn generate_development(directory: impl AsRef<Path>) -> Result<()> {
                 &staging.join(format!("{}.pk", family.label())),
                 &pk.encode(),
             )?;
-            ensure!(
-                proving_key.bytes <= PROVING_KEY_LIMIT,
-                "generated proving key exceeds loader bound"
-            );
             entries.push(Entry {
                 family,
                 relation: hex::encode(compiled.relation.digest()),
@@ -420,6 +427,7 @@ pub fn generate_development(directory: impl AsRef<Path>) -> Result<()> {
             &staging.join("manifest.json"),
             &serde_json::to_vec_pretty(&manifest)?,
         )?;
+        Registry::load(&staging)?;
         File::open(&staging)?.sync_all()?;
         // Publish only a complete manifest and key set; existing artifacts are never replaced.
         if directory.exists() {
@@ -427,6 +435,7 @@ pub fn generate_development(directory: impl AsRef<Path>) -> Result<()> {
         }
         fs::rename(&staging, directory)?;
         File::open(parent)?.sync_all()?;
+        Registry::load(directory)?;
         Ok(())
     })();
     if result.is_err() {
@@ -440,52 +449,21 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "prover_strategy_preparation benchmark with local keys"]
-    fn prover_strategy_preparation() -> Result<()> {
-        use std::time::Instant;
-        let strategy = proving_strategy()?;
-        let started = Instant::now();
-        let registry = Registry::load(std::env::var("SHIELDD_PARI_KEYS")?)?;
-        eprintln!(
-            "preparation registry_ms={:.3}",
-            started.elapsed().as_secs_f64() * 1000.0
-        );
-        let started = Instant::now();
-        let compiled = catalogue::compile(Family::Transfer)?;
-        eprintln!(
-            "preparation compile_ms={:.3}",
-            started.elapsed().as_secs_f64() * 1000.0
-        );
-        let trusted = registry.key(Family::Transfer)?;
-        let started = Instant::now();
-        let encoded = read_artifact(
-            &registry.directory.join("transfer.pk"),
-            &trusted.entry.proving_key,
-            PROVING_KEY_LIMIT,
-        )?;
-        eprintln!(
-            "preparation read_hash_ms={:.3}",
-            started.elapsed().as_secs_f64() * 1000.0
-        );
-        let started = Instant::now();
-        let key = decode_proving_key(&encoded, strategy)?;
-        eprintln!(
-            "preparation decode_ms={:.3}",
-            started.elapsed().as_secs_f64() * 1000.0
-        );
-        ensure!(
-            key.verifying_key() == &trusted.verifying,
-            "wrong proving key"
-        );
-        drop(encoded);
-        let started = Instant::now();
-        let _prepared = PreparedProver::new(key, &compiled.relation)?;
-        eprintln!(
-            "preparation prepare_ms={:.3}",
-            started.elapsed().as_secs_f64() * 1000.0
-        );
-        Ok(())
+    fn generation_and_loading_share_bounded_admission() {
+        assert!(validate_bounds(8, 539, 1024).is_ok());
+        for (domain, vk, pk) in [
+            (0, 539, 1024),
+            (3, 539, 1024),
+            (DOMAIN_LIMIT * 2, 539, 1024),
+            (8, 0, 1024),
+            (8, VERIFYING_KEY_LIMIT + 1, 1024),
+            (8, 539, 0),
+            (8, 539, PROVING_KEY_LIMIT + 1),
+        ] {
+            assert!(validate_bounds(domain, vk, pk).is_err());
+        }
     }
+
     #[test]
     #[cfg(not(target_arch = "wasm32"))]
     fn native_proving_strategy_shares_two_workers() -> Result<()> {

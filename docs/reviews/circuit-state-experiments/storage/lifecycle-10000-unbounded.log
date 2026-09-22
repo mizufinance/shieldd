@@ -1,0 +1,8 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-cnidarium-retention-experiment v0.1.0 (/tmp/shieldd-experiments/storage/cnidarium)
+    Finished `ci` profile [optimized] target(s) in 5.58s
+     Running `target/ci/lifecycle /tmp/shieldd-experiments/storage/lifecycle-10000-unbounded 10000 unbounded`
+phase=insert count=10000 elapsed_ms=643 physical_bytes=5721299
+phase=pack count=10000 elapsed_ms=560 pack_bytes=320108 physical_bytes=5730361
+phase=reconstruct count=10000 elapsed_ms=574
+phase=unbounded_prune count=10000 elapsed_ms=115 deleted_records=43353 physical_bytes=3833373 root_same=true

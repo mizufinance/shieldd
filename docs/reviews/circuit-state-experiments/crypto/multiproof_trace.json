@@ -1,0 +1,42 @@
+{
+  "uniform_48bit": {
+    "trials": 1000,
+    "inputs": 8,
+    "independent_hashes": 192,
+    "mean_distinct_hashes": 178.446,
+    "minimum_distinct_hashes": 171,
+    "maximum_distinct_hashes": 181,
+    "independent_sibling_fields": 576,
+    "mean_multiproof_sibling_fields": 528.338
+  },
+  "same_4ary_parent": {
+    "trials": 1000,
+    "inputs": 8,
+    "independent_hashes": 192,
+    "mean_distinct_hashes": 46.651,
+    "minimum_distinct_hashes": 39,
+    "maximum_distinct_hashes": 47,
+    "independent_sibling_fields": 576,
+    "mean_multiproof_sibling_fields": 132.953
+  },
+  "contiguous_8": {
+    "trials": 1000,
+    "inputs": 8,
+    "independent_hashes": 192,
+    "mean_distinct_hashes": 25,
+    "minimum_distinct_hashes": 25,
+    "maximum_distinct_hashes": 25,
+    "independent_sibling_fields": 576,
+    "mean_multiproof_sibling_fields": 68
+  },
+  "same_4ary_grandparent": {
+    "trials": 1000,
+    "inputs": 8,
+    "independent_hashes": 192,
+    "mean_distinct_hashes": 25,
+    "minimum_distinct_hashes": 25,
+    "maximum_distinct_hashes": 25,
+    "independent_sibling_fields": 576,
+    "mean_multiproof_sibling_fields": 68
+  }
+}

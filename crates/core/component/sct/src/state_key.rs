@@ -63,6 +63,10 @@ pub mod nullifier_generations {
         .into_bytes()
     }
 
+    pub fn prune_cursor() -> &'static [u8] {
+        b"sct/nullifier_generations/local_prune_cursor"
+    }
+
     fn tree_base(tree: NullifierTreeId) -> String {
         format!("sct/nullifier_generations/tree/{}", tree.storage_segment())
     }

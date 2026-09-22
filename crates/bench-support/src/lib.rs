@@ -946,7 +946,6 @@ pub mod bench_runner {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
 
     use super::bench_runner::{
         append_csv, append_csv_scoped, make_zero_result, sort_results, write_csv, BenchResult,
@@ -1034,12 +1033,8 @@ mod tests {
 
     #[test]
     fn append_csv_scoped_upserts_only_matching_scope() {
-        let mut path = std::env::temp_dir();
-        path.push(format!(
-            "shieldd-bench-runner-scoped-test-{}-{}.csv",
-            std::process::id(),
-            std::thread::current().name().unwrap_or("t")
-        ));
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("results.csv");
 
         let initial = vec![
             make_zero_result("local", &[("category", "client"), ("stage", "total")], 1),
@@ -1068,7 +1063,5 @@ mod tests {
             csv.contains("dev,client,total,0.00,0.00,1"),
             "expected dev/client row to remain"
         );
-
-        let _ = std::fs::remove_file(PathBuf::from(path));
     }
 }

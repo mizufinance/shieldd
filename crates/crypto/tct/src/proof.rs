@@ -3,7 +3,7 @@ use shieldd_sdk_crypto::Fq;
 
 use crate::prelude::*;
 
-/// A proof of the inclusion of some [`Commitment`] in a [`Tree`] with a particular [`Root`].
+/// A proof of the inclusion of some [`crate::StateCommitment`] in a [`Tree`] with a particular [`Root`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Proof(
     pub(super)  crate::internal::proof::Proof<
@@ -12,7 +12,7 @@ pub struct Proof(
 );
 
 impl Proof {
-    /// Construct a new [`Proof`] of inclusion for a given [`Commitment`], index, and authentication
+    /// Construct a new [`Proof`] of inclusion for a given [`crate::StateCommitment`], index, and authentication
     /// path from root to leaf.
     pub fn new(
         commitment: StateCommitment,

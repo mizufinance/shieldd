@@ -1,0 +1,62 @@
+--- a/crates/crypto/circuits/src/tree.rs
++++ b/crates/crypto/circuits/src/tree.rs
+@@ -1,7 +1,8 @@
+ use crate::{hash::Parameters, range::decompose};
++use commonware_math::algebra::{Additive, Ring};
+ use commonware_cryptography::{
+     bls12381::primitives::group::Scalar,
+-    zk::circuit::{Context, Var},
++    zk::circuit::{BoolVar, Context, Var},
+ };
+ 
+ pub const STATE_DEPTH: usize = 24;
+@@ -69,19 +70,41 @@
+ ) -> Var<'ctx, Scalar> {
+     assert!((1..=32).contains(&D));
+     let bits = decompose(ctx, &path.position, 2 * D);
++    root_with_position_bits(ctx, params, kind, node, path, &bits)
++}
++
++/// Use the same constrained position bits for membership and age checks.
++pub fn root_with_position_bits<'ctx, const D: usize>(
++    _ctx: Context<'ctx, Scalar>,
++    params: &Parameters,
++    kind: Tree,
++    mut node: Var<'ctx, Scalar>,
++    path: &Path<Var<'ctx, Scalar>, D>,
++    bits: &[BoolVar<'ctx, Scalar>],
++) -> Var<'ctx, Scalar> {
++    assert_eq!(bits.len(), 2 * D);
++    let mut sum = Var::zero();
++    let mut weight = Scalar::one();
++    for bit in bits {
++        sum += &(bit.var().clone() * &Var::native(weight.clone()));
++        weight = weight.clone() + &weight;
++    }
++    sum.assert_eq(&path.position);
+     for (level, siblings) in path.siblings.iter().enumerate() {
+         let low = bits[2 * level].clone();
+         let high = bits[2 * level + 1].clone();
+-        let first = !low.clone() & !high.clone();
+-        let second = low.clone() & !high.clone();
+-        let third = !low.clone() & high.clone();
+-        let fourth = low & high;
++        let left_swap = low.var().clone() * &(siblings[0].clone() - &node);
++        let right_swap = low.var().clone() * &(siblings[2].clone() - &node);
++        let left_first = node.clone() + &left_swap;
++        let left_second = siblings[0].clone() - &left_swap;
++        let right_third = node.clone() + &right_swap;
++        let right_fourth = siblings[2].clone() - &right_swap;
+         let inputs = [
+             Var::native(Scalar::from(level as u64 + 1)),
+-            first.select(&node, &siblings[0]),
+-            first.select(&siblings[0], &second.select(&node, &siblings[1])),
+-            fourth.select(&siblings[2], &third.select(&node, &siblings[1])),
+-            fourth.select(&node, &siblings[2]),
++            high.select(&siblings[0], &left_first),
++            high.select(&siblings[1], &left_second),
++            high.select(&right_third, &siblings[1]),
++            high.select(&right_fourth, &siblings[2]),
+         ];
+         node = params.circuit(kind as u8, &inputs);
+     }

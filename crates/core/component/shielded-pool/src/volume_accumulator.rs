@@ -678,8 +678,28 @@ mod tests {
         );
         assert_eq!(
             payload.trial_decrypt(test_keys::FULL_VIEWING_KEY.outgoing()),
-            Some((state, true))
+            Some((state.clone(), true))
         );
+        let mut wrong_commitment = payload.clone();
+        wrong_commitment.commitment.0 += Fq::from(1u64);
+        assert!(wrong_commitment
+            .trial_decrypt(test_keys::FULL_VIEWING_KEY.outgoing())
+            .is_none());
+        let mut wrong_day = payload.clone();
+        wrong_day.day_start += 86_400;
+        assert!(wrong_day
+            .trial_decrypt(test_keys::FULL_VIEWING_KEY.outgoing())
+            .is_none());
+        let inconsistent = VolumeAccumulatorPayload::encrypt(
+            &state,
+            true,
+            payload.nullifier,
+            wrong_commitment.commitment,
+            test_keys::FULL_VIEWING_KEY.outgoing(),
+        );
+        assert!(inconsistent
+            .trial_decrypt(test_keys::FULL_VIEWING_KEY.outgoing())
+            .is_none());
     }
 
     #[test]

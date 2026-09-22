@@ -1,4 +1,5 @@
-//! The Shieldd shielded pool [`Component`] and [`ActionHandler`] implementations.
+//! Shielded-pool implementations of [`cnidarium_component::Component`] and
+//! [`cnidarium_component::ActionHandler`].
 
 mod action_handler;
 mod assets;

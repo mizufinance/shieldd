@@ -191,7 +191,7 @@ impl ::prost::Name for NoteCiphertext {
         "/shieldd.core.component.shielded_pool.v1.NoteCiphertext".into()
     }
 }
-/// Fixed-shape capability ciphertext for amount and note blinding.
+/// Fixed-shape payload-key ciphertext for amount and note blinding.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RecoveryCapsule {
     /// Canonical 192-byte encoding of epk and five Fq words.
@@ -357,8 +357,10 @@ pub struct CapsuleReleaseRequest {
     pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
     #[prost(message, optional, tag = "8")]
     pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
-    #[prost(bytes = "vec", tag = "9")]
-    pub capk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "15")]
+    pub payload_key: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "16")]
+    pub audit_epoch: u64,
     #[prost(message, optional, tag = "10")]
     pub note_commitment: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,

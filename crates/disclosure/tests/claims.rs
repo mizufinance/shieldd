@@ -138,7 +138,7 @@ fn selection_and_opening_integrity() {
     assert!(!serde_json::to_string(&s).unwrap().contains("PRIVATE-MEMO"));
 }
 #[test]
-fn totals_can_span_transactions_but_reject_duplicates() {
+fn totals_can_span_transactions() {
     let mut w = fixture();
     let mut c = w.request.outputs[0].clone();
     c.reference.transaction_id = "cd".repeat(32);
@@ -328,7 +328,7 @@ fn missing_registry_is_unavailable() {
         version: VERSION,
         statement: evaluate(&fixture()).unwrap(),
         evidence: Evidence::Pari {
-            circuit: "shieldd.disclosure.jubjub.pari.v1.32".into(),
+            circuit: CIRCUIT_ID_ONE.into(),
             verification_key_digest: "00".repeat(32),
             proof: vec![],
             control_signatures: vec![None],

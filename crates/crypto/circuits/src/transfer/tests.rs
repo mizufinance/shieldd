@@ -45,14 +45,12 @@ fn all_branches_compile_to_one_relation_and_bind_current_audit_keys() {
             STATEMENT_FIELDS
         );
     }
-    for field in 0..5 {
+    for field in 0..3 {
         let mut bad = first.clone();
         let keys = &mut bad.registry.leaf.audit;
         match field {
             0 => keys.epoch += &Scalar::one(),
-            1 => keys.amount = crate::group::generator(),
-            2 => keys.sender = crate::group::generator(),
-            3 => keys.receiver = crate::group::generator(),
+            1 => keys.payload = crate::group::generator(),
             _ => keys.checking = crate::group::generator(),
         }
         bad.asset_anchor = tree::native_root(
@@ -65,13 +63,11 @@ fn all_branches_compile_to_one_relation_and_bind_current_audit_keys() {
         assert!(!satisfied(&p, &g, &bad), "audit field {field}");
     }
     let flagged = fixtures::build(&p, &g, &facts[2]).unwrap();
-    for field in 0..4 {
+    for field in 0..2 {
         let mut bad = flagged.clone();
         let keys = &mut bad.registry.leaf.audit;
         match field {
-            0 => keys.amount = crate::group::generator(),
-            1 => keys.sender = crate::group::generator(),
-            2 => keys.receiver = crate::group::generator(),
+            0 => keys.payload = crate::group::generator(),
             _ => keys.checking = crate::group::generator(),
         }
         bad.asset_anchor = tree::native_root(
@@ -83,7 +79,7 @@ fn all_branches_compile_to_one_relation_and_bind_current_audit_keys() {
         );
         assert_eq!(
             satisfied(&p, &g, &bad),
-            field != 3,
+            false,
             "flagged audit field {field}"
         );
     }
@@ -114,11 +110,11 @@ fn complete_transfer_proves_and_verifies_with_current_compliance() {
     let relation = pari::Relation::compile(&circuit, &layout).unwrap();
     let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
     let proving_key_bytes = pk.encode().len();
-    let prepared = pari::PreparedProver::new(pk, &relation).unwrap();
+    let prover = pk;
     let (valued, _) = build_with_values(|ctx| constrain(ctx, &p, &g, &w, &digest(&p, &g, &w)));
     let proof = Envelope::prove(
         Family::Transfer,
-        &prepared,
+        &prover,
         &relation,
         &layout,
         valued,

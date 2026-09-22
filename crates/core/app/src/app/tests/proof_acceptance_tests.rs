@@ -652,7 +652,7 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     }
 
     app.end_block(context.height).await;
-    app.commit(storage.clone()).await?;
+    app.commit(storage.clone(), None).await?;
 
     let committed = storage.latest_snapshot();
     let compact_block: shieldd_sdk_compact_block::CompactBlock = committed

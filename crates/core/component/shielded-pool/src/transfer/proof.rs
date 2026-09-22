@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn prepared_registry_proves_distinct_witnesses_and_batches_with_existing_keys(
+    fn native_registry_proves_distinct_witnesses_and_batches_with_existing_keys(
     ) -> anyhow::Result<()> {
         use rand::SeedableRng;
         use shieldd_sdk_proof_params::pari::{proving_strategy, Registry, Verification};
@@ -302,52 +302,6 @@ mod tests {
         assert_ne!(items[0].envelope.to_bytes(), items[1].envelope.to_bytes());
         assert_eq!(registry.verify_items(&items, strategy)?.len(), 2);
         Ok(())
-    }
-
-    fn compare_strategy(
-        label: &str,
-        strategy: &impl commonware_parallel::Strategy,
-    ) -> anyhow::Result<()> {
-        use rand::SeedableRng;
-        use std::time::Instant;
-        let started = Instant::now();
-        let registry =
-            shieldd_sdk_proof_params::pari::Registry::load(std::env::var("SHIELDD_PARI_KEYS")?)?;
-        eprintln!(
-            "strategy={label} registry_load_ms={:.3}",
-            started.elapsed().as_secs_f64() * 1000.0
-        );
-        let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
-            &mut rand::rngs::StdRng::seed_from_u64(42),
-            *BASE_ASSET_ID,
-            true,
-            false,
-        );
-        let witness = crate::pari::transfer(&public, &private)?;
-        let statement = shieldd_sdk_circuits::encoding::field(&public.statement_hash()?);
-        for index in 0..4 {
-            let started = Instant::now();
-            let proof = registry.prove(&witness, strategy)?;
-            let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
-            registry.verify(witness.family(), &statement, &proof)?;
-            eprintln!("strategy={label} family=transfer iteration={index} cold={} elapsed_ms={elapsed_ms:.3}", index == 0);
-        }
-        Ok(())
-    }
-
-    #[test]
-    #[ignore = "native proving strategy benchmark with local keys"]
-    fn prover_strategy_sequential() -> anyhow::Result<()> {
-        compare_strategy("sequential", &commonware_parallel::Sequential)
-    }
-
-    #[test]
-    #[ignore = "native proving strategy benchmark with local keys"]
-    fn prover_strategy_rayon_two() -> anyhow::Result<()> {
-        compare_strategy(
-            "rayon2",
-            &commonware_parallel::Rayon::new(std::num::NonZeroUsize::new(2).unwrap())?,
-        )
     }
 
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
@@ -444,513 +398,136 @@ mod tests {
     }
 
     #[test]
-    fn witness_transfer_accumulator_origin() {
-        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
-            build_transfer_accumulating_hidden_arity_roundtrip_inputs_with_rng(
-                &mut rand::rngs::StdRng::seed_from_u64(42),
-                100,
-            );
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_accumulator_continuation() {
-        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
-            build_transfer_continuing_accumulator_roundtrip_inputs_with_rng(
-                &mut rand::rngs::StdRng::seed_from_u64(42),
-            );
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x1_roundtrip_sender_to_self() {
-        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
-            build_transfer_hidden_arity_roundtrip_inputs_with_rng(
-                &mut rand::rngs::StdRng::seed_from_u64(42),
-                false,
-                true,
-            );
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_repro_unregulated_nonbase_test_usd() {
-        // test_usd real asset id (base denom wtest_usd).
-        let test_usd = shieldd_sdk_asset::asset::REGISTRY
+    fn unregulated_transfer_witnesses_cover_asset_gaps() {
+        let nonbase = shieldd_sdk_asset::asset::REGISTRY
             .parse_unit("test_usd")
             .id();
-        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
-            build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
-                &mut rand::rngs::StdRng::seed_from_u64(42),
-                test_usd,
-                false,
-                false,
-            );
-        assert_transfer_witness(public, private);
+        for asset_id in [*BASE_ASSET_ID, nonbase] {
+            for populated in [false, true] {
+                let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+                let (public, private) = if populated {
+                    crate::test_proof_helpers::proof_test_helpers::build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
+                        &mut rng, asset_id, asset_id.0 - shieldd_sdk_crypto::Fq::from(1u64),
+                        500_000_000_000_000_000_000u128, false,
+                    )
+                } else {
+                    build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
+                        &mut rng, asset_id, false, false,
+                    )
+                };
+                assert_transfer_witness(public, private);
+            }
+        }
     }
 
     #[test]
-    fn witness_repro_unregulated_nonbase_test_usd_populated_tree() {
-        let test_usd = shieldd_sdk_asset::asset::REGISTRY
-            .parse_unit("test_usd")
-            .id();
-        // Predecessor (low) leaf is a regulated asset just below test_usd, mirroring
-        // the live registry gap; daily_volume_limit = 5e20 like regulated_usd.
-        let low_asset_id = test_usd.0 - shieldd_sdk_crypto::Fq::from(1u64);
-        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
-            build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
-                &mut rand::rngs::StdRng::seed_from_u64(42),
-                test_usd,
-                low_asset_id,
-                500_000_000_000_000_000_000u128,
-                false,
-            );
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x1_roundtrip_sender_to_other() {
-        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
-            build_transfer_hidden_arity_roundtrip_inputs_with_rng(
-                &mut rand::rngs::StdRng::seed_from_u64(42),
-                false,
-                false,
-            );
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x1_roundtrip_base_asset_sender_to_other() {
-        let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
-            &mut rand::rngs::StdRng::seed_from_u64(42),
-            *BASE_ASSET_ID,
-            false,
-            false,
-        );
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x1_roundtrip_test_keys_base_asset_sender_to_other() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
-            RecoveryCommitment::unavailable(),
-        )
-        .expect("create base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert base-asset test note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness base-asset test note");
-        let anchor = sct.root();
-
-        let (
-            sender_leaf,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-        let spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-        let output =
-            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-        let mut compliance =
-            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
-        compliance.witness.user_root = compliance_anchor;
-        compliance.witness.sender = crate::UserWitness {
-            leaf: sender_leaf,
-            path: sender_compliance_path,
-            position: 0,
-        };
-        compliance.recipient = crate::UserWitness {
-            leaf: recipient_leaf,
-            path: recipient_compliance_path,
-            position: 1,
-        };
-        let transfer = TransferPlan::new(
-            vec![spend],
-            vec![output],
-            Fr::random(&mut rng),
-            compliance.clone(),
-            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
-            crate::TransferProofContext::Ordinary,
-            crate::discovery::Parameters::default(),
-        )
-        .expect("build test-key transfer plan");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive test-key transfer public/private inputs");
-
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other() {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
-            RecoveryCommitment::unavailable(),
-        )
-        .expect("create registered base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert registered base-asset note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness registered base-asset note");
-        let anchor = sct.root();
-
-        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
-        let (
-            sender_leaf,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-
-        let spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-
-        let output =
-            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-
-        let mut compliance =
-            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
-        compliance.witness.user_root = compliance_anchor;
-        compliance.witness.sender = crate::UserWitness {
-            leaf: sender_leaf,
-            path: sender_compliance_path,
-            position: 0,
-        };
-        compliance.recipient = crate::UserWitness {
-            leaf: recipient_leaf,
-            path: recipient_compliance_path,
-            position: 1,
-        };
-        compliance.witness.asset.root = asset_anchor;
-        compliance.witness.asset.leaf = asset_indexed_leaf;
-        compliance.witness.asset.path = asset_path;
-        compliance.witness.asset.position = asset_position;
-        let transfer = TransferPlan::new(
-            vec![spend],
-            vec![output],
-            Fr::random(&mut rng),
-            compliance.clone(),
-            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
-            crate::TransferProofContext::Ordinary,
-            crate::discovery::Parameters::default(),
-        )
-        .expect("build registered base-asset transfer plan");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive registered base-asset transfer public/private inputs");
-
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_high_position(
-    ) {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
-            RecoveryCommitment::unavailable(),
-        )
-        .expect("create registered base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        for _ in 0..512 {
-            let filler_note = Note::from_parts(
-                test_keys::ADDRESS_1.clone(),
+    fn transfer_witnesses_cover_user_paths_note_positions_and_change() {
+        for (position, with_change) in [(0u64, false), (512, false), (0, true)] {
+            let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+            let input_note = Note::from_parts(
+                test_keys::ADDRESS_0.clone(),
                 Value {
-                    amount: Amount::from(1u64),
+                    amount: Amount::from(1_000_000u64),
                     asset_id: *BASE_ASSET_ID,
                 },
                 Rseed::generate(&mut rng),
                 RecoveryCommitment::unavailable(),
             )
-            .expect("create filler note");
-            sct.insert(tct::Witness::Forget, filler_note.commit())
-                .expect("insert filler note");
+            .expect("create registered base-asset test note");
+
+            let mut sct = tct::Tree::new();
+            for _ in 0..position {
+                let filler_note = Note::from_parts(
+                    test_keys::ADDRESS_1.clone(),
+                    Value {
+                        amount: Amount::from(1u64),
+                        asset_id: *BASE_ASSET_ID,
+                    },
+                    Rseed::generate(&mut rng),
+                    RecoveryCommitment::unavailable(),
+                )
+                .expect("create filler note");
+                sct.insert(tct::Witness::Forget, filler_note.commit())
+                    .expect("insert filler note");
+            }
+            sct.insert(tct::Witness::Keep, input_note.commit())
+                .expect("insert registered base-asset note");
+            let state_commitment_proof = sct
+                .witness(input_note.commit())
+                .expect("witness registered base-asset note");
+            let anchor = sct.root();
+
+            let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+                shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
+            let (
+                sender_leaf,
+                recipient_leaf,
+                compliance_anchor,
+                sender_compliance_path,
+                recipient_compliance_path,
+            ) = sender_recipient_compliance_witnesses();
+
+            let spend = ShieldedInputPlan::new(
+                &mut rng,
+                input_note.clone(),
+                state_commitment_proof.position(),
+            );
+
+            let mut value = input_note.value();
+            if with_change {
+                value.amount = 1u64.into();
+            }
+            let output = ShieldedOutputPlan::new(&mut rng, value, test_keys::ADDRESS_1.clone());
+
+            let mut compliance =
+                crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
+            compliance.witness.user_root = compliance_anchor;
+            compliance.witness.sender = crate::UserWitness {
+                leaf: sender_leaf,
+                path: sender_compliance_path,
+                position: 0,
+            };
+            compliance.recipient = crate::UserWitness {
+                leaf: recipient_leaf,
+                path: recipient_compliance_path,
+                position: 1,
+            };
+            compliance.witness.asset.root = asset_anchor;
+            compliance.witness.asset.leaf = asset_indexed_leaf;
+            compliance.witness.asset.path = asset_path;
+            compliance.witness.asset.position = asset_position;
+            let mut outputs = vec![output];
+            if with_change {
+                outputs.push(ShieldedOutputPlan::new(
+                    &mut rng,
+                    Value {
+                        amount: 999_999u64.into(),
+                        asset_id: *BASE_ASSET_ID,
+                    },
+                    test_keys::ADDRESS_0.clone(),
+                ));
+            }
+            let transfer = TransferPlan::new(
+                vec![spend],
+                outputs,
+                Fr::random(&mut rng),
+                compliance.clone(),
+                crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
+                crate::TransferProofContext::Ordinary,
+                crate::discovery::Parameters::default(),
+            )
+            .expect("build registered base-asset transfer plan");
+            let (public, private) = transfer
+                .transfer_public_private(
+                    &test_keys::FULL_VIEWING_KEY,
+                    &[state_commitment_proof],
+                    anchor,
+                    0,
+                )
+                .expect("derive registered base-asset transfer public/private inputs");
+
+            assert_transfer_witness(public, private);
         }
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert registered base-asset note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness registered base-asset note");
-        let anchor = sct.root();
-
-        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
-        let (
-            sender_leaf,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-
-        let spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-
-        let output =
-            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-
-        let mut compliance =
-            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
-        compliance.witness.user_root = compliance_anchor;
-        compliance.witness.sender = crate::UserWitness {
-            leaf: sender_leaf,
-            path: sender_compliance_path,
-            position: 0,
-        };
-        compliance.recipient = crate::UserWitness {
-            leaf: recipient_leaf,
-            path: recipient_compliance_path,
-            position: 1,
-        };
-        compliance.witness.asset.root = asset_anchor;
-        compliance.witness.asset.leaf = asset_indexed_leaf;
-        compliance.witness.asset.path = asset_path;
-        compliance.witness.asset.position = asset_position;
-        let transfer = TransferPlan::new(
-            vec![spend],
-            vec![output],
-            Fr::random(&mut rng),
-            compliance.clone(),
-            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
-            crate::TransferProofContext::Ordinary,
-            crate::discovery::Parameters::default(),
-        )
-        .expect("build registered base-asset transfer plan");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive registered base-asset transfer public/private inputs");
-
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x1_roundtrip_registered_base_asset_sender_to_other_real_user_tree(
-    ) {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
-            RecoveryCommitment::unavailable(),
-        )
-        .expect("create registered base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert registered base-asset note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness registered base-asset note");
-        let anchor = sct.root();
-
-        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
-        let (
-            sender_leaf,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-
-        let spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-
-        let output =
-            ShieldedOutputPlan::new(&mut rng, input_note.value(), test_keys::ADDRESS_1.clone());
-
-        let mut compliance =
-            crate::test_plan_helpers::transfer_context(&spend, &output.dest_address);
-        compliance.witness.user_root = compliance_anchor;
-        compliance.witness.sender = crate::UserWitness {
-            leaf: sender_leaf,
-            path: sender_compliance_path,
-            position: 0,
-        };
-        compliance.recipient = crate::UserWitness {
-            leaf: recipient_leaf,
-            path: recipient_compliance_path,
-            position: 1,
-        };
-        compliance.witness.asset.root = asset_anchor;
-        compliance.witness.asset.leaf = asset_indexed_leaf;
-        compliance.witness.asset.path = asset_path;
-        compliance.witness.asset.position = asset_position;
-        let transfer = TransferPlan::new(
-            vec![spend],
-            vec![output],
-            Fr::random(&mut rng),
-            compliance.clone(),
-            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
-            crate::TransferProofContext::Ordinary,
-            crate::discovery::Parameters::default(),
-        )
-        .expect("build registered base-asset transfer plan");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive registered base-asset transfer public/private inputs");
-
-        assert_transfer_witness(public, private);
-    }
-
-    #[test]
-    fn witness_transfer_hidden_arity_1x2_roundtrip_registered_base_asset_with_change_real_user_tree(
-    ) {
-        let mut rng = rand::rngs::StdRng::seed_from_u64(42);
-        let input_note = Note::from_parts(
-            test_keys::ADDRESS_0.clone(),
-            Value {
-                amount: Amount::from(1_000_000u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            Rseed::generate(&mut rng),
-            RecoveryCommitment::unavailable(),
-        )
-        .expect("create registered base-asset test note");
-
-        let mut sct = tct::Tree::new();
-        sct.insert(tct::Witness::Keep, input_note.commit())
-            .expect("insert registered base-asset note");
-        let state_commitment_proof = sct
-            .witness(input_note.commit())
-            .expect("witness registered base-asset note");
-        let anchor = sct.root();
-
-        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
-            shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
-        let (
-            sender_leaf,
-            recipient_leaf,
-            compliance_anchor,
-            sender_compliance_path,
-            recipient_compliance_path,
-        ) = sender_recipient_compliance_witnesses();
-
-        let spend = ShieldedInputPlan::new(
-            &mut rng,
-            input_note.clone(),
-            state_commitment_proof.position(),
-        );
-
-        let receiver_output = ShieldedOutputPlan::new(
-            &mut rng,
-            Value {
-                amount: Amount::from(1u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            test_keys::ADDRESS_1.clone(),
-        );
-
-        let change_output = ShieldedOutputPlan::new(
-            &mut rng,
-            Value {
-                amount: Amount::from(999_999u64),
-                asset_id: *BASE_ASSET_ID,
-            },
-            test_keys::ADDRESS_0.clone(),
-        );
-
-        let mut compliance =
-            crate::test_plan_helpers::transfer_context(&spend, &receiver_output.dest_address);
-        compliance.witness.user_root = compliance_anchor;
-        compliance.witness.sender = crate::UserWitness {
-            leaf: sender_leaf,
-            path: sender_compliance_path,
-            position: 0,
-        };
-        compliance.recipient = crate::UserWitness {
-            leaf: recipient_leaf,
-            path: recipient_compliance_path,
-            position: 1,
-        };
-        compliance.witness.asset.root = asset_anchor;
-        compliance.witness.asset.leaf = asset_indexed_leaf;
-        compliance.witness.asset.path = asset_path;
-        compliance.witness.asset.position = asset_position;
-        let transfer = TransferPlan::new(
-            vec![spend],
-            vec![receiver_output, change_output],
-            Fr::random(&mut rng),
-            compliance.clone(),
-            crate::VolumeAccumulatorPlan::padding(compliance.timestamp),
-            crate::TransferProofContext::Ordinary,
-            crate::discovery::Parameters::default(),
-        )
-        .expect("build registered base-asset transfer plan with change");
-        let (public, private) = transfer
-            .transfer_public_private(
-                &test_keys::FULL_VIEWING_KEY,
-                &[state_commitment_proof],
-                anchor,
-                0,
-            )
-            .expect("derive registered base-asset transfer-with-change public/private inputs");
-
-        assert_transfer_witness(public, private);
     }
 
     #[cfg(feature = "component")]

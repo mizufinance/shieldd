@@ -410,12 +410,12 @@ mod tests {
         assert_eq!(addr_from_proto, dest);
         let raw: Address = dest.to_vec().try_into().expect("canonical raw address");
         assert_eq!(raw, dest);
-    }
-
-    #[test]
-    fn rejects_unsupported_80_byte_address() {
-        let bytes = vec![0u8; 80];
-        assert!(Address::try_from(bytes).is_err());
+        let bytes = dest.to_vec();
+        for length in [0, bytes.len() - 1, bytes.len() + 1, 80] {
+            let mut malformed = bytes.clone();
+            malformed.resize(length, 0);
+            assert!(Address::try_from(malformed).is_err(), "length {length}");
+        }
     }
 
     #[test]

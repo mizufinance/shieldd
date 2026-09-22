@@ -524,7 +524,7 @@ impl App {
         profile.end_block_ms = end_block_start.elapsed().as_secs_f64() * 1000.0;
 
         let commit_start = Instant::now();
-        let _root_hash = self.commit(storage).await?;
+        let _root_hash = self.commit(storage, None).await?;
         profile.commit_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
 
         Ok(profile)

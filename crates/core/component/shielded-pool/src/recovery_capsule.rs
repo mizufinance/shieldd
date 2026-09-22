@@ -67,7 +67,7 @@ impl From<RecoveryCommitment> for [u8; 32] {
     }
 }
 
-/// Fixed-shape ciphertext under a registered capsule capability.
+/// Fixed-shape ciphertext under the effective asset payload key.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::RecoveryCapsule", into = "pb::RecoveryCapsule")]
 pub struct RecoveryCapsule {
@@ -79,7 +79,7 @@ pub struct RecoveryCapsule {
     pub encrypted_note_blinding: Fq,
 }
 
-/// Private randomness proving that a recovery capsule is encrypted to a leaf capability.
+/// Private randomness proving that a recovery capsule is encrypted to the effective asset payload key.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RecoveryCapsuleOpening {
     pub seed: Fq,
@@ -97,17 +97,17 @@ impl RecoveryCapsule {
     pub fn encrypt(
         amount: Amount,
         note_blinding: Fq,
-        capk: SubgroupPoint,
+        payload_key: SubgroupPoint,
         rseed: Rseed,
     ) -> Result<(Self, RecoveryCapsuleOpening)> {
         ensure!(
-            capk != SubgroupPoint::identity(),
-            "recovery capk must be nonidentity"
+            payload_key != SubgroupPoint::identity(),
+            "recovery payload_key must be nonidentity"
         );
         let opening = derive_opening(rseed);
         ensure!(opening.r != Fr::from(0), "zero recovery randomizer");
         let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * opening.r;
-        let shared = capk * opening.r;
+        let shared = payload_key * opening.r;
         let salt = derive_salt(rseed);
 
         let capsule = Self {
@@ -150,16 +150,16 @@ impl RecoveryCapsule {
         &self,
         amount: Amount,
         note_blinding: Fq,
-        capk: SubgroupPoint,
+        payload_key: SubgroupPoint,
         opening: RecoveryCapsuleOpening,
     ) -> Result<()> {
         ensure!(
-            capk != SubgroupPoint::identity(),
-            "recovery capk must be nonidentity"
+            payload_key != SubgroupPoint::identity(),
+            "recovery payload_key must be nonidentity"
         );
         ensure!(opening.r != Fr::from(0), "zero recovery randomizer");
         let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * opening.r;
-        let shared = capk * opening.r;
+        let shared = payload_key * opening.r;
         ensure!(self.epk == epk, "recovery capsule epk opening mismatch");
         ensure!(
             self.c2 == opening.seed + shared_secret(&shared),
@@ -284,13 +284,14 @@ mod tests {
     #[test]
     fn capsule_roundtrip_and_opening() {
         let rseed = Rseed::generate(&mut OsRng);
-        let capk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(19u64);
+        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(19u64);
         let amount = Amount::from(42u64);
         let blinding = Fq::from(77u64);
-        let (capsule, opening) = RecoveryCapsule::encrypt(amount, blinding, capk, rseed).unwrap();
+        let (capsule, opening) =
+            RecoveryCapsule::encrypt(amount, blinding, payload_key, rseed).unwrap();
 
         capsule
-            .verify_opening(amount, blinding, capk, opening)
+            .verify_opening(amount, blinding, payload_key, opening)
             .unwrap();
         assert_eq!(
             capsule.decrypt_with_seed(opening.seed).unwrap(),
@@ -307,10 +308,14 @@ mod tests {
 
     #[test]
     fn capsule_rejects_wrong_seed_and_noncanonical_wire_fields() {
-        let capk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(5u64);
-        let (capsule, _) =
-            RecoveryCapsule::encrypt(Amount::from(9u64), Fq::from(10u64), capk, Rseed([11; 32]))
-                .unwrap();
+        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(5u64);
+        let (capsule, _) = RecoveryCapsule::encrypt(
+            Amount::from(9u64),
+            Fq::from(10u64),
+            payload_key,
+            Rseed([11; 32]),
+        )
+        .unwrap();
         assert!(capsule.decrypt_with_seed(Fq::from(12u64)).is_err());
 
         let mut bytes = capsule.to_bytes();

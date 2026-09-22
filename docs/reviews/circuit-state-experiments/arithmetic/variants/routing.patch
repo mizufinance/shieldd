@@ -1,0 +1,24 @@
+--- a/crates/crypto/circuits/src/routing.rs
++++ b/crates/crypto/circuits/src/routing.rs
+@@ -128,15 +128,12 @@
+     let var = |s: &Scalar| Var::witness(ctx, |_| s.clone());
+     let regulated_value = var(&Scalar::from(u64::from(regulated_precision)));
+     let unregulated_value = var(&Scalar::from(u64::from(unregulated_precision)));
+-    let (regulated_bits, regulated_matches) = precision(ctx, &regulated_value);
+-    let (unregulated_bits, unregulated_matches) = precision(ctx, &unregulated_value);
+-    let mut invalid = Var::zero();
+-    for i in 1..=32 {
+-        for j in 0..i {
+-            invalid += &(regulated_matches[i].var().clone() * unregulated_matches[j].var());
+-        }
+-    }
+-    invalid.assert_eq(&Var::zero());
++    let (regulated_bits, _) = precision(ctx, &regulated_value);
++    let (unregulated_bits, _) = precision(ctx, &unregulated_value);
++    for i in 0..32 {
++        (regulated_bits[i].clone() * &(Var::one() - &unregulated_bits[i]))
++            .assert_eq(&Var::zero());
++    }
+     let parameter_set = var(expected);
+     params
+         .circuit(

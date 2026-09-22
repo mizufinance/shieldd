@@ -73,7 +73,7 @@ fn released_seed_note_membership_and_every_public_fact_are_bound() {
     let w = fixture(&p);
     let digest = w.statement.digest(&p);
     assert!(satisfied(&p, &w, &digest));
-    for mutation in 0..20 {
+    for mutation in 0..21 {
         let mut bad = w.clone();
         match mutation {
             0 => bad.blinding += &Scalar::one(),
@@ -95,6 +95,9 @@ fn released_seed_note_membership_and_every_public_fact_are_bound() {
             16 => bad.statement.recent_floor = Scalar::from(1u64 << 48),
             17 => bad.statement.address.transmission = Point::identity(),
             18 => bad.statement.asset += &Scalar::one(),
+            19 => {
+                bad.statement.address.transmission = group::generator().multiply(&Scalar::from(41))
+            }
             _ => bad.statement.commitment += &Scalar::one(),
         }
         assert!(
@@ -122,11 +125,11 @@ fn seizure_proof_uses_only_released_plaintext_not_encryption_secret() {
     let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
     let relation = Relation::compile(&c, &layout).unwrap();
     let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let prepared = pari::PreparedProver::new(pk, &relation).unwrap();
+    let prover = pk;
     let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &w, &digest));
     let envelope = Envelope::prove(
         Family::Seizure,
-        &prepared,
+        &prover,
         &relation,
         &layout,
         values,

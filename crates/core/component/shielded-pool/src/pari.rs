@@ -90,7 +90,6 @@ fn compliance(
     Ok(c::compliance::Witness {
         leaf: c::compliance::Leaf {
             address: address(&leaf.address),
-            capk: point(&leaf.capk),
             rnk_dh: point(&leaf.rnk_dh_pk),
             rnk_commitment: field(&leaf.rnk_commitment),
             lifecycle: field(&leaf.lifecycle_field()),
@@ -115,9 +114,7 @@ fn registry(leaf: &IndexedLeaf, path: &MerklePath, position: u64) -> Result<c::r
             resource: field(&leaf.ring.resource_hash),
             audit: c::audit::Keys {
                 epoch: Scalar::from(k.epoch),
-                amount: point(&k.amount),
-                sender: point(&k.sender),
-                receiver: point(&k.receiver),
+                payload: point(&k.payload),
                 checking: point(&k.checking),
             },
         },
@@ -159,11 +156,18 @@ fn capsule(value: &RecoveryCapsule) -> c::recovery::Capsule<Scalar> {
         encrypted_blinding: field(&value.encrypted_note_blinding),
     }
 }
-fn output(note_value: &Note, capk: SubgroupPoint) -> Result<c::note::OutputWitness> {
+fn payload_key(leaf: &IndexedLeaf, regulated: bool) -> SubgroupPoint {
+    if regulated {
+        leaf.ring.audit_keys.payload
+    } else {
+        *shieldd_sdk_compliance::UNREGULATED_RING
+    }
+}
+fn output(note_value: &Note, payload_key: SubgroupPoint) -> Result<c::note::OutputWitness> {
     let (recovery, opening) = RecoveryCapsule::encrypt(
         note_value.amount(),
         note_value.note_blinding(),
-        capk,
+        payload_key,
         note_value.rseed(),
     )?;
     ensure!(
@@ -340,9 +344,12 @@ pub(crate) fn transfer(
             outputs: [
                 output(
                     &w.receiver_output.created_note,
-                    w.receiver_output.recipient_leaf.capk,
+                    payload_key(&w.asset_indexed_leaf, w.is_regulated),
                 )?,
-                output(&w.change_output.created_note, w.sender_leaf.capk)?,
+                output(
+                    &w.change_output.created_note,
+                    payload_key(&w.asset_indexed_leaf, w.is_regulated),
+                )?,
             ],
             volume: volume(
                 &p.volume_accumulator,
@@ -425,7 +432,12 @@ pub(crate) fn reshape(
     let outputs = w
         .outputs
         .iter()
-        .map(|o| output(&o.created_note, w.sender_leaf.capk))
+        .map(|o| {
+            output(
+                &o.created_note,
+                payload_key(&w.asset_indexed_leaf, w.is_regulated),
+            )
+        })
         .collect::<Result<Vec<_>>>()?;
     let notes = match p.family_id {
         NoteReshapeFamilyId::OneByEight => c::reshape::Notes::Split {
@@ -510,7 +522,10 @@ pub(crate) fn withdrawal(
                 is_dummy: w.optional_input.is_dummy,
                 seed: field(&w.optional_input.dummy_nullifier_seed),
             },
-            change: output(&w.change_output.created_note, w.sender_leaf.capk)?,
+            change: output(
+                &w.change_output.created_note,
+                payload_key(&w.asset_indexed_leaf, w.is_regulated),
+            )?,
             volume: volume(
                 &p.volume_accumulator,
                 &w.volume_accumulator,

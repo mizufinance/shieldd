@@ -105,6 +105,7 @@ pub struct HostExecution {
     app: App,
     stateless_cache: Arc<StatelessCache>,
     phase: HostExecutionPhase,
+    generation_packs: Option<shieldd_sdk_sct::generation_pack::GenerationPackRepository>,
 }
 
 #[derive(Debug)]
@@ -244,7 +245,15 @@ impl HostExecution {
             app,
             stateless_cache,
             phase: HostExecutionPhase::Idle,
+            generation_packs: None,
         })
+    }
+
+    pub fn set_generation_packs(
+        &mut self,
+        repository: shieldd_sdk_sct::generation_pack::GenerationPackRepository,
+    ) {
+        self.generation_packs = Some(repository);
     }
 
     pub fn phase(&self) -> HostExecutionPhase {
@@ -491,7 +500,10 @@ impl HostExecution {
         );
 
         self.phase = HostExecutionPhase::CommitInterrupted;
-        let root_hash = self.app.commit(self.storage.clone()).await?;
+        let root_hash = self
+            .app
+            .commit(self.storage.clone(), self.generation_packs.as_ref())
+            .await?;
         self.phase = HostExecutionPhase::Idle;
         Ok(HostCommit {
             root_hash: root_hash.0.to_vec(),
@@ -513,6 +525,7 @@ impl HostExecution {
             app,
             stateless_cache,
             phase: _,
+            generation_packs: _,
         } = self;
         drop(app);
         drop(stateless_cache);
@@ -781,7 +794,8 @@ impl App {
             ring_pk: policy.ring.ring_pk,
             asset_id: authorization.asset_id,
             address: authorization.address.clone(),
-            capk: leaf.capk,
+            payload_key: policy.ring.audit_keys.payload,
+            audit_epoch: policy.ring.audit_keys.epoch,
             note_commitment: authorization.note_commitment,
             recovery_commitment: seizure.recovery_capsule.commitment(),
             capsule_epk: seizure.recovery_capsule.epk,
@@ -1518,18 +1532,17 @@ mod tests {
         let denom = regulated_test_denom();
         let asset_id = denom.id();
         let amount = Amount::from(42u64);
-        let capability_secret = shieldd_sdk_compliance::derive_compliance_scalar(&address);
-        let capk = *shieldd_sdk_crypto::generators::SPEND_AUTH * capability_secret;
+        let payload_secret = shieldd_sdk_crypto::Fr::from(201u64);
+        let payload_key = *shieldd_sdk_crypto::generators::SPEND_AUTH * payload_secret;
         let rnk = shieldd_sdk_crypto::Fq::from(1u64);
         let authority_sk = SigningKey::<SpendAuth>::try_from(Fr::from(1u64).to_bytes()).unwrap();
         let policy = AssetPolicy::for_test(Element::generator(), u128::MAX, Element::generator());
         let leaf = ComplianceLeaf::registered_for_test(address.clone(), asset_id);
-        assert_eq!(leaf.capk, capk);
 
         let rseed = Rseed([17u8; 32]);
         let note_blinding = rseed.derive_note_blinding();
         let (recovery_capsule, opening) =
-            RecoveryCapsule::encrypt(amount, note_blinding, capk, rseed)?;
+            RecoveryCapsule::encrypt(amount, note_blinding, payload_key, rseed)?;
         let note_commitment = shieldd_sdk_shielded_pool::note::commitment_from_address(
             address.clone(),
             Value { amount, asset_id },
@@ -1591,17 +1604,16 @@ mod tests {
             ring_pk: policy.ring.ring_pk,
             asset_id,
             address: address.clone(),
-            capk,
+            payload_key,
+            audit_epoch: policy.ring.audit_keys.epoch,
             note_commitment,
             recovery_commitment: recovery_capsule.commitment(),
             capsule_epk: recovery_capsule.epk,
             authority_instruction_commitment,
             expiry_height: authorization.expiry_height,
         };
-        let capsule_release = CapsuleReleaseEvidence::from_capability_secret_for_test(
-            &release_request,
-            capability_secret,
-        );
+        let capsule_release =
+            CapsuleReleaseEvidence::from_payload_secret_for_test(&release_request, payload_secret);
         let proof_public = NoteSeizureProofPublic {
             authorization: authorization.clone(),
             anchor: state_commitment_proof.root(),
@@ -1689,26 +1701,6 @@ mod tests {
             host.app.state.verify_audit_log().await?.length,
             before_audit.length + 2
         );
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn host_execution_init_genesis_commits_content_genesis() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-
-        assert!(host.commit().await.is_err());
-        host.init_genesis(host_genesis()).await?;
-        assert_eq!(host.phase(), HostExecutionPhase::InitializedGenesis);
-        assert!(host.app.state.host_withdrawals_enabled().await?);
-        assert!(host.deposit(deposit_request(0)).await.is_err());
-
-        let response = host.commit().await?;
-        assert_eq!(response.root_hash.len(), 32);
-        assert_eq!(host.phase(), HostExecutionPhase::Idle);
-        assert!(App::is_ready(storage.latest_snapshot()).await);
 
         Ok(())
     }
@@ -1819,24 +1811,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn host_execution_exports_checkpoint_genesis() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-
-        host.init_genesis(host_genesis()).await?;
-        let commit = host.commit().await?;
-
-        let exported = host.export_genesis().await?;
-        assert!(matches!(
-            exported,
-            AppState::Checkpoint(root_hash) if root_hash == commit.root_hash
-        ));
-
-        Ok(())
-    }
-
-    #[tokio::test]
     async fn begin_block_before_genesis_rejects_without_mutation() -> Result<()> {
         let storage = temp_storage().await;
         let mut host =
@@ -1928,27 +1902,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn host_commit_refreshes_snapshot_version() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        assert_eq!(
-            host.app.snapshot_version,
-            storage.latest_snapshot().version()
-        );
-        host.begin_block(host_block(1)).await?;
-        host.end_block(1).await?;
-        host.commit().await?;
-        assert_eq!(
-            host.app.snapshot_version,
-            storage.latest_snapshot().version()
-        );
-        Ok(())
-    }
-
-    #[tokio::test]
     async fn host_end_block_rejects_mismatched_height_without_closing_block() -> Result<()> {
         let storage = temp_storage().await;
         let mut host =
@@ -1964,62 +1917,51 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn host_execution_records_supplied_block_context() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        let block = host_block(1);
-        let time = block.time;
-        host.begin_block(block).await?;
-        assert_eq!(host.app.state.get_block_height().await?, 1);
-        assert_eq!(host.app.state.get_block_timestamp(1).await?, time);
-        assert_eq!(host.app.state.get_chain_id().await?, "bankd-local");
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn host_execution_block_lifecycle_commits_without_validators() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-
-        host.begin_block(host_block(1)).await?;
-        assert_eq!(host.phase(), HostExecutionPhase::InBlock);
-        host.end_block(1).await?;
-        assert_eq!(host.phase(), HostExecutionPhase::EndedBlock);
-        let commit = host.commit().await?;
-
-        assert_eq!(commit.root_hash.len(), 32);
-        assert_eq!(host.phase(), HostExecutionPhase::Idle);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn host_execution_reports_only_the_latest_committed_state() -> Result<()> {
+    async fn host_lifecycle_publishes_only_committed_state_and_refreshes_snapshot() -> Result<()> {
         let storage = temp_storage().await;
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         assert!(host.committed_state().await.is_err());
+        assert!(host.commit().await.is_err());
 
         host.init_genesis(host_genesis()).await?;
+        assert_eq!(host.phase(), HostExecutionPhase::InitializedGenesis);
+        assert!(host.app.state.host_withdrawals_enabled().await?);
+        assert!(host.deposit(deposit_request(0)).await.is_err());
         let genesis_commit = host.commit().await?;
+        assert_eq!(host.phase(), HostExecutionPhase::Idle);
+        assert_eq!(genesis_commit.root_hash.len(), 32);
+        assert!(App::is_ready(storage.latest_snapshot()).await);
+        assert_eq!(
+            host.app.snapshot_version,
+            storage.latest_snapshot().version()
+        );
+        assert!(matches!(host.export_genesis().await?,
+            AppState::Checkpoint(root) if root == genesis_commit.root_hash));
         let committed = host.committed_state().await?;
         assert_eq!(committed.height, 0);
         assert_eq!(committed.root_hash, genesis_commit.root_hash);
 
-        host.begin_block(host_block(1)).await?;
+        let block = host_block(1);
+        let time = block.time;
+        host.begin_block(block).await?;
+        assert_eq!(host.phase(), HostExecutionPhase::InBlock);
+        assert_eq!(host.app.state.get_block_height().await?, 1);
+        assert_eq!(host.app.state.get_block_timestamp(1).await?, time);
+        assert_eq!(host.app.state.get_chain_id().await?, "bankd-local");
         let still_committed = host.committed_state().await?;
         assert_eq!(still_committed, committed);
 
         host.end_block(1).await?;
+        assert_eq!(host.phase(), HostExecutionPhase::EndedBlock);
         let block_commit = host.commit().await?;
+        assert_eq!(block_commit.root_hash.len(), 32);
+        assert_eq!(host.phase(), HostExecutionPhase::Idle);
+        assert_eq!(
+            host.app.snapshot_version,
+            storage.latest_snapshot().version()
+        );
         let committed = host.committed_state().await?;
         assert_eq!(committed.height, 1);
         assert_eq!(committed.root_hash, block_commit.root_hash);
@@ -2169,23 +2111,32 @@ mod tests {
     }
 
     #[test]
-    fn source_key_uses_host_tx_identity_not_deposit_contents() {
-        assert_eq!(
-            HostSource::try_from(host_source(3))
-                .unwrap()
-                .source_key("bankd-local"),
-            HostSource::try_from(host_source(3))
-                .unwrap()
-                .source_key("bankd-local"),
-        );
-        assert_ne!(
-            HostSource::try_from(host_source(3))
-                .unwrap()
-                .source_key("bankd-local"),
-            HostSource::try_from(host_source(4))
-                .unwrap()
-                .source_key("bankd-local"),
-        );
+    fn source_key_scopes_host_position_while_deposit_id_binds_contents() {
+        let first = ParsedHostDeposit::parse("bankd-local".into(), deposit_request(3)).unwrap();
+        let mut changed = deposit_request(3);
+        changed.amount = "200".into();
+        let second = ParsedHostDeposit::parse("bankd-local".into(), changed).unwrap();
+        assert_eq!(first.source_key(), second.source_key());
+        assert_ne!(first.deposit_id, second.deposit_id);
+        for source in [
+            ProtoHostSource {
+                height: 2,
+                ..host_source(3)
+            },
+            ProtoHostSource {
+                tx_index: 1,
+                ..host_source(3)
+            },
+            host_source(4),
+        ] {
+            let mut request = deposit_request(3);
+            request.source = Some(source);
+            let different = ParsedHostDeposit::parse("bankd-local".into(), request).unwrap();
+            assert_ne!(first.source_key(), different.source_key());
+        }
+        let other_chain =
+            ParsedHostDeposit::parse("other-chain".into(), deposit_request(3)).unwrap();
+        assert_ne!(first.source_key(), other_chain.source_key());
     }
 
     #[test]

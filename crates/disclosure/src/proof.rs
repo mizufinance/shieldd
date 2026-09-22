@@ -15,7 +15,26 @@ use shieldd_sdk_circuits::{
 use shieldd_sdk_crypto::{domains, Fq};
 use shieldd_sdk_proof_params::pari::Registry;
 
-pub const CIRCUIT_ID: &str = "shieldd.disclosure.jubjub.pari.v1.32";
+pub const CIRCUIT_ID_ONE: &str = "shieldd.disclosure.jubjub.pari.v2.1";
+pub const CIRCUIT_ID_MANY: &str = "shieldd.disclosure.jubjub.pari.v2.32";
+
+fn family(request: &DisclosureRequest) -> Result<Family> {
+    validate_request(request)?;
+    Ok(if request.outputs.len() == 1 {
+        Family::DisclosureOne
+    } else {
+        Family::Disclosure
+    })
+}
+
+pub fn circuit_id(request: &DisclosureRequest) -> Result<&'static str> {
+    Ok(match family(request)? {
+        Family::DisclosureOne => CIRCUIT_ID_ONE,
+        Family::Disclosure => CIRCUIT_ID_MANY,
+        _ => unreachable!("disclosure request selects a disclosure family"),
+    })
+}
+
 fn zero() -> Scalar {
     Scalar::from(0u64)
 }
@@ -77,8 +96,12 @@ fn predicate(
         result: bit(result.unwrap_or(false)),
     })
 }
-fn statement(s: &DisclosureStatement) -> Result<circuit::Statement<Scalar>> {
+fn statement<const N: usize>(s: &DisclosureStatement) -> Result<circuit::Statement<Scalar, N>> {
     validate_request(&s.request)?;
+    ensure!(
+        s.request.outputs.len() <= N,
+        "request exceeds disclosure family capacity"
+    );
     ensure!(
         s.outputs.len() == s.request.outputs.len(),
         "output count mismatch"
@@ -179,8 +202,15 @@ fn statement(s: &DisclosureStatement) -> Result<circuit::Statement<Scalar>> {
     Ok(out)
 }
 #[cfg(feature = "prover")]
-fn witness(s: &DisclosureStatement, openings: &[NoteOpening]) -> Result<circuit::Witness> {
+fn witness<const N: usize>(
+    s: &DisclosureStatement,
+    openings: &[NoteOpening],
+) -> Result<circuit::Witness<N>> {
     ensure!(openings.len() == s.outputs.len(), "opening count mismatch");
+    ensure!(
+        openings.len() <= N,
+        "openings exceed disclosure family capacity"
+    );
     let mut notes = std::array::from_fn(|_| circuit::Opening {
         note: Note {
             blinding: zero(),
@@ -202,7 +232,7 @@ fn witness(s: &DisclosureStatement, openings: &[NoteOpening]) -> Result<circuit:
         };
     }
     Ok(circuit::Witness {
-        statement: statement(s)?,
+        statement: statement::<N>(s)?,
         notes,
     })
 }
@@ -216,15 +246,24 @@ pub(crate) fn verify_pari(package: &DisclosurePackage, registry: &Registry) -> R
     else {
         anyhow::bail!("expected Pari evidence")
     };
-    ensure!(circuit == CIRCUIT_ID, "unsupported disclosure circuit");
+    let selected = family(&package.statement.request)?;
     ensure!(
-        verification_key_digest
-            == &hex::encode(registry.verifying_key(Family::Disclosure)?.digest()),
+        circuit == circuit_id(&package.statement.request)?,
+        "wrong disclosure circuit for request"
+    );
+    ensure!(
+        verification_key_digest == &hex::encode(registry.verifying_key(selected)?.digest()),
         "disclosure key mismatch"
     );
     registry.verify(
-        Family::Disclosure,
-        &statement(&package.statement)?.digest(Parameters::load()?),
+        selected,
+        &match selected {
+            Family::DisclosureOne => {
+                statement::<1>(&package.statement)?.digest(Parameters::load()?)
+            }
+            Family::Disclosure => statement::<32>(&package.statement)?.digest(Parameters::load()?),
+            _ => unreachable!(),
+        },
         &Envelope::from_bytes(proof)?,
     )?;
     verify_controls(&package.statement, control_signatures)
@@ -232,19 +271,23 @@ pub(crate) fn verify_pari(package: &DisclosurePackage, registry: &Registry) -> R
 #[cfg(feature = "prover")]
 pub fn prove(w: &DisclosureWitness, registry: &Registry) -> Result<DisclosurePackage> {
     let statement = evaluate(w)?;
-    let native = witness(&statement, &crate::evidence::openings(w)?)?;
-    let proof = registry.prove(
-        &Witness::Disclosure(Box::new(native)),
-        shieldd_sdk_proof_params::pari::proving_strategy()?,
-    )?;
+    let selected = family(&statement.request)?;
+    let openings = crate::evidence::openings(w)?;
+    let native = match selected {
+        Family::DisclosureOne => {
+            Witness::DisclosureOne(Box::new(witness::<1>(&statement, &openings)?))
+        }
+        Family::Disclosure => Witness::Disclosure(Box::new(witness::<32>(&statement, &openings)?)),
+        _ => unreachable!(),
+    };
+    let proof = registry.prove(&native, shieldd_sdk_proof_params::pari::proving_strategy()?)?;
+    let selected_id = circuit_id(&statement.request)?;
     let package = DisclosurePackage {
         version: VERSION,
         statement,
         evidence: Evidence::Pari {
-            circuit: CIRCUIT_ID.into(),
-            verification_key_digest: hex::encode(
-                registry.verifying_key(Family::Disclosure)?.digest(),
-            ),
+            circuit: selected_id.into(),
+            verification_key_digest: hex::encode(registry.verifying_key(selected)?.digest()),
             proof: proof.to_bytes(),
             control_signatures: crate::evidence::signatures(w),
         },

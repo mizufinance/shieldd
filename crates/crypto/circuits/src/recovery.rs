@@ -45,10 +45,10 @@ pub struct Witness {
     pub randomizer: Scalar,
 }
 
-/// Caller supplies a validated capability key and freshly sampled encryption randomness.
+/// Caller supplies a validated payload key and freshly sampled encryption randomness.
 pub fn encrypt(
     params: &Parameters,
-    capk: &Point<Scalar>,
+    payload_key: &Point<Scalar>,
     amount: &Scalar,
     blinding: &Scalar,
     randomizer: Scalar,
@@ -62,7 +62,7 @@ pub fn encrypt(
     let epk = group::generator().multiply(&randomizer);
     let mut capsule = Capsule {
         commitment: Scalar::zero(),
-        c2: seed.clone() + &encryption::native_secret(params, &capk.multiply(&randomizer)),
+        c2: seed.clone() + &encryption::native_secret(params, &payload_key.multiply(&randomizer)),
         confirmation: params.native(
             CONFIRMATION,
             &[seed.clone(), epk.x.clone(), epk.y.clone(), salt.clone()],
@@ -84,7 +84,7 @@ pub fn encrypt(
 pub fn constrain<'ctx>(
     ctx: Context<'ctx, Scalar>,
     params: &Parameters,
-    capk: &Point<Var<'ctx, Scalar>>,
+    payload_key: &Point<Var<'ctx, Scalar>>,
     amount: &Var<'ctx, Scalar>,
     blinding: &Var<'ctx, Scalar>,
     witness: &Witness,
@@ -97,7 +97,7 @@ pub fn constrain<'ctx>(
         .multiply_fixed(&bits)
         .assert_equal(&out.epk);
     out.epk.assert_non_identity();
-    let shared = capk.multiply_bits(&bits);
+    let shared = payload_key.multiply_bits(&bits);
     (seed.clone() + &encryption::secret(params, &shared)).assert_eq(&out.c2);
     constrain_plaintext(params, amount, blinding, &out, &seed);
     out
@@ -163,13 +163,13 @@ mod tests {
 
     fn satisfied(
         params: &Parameters,
-        capk: &Point<Scalar>,
+        payload_key: &Point<Scalar>,
         amount: &Scalar,
         blinding: &Scalar,
         w: &Witness,
     ) -> bool {
         let (c, _) = build_with_values(|ctx| {
-            let key = group::witness_subgroup(ctx, capk, &capk.cofactor_preimage());
+            let key = group::witness_subgroup(ctx, payload_key, &payload_key.cofactor_preimage());
             key.assert_non_identity();
             let amount = Var::witness(ctx, |_| amount.clone());
             let blinding = Var::witness(ctx, |_| blinding.clone());
@@ -182,7 +182,7 @@ mod tests {
     #[test]
     fn capsule_binds_every_word_and_private_value_for_zero_and_full_u128_amounts() {
         let params = Parameters::load().unwrap();
-        let capk = group::generator().multiply(&Scalar::from(7));
+        let payload_key = group::generator().multiply(&Scalar::from(7));
         let blinding = -Scalar::one();
         for amount in [
             Scalar::zero(),
@@ -190,7 +190,7 @@ mod tests {
         ] {
             let w = encrypt(
                 &params,
-                &capk,
+                &payload_key,
                 &amount,
                 &blinding,
                 Scalar::from(11),
@@ -198,7 +198,7 @@ mod tests {
                 Scalar::from(17),
             )
             .unwrap();
-            assert!(satisfied(&params, &capk, &amount, &blinding, &w));
+            assert!(satisfied(&params, &payload_key, &amount, &blinding, &w));
             let seed = w.capsule.c2.clone()
                 - &encryption::native_secret(&params, &w.capsule.epk.multiply(&Scalar::from(7)));
             assert_eq!(seed, w.seed);
@@ -228,27 +228,27 @@ mod tests {
                 ];
                 *fields[i] += &Scalar::one();
                 assert!(
-                    !satisfied(&params, &capk, &amount, &blinding, &bad),
+                    !satisfied(&params, &payload_key, &amount, &blinding, &bad),
                     "field {i}"
                 );
             }
             let mut bad = w.clone();
             bad.randomizer += &Scalar::from_limbs(scalar::ORDER);
-            assert!(!satisfied(&params, &capk, &amount, &blinding, &bad));
+            assert!(!satisfied(&params, &payload_key, &amount, &blinding, &bad));
             let mut bad = w.clone();
             bad.randomizer = Scalar::zero();
             bad.capsule.epk = Point::identity();
-            assert!(!satisfied(&params, &capk, &amount, &blinding, &bad));
+            assert!(!satisfied(&params, &payload_key, &amount, &blinding, &bad));
             assert!(!satisfied(
                 &params,
-                &capk,
+                &payload_key,
                 &(amount.clone() + &Scalar::one()),
                 &blinding,
                 &w
             ));
             assert!(!satisfied(
                 &params,
-                &capk,
+                &payload_key,
                 &amount,
                 &(blinding.clone() + &Scalar::one()),
                 &w

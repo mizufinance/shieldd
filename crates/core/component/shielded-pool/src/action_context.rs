@@ -21,6 +21,16 @@ pub struct AssetWitness {
     pub is_regulated: bool,
 }
 
+impl AssetWitness {
+    pub fn payload_key(&self) -> shieldd_sdk_crypto::SubgroupPoint {
+        if self.is_regulated {
+            self.leaf.ring.audit_keys.payload
+        } else {
+            *shieldd_sdk_compliance::UNREGULATED_RING
+        }
+    }
+}
+
 impl From<AssetWitness> for pb::AssetWitness {
     fn from(value: AssetWitness) -> Self {
         Self {

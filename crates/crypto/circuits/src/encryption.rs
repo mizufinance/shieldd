@@ -161,18 +161,12 @@ pub fn encrypt(
         params.native(SALT, &[shared.nonce_root.clone(), Scalar::from(i as u64)])
     });
     let epks = ephemeral.each_ref().map(|r| group::generator().multiply(r));
-    let audit_keys = [
-        &shared.audit.amount,
-        &shared.audit.receiver,
-        &shared.audit.amount,
-        &shared.audit.sender,
-    ];
     let detection_secret = shared.detection_key.multiply(&ephemeral[0]);
     let selected: [Point<Scalar>; 4] = std::array::from_fn(|i| {
         let key = if shared.flagged {
             &shared.detection_key
         } else {
-            audit_keys[i]
+            &shared.audit.payload
         };
         key.multiply(&ephemeral[i])
     });
@@ -344,12 +338,7 @@ pub fn constrain<'ctx>(
         let bits = scalar::canonical_bits(ctx, &var(&w.ephemeral[i]));
         generator.multiply_fixed(&bits).assert_equal(epks[i]);
         epks[i].assert_non_identity();
-        let audit_key = [
-            &shared.audit.amount,
-            &shared.audit.receiver,
-            &shared.audit.amount,
-            &shared.audit.sender,
-        ][i];
+        let audit_key = &shared.audit.payload;
         let selected = Point {
             x: shared.flagged.select(&shared.detection_key.x, &audit_key.x),
             y: shared.flagged.select(&shared.detection_key.y, &audit_key.y),

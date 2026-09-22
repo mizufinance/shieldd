@@ -138,50 +138,20 @@ mod tests {
 
     use crate::{Note, Rseed};
 
-    proptest! {
-        #[test]
-        fn encrypted_backref_zero_length(seed_phrase_randomness in any::<[u8; 32]>(), amount_to_send in any::<u64>(), rseed_randomness in any::<[u8; 32]>()) {
-            let seed_phrase = SeedPhrase::from_randomness(&seed_phrase_randomness);
-            let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
-                .expect("test spend key should satisfy key refinements");
-            let fvk = sk.full_viewing_key();
-            let brk = fvk.backref_key();
-
-            let ivk = fvk.incoming();
-            let sender = ivk.payment_address(0u32.into());
-
-            let value_to_send = Value {
-                amount: amount_to_send.into(),
-                asset_id: asset::Cache::with_known_assets()
-                    .get_unit("ushieldd")
-                    .unwrap()
-                    .id(),
-            };
-            let rseed = Rseed(rseed_randomness);
-
-            let note = Note::from_parts(
-                sender,
-                value_to_send,
-                rseed,
-                crate::RecoveryCommitment::unavailable(),
-            )
-            .expect("valid note");
-            let note_commitment: shieldd_sdk_tct::StateCommitment = note.commit();
-            let nk = *sk.nullifier_key();
-            let mut sct = tct::Tree::new();
-
-            sct.insert(tct::Witness::Keep, note_commitment).unwrap();
-            let state_commitment_proof = sct.witness(note_commitment).unwrap();
-            let nullifier = Nullifier::derive(&nk, state_commitment_proof.position(), &note_commitment);
-
-            let encrypted_backref = EncryptedBackref::dummy();
-            assert!(encrypted_backref.is_empty());
-            assert_eq!(encrypted_backref.len(), 0);
-
-            // Decrypting a zero-length encrypted backref should return `None`.
-            let decrypted_backref = encrypted_backref.decrypt(&brk, &nullifier).unwrap();
-            assert_eq!(decrypted_backref, None);
-        }
+    #[test]
+    fn empty_backref_has_no_opening() {
+        let backref = EncryptedBackref::dummy();
+        assert_eq!(backref.len(), 0);
+        assert!(backref.is_empty());
+        assert_eq!(
+            backref
+                .decrypt(
+                    &BackreferenceKey([7u8; 32].into()),
+                    &Nullifier(shieldd_sdk_crypto::Fq::from(9u64)),
+                )
+                .unwrap(),
+            None
+        );
     }
 
     proptest! {

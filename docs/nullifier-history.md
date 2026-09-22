@@ -43,7 +43,15 @@ A failed proof leaves staged work available after restart. See [Proof system](pr
 Full nodes store immutable compressed generation packs. A pack binds the
 generation index, root, SCT interval, canonical leaves, and checksum. Expanded
 tree records may be pruned only after the pack is durable, reconstructed, and
-root-verified.
+root-verified. The background worker publishes packs as generations retire;
+startup verifies existing packs and rebuilds missing ones. The application
+writer records a verified pack receipt and deletes at most 256 expanded tree
+records per commit, advancing a durable cursor with the deletes. A missing pack
+or changed pack leaves the cursor in place while background repair runs;
+historical witness queries can rebuild a missing pack from compact blocks.
+Reconstructed proof trees use a
+64 MiB cache budget; cold reconstruction runs one generation at a time. The
+budget excludes trees held by active proof requests.
 
 The main ownership boundaries are:
 

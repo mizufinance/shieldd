@@ -186,12 +186,13 @@ fn optional_dummy_enforces_gated_constraints_and_fixed_slot() {
 fn output_notes_bind_recovery_and_only_change_can_be_zero() {
     let p = Parameters::load().unwrap();
     let (values, _, _) = fixture(&p, false);
-    let capk = group::generator().multiply(&Scalar::from(43));
+    let payload_key = group::generator().multiply(&Scalar::from(43));
     let check = |w: &OutputWitness, receiver| {
         let (c, _) = build_with_values(|ctx| {
             let s = shared(ctx, &values);
-            let capk = group::witness_subgroup(ctx, &capk, &capk.cofactor_preimage());
-            constrain_output(ctx, &p, &s.asset, &s.address, &capk, receiver, w);
+            let payload_key =
+                group::witness_subgroup(ctx, &payload_key, &payload_key.cofactor_preimage());
+            constrain_output(ctx, &p, &s.asset, &s.address, &payload_key, receiver, w);
             Vec::new()
         });
         c.is_satisfied()
@@ -204,7 +205,7 @@ fn output_notes_bind_recovery_and_only_change_can_be_zero() {
     ] {
         let capsule = recovery::encrypt(
             &p,
-            &capk,
+            &payload_key,
             &amount,
             &Scalar::from(47),
             Scalar::from(53),

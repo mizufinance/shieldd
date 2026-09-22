@@ -8,9 +8,6 @@
 mod circuit;
 #[cfg(any(test, feature = "fuzz"))]
 commonware_macros::stability_mod!(ALPHA, pub mod fuzz);
-mod prepared;
-#[cfg(test)]
-mod prepared_ntt;
 mod prover;
 mod setup;
 mod simulator;
@@ -23,8 +20,7 @@ use crate::bls12381::primitives::group::{Scalar, ScalarReadCfg};
 pub use circuit::{InputLayout, Relation};
 use commonware_codec::{Encode, Read};
 use commonware_math::{algebra::Additive, ntt};
-pub use prepared::PreparedProver;
-pub use prover::{prove, prove_prebound, prove_prepared};
+pub use prover::{prove, prove_prebound};
 use rand_core::CryptoRng;
 pub use setup::{setup, setup_with_trapdoor};
 pub use simulator::{simulate, simulate_prebound};

@@ -14,16 +14,14 @@ use shieldd_sdk_crypto::domains;
 #[derive(Clone)]
 pub struct Keys<F> {
     pub epoch: F,
-    pub amount: Point<F>,
-    pub sender: Point<F>,
-    pub receiver: Point<F>,
+    pub payload: Point<F>,
     pub checking: Point<F>,
 }
 
 impl<F: Clone> Keys<F> {
     pub fn fields(&self) -> Vec<F> {
         let mut fields = vec![self.epoch.clone()];
-        for point in [&self.amount, &self.sender, &self.receiver, &self.checking] {
+        for point in [&self.payload, &self.checking] {
             fields.extend([point.x.clone(), point.y.clone()]);
         }
         fields
@@ -34,9 +32,7 @@ impl Keys<Scalar> {
     pub fn from_native(keys: &shieldd_sdk_crypto::audit::AuditKeys) -> Self {
         Self {
             epoch: Scalar::from(keys.epoch),
-            amount: group::native_point(&keys.amount),
-            sender: group::native_point(&keys.sender),
-            receiver: group::native_point(&keys.receiver),
+            payload: group::native_point(&keys.payload),
             checking: group::native_point(&keys.checking),
         }
     }
@@ -45,9 +41,7 @@ impl Keys<Scalar> {
         let point = |p: &Point<Scalar>| group::witness_subgroup(ctx, p, &p.cofactor_preimage());
         Keys {
             epoch: Var::witness(ctx, |_| self.epoch.clone()),
-            amount: point(&self.amount),
-            sender: point(&self.sender),
-            receiver: point(&self.receiver),
+            payload: point(&self.payload),
             checking: point(&self.checking),
         }
     }
@@ -58,7 +52,7 @@ impl<'a> Keys<Var<'a, Scalar>> {
         range::decompose(ctx, &self.epoch, 64);
         (regulated.clone() & range::is_zero(ctx, &self.epoch)).assert_eq(&BoolVar::constant(false));
         let sink = group::native_point(&shieldd_sdk_crypto::audit::UNREGULATED_RING);
-        let points = [&self.amount, &self.sender, &self.receiver, &self.checking];
+        let points = [&self.payload, &self.checking];
         let equal = |a: &Point<Var<'a, Scalar>>, b: &Point<Var<'a, Scalar>>| {
             range::is_zero(ctx, &(a.x.clone() - &b.x)) & range::is_zero(ctx, &(a.y.clone() - &b.y))
         };

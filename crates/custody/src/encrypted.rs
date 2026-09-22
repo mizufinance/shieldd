@@ -114,22 +114,16 @@ mod encryption {
         use super::*;
 
         #[test]
-        fn test_encryption_decryption_roundtrip() -> anyhow::Result<()> {
+        fn encrypted_secret_authenticates_password_and_ciphertext() -> anyhow::Result<()> {
             let password = "password".try_into()?;
             let message = b"hello world";
-            let encrypted = encrypt(&mut OsRng, password, message);
+            let mut encrypted = encrypt(&mut OsRng, password, message);
             let decrypted = decrypt(password, &encrypted)?;
             assert_eq!(decrypted.as_slice(), message);
-            Ok(())
-        }
-
-        #[test]
-        fn test_encryption_fails_with_different_password() -> anyhow::Result<()> {
-            let password = "password".try_into()?;
-            let message = b"hello world";
-            let encrypted = encrypt(&mut OsRng, password, message);
-            let decrypted = decrypt("not password".try_into()?, &encrypted);
-            assert!(decrypted.is_err());
+            assert!(decrypt("not password".try_into()?, &encrypted).is_err());
+            let last = encrypted.len() - 1;
+            encrypted[last] ^= 1;
+            assert!(decrypt(password, &encrypted).is_err());
             Ok(())
         }
     }

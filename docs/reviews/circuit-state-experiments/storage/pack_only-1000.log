@@ -1,0 +1,19 @@
+pack_bytes=32108 count=1000 decode_ms=0 reconstruct_ms=58 prove8_ms=14
+        0.07 real         0.07 user         0.00 sys
+             2310144  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 336  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                  23  involuntary context switches
+          1408728575  instructions retired
+           284701168  cycles elapsed
+             1655048  peak memory footprint

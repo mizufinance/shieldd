@@ -374,49 +374,6 @@ async fn runtime_history_closes_raw_chunk_after_failed_proof_and_restart() -> Re
     Ok(())
 }
 
-fn compare_strategy(label: &str, strategy: &impl commonware_parallel::Strategy) -> Result<()> {
-    use std::time::Instant;
-    let started = Instant::now();
-    let registry = Registry::load(std::env::var("SHIELDD_PARI_KEYS")?)?;
-    eprintln!(
-        "strategy={label} registry_load_ms={:.3}",
-        started.elapsed().as_secs_f64() * 1000.0
-    );
-    let witness = Witness::HistoryGeneration(Box::new(generation_witness(
-        Nullifier(Fq::from(9)),
-        &archived(0),
-        empty_history_head(),
-    )?));
-    let parameters = shieldd_sdk_circuits::hash::Parameters::load()?;
-    let statement = witness.digest(
-        &parameters,
-        &shieldd_sdk_circuits::map::Generators::derive(&parameters),
-    )?;
-    for index in 0..4 {
-        let started = Instant::now();
-        let proof = registry.prove(&witness, strategy)?;
-        let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
-        registry.verify(witness.family(), &statement, &proof)?;
-        eprintln!("strategy={label} family=history_generation iteration={index} cold={} elapsed_ms={elapsed_ms:.3}", index == 0);
-    }
-    Ok(())
-}
-
-#[test]
-#[ignore = "native proving strategy benchmark with local keys"]
-fn prover_strategy_sequential() -> Result<()> {
-    compare_strategy("sequential", &commonware_parallel::Sequential)
-}
-
-#[test]
-#[ignore = "native proving strategy benchmark with local keys"]
-fn prover_strategy_rayon_two() -> Result<()> {
-    compare_strategy(
-        "rayon2",
-        &commonware_parallel::Rayon::new(std::num::NonZeroUsize::new(2).unwrap())?,
-    )
-}
-
 #[test]
 #[ignore = "real native generation proofs with concurrent blocking callers"]
 fn concurrent_provers_share_bounded_workers() -> Result<()> {

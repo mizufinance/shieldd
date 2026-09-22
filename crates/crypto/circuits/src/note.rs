@@ -2,7 +2,7 @@ use crate::{
     encryption::Address,
     group::{self, Point},
     hash::Parameters,
-    range::{decompose, less_or_equal},
+    range::{decompose, less_or_equal_bounded},
     recovery, scalar,
     tree::{self, Path, STATE_DEPTH, Tree},
     volume::NOTE_NULLIFIER,
@@ -137,7 +137,9 @@ pub fn constrain_spend<'ctx>(
         NOTE_NULLIFIER,
         &[shared.nk.clone(), commitment.clone(), path.position.clone()],
     );
-    let anchor = tree::root(ctx, params, Tree::State, commitment, &path);
+    let positions = decompose(ctx, &path.position, 48);
+    let anchor =
+        tree::root_with_position_bits(ctx, params, Tree::State, commitment, &path, &positions);
     let randomizer = var(&w.randomizer);
     let bits = scalar::canonical_bits(ctx, &randomizer);
     let random_point = group::generator().multiply_fixed(&bits);
@@ -176,9 +178,8 @@ pub fn constrain_spend<'ctx>(
             dummy
         }
     };
-    let positions = decompose(ctx, &path.position, 48);
     let floor = decompose(ctx, &shared.recent_floor, 48);
-    let old = !less_or_equal(&floor, &positions);
+    let old = !less_or_equal_bounded(ctx, &floor, &positions);
     let history_required = BoolVar::witness(ctx, |_| w.history_required);
     ((!dummy.clone()) & old).assert_eq(&history_required);
     Spend {
@@ -209,7 +210,7 @@ pub fn constrain_output<'ctx>(
     params: &Parameters,
     asset: &Var<'ctx, Scalar>,
     address: &Address<Var<'ctx, Scalar>>,
-    capk: &Point<Var<'ctx, Scalar>>,
+    payload_key: &Point<Var<'ctx, Scalar>>,
     receiver: bool,
     w: &OutputWitness,
 ) -> Output<'ctx> {
@@ -222,7 +223,14 @@ pub fn constrain_output<'ctx>(
     params
         .circuit(NOTE, &note.fields(asset, address))
         .assert_eq(&commitment);
-    let capsule = recovery::constrain(ctx, params, capk, &note.amount, &note.blinding, &w.capsule);
+    let capsule = recovery::constrain(
+        ctx,
+        params,
+        payload_key,
+        &note.amount,
+        &note.blinding,
+        &w.capsule,
+    );
     capsule.commitment.assert_eq(&note.recovery);
     Output {
         note,

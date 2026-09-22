@@ -167,7 +167,7 @@ fn generation_and_direct_chunk_proofs_verify_with_zero_committed_predecessors() 
         let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
         let relation = Relation::compile(&circuit, &layout).unwrap();
         let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-        let prepared = pari::PreparedProver::new(pk, &relation).unwrap();
+        let prover = pk;
         let (valued, _) = build_with_values(|ctx| {
             if is_chunk {
                 constrain_chunk(ctx, &p, &w, &digest)
@@ -176,7 +176,7 @@ fn generation_and_direct_chunk_proofs_verify_with_zero_committed_predecessors() 
             }
         });
         let proof =
-            Envelope::prove(family, &prepared, &relation, &layout, valued, &Sequential).unwrap();
+            Envelope::prove(family, &prover, &relation, &layout, valued, &Sequential).unwrap();
         proof.verify(family, &vk, &digest).unwrap();
         assert!(
             proof

@@ -1,0 +1,43 @@
+--- a/crates/crypto/circuits/src/disclosure.rs
++++ b/crates/crypto/circuits/src/disclosure.rs
+@@ -109,8 +109,9 @@
+     ctx: Context<'a, Scalar>,
+     value: &Var<'a, Scalar>,
+     p: &Predicate<Var<'a, Scalar>>,
++    value_bits: &[BoolVar<'a, Scalar>],
+ ) {
+-    let value = decompose(ctx, value, 128);
++    let value = value_bits;
+     let lower = decompose(ctx, &p.lower, 128);
+     let upper = decompose(ctx, &p.upper, 128);
+     let selectors: [_; 6] = std::array::from_fn(|i| {
+@@ -218,7 +219,7 @@
+         for field in slot.fields().iter().chain(&note_fields) {
+             (inactive.var().clone() * field).assert_eq(&Var::zero());
+         }
+-        decompose(ctx, &note.amount, 128);
++        let amount_bits = decompose(ctx, &note.amount, 128);
+         (active.clone() & is_zero(ctx, &note.amount)).assert_eq(&BoolVar::constant(false));
+         // Membership of the disclosed commitment is checked by the consuming application.
+         // Its preimage uses the same coordinate encoding as the note commitment relation.
+@@ -232,7 +233,7 @@
+         {
+             (slot.reveal_recipient.clone() * hidden).assert_eq(&public);
+         }
+-        predicate(ctx, &note.amount, &slot.predicate);
++        predicate(ctx, &note.amount, &slot.predicate, &amount_bits);
+         (enabled.var().clone() * active.var() * &(asset - &s.total_asset)).assert_eq(&Var::zero());
+         sum += &(active.var().clone() * &note.amount);
+         if i == 0 {
+@@ -240,9 +241,9 @@
+         }
+     }
+     let sum = sum * enabled.var();
+-    decompose(ctx, &sum, 128);
++    let sum_bits = decompose(ctx, &sum, 128);
+     (sum.clone() * reveal.var()).assert_eq(&s.total_amount);
+-    predicate(ctx, &sum, &s.total_predicate);
++    predicate(ctx, &sum, &s.total_predicate, &sum_bits);
+     let digest = var(claimed);
+     p.circuit(domains::DISCLOSURE_STATEMENT, &s.fields())
+         .assert_eq(&digest);

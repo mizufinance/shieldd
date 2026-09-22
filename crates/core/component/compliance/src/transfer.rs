@@ -333,22 +333,22 @@ pub fn encrypt_transfer(
     let sender_core_shared = if is_flagged {
         *dk_pub * sender.core.r
     } else {
-        general_keys.amount * sender.core.r
+        general_keys.payload * sender.core.r
     };
     let sender_ext_shared = if is_flagged {
         *dk_pub * sender.ext.r
     } else {
-        general_keys.receiver * sender.ext.r
+        general_keys.payload * sender.ext.r
     };
     let output_core_shared = if is_flagged {
         *dk_pub * output.core.r
     } else {
-        general_keys.amount * output.core.r
+        general_keys.payload * output.core.r
     };
     let output_ext_shared = if is_flagged {
         *dk_pub * output.ext.r
     } else {
-        general_keys.sender * output.ext.r
+        general_keys.payload * output.ext.r
     };
 
     let sender_core_c2 = sender.core.seed + shared_secret(&sender_core_shared);

@@ -46,7 +46,6 @@ pub(crate) fn build_transfer_compliance(
     is_flagged: bool,
 ) -> Result<BuildTransferComplianceResult> {
     let sender_leaf = &context.witness.sender.leaf;
-    let receiver_leaf = &context.recipient.leaf;
     let asset_policy = context.witness.policy.as_ref();
     let asset_indexed_leaf = &context.witness.asset.leaf;
     let target_timestamp = context.timestamp;
@@ -54,7 +53,7 @@ pub(crate) fn build_transfer_compliance(
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
         .ok_or_else(|| anyhow!("transfer requires at least one output"))?;
-    let receiver_note = receiver_output.output_note(receiver_leaf.capk);
+    let receiver_note = receiver_output.output_note(context.witness.asset.payload_key());
     let dk_pub = if context.witness.asset.is_regulated {
         asset_indexed_leaf.params.dk_pub
     } else {

@@ -20,8 +20,8 @@ Imported wallet addresses are 49 bytes: suite byte followed by the jumbled
 plus the 32-byte transmission key. Viewing keys are suite plus authorization and
 nullifier keys (65 bytes); serialized spend keys are suite plus seed (33 bytes).
 Bare group encodings are accepted only within a suite-identified protocol.
-Audit-key bundles are 137 bytes: suite byte, little-endian `u64` epoch, then four
-compressed points in amount/sender/receiver/checking order. Ownership ciphertexts
+Audit-key bundles are 73 bytes: suite byte, little-endian `u64` epoch, then two
+compressed points in payload/checking order. Ownership ciphertexts
 are 65 bytes: suite byte, compressed `R`, compressed `C`.
 
 The authorization and encryption base is RedJubjub Sapling SpendAuth. The value
@@ -29,9 +29,12 @@ blinding base is Sapling Binding. Generator bytes are derived and tested against
 the pinned RedJubjub implementation. This does not make Shieldd addresses,
 notes, nullifiers or transactions compatible with Sapling.
 
-Audit amount, sender, receiver and ownership-checking keys are independent and
-bound to one nonzero epoch. They must not be the unregulated sink key. Signing
-keys for independent Orbis BLS services are not audit-encryption keys.
+The audit payload key encrypts unflagged amount/sender/receiver tiers, withdrawal
+sender data and recovery capsules. The ownership-checking key is separate. Both
+bind one nonzero epoch and must differ from each other, the issuer DK, RNK ring
+key and unregulated sink. Intended role secrets must be provisioned independently;
+point inequality does not prove independent key generation. Signing keys for
+independent Orbis BLS services are not audit-encryption keys.
 
 ## Orbis
 
@@ -64,11 +67,12 @@ Capabilities and general-audit certificates use `reddsa::sapling::SpendAuth`,
 with canonical `R || s` signatures and the registered Orbis ring key. The pinned
 RedJubjub FROST implementation uses the same SpendAuth challenge. Capability
 messages bind the chain, asset, ring key and identifiers, suite-tagged address,
-RNK DH point and RNK commitment. CAPK is checked against its deterministic
-derivation from that address and ring key. General-audit messages bind the chain,
+RNK DH point and RNK commitment. General-audit messages bind the chain,
 asset and canonical policy encoding, including the suite-tagged audit keys.
-The capability scalar is SHA-512 of `elgamal-derivation-v1\0\0` followed by the
-49-byte address, reduced from 64 little-endian bytes modulo the Jubjub order.
+RNK derivation retains its address/asset-bound static DH and separate ring key.
+Capsules carry no address-derived encryption capability. Their release contract
+is limited to authority-approved public opening of an exact accepted note;
+[seizure](compliance/enforcement-and-seizure.md) defines its authorization boundary.
 
 Issuer decryption evidence uses a Chaum–Pedersen proof over the SpendAuth base
 and accepted ciphertext EPK. Its challenge is personalized Blake2b-512

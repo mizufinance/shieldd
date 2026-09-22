@@ -205,16 +205,7 @@ mod tests {
                 let selected = tier.select(&encrypted.ciphertext, &metadata).unwrap();
                 let sender_tier =
                     matches!(tier, TransferTier::SenderCore | TransferTier::SenderExt);
-                let key = if flagged {
-                    dk
-                } else {
-                    Fr::from(match tier {
-                        TransferTier::SenderCore => 201u64,
-                        TransferTier::SenderExt => 203,
-                        TransferTier::OutputCore => 201,
-                        TransferTier::OutputExt => 202,
-                    })
-                };
+                let key = if flagged { dk } else { Fr::from(201u64) };
                 let result = selected.decrypt(&(selected.epk * key)).unwrap();
                 let expected = match tier {
                     TransferTier::SenderCore | TransferTier::OutputCore => {
@@ -246,7 +237,7 @@ mod tests {
                     }
                 }
                 if flagged {
-                    for committee in [201u64, 202, 203, 204] {
+                    for committee in [201u64, 204] {
                         assert!(selected
                             .decrypt(&(selected.epk * Fr::from(committee)))
                             .is_err());

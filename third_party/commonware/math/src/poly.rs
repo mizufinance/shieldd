@@ -1,7 +1,5 @@
 use crate::{
-    algebra::{
-        Additive, CryptoGroup, Field, FieldNTT, Object, Random, Ring, Space, msm_naive, powers,
-    },
+    algebra::{Additive, CryptoGroup, Field, FieldNTT, Object, Random, Ring, Space, msm_naive, powers},
     ntt::{Domain, Error},
 };
 #[cfg(not(feature = "std"))]
@@ -460,10 +458,7 @@ impl<K: Additive> Poly<K> {
         }
         work.truncate(m);
 
-        Ok((
-            Self::from_vec_unchecked(quotient),
-            Self::from_vec_unchecked(work),
-        ))
+        Ok((Self::from_vec_unchecked(quotient), Self::from_vec_unchecked(work)))
     }
 
     /// Multiply by the vanishing polynomial `X^m - 1` of a domain of size `m`.
@@ -477,28 +472,6 @@ impl<K: Additive> Poly<K> {
             .ok_or(Error::PolynomialSizeOverflow)?;
         let mut coefficients = vec![K::zero(); len];
         for (index, coefficient) in self.coeffs.iter().enumerate() {
-            coefficients[index] -= coefficient;
-            coefficients[index + m] += coefficient;
-        }
-        Ok(Self::from_vec_unchecked(coefficients))
-    }
-
-    /// Consume the coefficients while adding `mask * (X^m - 1)`.
-    pub fn into_mask_vanishing(self, mask: &Self, m: usize) -> Result<Self, Error> {
-        if m == 0 {
-            return Err(Error::EmptyDomain);
-        }
-        let shifted = mask
-            .len_usize()
-            .checked_add(m)
-            .ok_or(Error::PolynomialSizeOverflow)?;
-        let len = self.len_usize().max(shifted);
-        let mut coefficients = self.coeffs.into_vec();
-        if coefficients.capacity() < len {
-            coefficients.reserve_exact(len - coefficients.len());
-        }
-        coefficients.resize(len, K::zero());
-        for (index, coefficient) in mask.coeffs.iter().enumerate() {
             coefficients[index] -= coefficient;
             coefficients[index + m] += coefficient;
         }
@@ -532,22 +505,6 @@ impl<K: Additive> Poly<K> {
 
 #[commonware_macros::stability(ALPHA)]
 impl<K: Ring> Poly<K> {
-    /// Consume the coefficients to divide by `X - root`, returning quotient and remainder.
-    pub fn into_divide_by_linear(mut self, root: &K) -> (Self, K) {
-        let len = self.len_usize();
-        if len == 1 {
-            let remainder = core::mem::replace(&mut self.coeffs[0], K::zero());
-            return (self, remainder);
-        }
-        let mut carry = self.coeffs[len - 1].clone();
-        for index in (0..len - 1).rev() {
-            let original = core::mem::replace(&mut self.coeffs[index], carry.clone());
-            carry = original + &(carry * root);
-        }
-        self.coeffs.pop();
-        (self, carry)
-    }
-
     /// Divide by `X - root` using synthetic division.
     ///
     /// Returns `(quotient, remainder)`, where the remainder equals
@@ -1013,7 +970,10 @@ pub mod fuzz {
                     let mut trimmed = f.clone();
                     trimmed.trim();
                     assert_eq!(trimmed, f);
-                    assert_eq!(trimmed.coefficients().len(), f.degree_exact() as usize + 1);
+                    assert_eq!(
+                        trimmed.coefficients().len(),
+                        f.degree_exact() as usize + 1
+                    );
                 }
                 Self::FuzzAdditive => {
                     test_suites::fuzz_additive::<Poly<F>>(u)?;
@@ -1191,65 +1151,6 @@ mod test {
             let (quotient, remainder) = constant.divide_by_linear(&root);
             assert_eq!(quotient, Poly::zero());
             assert_eq!(remainder, GF::from(9u64));
-        }
-
-        #[test]
-        fn consuming_division_preserves_coefficients_remainder_and_allocation() {
-            for coefficients in [
-                vec![0u64],
-                vec![9],
-                vec![0, 0, 0],
-                vec![1, 2, 0, 0],
-                vec![1, 5, 6, 5],
-                (0..65).collect(),
-            ] {
-                for root in [GF::zero(), GF::one(), -GF::one(), GF::from(7u64)] {
-                    let mut storage = Vec::with_capacity(coefficients.len() + 8);
-                    storage.extend(coefficients.iter().copied().map(GF::from));
-                    let pointer = storage.as_ptr();
-                    let capacity = storage.capacity();
-                    let input = Poly::from_vec_unchecked(storage);
-                    let (expected, expected_remainder) = input.divide_by_linear(&root);
-                    let evaluation = input.eval(&root);
-                    let (actual, remainder) = input.into_divide_by_linear(&root);
-                    assert_eq!(actual.coefficients(), expected.coefficients());
-                    assert_eq!(remainder, expected_remainder);
-                    assert_eq!(remainder, evaluation);
-                    assert_eq!(actual.coefficients().as_ptr(), pointer);
-                    assert_eq!(actual.coeffs.into_vec().capacity(), capacity);
-                }
-            }
-        }
-
-        #[test]
-        fn consuming_mask_preserves_coefficients_and_reserved_allocation() {
-            for input in [poly(&[0]), poly(&[9]), poly(&[1, 2, 0, 0])] {
-                for mask in [poly(&[0]), poly(&[2, 3]), poly(&[1, 0, 0, 0])] {
-                    for size in [1, 2, 8] {
-                        let expected = input.mask_vanishing(&mask, size).unwrap();
-                        let mut storage = Vec::with_capacity(expected.coefficients().len() + 8);
-                        storage.extend_from_slice(input.coefficients());
-                        let pointer = storage.as_ptr();
-                        let capacity = storage.capacity();
-                        let actual = Poly::from_vec_unchecked(storage)
-                            .into_mask_vanishing(&mask, size)
-                            .unwrap();
-                        assert_eq!(actual.coefficients(), expected.coefficients());
-                        assert_eq!(actual.coefficients().as_ptr(), pointer);
-                        assert_eq!(actual.coeffs.into_vec().capacity(), capacity);
-                        let grown = input.clone().into_mask_vanishing(&mask, size).unwrap();
-                        assert_eq!(grown.coefficients(), expected.coefficients());
-                    }
-                    assert_eq!(
-                        input.clone().into_mask_vanishing(&mask, 0),
-                        Err(Error::EmptyDomain)
-                    );
-                    assert_eq!(
-                        input.clone().into_mask_vanishing(&mask, usize::MAX),
-                        Err(Error::PolynomialSizeOverflow)
-                    );
-                }
-            }
         }
 
         #[test]

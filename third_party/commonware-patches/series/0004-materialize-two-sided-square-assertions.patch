@@ -1,6 +1,6 @@
 --- a/cryptography/src/zk/pari/circuit.rs
 +++ b/cryptography/src/zk/pari/circuit.rs
-@@ -529,6 +529,19 @@
+@@ -527,6 +527,19 @@
              // A deferred square `base^2` asserted equal to `other` becomes the
              // single row `base^2 == other` directly.
              if let Some((base, other)) = self.assertion_square(left, right) {
@@ -20,7 +20,7 @@
                  self.rows.push(Row {
                      squared: base,
                      linear: self.expression(other)?,
-@@ -1461,4 +1474,49 @@
+@@ -1196,4 +1209,49 @@
              Some(Error::RelationMismatch)
          );
      }

@@ -101,14 +101,19 @@ impl ShieldedOutputPlan {
 
     pub fn output_note_and_capsule(
         &self,
-        capk: shieldd_sdk_crypto::SubgroupPoint,
+        payload_key: shieldd_sdk_crypto::SubgroupPoint,
     ) -> (Note, RecoveryCapsule) {
-        Note::from_parts_with_recovery(self.dest_address.clone(), self.value, self.rseed, capk)
-            .expect("validated output note and compliance capability")
+        Note::from_parts_with_recovery(
+            self.dest_address.clone(),
+            self.value,
+            self.rseed,
+            payload_key,
+        )
+        .expect("validated output note and payload key")
     }
 
-    pub fn output_note(&self, capk: shieldd_sdk_crypto::SubgroupPoint) -> Note {
-        self.output_note_and_capsule(capk).0
+    pub fn output_note(&self, payload_key: shieldd_sdk_crypto::SubgroupPoint) -> Note {
+        self.output_note_and_capsule(payload_key).0
     }
 
     pub fn is_viewed_by(&self, ivk: &IncomingViewingKey) -> bool {

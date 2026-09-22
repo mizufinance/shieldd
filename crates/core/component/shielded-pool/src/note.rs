@@ -156,10 +156,14 @@ impl Note {
         address: Address,
         value: Value,
         rseed: Rseed,
-        capk: SubgroupPoint,
+        payload_key: SubgroupPoint,
     ) -> anyhow::Result<(Self, RecoveryCapsule)> {
-        let (capsule, _) =
-            RecoveryCapsule::encrypt(value.amount, rseed.derive_note_blinding(), capk, rseed)?;
+        let (capsule, _) = RecoveryCapsule::encrypt(
+            value.amount,
+            rseed.derive_note_blinding(),
+            payload_key,
+            rseed,
+        )?;
         let note = Self::from_parts(address, value, rseed, capsule.commitment())?;
         Ok((note, capsule))
     }

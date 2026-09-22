@@ -99,8 +99,7 @@ fn main() -> Result<()> {
     let rnk_dh_pk = address.diversified_generator() * ring_sk;
     let rnk =
         derive_regulated_nullifier_key(fvk.incoming(), &address, asset_id, ring_pk, rnk_dh_pk)?;
-    let leaf =
-        ComplianceLeaf::registered_from_rnk(address.clone(), asset_id, ring_pk, rnk_dh_pk, rnk)?;
+    let leaf = ComplianceLeaf::registered_from_rnk(address.clone(), asset_id, rnk_dh_pk, rnk)?;
     let mut nonce = vec![0; 16];
     OsRng.fill_bytes(&mut nonce);
     let body = UserRegistrationGrantBody {

@@ -874,7 +874,7 @@ mod volume_accumulator_tests {
     }
 
     #[tokio::test]
-    async fn reservation_is_exclusive_until_release_or_strict_expiry() {
+    async fn reservation_is_exclusive_until_strict_expiry() {
         let storage = Storage::initialize(
             None::<&Utf8Path>,
             (*test_keys::FULL_VIEWING_KEY).clone(),
@@ -903,19 +903,12 @@ mod volume_accumulator_tests {
             .reserve_volume_accumulators(vec![reservation(140)], [2; 32], 121, nk)
             .await
             .unwrap();
-        storage
-            .release_volume_reservation(payload.scoped_nullifier(), [2; 32])
-            .await
-            .unwrap();
-        assert!(matches!(
-            storage
-                .volume_accumulator_recovery(state.subject, state.day_start)
-                .await
-                .unwrap(),
-            VolumeAccumulatorRecovery::Absent
-        ));
-        storage
+        assert!(storage
             .reserve_volume_accumulators(vec![reservation(160)], [3; 32], 140, nk)
+            .await
+            .is_err());
+        storage
+            .reserve_volume_accumulators(vec![reservation(160)], [3; 32], 141, nk)
             .await
             .unwrap();
     }
@@ -1020,60 +1013,6 @@ mod volume_accumulator_tests {
             .unwrap_err()
             .to_string()
             .contains("head changed"));
-    }
-    #[tokio::test]
-    async fn stale_volume_release_does_not_remove_replacement_reservation() {
-        let storage = Storage::initialize(
-            None::<&Utf8Path>,
-            (*test_keys::FULL_VIEWING_KEY).clone(),
-            AppParameters::default(),
-        )
-        .await
-        .unwrap();
-        let state = state();
-        let payload = payload(&state);
-        let reservation = |expires_at| VolumeAccumulatorReservation {
-            state: state.clone(),
-            payload: payload.clone(),
-            expires_at,
-        };
-        let nk = *test_keys::FULL_VIEWING_KEY.nullifier_key();
-        storage
-            .reserve_volume_accumulators(vec![reservation(120)], [1; 32], 100, nk)
-            .await
-            .unwrap();
-        storage
-            .reserve_volume_accumulators(vec![reservation(200)], [2; 32], 121, nk)
-            .await
-            .unwrap();
-
-        // Transaction A's delayed cancellation arrives after B acquired the expired head.
-        storage
-            .release_volume_reservation(payload.scoped_nullifier(), [1; 32])
-            .await
-            .unwrap();
-
-        let replacement_count: i64 = storage
-            .pool
-            .get()
-            .unwrap()
-            .query_row(
-                "SELECT COUNT(*) FROM volume_accumulator_reservations WHERE tx_id = ?1",
-                [&[2u8; 32][..]],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(
-            replacement_count, 1,
-            "stale A release must preserve B's ownership"
-        );
-        assert!(
-            storage
-                .reserve_volume_accumulators(vec![reservation(220)], [3; 32], 122, nk)
-                .await
-                .is_err(),
-            "C must not acquire B's live reservation"
-        );
     }
 }
 
@@ -1240,27 +1179,6 @@ impl Storage {
                 )?;
             }
             transaction.commit()?;
-            anyhow::Ok(())
-        })
-        .await?
-    }
-
-    pub async fn release_volume_reservation(
-        &self,
-        scoped: shieldd_sdk_shielded_pool::VolumeNullifier,
-        tx_id: [u8; 32],
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            pool.get()?.execute(
-                "DELETE FROM volume_accumulator_reservations
-                 WHERE day_start = ?1 AND nullifier = ?2 AND tx_id = ?3",
-                (
-                    scoped.day_start as i64,
-                    scoped.nullifier.to_bytes().to_vec(),
-                    tx_id.to_vec(),
-                ),
-            )?;
             anyhow::Ok(())
         })
         .await?
@@ -2937,7 +2855,6 @@ impl Storage {
                 &update.leaf.address.to_vec(),
                 &update.leaf.asset_id.to_bytes(),
                 update.position,
-                &update.leaf.capk.to_bytes(),
                 &update.leaf.rnk_dh_pk.to_bytes(),
                 &update.leaf.rnk_commitment.to_bytes(),
                 update.leaf.status,

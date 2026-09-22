@@ -19,9 +19,7 @@ fn fixture(params: &Parameters, flagged: bool) -> (Shared<Scalar, bool>, Witness
         detection_key: point(7),
         audit: audit::Keys {
             epoch: Scalar::from(1),
-            amount: point(101),
-            sender: point(103),
-            receiver: point(107),
+            payload: point(101),
             checking: point(109),
         },
         sender: Address {
@@ -171,8 +169,8 @@ fn all_tiers_decrypt_for_the_selected_party_and_detection_always_for_issuer() {
             );
         }
         for (tier, audit_key, address) in [
-            (&w.published.sender_ext, 107, &shared.receiver),
-            (&w.published.output_ext, 103, &shared.sender),
+            (&w.published.sender_ext, 101, &shared.receiver),
+            (&w.published.output_ext, 101, &shared.sender),
         ] {
             let key = if flagged { 7 } else { audit_key };
             let seed =
@@ -245,7 +243,7 @@ fn ciphertexts_bind_amount_asset_flag_and_ordered_addresses() {
         assert!(!satisfied(&params, &bad, &w));
         if !flagged {
             let mut bad = shared.clone();
-            std::mem::swap(&mut bad.audit.sender, &mut bad.audit.receiver);
+            std::mem::swap(&mut bad.audit.payload, &mut bad.audit.checking);
             assert!(!satisfied(&params, &bad, &w));
         }
     }
@@ -314,7 +312,7 @@ fn native_pari_proves_all_four_tiers_and_binds_claim_and_commitment() {
 }
 
 #[test]
-fn flagged_tiers_use_issuer_dk_and_ordinary_tiers_use_independent_audit_roles() {
+fn flagged_tiers_use_issuer_dk_and_ordinary_tiers_use_shared_payload_with_independent_openings() {
     let params = Parameters::load().unwrap();
     for flagged in [false, true] {
         let (shared, w) = fixture(&params, flagged);
@@ -325,13 +323,20 @@ fn flagged_tiers_use_issuer_dk_and_ordinary_tiers_use_independent_audit_roles() 
             (&w.published.output_ext.epk, &w.published.output_ext.c2),
         ];
         for (index, (epk, c2)) in tiers.into_iter().enumerate() {
-            let secret = if flagged {
-                7
-            } else {
-                [101, 107, 101, 103][index]
-            };
+            let secret = if flagged { 7 } else { 101 };
             let shared_point = epk.multiply(&Scalar::from(secret));
             let expected_seed = Scalar::from([79, 83, 89, 97][index]);
+            for (other, (other_epk, _)) in tiers.iter().enumerate() {
+                if other != index {
+                    assert_ne!(epk, *other_epk);
+                    assert_ne!(
+                        c2.clone()
+                            - &native_secret(&params, &other_epk.multiply(&Scalar::from(secret))),
+                        expected_seed
+                    );
+                }
+            }
+
             assert_eq!(
                 c2.clone() - &native_secret(&params, &shared_point),
                 expected_seed

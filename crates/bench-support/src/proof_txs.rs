@@ -118,13 +118,7 @@ pub async fn setup_proof_storage(
             *shieldd_sdk_crypto::generators::SPEND_AUTH,
             rnk_dh_pk,
         )?;
-        let leaf = ComplianceLeaf::registered_from_rnk(
-            address,
-            asset_id,
-            *shieldd_sdk_crypto::generators::SPEND_AUTH,
-            rnk_dh_pk,
-            rnk,
-        )?;
+        let leaf = ComplianceLeaf::registered_from_rnk(address, asset_id, rnk_dh_pk, rnk)?;
         Ok(GenesisUserRegistration {
             capability_certificate: OrbisCapabilityCertificate::sign_for_test(
                 TEST_CHAIN_ID,

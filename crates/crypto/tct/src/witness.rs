@@ -1,10 +1,10 @@
-/// When inserting a [`Commitment`](crate::Commitment) into a [`Tree`](crate::Tree), should we
+/// When inserting a [`crate::StateCommitment`] into a [`Tree`](crate::Tree), should we
 /// [`Keep`](Witness::Keep) it to allow it to be witnessed later, or [`Forget`](Witness::Forget)
 /// about it after updating the root hash of the tree?
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(any(test, feature = "arbitrary"), derive(proptest_derive::Arbitrary))]
 pub enum Witness {
-    /// When inserting a [`Commitment`](crate::Commitment) into a [`Tree`](crate::Tree), this flag
+    /// When inserting a [`crate::StateCommitment`] into a [`Tree`](crate::Tree), this flag
     /// indicates that we should immediately forget about it to save space, because we will not want
     /// to witness its presence later.
     ///
@@ -13,7 +13,7 @@ pub enum Witness {
     /// more efficient to directly forget commitments upon insertion rather than to remember them on
     /// insertion and then immediately forget them.
     Forget,
-    /// When inserting a [`Commitment`](crate::Commitment) into a [`Tree`](crate::Tree), this flag
+    /// When inserting a [`crate::StateCommitment`] into a [`Tree`](crate::Tree), this flag
     /// indicates that we should keep this commitment to allow it to be witnessed later.
     Keep,
 }

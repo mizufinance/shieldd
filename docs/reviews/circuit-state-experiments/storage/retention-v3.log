@@ -1,0 +1,40 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-cnidarium-retention-experiment v0.1.0 (/tmp/shieldd-experiments/storage/cnidarium)
+    Finished `ci` profile [optimized] target(s) in 2.66s
+     Running `target/ci/retention /tmp/shieldd-experiments/storage/cnidarium-data-3`
+phase=updates version=0 commit_ms=3 root=RootHash("1cd434487612f6ff1385f4f2413af8b5a1f8282a447f66308d60288f9fb42cd1") physical_bytes=384756
+phase=updates version=1 commit_ms=5 root=RootHash("3c66c7e5942adb6529961db24f0a54e0fa2b586aa0e22e148d8f7731734db71f") physical_bytes=588112
+phase=updates version=2 commit_ms=5 root=RootHash("30ded2b09b4c54467c2a59a7b06129589c89151beb77ed8df171f844ca81e990") physical_bytes=791468
+phase=updates version=3 commit_ms=5 root=RootHash("37d47b3d4a63c7dcb5b3801f3367be383f784b307c32fa73b10388db3cdc0091") physical_bytes=994824
+phase=updates version=4 commit_ms=5 root=RootHash("00cdb508a024749c9f1bd4dcedcaae3a7fddbc5309709b08647bbdfae87fb226") physical_bytes=1198187
+phase=updates version=5 commit_ms=5 root=RootHash("fa915cad4965714473d9fc8190463e0efb904e0777cc116751eed3d525b9eeb3") physical_bytes=1401543
+phase=updates version=6 commit_ms=5 root=RootHash("757de65e3785c0675af9cf221b623b58de3d2095c7322ab0163c5759830dd664") physical_bytes=1604899
+phase=updates version=7 commit_ms=5 root=RootHash("0506c064a640042ad064c9bfcc96916da3456c87d5227a61b5a25808f5110eb5") physical_bytes=1808255
+phase=updates version=8 commit_ms=5 root=RootHash("bf2dccddee13bdd710e4867163f28b5367a1b93072ce8fad847476d907502680") physical_bytes=2011611
+phase=updates version=9 commit_ms=5 root=RootHash("9dc6dd9673b29c945eae1084de722ff7f37f00cf16568acf313c3ea0eaca47ed") physical_bytes=2214974
+phase=updates version=10 commit_ms=5 root=RootHash("c30ecd73747b492f23853cd88c3db29e18e1980bebd7dc191539a90a6537fcbf") physical_bytes=2418330
+phase=updates version=11 commit_ms=5 root=RootHash("b2740ab41895c469bef16c6ca884d4bddf7229d147a09a77034d363f6a1cfa89") physical_bytes=2621686
+phase=updates version=12 commit_ms=5 root=RootHash("9612767841e742ba5138c715c6de3a36dc29d7432a4cf3e1d299fca5a0dbdc1a") physical_bytes=2825042
+phase=updates version=13 commit_ms=5 root=RootHash("7ead3137e16a78adc9a385f62c2c8fbd588d2ce7b74a35ed159878ca95ea2aa1") physical_bytes=3028398
+phase=updates version=14 commit_ms=5 root=RootHash("8ae8167b081e4feb2504d5fc7f3a20e1be812bf80072d09ad0a32947eddc7f52") physical_bytes=3231761
+phase=updates version=15 commit_ms=5 root=RootHash("948aa800a21e2212e42b4634477cf5de82785ffeb0d4e4532d85d3620cd598b2") physical_bytes=3435117
+phase=updates version=16 commit_ms=5 root=RootHash("454f7458a988ee09b018482a0bd289f5736a014be23f491c2088a423b4b22fd3") physical_bytes=3638473
+phase=updates version=17 commit_ms=5 root=RootHash("16dabc76490ef2bfa87936970014ae3ca5d7166ea058aa04aea7c2b2381c826a") physical_bytes=3841829
+phase=updates version=18 commit_ms=5 root=RootHash("d5f3788c5bd6917ee6770aa1a80548782ffd5aadd5e4898400e9e0ea39312c37") physical_bytes=4045185
+phase=updates version=19 commit_ms=5 root=RootHash("3fbf299011c6c41ff52177007933668682d805af6f1b6cd9fe7aea964c7e0e68") physical_bytes=4248548
+phase=updates version=20 commit_ms=5 root=RootHash("825e6250b6e784ad0f17c361c1eeb45df097ebb5f4e78e800217e79cc81cfcbf") physical_bytes=4451904
+phase=updates version=21 commit_ms=6 root=RootHash("6d084f29fffa78615b27e9f35cbb7030481fbb18c12859e6fd66430b131c9dbc") physical_bytes=4655260
+phase=updates version=22 commit_ms=5 root=RootHash("7bce51382f635d4e262f9af9860b78419993316702680d7d35cc24b22262cfaf") physical_bytes=4858616
+phase=updates version=23 commit_ms=5 root=RootHash("047e9bd83bf21e4bb2c746676c9aa0f623af902aff90b7a2bd6096f7dff8f7ae") physical_bytes=5061972
+phase=updates version=24 commit_ms=5 root=RootHash("20a40f2ef767f6e47ccf3573c37a6d1dd61de2b7e3eedbeeac67b0f6729c8200") physical_bytes=5265335
+phase=updates version=25 commit_ms=5 root=RootHash("9b78bab8336d5f0606fa5f2fe0e1afbb165965bc0517ddffe29dd42afa8ff796") physical_bytes=5468691
+phase=updates version=26 commit_ms=5 root=RootHash("e59b44e0966a40820aaa6fd6e9bb1f20cc7aef845cd5b97634e180ffe093a531") physical_bytes=5672047
+phase=updates version=27 commit_ms=5 root=RootHash("c6739a9af09c85113d1a049892788be03480761437160376d39b47bf7121fb90") physical_bytes=5875403
+phase=updates version=28 commit_ms=5 root=RootHash("304d02c4c01ee4031ad3b4d6bb840002c90a94d953a7cd3a595aeb76880bb105") physical_bytes=6078759
+phase=updates version=29 commit_ms=5 root=RootHash("3ca17022b2ae99cffe264b9661fa5b2f10567ab7a3b482b77ffd005cfababe61") physical_bytes=6282122
+phase=updates version=30 commit_ms=6 root=RootHash("4389fffa693620f5d7d54cec3abcfba0d33a2dcd2ed42f9ef6cf2abe9a542c85") physical_bytes=6485478
+phase=updates version=31 commit_ms=5 root=RootHash("57e716909b2708dc408ebf06cbed2d101f4d96df39f65cfa8a51ce276dc82d5b") physical_bytes=6688834
+phase=rebuilt equal_root=true physical_bytes=379473 original_bytes_open=6688834
+phase=predelete_reopened original_bytes=2403529 rebuilt_bytes=379473
+phase=deleted physical_bytes=2452740
+phase=reopened physical_bytes=2625466

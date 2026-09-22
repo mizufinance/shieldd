@@ -1,4 +1,4 @@
-//! Incremental serialization and non-incremental deserialization for the [`Tree`](crate::Tree).
+//! Incremental serialization and non-incremental deserialization for the [`Tree`].
 
 use std::{
     collections::{btree_map::Entry, BTreeMap},
@@ -51,7 +51,7 @@ impl From<Option<Position>> for StoredPosition {
     }
 }
 
-/// An `async` storage backend capable of reading stored [`struct@Hash`]es and [`Commitment`]s as
+/// An `async` storage backend capable of reading stored [`struct@Hash`]es and [`crate::StateCommitment`]s as
 /// well as storing the current [`Position`].
 #[async_trait]
 pub trait AsyncRead {
@@ -92,7 +92,7 @@ pub trait AsyncRead {
     fn commitments(&mut self) -> Self::CommitmentsStream<'_>;
 }
 
-/// An `async` storage backend capable of writing [`struct@Hash`]es and [`Commitment`]s, and
+/// An `async` storage backend capable of writing [`struct@Hash`]es and [`crate::StateCommitment`]s, and
 /// garbage-collecting those which have been forgotten.
 #[async_trait]
 pub trait AsyncWrite: AsyncRead {
@@ -121,7 +121,7 @@ pub trait AsyncWrite: AsyncRead {
     ) -> Result<(), Self::Error>;
 
     /// Delete every stored [`struct@Hash`] whose height is less than `below_height` and whose
-    /// position is within the half-open [`Range`] of `positions`, as well as every [`Commitment`]
+    /// position is within the half-open [`Range`] of `positions`, as well as every [`crate::StateCommitment`]
     /// whose position is within the range.
     async fn delete_range(
         &mut self,
@@ -140,7 +140,7 @@ pub trait AsyncWrite: AsyncRead {
     async fn set_forgotten(&mut self, forgotten: Forgotten) -> Result<(), Self::Error>;
 }
 
-/// A synchronous storage backend capable of reading stored [`struct@Hash`]es and [`Commitment`]s as
+/// A synchronous storage backend capable of reading stored [`struct@Hash`]es and [`crate::StateCommitment`]s as
 /// well as storing the current [`Position`].
 pub trait Read {
     /// The error returned when something goes wrong in a request.
@@ -177,7 +177,7 @@ pub trait Read {
     fn commitments(&mut self) -> Self::CommitmentsIter<'_>;
 }
 
-/// A synchronous storage backend capable of writing [`struct@Hash`]es and [`Commitment`]s, and
+/// A synchronous storage backend capable of writing [`struct@Hash`]es and [`crate::StateCommitment`]s, and
 /// garbage-collecting those which have been forgotten.
 pub trait Write: Read {
     /// Write a single hash into storage.
@@ -205,7 +205,7 @@ pub trait Write: Read {
     ) -> Result<(), Self::Error>;
 
     /// Delete every stored [`struct@Hash`] whose height is less than `below_height` and whose
-    /// position is within the half-open [`Range`] of `positions`, as well as every [`Commitment`]
+    /// position is within the half-open [`Range`] of `positions`, as well as every [`crate::StateCommitment`]
     /// whose position is within the range.
     fn delete_range(
         &mut self,

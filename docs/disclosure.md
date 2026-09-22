@@ -31,8 +31,11 @@ An optional `total: {"reveal": false, "predicate": {"AtLeast": "500"}}`
 operates over every explicitly selected output, including selections from multiple
 transactions. All selected outputs must have one asset. These are **selected-output
 totals**, not complete wallet or account activity. Duplicate references and u128
-overflow are rejected. A single proof supports at most 32 outputs; larger hidden
-totals are rejected, never silently split.
+overflow are rejected. A one-output request uses the one-note Pari family. Requests with 2–32 outputs
+use the general 32-slot family. The family, circuit identity, and verifier key are
+selected from the validated public request count; the proof cannot choose them.
+A single proof supports at most 32 outputs; larger hidden totals are rejected,
+never silently split.
 
 ## SDK and acceptance
 
@@ -129,15 +132,15 @@ PET or authorization. Voluntary and issuer verification remain separate supporte
 local operations. Issuer evidence retains its additional amount/detection
 capability; flagged payload fields remain issuer-only.
 
-The asset ring authenticates independent amount, sender-address,
-receiver-address and ownership-checking keys plus an epoch. User leaves contain
-ordinary capability/nullifier registration, not per-person encryption keys.
+The asset policy authenticates one payload key for amount, sender and receiver,
+and a separate ownership-checking key, plus an epoch. User leaves authenticate
+address-scoped RNK derivation and lifecycle.
 The fingerprint maps the Poseidon-381 `OWNERSHIP` hash of the four affine
 coordinates of the two address points into the Jubjub subgroup. Each party gets full ElGamal R/C points with
 independent fresh nonzero randomness. Role is bound by proof position and audit
 selection. Unregulated proofs select sink keys.
 
-| Tier | Owner checked | Payload key |
+| Tier | Owner checked | Payload field |
 | --- | --- | --- |
 | sender_core | Sender | Amount |
 | sender_ext | Sender | Receiver address |
@@ -267,9 +270,9 @@ requests use authenticated PRE with a reader-key proof of possession. Decryption
 checks the sealed binding and accepted ephemeral key before decoding a field.
 
 The delivery DKG ring is independent of the synthetic registration fixture's
-ring and distinct field keys. This demo does not implement PET or Orbis issuance
+ring, shared payload key and separate checking key. This demo does not implement PET or Orbis issuance
 of registration capabilities. Restricted subject filtering happens on the demo
 server; it does not provide cryptographic subject isolation. No fixture secret
 substitutes for PRE. The [build adapter](../third_party/orbis-crypto/README.md)
 keeps upstream Rust source unchanged. BLS12-381 PRE delivers opaque openings;
-the audit opening itself uses Jubjub and its selected role key.
+the audit opening itself uses Jubjub and the shared payload key.

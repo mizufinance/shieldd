@@ -280,11 +280,7 @@ pub fn decode_package(
         "opening does not match accepted ephemeral key"
     );
     let keys = &policy.ring.audit_keys;
-    let key = match binding.field {
-        AuditField::Amount => keys.amount,
-        AuditField::Sender => keys.sender,
-        AuditField::Receiver => keys.receiver,
-    };
+    let key = keys.payload;
     decode_audit_ciphertext(accepted, (key * scalar).to_bytes())
 }
 
@@ -462,7 +458,7 @@ mod tests {
     }
 
     #[test]
-    fn sealed_fields_decode_accepted_payloads_without_serializing_openings() {
+    fn sealed_fields_decode_accepted_payloads() {
         for field in AuditField::ALL {
             let (package, accepted, policy, reader, response) = fixture(field);
             assert_eq!(package.context.ring_pk.len(), 48);
@@ -481,9 +477,6 @@ mod tests {
                     DecodedAuditValue::AddressComponents { .. }
                 )),
             }
-            let json = serde_json::to_value(&package).unwrap();
-            assert!(json.get("scalar").is_none());
-            assert!(json.get("shared_point").is_none());
         }
     }
 

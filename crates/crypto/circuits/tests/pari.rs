@@ -23,11 +23,11 @@ fn real_proofs_bind_statement_family_key_and_complete_envelope() {
     let layout = InputLayout::new(vec![indices[0]], vec![vec![indices[1]]]).unwrap();
     let relation = Relation::compile(&circuit, &layout).unwrap();
     let (key, verifier) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let prepared = pari::PreparedProver::new(key, &relation).unwrap();
+    let prover = key;
     let family = Family::Transfer;
     let make = |x, y, public| {
         let (values, _) = build_with_values(|ctx| product(ctx, x, y, public));
-        Envelope::prove(family, &prepared, &relation, &layout, values, &Sequential)
+        Envelope::prove(family, &prover, &relation, &layout, values, &Sequential)
     };
     let first = make(3, 4, 13).unwrap();
     let second = make(4, 5, 21).unwrap();

@@ -1,0 +1,23 @@
+--- a/crates/crypto/circuits/src/history.rs
++++ b/crates/crypto/circuits/src/history.rs
+@@ -1,7 +1,7 @@
+ use crate::{
+     encoding::canonical_bits,
+     hash::Parameters,
+-    range::{decompose, is_zero, less_or_equal},
++    range::{decompose, is_zero, less_or_equal, less_or_equal_limbs},
+     tree::{self, Path, Tree},
+ };
+ use commonware_cryptography::{
+@@ -166,9 +166,9 @@
+     let target_bits = canonical_bits(ctx, &nullifier);
+     let predecessor_bits = canonical_bits(ctx, &value);
+     let successor_bits = canonical_bits(ctx, &next_value);
+-    ((!lower.clone()) & less_or_equal(&target_bits, &predecessor_bits))
++    ((!lower.clone()) & less_or_equal_limbs(ctx, &target_bits, &predecessor_bits))
+         .assert_eq(&BoolVar::constant(false));
+-    ((!terminal.clone()) & less_or_equal(&successor_bits, &target_bits))
++    ((!terminal.clone()) & less_or_equal_limbs(ctx, &successor_bits, &target_bits))
+         .assert_eq(&BoolVar::constant(false));
+     let leaf = p.circuit(
+         domains::HISTORY_LEAF,

@@ -523,7 +523,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn worker_validates_detected_metadata_only_evidence() {
+    async fn detected_metadata_builds_valid_persisted_evidence() {
         let store = Arc::new(SqliteScannerStore::new(":memory:").unwrap());
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
         let block = evidence.output_ref().action.tx.block.clone();

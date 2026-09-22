@@ -1,0 +1,33 @@
+RUSTDOCFLAGS="-D rustdoc::broken_intra_doc_links" cargo doc --locked --profile ci --workspace --all-features --no-deps
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+    Checking shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+ Documenting shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+    Checking shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+ Documenting shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+    Checking shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+    Checking shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+    Checking shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+    Checking shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+    Checking shieldd-sdk-custody v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/custody)
+    Checking shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+ Documenting shieldd v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/shieldd)
+    Checking shieldd-sdk-mock-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/mock-client)
+    Checking shieldd-sdk-bench-support v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench-support)
+    Checking shieldd-sdk-bench v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench)
+ Documenting shieldd-sdk-bench v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench)
+ Documenting shieldd-sdk-bench-support v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bench-support)
+ Documenting bankd-e2e-spend-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-spend-builder)
+ Documenting bankd-e2e-host-withdrawal-builder v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/bankd-e2e-host-withdrawal-builder)
+ Documenting shieldd-sdk-mock-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/mock-client)
+ Documenting pcli v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/pcli)
+ Documenting shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+ Documenting shieldd-sdk-app-tests v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app-tests)
+ Documenting shieldd-sdk-custody v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/custody)
+ Documenting shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+ Documenting shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+ Documenting shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+ Documenting shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+    Finished `ci` profile [optimized] target(s) in 18.58s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+   Generated /Users/antoinecyr/Documents/Source/shieldd/target/doc/bankd_e2e_host_withdrawal_builder/index.html and 33 other files

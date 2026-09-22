@@ -18,18 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Check compliance documentation links and terminology
-        run: python3 scripts/check_compliance_docs.py
+      - name: Check documentation links and filename casing
+        run: python3 scripts/check_docs.py
 
       - uses: ./.github/actions/setup-nix-rust
 
       - name: Test rustdoc package selection
         run: python3 deployments/scripts/tests/test_rust_doc_packages.py
 
-      # Building with warm cache takes ~40s, depending on changes.
-      - name: Build rustdocs
-        # jemalloc's configure probes use -Werror, while Nix's fortify headers
-        # reject the dev profile's default -O0 C flags.
-        env:
-          CFLAGS: -O1
-        run: nix develop .#nightly --command ./deployments/scripts/rust-docs
+      - name: Check first-party API documentation with all features
+        run: nix develop .#ci --command just rustdocs-check

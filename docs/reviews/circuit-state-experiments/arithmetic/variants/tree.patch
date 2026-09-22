@@ -1,0 +1,29 @@
+--- a/crates/crypto/circuits/src/tree.rs
++++ b/crates/crypto/circuits/src/tree.rs
+@@ -72,16 +72,18 @@
+     for (level, siblings) in path.siblings.iter().enumerate() {
+         let low = bits[2 * level].clone();
+         let high = bits[2 * level + 1].clone();
+-        let first = !low.clone() & !high.clone();
+-        let second = low.clone() & !high.clone();
+-        let third = !low.clone() & high.clone();
+-        let fourth = low & high;
++        let left_swap = low.var().clone() * &(siblings[0].clone() - &node);
++        let right_swap = low.var().clone() * &(siblings[2].clone() - &node);
++        let left_first = node.clone() + &left_swap;
++        let left_second = siblings[0].clone() - &left_swap;
++        let right_third = node.clone() + &right_swap;
++        let right_fourth = siblings[2].clone() - &right_swap;
+         let inputs = [
+             Var::native(Scalar::from(level as u64 + 1)),
+-            first.select(&node, &siblings[0]),
+-            first.select(&siblings[0], &second.select(&node, &siblings[1])),
+-            fourth.select(&siblings[2], &third.select(&node, &siblings[1])),
+-            fourth.select(&node, &siblings[2]),
++            high.select(&siblings[0], &left_first),
++            high.select(&siblings[1], &left_second),
++            high.select(&right_third, &siblings[1]),
++            high.select(&right_fourth, &siblings[2]),
+         ];
+         node = params.circuit(kind as u8, &inputs);
+     }

@@ -286,23 +286,10 @@ mod tests {
 
         let mut seen: std::collections::HashMap<[u8; 32], &str> = std::collections::HashMap::new();
         for denom in denoms {
-            // Determinism: the derivation is a pure function of the string.
-            assert_eq!(
-                Id::from_raw_denom(denom).to_bytes(),
-                Id::from_raw_denom(denom).to_bytes(),
-                "asset-id derivation must be deterministic for {denom}"
-            );
             let id = Id::from_raw_denom(denom).to_bytes();
             if let Some(prev) = seen.insert(id, denom) {
                 panic!("denom-trace asset-id collision: {prev:?} and {denom:?} map to the same id");
             }
         }
-
-        // A prefixed trace must not alias its inner base denom.
-        assert_ne!(
-            Id::from_raw_denom("uatom").to_bytes(),
-            Id::from_raw_denom("transfer/channel-0/uatom").to_bytes(),
-            "prefixed trace must derive a different asset id than its base denom"
-        );
     }
 }

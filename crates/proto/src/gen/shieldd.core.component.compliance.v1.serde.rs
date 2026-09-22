@@ -1647,9 +1647,6 @@ impl serde::Serialize for ComplianceLeaf {
         if self.asset_id.is_some() {
             len += 1;
         }
-        if !self.capk.is_empty() {
-            len += 1;
-        }
         if !self.rnk_dh_pk.is_empty() {
             len += 1;
         }
@@ -1671,11 +1668,6 @@ impl serde::Serialize for ComplianceLeaf {
         }
         if let Some(v) = self.asset_id.as_ref() {
             struct_ser.serialize_field("assetId", v)?;
-        }
-        if !self.capk.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("capk", pbjson::private::base64::encode(&self.capk).as_str())?;
         }
         if !self.rnk_dh_pk.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -1715,7 +1707,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             "address",
             "asset_id",
             "assetId",
-            "capk",
             "rnk_dh_pk",
             "rnkDhPk",
             "rnk_commitment",
@@ -1731,7 +1722,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
         enum GeneratedField {
             Address,
             AssetId,
-            Capk,
             RnkDhPk,
             RnkCommitment,
             Status,
@@ -1761,7 +1751,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                         match value {
                             "address" => Ok(GeneratedField::Address),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
-                            "capk" => Ok(GeneratedField::Capk),
                             "rnkDhPk" | "rnk_dh_pk" => Ok(GeneratedField::RnkDhPk),
                             "rnkCommitment" | "rnk_commitment" => Ok(GeneratedField::RnkCommitment),
                             "status" => Ok(GeneratedField::Status),
@@ -1788,7 +1777,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             {
                 let mut address__ = None;
                 let mut asset_id__ = None;
-                let mut capk__ = None;
                 let mut rnk_dh_pk__ = None;
                 let mut rnk_commitment__ = None;
                 let mut status__ = None;
@@ -1807,14 +1795,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                                 return Err(serde::de::Error::duplicate_field("assetId"));
                             }
                             asset_id__ = map_.next_value()?;
-                        }
-                        GeneratedField::Capk => {
-                            if capk__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("capk"));
-                            }
-                            capk__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
                         }
                         GeneratedField::RnkDhPk => {
                             if rnk_dh_pk__.is_some() {
@@ -1862,7 +1842,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                 Ok(ComplianceLeaf {
                     address: address__,
                     asset_id: asset_id__,
-                    capk: capk__.unwrap_or_default(),
                     rnk_dh_pk: rnk_dh_pk__.unwrap_or_default(),
                     rnk_commitment: rnk_commitment__.unwrap_or_default(),
                     status: status__.unwrap_or_default(),

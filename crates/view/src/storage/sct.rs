@@ -1,8 +1,8 @@
 use std::ops::Range;
 
-use anyhow::Context as _;
+use anyhow::{ensure, Context as _};
 use genawaiter::{rc::gen, yield_};
-use r2d2_sqlite::rusqlite::Transaction;
+use r2d2_sqlite::rusqlite::{OptionalExtension, Transaction};
 
 use core::fmt::Debug;
 use shieldd_sdk_tct::{
@@ -57,12 +57,11 @@ impl Read for TreeStore<'_, '_> {
 
         let mut stmt = self
             .0
-            .prepare_cached(
-                "SELECT hash FROM sct_hashes WHERE position = ?1 AND height = ?2 LIMIT 1",
-            )
+            .prepare_cached("SELECT hash FROM sct_hashes WHERE position = ?1 AND height = ?2")
             .context("failed to prepare hash query")?;
         let bytes = stmt
-            .query_row::<Option<Vec<u8>>, _, _>((&position, &height), |row| row.get("hash"))
+            .query_row::<Vec<u8>, _, _>((&position, &height), |row| row.get("hash"))
+            .optional()
             .context("failed to query hash")?;
 
         bytes
@@ -144,7 +143,8 @@ impl Read for TreeStore<'_, '_> {
             .context("failed to prepare commitment query")?;
 
         let bytes = stmt
-            .query_row::<Option<Vec<u8>>, _, _>((&position,), |row| row.get("commitment"))
+            .query_row::<Vec<u8>, _, _>((&position,), |row| row.get("commitment"))
+            .optional()
             .context("failed to query commitment")?;
 
         bytes
@@ -238,14 +238,21 @@ impl Write for TreeStore<'_, '_> {
         hash: Hash,
         _essential: bool,
     ) -> Result<(), Self::Error> {
-        let position = u64::from(position) as i64;
-        let hash = hash.to_bytes().to_vec();
+        let stored_position = u64::from(position) as i64;
+        let bytes = hash.to_bytes().to_vec();
 
-        self.0.prepare_cached(
-            "INSERT INTO sct_hashes (position, height, hash) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING"
+        let inserted = self.0.prepare_cached(
+            "INSERT INTO sct_hashes (position, height, hash) VALUES (?1, ?2, ?3) ON CONFLICT(position, height) DO NOTHING"
         ).context("failed to prepare hash insert")?
-            .execute((&position, &height, &hash))
+            .execute((&stored_position, &height, &bytes))
             .context("failed to insert hash")?;
+
+        if inserted == 0 {
+            ensure!(
+                self.hash(position, height)? == Some(hash),
+                "conflicting SCT hash at position {stored_position}, height {height}"
+            );
+        }
 
         Ok(())
     }
@@ -283,6 +290,12 @@ impl Write for TreeStore<'_, '_> {
             .execute((&start, &end, &below_height))
             .context("failed to delete hashes")?;
 
+        self.0
+            .prepare_cached("DELETE FROM sct_commitments WHERE position >= ?1 AND position < ?2")
+            .context("failed to prepare commitment delete")?
+            .execute((&start, &end))
+            .context("failed to delete commitments")?;
+
         Ok(())
     }
 }
@@ -294,36 +307,110 @@ mod test {
     use shieldd_sdk_tct::{StateCommitment, Witness};
 
     #[test]
-    fn tree_store_spot_check() {
-        // Set up the database:
+    fn hashes_have_one_value_per_position_height_across_deletion_and_rollback() {
         let mut db = r2d2_sqlite::rusqlite::Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("schema.sql")).unwrap();
+        let position = Position::from(7u64);
+
+        {
+            let mut tx = db.transaction().unwrap();
+            let mut store = TreeStore(&mut tx);
+            store.add_hash(position, 1, Hash::zero(), true).unwrap();
+            store.add_hash(position, 1, Hash::zero(), true).unwrap();
+            assert!(store.add_hash(position, 1, Hash::one(), true).is_err());
+            store.add_hash(position, 2, Hash::one(), true).unwrap();
+            assert_eq!(store.hash(position, 1).unwrap(), Some(Hash::zero()));
+            assert_eq!(store.hash(position, 2).unwrap(), Some(Hash::one()));
+            tx.commit().unwrap();
+        }
+
+        let count: u64 = db
+            .query_row("SELECT COUNT(*) FROM sct_hashes", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 2);
+
+        {
+            let mut tx = db.transaction().unwrap();
+            let mut store = TreeStore(&mut tx);
+            store
+                .delete_range(2, position..Position::from(8u64))
+                .unwrap();
+            assert_eq!(store.hash(position, 1).unwrap(), None);
+            assert_eq!(store.hash(position, 2).unwrap(), Some(Hash::one()));
+            store.add_hash(position, 1, Hash::one(), true).unwrap();
+            tx.rollback().unwrap();
+        }
+
         let mut tx = db.transaction().unwrap();
-        tx.execute_batch(include_str!("schema.sql")).unwrap();
-
-        // Now we're exclusively going to talk to the db through the TreeStore:
         let mut store = TreeStore(&mut tx);
+        assert_eq!(store.hash(position, 1).unwrap(), Some(Hash::zero()));
+        assert_eq!(store.hash(position, 2).unwrap(), Some(Hash::one()));
+        store
+            .delete_range(2, position..Position::from(8u64))
+            .unwrap();
+        store.add_hash(position, 1, Hash::one(), true).unwrap();
+        assert_eq!(store.hash(position, 1).unwrap(), Some(Hash::one()));
+        assert_eq!(store.hash(position, 2).unwrap(), Some(Hash::one()));
+    }
 
-        // Check that the currently stored tree is the empty tree:
-        let deserialized = shieldd_sdk_tct::Tree::from_reader(&mut store).unwrap();
-        assert_eq!(deserialized, shieldd_sdk_tct::Tree::new());
+    #[test]
+    fn tree_survives_incremental_append_forget_and_reopen() {
+        let mut db = r2d2_sqlite::rusqlite::Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("schema.sql")).unwrap();
+        {
+            let mut tx = db.transaction().unwrap();
+            let mut store = TreeStore(&mut tx);
+            assert_eq!(store.commitment(Position::from(0u64)).unwrap(), None);
+            assert_eq!(
+                shieldd_sdk_tct::Tree::from_reader(&mut store).unwrap(),
+                shieldd_sdk_tct::Tree::new()
+            );
+        }
+        let persist_and_reopen = |db: &mut r2d2_sqlite::rusqlite::Connection,
+                                  tree: &shieldd_sdk_tct::Tree| {
+            let mut tx = db.transaction().unwrap();
+            tree.to_writer(&mut TreeStore(&mut tx)).unwrap();
+            tx.commit().unwrap();
 
-        // Make some kind of tree:
+            let mut tx = db.transaction().unwrap();
+            let restored = shieldd_sdk_tct::Tree::from_reader(&mut TreeStore(&mut tx)).unwrap();
+            assert_eq!(*tree, restored);
+            tx.commit().unwrap();
+            restored
+        };
+        let first = StateCommitment::try_from([1; 32]).unwrap();
+        let second = StateCommitment::try_from([2; 32]).unwrap();
+        let third = StateCommitment::try_from([3; 32]).unwrap();
         let mut tree = shieldd_sdk_tct::Tree::new();
-        tree.insert(Witness::Keep, StateCommitment::try_from([0; 32]).unwrap())
-            .unwrap();
+
+        tree.insert(Witness::Keep, first).unwrap();
         tree.end_block().unwrap();
-        tree.insert(Witness::Forget, StateCommitment::try_from([1; 32]).unwrap())
+        tree = persist_and_reopen(&mut db, &tree);
+
+        tree.insert(Witness::Forget, StateCommitment::try_from([0; 32]).unwrap())
             .unwrap();
+        tree.insert(Witness::Keep, second).unwrap();
+        tree.end_block().unwrap();
+        tree = persist_and_reopen(&mut db, &tree);
+
+        assert!(tree.forget(first));
+        tree = persist_and_reopen(&mut db, &tree);
+        assert!(tree.witness(first).is_none());
+        assert!(tree.witness(second).is_some());
+        let forgotten_count: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM sct_commitments WHERE position = 0",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(forgotten_count, 0);
+
         tree.end_epoch().unwrap();
-        tree.insert(Witness::Keep, StateCommitment::try_from([2; 32]).unwrap())
-            .unwrap();
-
-        // Write the tree to the database:
-        tree.to_writer(&mut store).unwrap();
-
-        // Read the tree back from the database:
-        let deserialized = shieldd_sdk_tct::Tree::from_reader(&mut store).unwrap();
-
-        assert_eq!(tree, deserialized);
+        tree.insert(Witness::Keep, third).unwrap();
+        tree = persist_and_reopen(&mut db, &tree);
+        assert!(tree.witness(second).is_some());
+        assert!(tree.witness(third).is_some());
+        persist_and_reopen(&mut db, &tree);
     }
 }

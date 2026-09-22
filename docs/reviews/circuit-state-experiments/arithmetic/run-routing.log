@@ -1,0 +1,28 @@
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/routing.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/routing.patch
+EXIT=0
+$ cargo run -p shieldd-sdk-circuits --example catalogue_shapes --profile ci --
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Finished `ci` profile [optimized] target(s) in 3.64s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running `target/ci/examples/catalogue_shapes`
+EXPERIMENT_METRICS rows=211213 columns=211134 squared_nnz=2217073 linear_nnz=267586 domain=262144
+transfer domain=262144 public=1 blocks=[1] relation=f167f4796b8c1d4013dea66c291e859fb451febe658183d76368ca8f73011098
+EXPERIMENT_METRICS rows=156088 columns=155995 squared_nnz=1585931 linear_nnz=197283 domain=262144
+reshape1x8 domain=262144 public=1 blocks=[1] relation=bc3be966d6f6dd83f8ca63b4acc748aff7d3e6d2feb6a5d1e0270f12ebc48aa9
+EXPERIMENT_METRICS rows=184964 columns=185316 squared_nnz=2704044 linear_nnz=235264 domain=262144
+reshape8x1 domain=262144 public=1 blocks=[1] relation=2917b8343a014dde054678fd22d607482e7294dc7e8588d05943879e8ed43b02
+EXPERIMENT_METRICS rows=118129 columns=118151 squared_nnz=1557156 linear_nnz=150113 domain=131072
+withdrawal domain=131072 public=1 blocks=[1] relation=0615ee7b57e7c762c1f2f8ead33a2df843b243464c3d1cd57a0e8513cde36808
+EXPERIMENT_METRICS rows=16604 columns=16686 squared_nnz=311780 linear_nnz=20845 domain=32768
+seizure domain=32768 public=1 blocks=[1] relation=116a1686021dd3f2fdcb8e15f902ffe97bdf5d41e7e2a63ab99921f294bcebc2
+EXPERIMENT_METRICS rows=159226 columns=158090 squared_nnz=1714147 linear_nnz=210236 domain=262144
+disclosure domain=262144 public=1 blocks=[1] relation=b0e23009857e9c1d42f1778204336bba83163a96132d4f832978fd08811c9cf6
+EXPERIMENT_METRICS rows=15123 columns=15166 squared_nnz=216294 linear_nnz=19664 domain=16384
+history_generation domain=16384 public=1 blocks=[1] relation=75080fcbc99effe7079a901ccc24d99ef208fbf6acf00c3771e67ef8dad2b710
+EXPERIMENT_METRICS rows=143357 columns=143740 squared_nnz=2005662 linear_nnz=186774 domain=262144
+history_chunk10 domain=262144 public=1 blocks=[1] relation=f45eb011a7319e0b9691f4485387e8e97d41bf7254d5c177daf106330290e4b1
+EXIT=0

@@ -1,0 +1,20 @@
+--- a/crates/crypto/circuits/src/note.rs
++++ b/crates/crypto/circuits/src/note.rs
+@@ -2,7 +2,7 @@
+     encryption::Address,
+     group::{self, Point},
+     hash::Parameters,
+-    range::{decompose, less_or_equal},
++    range::{decompose, less_or_equal_bounded},
+     recovery, scalar,
+     tree::{self, Path, STATE_DEPTH, Tree},
+     volume::NOTE_NULLIFIER,
+@@ -178,7 +178,7 @@
+     };
+     let positions = decompose(ctx, &path.position, 48);
+     let floor = decompose(ctx, &shared.recent_floor, 48);
+-    let old = !less_or_equal(&floor, &positions);
++    let old = !less_or_equal_bounded(ctx, &floor, &positions);
+     let history_required = BoolVar::witness(ctx, |_| w.history_required);
+     ((!dummy.clone()) & old).assert_eq(&history_required);
+     Spend {

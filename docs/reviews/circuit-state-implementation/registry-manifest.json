@@ -1,0 +1,133 @@
+{
+  "schema": "shieldd.pari.keys.v1",
+  "suite": "shieldd-jubjub-pari-v1",
+  "setup": "development",
+  "entries": [
+    {
+      "family": "transfer",
+      "relation": "69ed4e2b22ec88efd0fdbb6d77f5148fc4628d41da63c33fc0d7dc59e4e85add",
+      "verifying_key_digest": "9e522ce8dc29621141490330cfa92806afa374fb8229fc7a0eee4dd9be4e4dd2",
+      "domain_size": 262144,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "703d57fb579ad309e3905e8c6668ec9ec010191e6c0ec17a88800efdcd261d4d"
+      },
+      "proving_key": {
+        "bytes": 60962709,
+        "sha256": "18f2262b2a9005a6de8793b09bf8e1126a1bf4f3a7850145bdc939363c46ef3d"
+      }
+    },
+    {
+      "family": "reshape_one_to_eight",
+      "relation": "1fef9c4433a3c48d7b9cc6d181f0e6eaf1210486c802f56707cc660b5ba165fb",
+      "verifying_key_digest": "7dd556a59d8dcce143d39c8e6083eb424eaedf2ffc9a63e360dda62e5ac1decd",
+      "domain_size": 262144,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "b05406064fe709e8c31448e989ac6ee1c7785ae2280bdb581b0ebec2bf1dfc25"
+      },
+      "proving_key": {
+        "bytes": 58307381,
+        "sha256": "e324ff8c5c88e1ebec66cf82637c39b144a516471b1a7605bfa8cfa63ed8f6d0"
+      }
+    },
+    {
+      "family": "reshape_eight_to_one",
+      "relation": "16350355de8ddc9b8e3e8ab9c30e9bd321bda58da612e00260a040b8f9cbc75b",
+      "verifying_key_digest": "5580c420e541e1d98aca218308a4f97ee8b21fef38223ecd4e1db5027acb3671",
+      "domain_size": 262144,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "aecae7db42544a4b6ecc15730eb94b1b26ed75e3975f2c858f3f677089d61fac"
+      },
+      "proving_key": {
+        "bytes": 59693753,
+        "sha256": "93f12cd091a10233954123498d5939733d01692ba84e925b842de3dce912ed79"
+      }
+    },
+    {
+      "family": "withdrawal",
+      "relation": "a0a20245eeaac56d89fc47f5477a9417046729ed364cd6ab607d93ecbfa2d242",
+      "verifying_key_digest": "4c2f888774848399fe114c1572abe6954304015a2f59d7dc22561d41ff0f7e4a",
+      "domain_size": 131072,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "16e82bb3abda2ec77b678f47171b41f19f4f2d4bf7a89a37062c43a14c920ff0"
+      },
+      "proving_key": {
+        "bytes": 31124165,
+        "sha256": "ea38e81f06dfe2d54d2e7ee9aede92e838001ffad0b3e0adbe07999fbc1b2a76"
+      }
+    },
+    {
+      "family": "seizure",
+      "relation": "3a33b7e14486ad413f5419e3ee4245e5999ce3a46c6a3028665087902dcdce2a",
+      "verifying_key_digest": "076844a3bb83829595ae2d2acca69dd724801b24036fa53003ab9b889d8a8898",
+      "domain_size": 16384,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "c0226e3001f6418966ce5d419db5e79749b38d3c46a9d5f13146abdbeb343d46"
+      },
+      "proving_key": {
+        "bytes": 3994444,
+        "sha256": "56354a0965ce2684e1761da20ef363bb2c8378d9d5387421ac4cc8a9b57fdc89"
+      }
+    },
+    {
+      "family": "disclosure",
+      "relation": "9c6b6d1319d62a8225a7bb67a1585d8cd9cb59889b0432c15ad6041e65cfb5cb",
+      "verifying_key_digest": "e700294b35d45f0fd01fa0abfd54eb199768846ab2597f2f461c2b436d9f2a89",
+      "domain_size": 131072,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "738b1741123b821dcec9a1984a1711b299b43f907c510949a3c12495d18414aa"
+      },
+      "proving_key": {
+        "bytes": 29838725,
+        "sha256": "25dcc131ca9a53fa5eecc1ef5a0f910fccedb2dd915cc3fd1c6ac17e6918b4c6"
+      }
+    },
+    {
+      "family": "history_generation",
+      "relation": "1c114a97fb2275a856faff16b1ebdb85bbc023491d0fcbed28138c87b0cd9a0a",
+      "verifying_key_digest": "d8418b34d4fb332e6a3707f63aab4976335f7564a9b0fea68d549b9f783ff2c3",
+      "domain_size": 16384,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "946f63c0f25893015197d1a96f1ec5821827a4e8f7c5677127bb3bea3cb6ad10"
+      },
+      "proving_key": {
+        "bytes": 3841772,
+        "sha256": "521b4980721c0a4b74d7ef327bcc8ed5e759a58a26044176185634140cef2d9f"
+      }
+    },
+    {
+      "family": "history_chunk",
+      "relation": "d16ec4ba36c40a20361e5c112b2751a549159e0c76397b01c15d2a297bd2b5b0",
+      "verifying_key_digest": "48e8b2d59b1d2f7cff7d085c685586e8a95558f1007c0fabe9d709ba5dcfaac7",
+      "domain_size": 131072,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "9cc8f1e1dca5d54c6a6b6fb6a58957aadd179e534512f5cc50fb20cd717b1dc5"
+      },
+      "proving_key": {
+        "bytes": 31349169,
+        "sha256": "15a77b060f9cff160cc2480cc1612d9db0f5d437eb0b3a0de8aa9621abed75d6"
+      }
+    },
+    {
+      "family": "disclosure_one",
+      "relation": "030c0b595cf6b939510160cd7d9b7fb7bdf73db81f7b6b35c286cf96af7ed8ce",
+      "verifying_key_digest": "0e446634d701e21ff0116b146068f0bfc75b2b919bd80f41c79c77cd68e2b3f1",
+      "domain_size": 8192,
+      "verifying_key": {
+        "bytes": 539,
+        "sha256": "0fdefe9ed0a3054ecb703118311691af6c53fe0bd8fa436124d8f07ae60481f6"
+      },
+      "proving_key": {
+        "bytes": 1840166,
+        "sha256": "ff1a23fefcb530505653021490f32cef24352beb54b132fc9b2ba4f6254aae14"
+      }
+    }
+  ]
+}

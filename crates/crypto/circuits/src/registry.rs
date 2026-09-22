@@ -3,7 +3,7 @@ use crate::{
     encoding::canonical_bits,
     group::{self, Point},
     hash::Parameters,
-    range::less_or_equal,
+    range::less_or_equal_limbs,
     tree::{self, COMPLIANCE_DEPTH, Path, Tree},
 };
 use commonware_cryptography::{
@@ -115,7 +115,7 @@ pub fn constrain<'ctx>(
     let low = canonical_bits(ctx, &leaf.value);
     let id = canonical_bits(ctx, asset);
     let high = canonical_bits(ctx, &leaf.next_value);
-    let in_gap = !less_or_equal(&id, &low) & !less_or_equal(&high, &id);
+    let in_gap = !less_or_equal_limbs(ctx, &id, &low) & !less_or_equal_limbs(ctx, &high, &id);
     ((!regulated.clone()) & !in_gap).assert_eq(&BoolVar::constant(false));
     leaf
 }
@@ -142,9 +142,7 @@ mod tests {
             resource: Scalar::from(43),
             audit: audit::Keys {
                 epoch: Scalar::from(1),
-                amount: g.multiply(&Scalar::from(101)),
-                sender: g.multiply(&Scalar::from(103)),
-                receiver: g.multiply(&Scalar::from(107)),
+                payload: g.multiply(&Scalar::from(101)),
                 checking: g.multiply(&Scalar::from(109)),
             },
         };

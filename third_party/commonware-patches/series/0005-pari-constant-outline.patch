@@ -1,0 +1,68 @@
+--- a/cryptography/src/zk/pari/circuit.rs
++++ b/cryptography/src/zk/pari/circuit.rs
+@@ -455,6 +455,7 @@
+         self.compile_nodes()?;
+         self.compile_assertions()?;
+         self.link_inputs()?;
++        self.outline_constant()?;
+         self.finish()
+     }
+ 
+@@ -626,6 +627,24 @@
+         Ok(column)
+     }
+ 
++    // Folding and fusion use column zero, so outline only after linking inputs.
++    fn outline_constant(&mut self) -> Result<(), Error> {
++        let copy = self.allocate(ValueSource::One)?;
++        for row in &mut self.rows {
++            for side in [&mut row.squared, &mut row.linear] {
++                if let Some(coefficient) = side.terms.remove(&0) {
++                    side.insert(copy, coefficient);
++                }
++            }
++        }
++        self.rows.push(Row {
++            squared: LinearCombination::coordinate(0)
++                .sub(&LinearCombination::coordinate(copy)),
++            linear: LinearCombination::zero(),
++        });
++        Ok(())
++    }
++
+     fn finish(mut self) -> Result<Relation, Error> {
+         let required = self.next_column.max(self.rows.len()).max(1);
+         let size = required
+@@ -1058,6 +1077,32 @@
+ 
+         assignment.values[1] = scalar(8);
+         assert!(!relation.is_satisfied(&assignment));
++    }
++
++    #[test]
++    fn outlined_constant_is_private_and_cannot_change() {
++        let (valued, selected) = build_with_values(|ctx| {
++            let x = Var::witness(ctx, |_| scalar(7));
++            let y = x.clone() + &Var::constant(ctx, scalar(11));
++            (y.clone() * &y).assert_eq(&Var::constant(ctx, scalar(324)));
++            vec![y, x]
++        });
++        let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
++        let relation = compile(&valued.circuit, &layout).unwrap();
++        let mut assignment = compile_valued(&valued, &layout, &relation).unwrap();
++        assert!(relation.is_satisfied(&assignment));
++        let copy = relation.value_sources.iter().enumerate().skip(1)
++            .find_map(|(i, source)| matches!(source, ValueSource::One).then_some(i)).unwrap();
++        assert!(copy >= relation.committed_start + relation.committed_inputs());
++        assert_eq!(assignment.values[copy], Scalar::one());
++        let uses_of_public_one = relation.rows.iter().flat_map(|r|
++            r.squared.iter().chain(&r.linear)).filter(|(column, _)| *column == 0).count();
++        assert_eq!(uses_of_public_one, 1);
++        assert_eq!(committed_a_rank(&relation), relation.committed_inputs());
++        for value in [Scalar::zero(), scalar(2)] {
++            assignment.values[copy] = value;
++            assert!(!relation.is_satisfied(&assignment));
++        }
+     }
+ 
+     #[test]

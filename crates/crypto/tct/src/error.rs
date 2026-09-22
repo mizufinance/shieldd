@@ -1,4 +1,4 @@
-//! Errors that can occur when inserting into a [`Tree`], deserializing [`Proof`](super::Proof)s, or
+//! Errors that can occur when inserting into a [`Tree`], deserializing [`Proof`]s, or
 //! checking internal invariants.
 
 use crate::builder;
@@ -42,7 +42,7 @@ pub mod epoch {
     #[error("could not decode epoch root")]
     pub struct RootDecodeError;
 
-    /// A [`Commitment`] could not be inserted into the [`epoch::Builder`](builder::epoch::Builder).
+    /// A [`crate::StateCommitment`] could not be inserted into the [`epoch::Builder`](builder::epoch::Builder).
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
     pub enum InsertError {
         /// The [`epoch::Builder`](builder::epoch::Builder) was full.
@@ -62,7 +62,7 @@ pub mod epoch {
     pub struct InsertBlockError(pub builder::block::Finalized);
 }
 
-/// An error occurred when trying to insert a [`Commitment`] into a [`Tree`].
+/// An error occurred when trying to insert a [`crate::StateCommitment`] into a [`Tree`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum InsertError {
     /// The [`Tree`] was full.

@@ -38,7 +38,7 @@ pub enum ParseCommitmentError {
 }
 
 impl StateCommitment {
-    /// Parse a hex string as a [`Commitment`].
+    /// Parse a hex string as a [`crate::StateCommitment`].
     pub fn parse_hex(str: &str) -> Result<StateCommitment, ParseCommitmentError> {
         let bytes = hex::decode(str)?;
         Ok(StateCommitment::try_from(&bytes[..])?)
@@ -54,26 +54,23 @@ mod test_serde {
     use super::StateCommitment;
 
     #[test]
-    fn roundtrip_json_zero() {
-        let commitment = StateCommitment::try_from([0; 32]).unwrap();
-        let bytes = serde_json::to_vec(&commitment).unwrap();
-        println!("{bytes:?}");
-        let deserialized: StateCommitment = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(commitment, deserialized);
+    fn commitment_codecs_require_canonical_field_bytes() {
+        use super::{pb, Fq};
+        for field in [Fq::from(0u64), Fq::from(1u64), -Fq::from(1u64)] {
+            let commitment = StateCommitment(field);
+            let proto: pb::StateCommitment = commitment.into();
+            assert_eq!(proto.inner, field.to_bytes());
+            assert_eq!(StateCommitment::try_from(proto).unwrap(), commitment);
+            let json = serde_json::to_vec(&commitment).unwrap();
+            assert_eq!(
+                serde_json::from_slice::<StateCommitment>(&json).unwrap(),
+                commitment
+            );
+        }
+        for bytes in [vec![], vec![0; 31], vec![0; 33], vec![255; 32]] {
+            assert!(StateCommitment::try_from(pb::StateCommitment { inner: bytes }).is_err());
+        }
     }
-
-    /*
-    Disabled; pbjson_build derived implementations don't play well with bincode,
-    because of the issue described here: https://github.com/bincode-org/bincode/issues/276
-    #[test]
-    fn roundtrip_bincode_zero() {
-        let commitment = Commitment::try_from([0; 32]).unwrap();
-        let bytes = bincode::serialize(&commitment).unwrap();
-        println!("{:?}", bytes);
-        let deserialized: Commitment = bincode::deserialize(&bytes).unwrap();
-        assert_eq!(commitment, deserialized);
-    }
-     */
 }
 
 impl From<StateCommitment> for pb::StateCommitment {
@@ -177,7 +174,7 @@ mod arbitrary {
     pub struct FqStrategy(Vec<Fq>);
 
     impl FqStrategy {
-        /// Create a new [`FqStrategy`] that will generate arbitrary [`Commitment`]s.
+        /// Create a new [`FqStrategy`] that will generate arbitrary [`crate::StateCommitment`]s.
         pub fn arbitrary() -> Self {
             Self::one_of(vec![])
         }

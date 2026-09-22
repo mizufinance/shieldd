@@ -6,7 +6,7 @@ use commonware_cryptography::{
     transcript::{Transcript, Version},
     zk::{
         circuit::ValuedCircuit,
-        pari::{self, Claim, InputLayout, Opening, PreparedProver, Proof, Relation, VerifyingKey},
+        pari::{self, Claim, InputLayout, Opening, Proof, ProvingKey, Relation, VerifyingKey},
     },
 };
 use commonware_parallel::Strategy;
@@ -26,10 +26,11 @@ pub enum Family {
     Disclosure = 6,
     HistoryGeneration = 7,
     HistoryChunk = 8,
+    DisclosureOne = 9,
 }
 
 impl Family {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::Transfer,
         Self::ReshapeOneToEight,
         Self::ReshapeEightToOne,
@@ -38,6 +39,7 @@ impl Family {
         Self::Disclosure,
         Self::HistoryGeneration,
         Self::HistoryChunk,
+        Self::DisclosureOne,
     ];
     pub const fn label(self) -> &'static str {
         match self {
@@ -46,7 +48,8 @@ impl Family {
             Self::ReshapeEightToOne => "reshape8x1",
             Self::Withdrawal => "withdrawal",
             Self::Seizure => "seizure",
-            Self::Disclosure => "disclosure",
+            Self::Disclosure => "disclosure32",
+            Self::DisclosureOne => "disclosure1",
             Self::HistoryGeneration => "history_generation",
             Self::HistoryChunk => "history_chunk10",
         }
@@ -66,6 +69,7 @@ impl TryFrom<u8> for Family {
             6 => Self::Disclosure,
             7 => Self::HistoryGeneration,
             8 => Self::HistoryChunk,
+            9 => Self::DisclosureOne,
             _ => anyhow::bail!("unknown proof family"),
         })
     }
@@ -123,7 +127,7 @@ impl Envelope {
 
     pub fn prove(
         family: Family,
-        prover: &PreparedProver,
+        prover: &ProvingKey,
         relation: &Relation,
         layout: &InputLayout,
         values: ValuedCircuit<Scalar>,
@@ -134,14 +138,14 @@ impl Envelope {
             "Shieldd relations require one statement digest and one committed witness value"
         );
         ensure!(
-            prover.verifying_key().relation_digest() == relation.digest(),
+            prover.verifying_key().matches_relation(relation),
             "wrong proving key"
         );
         let mut rng = rand10::rand_core::UnwrapErr(rand10::rngs::SysRng);
         let witness = relation.witness(&values, layout, vec![Opening::random(&mut rng)])?;
         drop(values);
         let claim = witness.claim(prover.commitment_keys(), strategy)?;
-        let proof = pari::prove_prepared(
+        let proof = pari::prove(
             &mut rng,
             &mut transcript(family),
             prover,

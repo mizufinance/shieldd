@@ -74,8 +74,7 @@ impl Nullifier {
         self.0.to_bytes()
     }
 
-    /// Derive the [`Nullifier`] for a positioned note or swap given its [`merkle::Position`]
-    /// and [`Commitment`].
+    /// Derive a note nullifier from its [`shieldd_sdk_tct::Position`] and [`StateCommitment`].
     pub fn derive(
         nk: &NullifierKey,
         pos: shieldd_sdk_tct::Position,

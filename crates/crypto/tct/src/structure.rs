@@ -17,7 +17,7 @@ pub(crate) trait Any<'tree>: GetHash + sealed::Sealed {
     fn children(&'tree self) -> Vec<HashOrNode<'tree>>;
 
     /// The kind of the node: either a [`Kind::Internal`] with a height, or a [`Kind::Leaf`] with an
-    /// optional [`Commitment`].
+    /// optional [`crate::StateCommitment`].
     fn kind(&self) -> Kind;
 
     /// The most recent time something underneath this node was forgotten.
@@ -224,7 +224,7 @@ impl<'tree> Node<'tree> {
     }
 
     /// The kind of the node: either a [`Kind::Internal`] with a height, or a [`Kind::Leaf`] with an
-    /// optional [`Commitment`].
+    /// optional [`crate::StateCommitment`].
     pub fn kind(&self) -> Kind {
         match self.this {
             HashOrNode::Hash(HashedNode { height, .. }) => Kind::Internal { height },

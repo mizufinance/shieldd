@@ -80,8 +80,8 @@ enum shieldd_method {
   SHIELDD_METHOD_QUERY_COMPLIANCE_USER_LEAF = 1000004,
 
   /*
-   * Accepts penumbra.cnidarium.v1.KeyValueRequest and returns
-   * penumbra.cnidarium.v1.KeyValueResponse. The frontend uses this existing
+   * Accepts shieldd.cnidarium.v1.KeyValueRequest and returns
+   * shieldd.cnidarium.v1.KeyValueResponse. The frontend uses this existing
    * query with SCT state keys.
    */
   SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,

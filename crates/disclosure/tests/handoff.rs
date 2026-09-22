@@ -38,9 +38,7 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
     );
     let keys = AuditKeys {
         epoch: 7,
-        amount: *SPEND_AUTH * Fr::from(101u64),
-        sender: *SPEND_AUTH * Fr::from(102u64),
-        receiver: *SPEND_AUTH * Fr::from(103u64),
+        payload: *SPEND_AUTH * Fr::from(101u64),
         checking: *SPEND_AUTH * Fr::from(104u64),
     };
     let encrypted = encrypt_transfer(

@@ -141,7 +141,7 @@ impl From<UserAssetStatus> for pb::UserAssetStatus {
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
 ///
-/// The leaf authenticates the capsule capability, diversified-DH ring key, and
+/// The leaf authenticates the diversified-DH ring key and
 /// regulated nullifier-key commitment for one address and asset.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::ComplianceLeaf", into = "pb::ComplianceLeaf")]
@@ -150,11 +150,9 @@ pub struct ComplianceLeaf {
     pub address: Address,
     /// The asset ID this compliance leaf applies to.
     pub asset_id: asset::Id,
-    /// Ordinary-Orbis address capability for this asset's ring.
-    pub capk: shieldd_sdk_crypto::SubgroupPoint,
     /// Orbis ring public key evaluated on this address's diversified generator.
     pub rnk_dh_pk: shieldd_sdk_crypto::SubgroupPoint,
-    /// Commitment to the regulated nullifier key derivable by the wallet and daily_volume_limit Orbis.
+    /// Commitment to the regulated nullifier key derivable by the wallet and the RNK derivation ring.
     pub rnk_commitment: Fq,
     /// Current authorization state for this address and asset.
     pub status: UserAssetStatus,
@@ -221,14 +219,9 @@ impl ComplianceLeaf {
     pub fn registered(
         address: Address,
         asset_id: asset::Id,
-        ring_pk: shieldd_sdk_crypto::SubgroupPoint,
         rnk_dh_pk: shieldd_sdk_crypto::SubgroupPoint,
         rnk_commitment: Fq,
     ) -> anyhow::Result<Self> {
-        anyhow::ensure!(
-            ring_pk != shieldd_sdk_crypto::SubgroupPoint::identity(),
-            "ring_pk must be nonidentity"
-        );
         anyhow::ensure!(
             rnk_commitment != Fq::from(0u64),
             "rnk commitment must be nonzero"
@@ -237,16 +230,9 @@ impl ComplianceLeaf {
             !bool::from(rnk_dh_pk.is_identity()),
             "rnk_dh_pk must be nonidentity"
         );
-        let d = crate::derive_compliance_scalar(&address);
-        let capk = ring_pk * d;
-        anyhow::ensure!(
-            capk != shieldd_sdk_crypto::SubgroupPoint::identity(),
-            "capk must be nonidentity"
-        );
         Ok(Self {
             address,
             asset_id,
-            capk,
             rnk_dh_pk,
             rnk_commitment,
             status: UserAssetStatus::Active,
@@ -259,7 +245,6 @@ impl ComplianceLeaf {
     pub fn registered_from_rnk(
         address: Address,
         asset_id: asset::Id,
-        ring_pk: shieldd_sdk_crypto::SubgroupPoint,
         rnk_dh_pk: shieldd_sdk_crypto::SubgroupPoint,
         rnk: Fq,
     ) -> anyhow::Result<Self> {
@@ -270,7 +255,6 @@ impl ComplianceLeaf {
         Self::registered(
             address,
             asset_id,
-            ring_pk,
             rnk_dh_pk,
             compliance_nullifier_key_commitment(rnk),
         )
@@ -282,7 +266,6 @@ impl ComplianceLeaf {
             address,
             asset_id,
             *shieldd_sdk_crypto::generators::SPEND_AUTH,
-            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             Fq::from(1u64),
         )
         .expect("fixed test compliance keys are valid")
@@ -290,12 +273,9 @@ impl ComplianceLeaf {
 
     /// Create the explicit synthetic leaf used only for unregulated asset proofs.
     pub fn synthetic_unregulated(address: Address, asset_id: asset::Id) -> Self {
-        let d = crate::derive_compliance_scalar(&address);
-        let capk = *crate::UNREGULATED_RING * d;
         Self {
             address,
             asset_id,
-            capk,
             rnk_dh_pk: *crate::UNREGULATED_RING,
             rnk_commitment: compliance_nullifier_key_commitment(Fq::ONE),
             status: UserAssetStatus::Active,
@@ -373,10 +353,6 @@ impl ComplianceLeaf {
 
     pub fn validate(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.capk != shieldd_sdk_crypto::SubgroupPoint::identity(),
-            "capk must be nonidentity"
-        );
-        anyhow::ensure!(
             !bool::from(self.rnk_dh_pk.is_identity()),
             "rnk_dh_pk must be nonidentity"
         );
@@ -387,43 +363,14 @@ impl ComplianceLeaf {
         self.validate_lifecycle()
     }
 
-    pub fn validate_registration(
-        &self,
-        ring_pk: shieldd_sdk_crypto::SubgroupPoint,
-    ) -> anyhow::Result<()> {
-        self.validate()?;
-        anyhow::ensure!(
-            ring_pk != shieldd_sdk_crypto::SubgroupPoint::identity(),
-            "ring_pk must be nonidentity"
-        );
-        let d = crate::derive_compliance_scalar(&self.address);
-        let expected = ring_pk * d;
-        anyhow::ensure!(
-            self.capk == expected,
-            "capk does not match the address and asset ring"
-        );
-        Ok(())
-    }
-
     /// Create the Poseidon commitment.
     pub fn commit(&self) -> StateCommitment {
         let mut fields = point_fields(self.address.diversified_generator()).to_vec();
         fields.extend(point_fields(self.address.transmission_point()));
         fields.push(self.asset_id.0);
-        fields.extend(point_fields(&self.capk));
         fields.extend(point_fields(&self.rnk_dh_pk));
         fields.extend([self.rnk_commitment, self.lifecycle_field()]);
         StateCommitment(poseidon::hash(domains::COMPLIANCE_LEAF, &fields))
-    }
-
-    /// Export to JSON for off-chain sharing.
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(self)
-    }
-
-    /// Import from JSON.
-    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
-        serde_json::from_str(json)
     }
 }
 
@@ -435,15 +382,6 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
     type Error = anyhow::Error;
 
     fn try_from(value: pb::ComplianceLeaf) -> Result<Self, Self::Error> {
-        if value.capk.is_empty() {
-            anyhow::bail!("missing capk");
-        }
-        let capk_bytes: [u8; 32] = value
-            .capk
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("capk must be 32 bytes"))?;
-        let capk = shieldd_sdk_crypto::encoding::point(&capk_bytes)
-            .map_err(|_| anyhow::anyhow!("invalid capk encoding"))?;
         let rnk_dh_pk_bytes: [u8; 32] = value
             .rnk_dh_pk
             .try_into()
@@ -466,7 +404,6 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
                 .asset_id
                 .ok_or_else(|| anyhow::anyhow!("missing asset_id"))?
                 .try_into()?,
-            capk,
             rnk_dh_pk,
             rnk_commitment,
             status: value.status.try_into()?,
@@ -483,7 +420,6 @@ impl From<ComplianceLeaf> for pb::ComplianceLeaf {
         pb::ComplianceLeaf {
             address: Some(value.address.into()),
             asset_id: Some(value.asset_id.into()),
-            capk: value.capk.to_bytes().to_vec(),
             rnk_dh_pk: value.rnk_dh_pk.to_bytes().to_vec(),
             rnk_commitment: value.rnk_commitment.to_bytes().to_vec(),
             status: pb::UserAssetStatus::from(value.status) as i32,
@@ -669,9 +605,8 @@ pub struct RingData {
 
 /// Asset-specific compliance policy stored on-chain.
 ///
-/// Contains issuer parameters (detection key, daily volume limit, IBC route policy)
-/// and Orbis ring binding (ring_pk, policy identifiers).
-/// This is state-only data — NOT included in the IMT Merkle commitment.
+/// Issuer parameters and ring data enter the IMT through `IndexedLeaf::from_policy`.
+/// Registration and seizure authority keys are host-validated state, outside that leaf.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssetPolicy {
     pub params: AssetParams,
@@ -680,7 +615,7 @@ pub struct AssetPolicy {
     pub seizure_authority_vk: Option<VerificationKey<SpendAuth>>,
 }
 
-const ASSET_POLICY_STORAGE_MAGIC: &[u8; 4] = b"ASP4";
+const ASSET_POLICY_STORAGE_MAGIC: &[u8; 4] = b"ASP5";
 
 impl AssetPolicy {
     /// Create a new asset policy.
@@ -759,7 +694,7 @@ impl AssetPolicy {
         self.ring.audit_keys.validate_registered()?;
         self.validate_crypto_keys()?;
         let keys = &self.ring.audit_keys;
-        for key in [keys.amount, keys.sender, keys.receiver, keys.checking] {
+        for key in [keys.payload, keys.checking] {
             anyhow::ensure!(
                 key != self.ring.ring_pk && key != self.params.dk_pub,
                 "audit encryption keys must be separate from issuer and ring identity keys"
@@ -1671,7 +1606,7 @@ impl shieldd_sdk_txhash::EffectingData for MsgRegisterAsset {
     }
 }
 
-/// DailyVolumeLimit-Orbis attestation for an address-diversified ring public key.
+/// Orbis threshold attestation for an address-diversified ring public key.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     try_from = "pb::OrbisCapabilityCertificate",
@@ -1800,7 +1735,7 @@ impl OrbisCapabilityCertificate {
             !bool::from(self.r_point.is_identity()),
             "certificate R must be nonidentity"
         );
-        leaf.validate_registration(policy.ring.ring_pk)?;
+        leaf.validate()?;
         let message = Self::signing_bytes(&self.chain_id, leaf, policy)?;
         self.verify_signature(policy.ring.ring_pk, &message)?;
         Ok(())
@@ -1818,7 +1753,7 @@ impl OrbisCapabilityCertificate {
             (*shieldd_sdk_crypto::generators::SPEND_AUTH) * ring_sk == policy.ring.ring_pk,
             "ring secret does not match policy ring key"
         );
-        leaf.validate_registration(policy.ring.ring_pk)?;
+        leaf.validate()?;
         let chain_id = chain_id.into();
         let message = Self::signing_bytes(&chain_id, leaf, policy)?;
         Self::sign_message(chain_id, &message, ring_sk, rng)
@@ -1901,7 +1836,7 @@ pub struct MsgRegisterUser {
     pub leaf: ComplianceLeaf,
     /// Grant authorizing this registration.
     pub grant: Option<UserRegistrationGrant>,
-    /// Orbis daily_volume_limit certificate for the address-diversified ring public key.
+    /// Orbis threshold certificate for the address-diversified ring public key.
     pub capability_certificate: Option<OrbisCapabilityCertificate>,
 }
 
@@ -2027,7 +1962,7 @@ mod tests {
             .verify_general(leaf.asset_id, &changed, "shieldd-test")
             .is_err());
         changed = policy.clone();
-        changed.ring.audit_keys.amount += *shieldd_sdk_crypto::generators::SPEND_AUTH;
+        changed.ring.audit_keys.payload += *shieldd_sdk_crypto::generators::SPEND_AUTH;
         assert!(certificate
             .verify_general(leaf.asset_id, &changed, "shieldd-test")
             .is_err());
@@ -2048,8 +1983,7 @@ mod tests {
         let rnk =
             derive_regulated_nullifier_key(fvk.incoming(), &address, asset_id, ring_pk, rnk_dh_pk)
                 .unwrap();
-        let leaf = ComplianceLeaf::registered_from_rnk(address, asset_id, ring_pk, rnk_dh_pk, rnk)
-            .unwrap();
+        let leaf = ComplianceLeaf::registered_from_rnk(address, asset_id, rnk_dh_pk, rnk).unwrap();
         let policy = AssetPolicy::new(
             *shieldd_sdk_crypto::generators::SPEND_AUTH,
             u128::MAX,
@@ -2228,7 +2162,10 @@ mod tests {
         assert_eq!(leaf.address, address);
         assert_eq!(leaf.asset_id, asset_id);
         leaf.validate().unwrap();
-        assert_ne!(leaf.capk, shieldd_sdk_crypto::SubgroupPoint::identity());
+        assert_ne!(
+            leaf.rnk_dh_pk,
+            shieldd_sdk_crypto::SubgroupPoint::identity()
+        );
         assert_ne!(leaf.rnk_commitment, Fq::from(0u64));
     }
 
@@ -2243,13 +2180,9 @@ mod tests {
         let leaf2 = ComplianceLeaf::synthetic_unregulated(address2, asset_id);
 
         assert_ne!(
-            leaf1.capk, leaf2.capk,
-            "different owners use different capabilities"
-        );
-        assert_ne!(
             leaf1.commit(),
             leaf2.commit(),
-            "Different owners must have different commitments"
+            "leaf commitments bind different owners"
         );
     }
 
@@ -2263,11 +2196,7 @@ mod tests {
         let proto: pb::ComplianceLeaf = original.clone().into();
         let recovered: ComplianceLeaf = proto.try_into().expect("should parse");
 
-        assert_eq!(original.address, recovered.address);
-        assert_eq!(original.asset_id, recovered.asset_id);
-        assert_eq!(original.capk, recovered.capk);
-        assert_eq!(original.rnk_commitment, recovered.rnk_commitment);
-        assert_eq!(original.commit().0, recovered.commit().0);
+        assert_eq!(original, recovered);
     }
 
     #[test]
@@ -2311,39 +2240,12 @@ mod tests {
     }
 
     #[test]
-    fn test_compliance_leaf_proto_rejects_missing_capk() {
-        let mut rng = rand::thread_rng();
-        let proto = pb::ComplianceLeaf {
-            address: Some(Address::dummy(&mut rng).into()),
-            asset_id: Some(asset::Id(shieldd_sdk_crypto::Fq::from(999u64)).into()),
-            capk: vec![],
-            rnk_dh_pk: (*shieldd_sdk_crypto::generators::SPEND_AUTH)
-                .to_bytes()
-                .to_vec(),
-            rnk_commitment: Fq::from(1u64).to_bytes().to_vec(),
-            status: pb::UserAssetStatus::Active as i32,
-            freeze_generation: 0,
-            frozen_since_height: 0,
-        };
-
-        let err = ComplianceLeaf::try_from(proto).expect_err("missing capk should fail");
-
-        assert!(
-            err.to_string().contains("missing capk"),
-            "unexpected error: {err:#}"
-        );
-    }
-
-    #[test]
     fn test_compliance_leaf_proto_rejects_invalid_rnk_commitment() {
         let mut rng = rand::thread_rng();
         let address = Address::dummy(&mut rng);
         let proto = pb::ComplianceLeaf {
             address: Some(address.into()),
             asset_id: Some(asset::Id(shieldd_sdk_crypto::Fq::from(999u64)).into()),
-            capk: (*shieldd_sdk_crypto::generators::SPEND_AUTH)
-                .to_bytes()
-                .to_vec(),
             rnk_dh_pk: (*shieldd_sdk_crypto::generators::SPEND_AUTH)
                 .to_bytes()
                 .to_vec(),
@@ -2386,6 +2288,9 @@ mod tests {
 
         let bytes = policy.to_bytes().unwrap();
         let recovered = AssetPolicy::from_bytes(&bytes).unwrap();
+        let mut stale = bytes.clone();
+        stale[..4].copy_from_slice(b"ASP4");
+        assert!(AssetPolicy::from_bytes(&stale).is_err());
 
         assert_eq!(policy.params.dk_pub, recovered.params.dk_pub);
         assert_eq!(
@@ -2412,12 +2317,10 @@ mod tests {
             (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(29u64),
         );
         for reused in [baseline.params.dk_pub, baseline.ring.ring_pk] {
-            for field in 0..4 {
+            for field in 0..2 {
                 let mut policy = baseline.clone();
                 match field {
-                    0 => policy.ring.audit_keys.amount = reused,
-                    1 => policy.ring.audit_keys.sender = reused,
-                    2 => policy.ring.audit_keys.receiver = reused,
+                    0 => policy.ring.audit_keys.payload = reused,
                     _ => policy.ring.audit_keys.checking = reused,
                 }
                 assert!(policy.validate_regulated().is_err());

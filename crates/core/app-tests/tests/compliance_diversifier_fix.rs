@@ -94,7 +94,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
             rnk_dh_pk,
         )?;
         let leaf = shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
-            address, asset_id, ring_pk, rnk_dh_pk, rnk,
+            address, asset_id, rnk_dh_pk, rnk,
         )?;
         build_state.test_only_add_compliance_leaf(leaf).await?;
     }

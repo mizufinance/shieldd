@@ -16,9 +16,7 @@ pub static UNREGULATED_DETECTION: LazyLock<SubgroupPoint> =
 #[serde(try_from = "Vec<u8>", into = "Vec<u8>")]
 pub struct AuditKeys {
     pub epoch: u64,
-    pub amount: SubgroupPoint,
-    pub sender: SubgroupPoint,
-    pub receiver: SubgroupPoint,
+    pub payload: SubgroupPoint,
     pub checking: SubgroupPoint,
 }
 
@@ -35,7 +33,7 @@ impl TryFrom<Vec<u8>> for AuditKeys {
 }
 
 impl AuditKeys {
-    pub const BYTES: usize = 1 + 8 + 4 * 32;
+    pub const BYTES: usize = 1 + 8 + 2 * 32;
     pub fn validate(&self) -> Result<()> {
         for point in self.points() {
             ensure!(!bool::from(point.is_identity()), "identity audit key");
@@ -43,8 +41,8 @@ impl AuditKeys {
         Ok(())
     }
 
-    pub fn points(&self) -> [SubgroupPoint; 4] {
-        [self.amount, self.sender, self.receiver, self.checking]
+    pub fn points(&self) -> [SubgroupPoint; 2] {
+        [self.payload, self.checking]
     }
 
     pub fn validate_registered(&self) -> Result<()> {
@@ -67,9 +65,7 @@ impl AuditKeys {
     pub fn unregulated() -> Self {
         Self {
             epoch: 0,
-            amount: *UNREGULATED_RING,
-            sender: *UNREGULATED_RING,
-            receiver: *UNREGULATED_RING,
+            payload: *UNREGULATED_RING,
             checking: *UNREGULATED_RING,
         }
     }
@@ -100,10 +96,8 @@ impl AuditKeys {
         let point = |offset| encoding::nonidentity(bytes[offset..offset + 32].try_into()?);
         Ok(Self {
             epoch: u64::from_le_bytes(bytes[1..9].try_into()?),
-            amount: point(9)?,
-            sender: point(41)?,
-            receiver: point(73)?,
-            checking: point(105)?,
+            payload: point(9)?,
+            checking: point(41)?,
         })
     }
 }
@@ -188,19 +182,15 @@ mod tests {
         let point = |n| *SPEND_AUTH * Fr::from(n);
         let keys = AuditKeys {
             epoch: 1,
-            amount: point(11),
-            sender: point(13),
-            receiver: point(17),
+            payload: point(11),
             checking: point(19),
         };
         keys.validate_registered().unwrap();
         assert_eq!(AuditKeys::from_bytes(&keys.to_bytes()).unwrap(), keys);
-        for role in 0..4 {
+        for role in 0..2 {
             let mut bad = keys.clone();
             let key = match role {
-                0 => &mut bad.amount,
-                1 => &mut bad.sender,
-                2 => &mut bad.receiver,
+                0 => &mut bad.payload,
                 _ => &mut bad.checking,
             };
             *key = *UNREGULATED_RING;
@@ -212,11 +202,22 @@ mod tests {
         assert!(bad.validate_registered().is_err());
         assert_ne!(bad.commitment(), keys.commitment());
         bad = keys.clone();
-        bad.sender = bad.amount;
+        bad.checking = bad.payload;
         assert!(bad.validate_registered().is_err());
-        bad.amount = SubgroupPoint::identity();
+        bad.payload = SubgroupPoint::identity();
         assert!(AuditKeys::from_bytes(&bad.to_bytes()).is_err());
         assert!(AuditKeys::from_bytes(&keys.to_bytes()[1..]).is_err());
+        assert_eq!(AuditKeys::BYTES, 73);
+        assert!(AuditKeys::from_bytes(&[0; 137]).is_err());
+        let mut wrong_suite = keys.to_bytes();
+        wrong_suite[0] ^= 0xff;
+        assert!(AuditKeys::from_bytes(&wrong_suite).is_err());
+        for invalid in [[0xff; 32], [0; 32]] {
+            let mut malformed = keys.to_bytes();
+            malformed[9..41].copy_from_slice(&invalid);
+            assert!(AuditKeys::from_bytes(&malformed).is_err());
+        }
+
         let sink = AuditKeys::unregulated();
         assert_eq!(AuditKeys::from_bytes(&sink.to_bytes()).unwrap(), sink);
         assert!(sink.validate_registered().is_err());

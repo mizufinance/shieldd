@@ -41,9 +41,7 @@ fn runtime_transfer_ciphertexts_satisfy_pari_for_both_routes_and_sink_keys() {
             let audit = if regulated {
                 AuditKeys {
                     epoch: 1,
-                    amount: *SPEND_AUTH * Fr::from(101),
-                    sender: *SPEND_AUTH * Fr::from(103),
-                    receiver: *SPEND_AUTH * Fr::from(107),
+                    payload: *SPEND_AUTH * Fr::from(101),
                     checking: *SPEND_AUTH * Fr::from(109),
                 }
             } else {
@@ -142,9 +140,7 @@ fn runtime_transfer_ciphertexts_satisfy_pari_for_both_routes_and_sink_keys() {
                 detection_key: point(&dk),
                 audit: audit::Keys {
                     epoch: Scalar::from(audit.epoch),
-                    amount: point(&audit.amount),
-                    sender: point(&audit.sender),
-                    receiver: point(&audit.receiver),
+                    payload: point(&audit.payload),
                     checking: point(&audit.checking),
                 },
                 sender: address(sender),
@@ -224,12 +220,10 @@ fn runtime_registry_rnk_and_merkle_roots_match_pari() {
             &point(&ring)
         )
     );
-    let mut native =
-        ComplianceLeaf::registered_from_rnk(sender.clone(), asset, ring, dh, rnk).unwrap();
+    let mut native = ComplianceLeaf::registered_from_rnk(sender.clone(), asset, dh, rnk).unwrap();
     native.freeze_generation = u64::MAX;
     let leaf = compliance::Leaf {
         address: address(&sender),
-        capk: point(&native.capk),
         rnk_dh: point(&dh),
         rnk_commitment: field(&native.rnk_commitment),
         lifecycle: field(&native.lifecycle_field()),
@@ -260,9 +254,7 @@ fn runtime_registry_rnk_and_merkle_roots_match_pari() {
     );
     let keys = AuditKeys {
         epoch: u64::MAX,
-        amount: *SPEND_AUTH * Fr::from(101),
-        sender: *SPEND_AUTH * Fr::from(103),
-        receiver: *SPEND_AUTH * Fr::from(107),
+        payload: *SPEND_AUTH * Fr::from(101),
         checking: *SPEND_AUTH * Fr::from(109),
     };
     let policy = AssetPolicy::new(
@@ -294,9 +286,7 @@ fn runtime_registry_rnk_and_merkle_roots_match_pari() {
         resource: field(&n.ring.resource_hash),
         audit: audit::Keys {
             epoch: Scalar::from(n.ring.audit_keys.epoch),
-            amount: point(&n.ring.audit_keys.amount),
-            sender: point(&n.ring.audit_keys.sender),
-            receiver: point(&n.ring.audit_keys.receiver),
+            payload: point(&n.ring.audit_keys.payload),
             checking: point(&n.ring.audit_keys.checking),
         },
     };

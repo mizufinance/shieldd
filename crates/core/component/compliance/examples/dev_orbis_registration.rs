@@ -29,8 +29,7 @@ fn bundle(address_index: u32) -> anyhow::Result<(String, String, String, String)
     );
     let rnk =
         derive_regulated_nullifier_key(fvk.incoming(), &address, asset_id, ring_pk, rnk_dh_pk)?;
-    let leaf =
-        ComplianceLeaf::registered_from_rnk(address.clone(), asset_id, ring_pk, rnk_dh_pk, rnk)?;
+    let leaf = ComplianceLeaf::registered_from_rnk(address.clone(), asset_id, rnk_dh_pk, rnk)?;
     let certificate =
         OrbisCapabilityCertificate::sign_for_test("shieldd-local-devnet", &leaf, &policy, ring_sk)?;
     Ok((

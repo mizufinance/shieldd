@@ -1,0 +1,42 @@
+{
+  "assumptions": {
+    "epochs": 3600,
+    "nullifiers_per_epoch": 1000,
+    "old_notes": 10000,
+    "chunk_width": 10,
+    "pack_bytes": "108+32*N",
+    "envelope_bytes": 244
+  },
+  "scenarios": [
+    {
+      "generation_epochs": 30,
+      "retired_generations": 120,
+      "live_two_tree_peak_nullifiers": 60000,
+      "archive_payload_bytes": 115212960,
+      "archive_payload_gib": 0.10730043053627014,
+      "history_envelopes_per_old_note": 12,
+      "history_proof_bytes_per_old_note": 2928,
+      "history_proof_bytes_for_10000_old_notes": 29280000
+    },
+    {
+      "generation_epochs": 60,
+      "retired_generations": 60,
+      "live_two_tree_peak_nullifiers": 120000,
+      "archive_payload_bytes": 115206480,
+      "archive_payload_gib": 0.10729439556598663,
+      "history_envelopes_per_old_note": 6,
+      "history_proof_bytes_per_old_note": 1464,
+      "history_proof_bytes_for_10000_old_notes": 14640000
+    },
+    {
+      "generation_epochs": 120,
+      "retired_generations": 30,
+      "live_two_tree_peak_nullifiers": 240000,
+      "archive_payload_bytes": 115203240,
+      "archive_payload_gib": 0.10729137808084488,
+      "history_envelopes_per_old_note": 3,
+      "history_proof_bytes_per_old_note": 732,
+      "history_proof_bytes_for_10000_old_notes": 7320000
+    }
+  ]
+}

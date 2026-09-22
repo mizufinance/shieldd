@@ -1,0 +1,46 @@
+COMMAND ['/usr/bin/time', '-l', 'cargo', 'run', '--locked', '--profile', 'ci', '-p', 'shieldd-sdk-circuits', '--example', 'proof_bench', '--', 'history']
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+warning: variable does not need to be mutable
+  --> crates/crypto/circuits/src/tree.rs:68:5
+   |
+68 |     mut node: Var<'ctx, Scalar>,
+   |     ----^^^^
+   |     |
+   |     help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `shieldd-sdk-circuits` (lib) generated 1 warning (run `cargo fix --lib -p shieldd-sdk-circuits` to apply 1 suggestion)
+    Finished `ci` profile [optimized] target(s) in 6.97s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running `target/ci/examples/proof_bench history`
+EXPERIMENT_METRICS rows=130261 columns=130657 squared_nnz=2120202 linear_nnz=162237 domain=131072
+PROOF_BENCH family=history compile_ms=2365 domain=131072
+PROOF_BENCH setup_ms=15426 pk_bytes=31960897
+EXPERIMENT_METRICS rows=130261 columns=130657 squared_nnz=2120202 linear_nnz=162237 domain=131072
+PROOF_BENCH run=0 witness_ms=40 assignment_ms=2398 claim_ms=0 native_prove_ms=2208 prove_pipeline_ms=4606 verify_us=731 proof_bytes=244
+EXPERIMENT_METRICS rows=130261 columns=130657 squared_nnz=2120202 linear_nnz=162237 domain=131072
+PROOF_BENCH run=1 witness_ms=42 assignment_ms=2406 claim_ms=0 native_prove_ms=2202 prove_pipeline_ms=4609 verify_us=726 proof_bytes=244
+EXPERIMENT_METRICS rows=130261 columns=130657 squared_nnz=2120202 linear_nnz=162237 domain=131072
+PROOF_BENCH run=2 witness_ms=43 assignment_ms=2386 claim_ms=0 native_prove_ms=2211 prove_pipeline_ms=4597 verify_us=718 proof_bytes=244
+       40.33 real        50.54 user         1.83 sys
+          3790700544  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              379337  page reclaims
+                 201  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   3  voluntary context switches
+               16269  involuntary context switches
+        960007555636  instructions retired
+        205779154424  cycles elapsed
+          3236104832  peak memory footprint
+EXIT=0

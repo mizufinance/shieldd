@@ -160,7 +160,7 @@ impl MemoCiphertext {
         Ok(plaintext_bytes)
     }
 
-    /// Decrypt a [`MemoCiphertext`] using the wrapped OVK to generate a plaintext [`Memo`].
+    /// Decrypt a [`MemoCiphertext`] using the wrapped OVK to generate a plaintext [`MemoPlaintext`].
     pub fn decrypt_outgoing(
         wrapped_memo_key: &WrappedMemoKey,
         wrapped_ovk: OvkWrappedKey,

@@ -1,0 +1,76 @@
+{
+  "date": "2026-09-21",
+  "head": "1dc62a7a09480d966b29e7ecfbe8caa3c309c933",
+  "scope": "Static source analysis and Python arithmetic sanity checks. No Rust compilation, proof generation, or DB lifecycle benchmark in this research pass. Working tree contains preexisting changes.",
+  "source_sha256": {
+    "crates/crypto/circuits/src/hash.rs": "5cfeb1e3f0b7c0f931e8f7bd5f9f40a395f634a9f290d69a3eef108da7207a71",
+    "crates/crypto/circuits/src/range.rs": "8c3064eca2fcadf8355c555aa66e3b4f847050539da3ef0859958975b0f2a009",
+    "crates/crypto/circuits/src/tree.rs": "2bb35c43ab52bf4ead0eb7e8316a0bcff564d5b49c9ee87c5497b4a7b700e59f",
+    "crates/crypto/circuits/src/balance.rs": "02a4b3aa474a7d2dcf09042ec13a72f4a782157fb13339bacc99e5b615497a5e",
+    "crates/crypto/circuits/src/note.rs": "52230f4593bf37c896fb84abff76a7807a3d73755a0f046f34682ea243981a7c",
+    "crates/crypto/circuits/src/disclosure.rs": "cd548dfd62576427f74b9ea233de6c421b31cdc53f037ae940c61b06d9e15d81",
+    "crates/crypto/circuits/src/history.rs": "8fddce15eb9919d60749586a4253092ef172624f2c2bf3cfdb3fba45817eb4a4",
+    "crates/crypto/circuits/src/routing.rs": "5eb5c43743ac263da3e6afed6c58b030c51cb5d17fcdd122da753afce3cf55ae",
+    "crates/crypto/circuits/src/encryption.rs": "4fa4e47fab045d6e0b53ef23d7eee4761f9110c7e1a5ada9e4db49af361a76a8",
+    "crates/crypto/circuits/src/encoding.rs": "e675091f22c32999ccdbee7428a1bf8cd6a650dd6d2719556f8bb395ff783a3f",
+    "crates/crypto/circuits/src/group.rs": "ca75207acfd6bcb794f9f54b8ab3f52b236478f6b10761d459747dcbb9155971",
+    "crates/crypto/circuits/src/authorization.rs": "75e3d161030122f6c66def29aa6d2dc07479d6126c554b53e8fac55137131206",
+    "crates/core/app/src/nullifier_generation_packs.rs": "6a52c983603bbe8040ee6129a3adeef26e26f3119f9aadf85c1de05749e18276",
+    "crates/core/component/sct/src/generation_pack.rs": "24845dcb4ffb17b876de778c28aa1f97b6d2b3b4afcff84c1d3ece09c4367028",
+    "crates/core/component/sct/src/nullifier_tree.rs": "32fd46b647a01abe7a26e05ae20538cacf329d420b7b152b7f52a02e975e00dd",
+    "crates/view/src/storage/schema.sql": "80ce64afec214bc6a698a4322c12a7aff0cde1fd34f2e93c41c6f2469c4dcb14",
+    "third_party/commonware/cryptography/src/zk/pari/circuit.rs": "cabc311936ffd8feccdf02fd097e7482faa386baaed62aedd8acb52da4ab18b7",
+    "cnidarium-0.83.0/src/store/substore.rs": "d2adecedee132b0e3c67020bc48057128958ed3d37fa234fd2ab305384a9149b"
+  },
+  "results": {
+    "routing": {
+      "pairs_checked": 1089,
+      "old_pair_products": 528,
+      "new_mask_implications": 32
+    },
+    "tree_selector": {
+      "cases_checked": 1024,
+      "old_nonlinear_products_per_level": 10,
+      "candidate_products_per_level": 6
+    },
+    "bounded_comparison": {
+      "integer_pairs_checked": 87444,
+      "condition": "Inputs independently constrained to [0, 2^w); 2^(w+1) < field modulus",
+      "old_estimated_square_rows_128": 511,
+      "candidate_estimated_square_rows_128": 130,
+      "disclosure_comparator_calls": 132,
+      "estimated_row_delta_disclosure": 50292
+    },
+    "disclosure_statement": {
+      "slot_combinations_checked": 192,
+      "old_fields": 491,
+      "candidate_fields": 328,
+      "old_wide_permutations": 99,
+      "candidate_wide_permutations": 66,
+      "note": "No variable-width encoding; operation codes remain constrained to 0..5."
+    },
+    "balance": {
+      "u128_input_output_boundary_cases": 256,
+      "magnitude_bits": 129,
+      "old_variable_scalar_multiplications": 2,
+      "candidate_variable_scalar_multiplications": 1,
+      "note": "Integer relation only; no curve implementation or Pari proof tested."
+    },
+    "state_model": {
+      "generation_pack_bytes": "108 + 32*N ordinary nullifiers",
+      "history_raw_proof_bytes": "244 * (floor(G/10) + G%10), excluding metadata and pending witnesses",
+      "quaternary_capacity": {
+        "state": 281474976710656,
+        "compliance": 4294967296,
+        "history": 1099511627776
+      },
+      "transfer_tree_levels": 120
+    }
+  },
+  "external_revisions": {
+    "bonsai_prototype": "031a1c0478739b4be8c8176b23f51106fc00dd79",
+    "commonware_main_inspected": "bd0f7eb33af26c4aa9831d98d53621ba3cb4b14e",
+    "cnidarium_0_83_0": "dd1a08c81d8b3f27083e8a8c47a4e9403786e88e"
+  },
+  "cnidarium_commit_source_matches_installed": true
+}

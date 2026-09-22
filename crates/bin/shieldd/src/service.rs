@@ -144,9 +144,11 @@ impl ExecutionService {
         generation_pack_directory: impl AsRef<Path>,
         registry: Arc<Registry>,
     ) -> std::result::Result<Self, ServiceError> {
-        let repository =
-            GenerationPackRepository::new(generation_pack_directory.as_ref().to_path_buf(), 1)
-                .map_err(ServiceError::internal)?;
+        let repository = GenerationPackRepository::new(
+            generation_pack_directory.as_ref().to_path_buf(),
+            64 * 1024 * 1024,
+        )
+        .map_err(ServiceError::internal)?;
         Self::open_inner(db.as_ref(), Some(repository), registry).await
     }
 
@@ -156,7 +158,7 @@ impl ExecutionService {
         registry: Arc<Registry>,
     ) -> std::result::Result<Self, ServiceError> {
         let db = db.to_path_buf();
-        let mut storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
+        let storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
             .await
             .with_context(|| format!("failed to open Shieldd RocksDB at {}", db.display()))
             .map_err(ServiceError::internal)?;
@@ -184,26 +186,6 @@ impl ExecutionService {
             )));
         }
 
-        if let Some(repository) = generation_packs.as_ref() {
-            let changed =
-                shieldd_sdk_app::nullifier_generation_packs::prepare(&storage, repository)
-                    .await
-                    .context("prepare retired nullifier generation packs")
-                    .map_err(ServiceError::internal)?;
-            if changed {
-                storage.release().await;
-                storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
-                    .await
-                    .with_context(|| {
-                        format!(
-                            "failed to reopen Shieldd RocksDB after pack maintenance at {}",
-                            db.display()
-                        )
-                    })
-                    .map_err(ServiceError::internal)?;
-            }
-        }
-
         Self::new_with_generation_packs(storage, generation_packs, registry).await
     }
 
@@ -222,15 +204,26 @@ impl ExecutionService {
         shieldd_sdk_app::app_version::check_app_version(&storage)
             .await
             .map_err(ServiceError::failed_precondition)?;
-        let execution = HostExecution::new(storage.clone(), registry)
+        let mut execution = HostExecution::new(storage.clone(), registry)
             .await
             .map_err(ServiceError::failed_precondition)?;
-        let generation_pack_worker = generation_packs.as_ref().map(|repository| {
-            shieldd_sdk_app::nullifier_generation_packs::spawn_worker(
+        if let Some(repository) = generation_packs.as_ref() {
+            execution.set_generation_packs(repository.clone());
+        }
+        let generation_pack_worker = if let Some(repository) = generation_packs.as_ref() {
+            let prepared_generation_count =
+                shieldd_sdk_app::nullifier_generation_packs::prepare(&storage, repository)
+                    .await
+                    .context("prepare retired nullifier generation packs")
+                    .map_err(ServiceError::internal)?;
+            Some(shieldd_sdk_app::nullifier_generation_packs::spawn_worker(
                 storage.clone(),
                 repository.clone(),
-            )
-        });
+                prepared_generation_count,
+            ))
+        } else {
+            None
+        };
         Ok(Self {
             execution: Some(execution),
             storage: Some(storage),
@@ -693,9 +686,10 @@ impl ExecutionService {
             .await
             .map_err(ServiceError::failed_precondition)?;
         let packed = if repository.contains(request.generation_index) {
+            let repository_for_query = repository.clone();
             Some(
                 tokio::task::spawn_blocking(move || {
-                    repository
+                    repository_for_query
                         .nonmembership_proof(archived, nullifier)
                         .map(|proof| *proof)
                 })
@@ -706,23 +700,55 @@ impl ExecutionService {
         } else {
             None
         };
-        let proof = match packed {
-            Some(Ok(proof)) => proof,
-            Some(Err(pack_error)) => nullifier_tree::archived_nonmembership_proof(
+        let proof = if let Some(Ok(proof)) = &packed {
+            proof.clone()
+        } else {
+            if packed.as_ref().is_some_and(|result| {
+                result.as_ref().err().is_some_and(|error| {
+                    error
+                        .downcast_ref::<shieldd_sdk_sct::nullifier_generation::ArchivedNullifierSpent>()
+                        .is_some()
+                })
+            }) {
+                return Err(ServiceError::failed_precondition(
+                    shieldd_sdk_sct::nullifier_generation::ArchivedNullifierSpent.into(),
+                ));
+            }
+            let expanded = nullifier_tree::archived_nonmembership_proof(
                 &state,
                 request.generation_index,
                 nullifier,
             )
-            .await
-            .with_context(|| format!("generation pack is also unavailable: {pack_error}"))
-            .map_err(ServiceError::failed_precondition)?,
-            None => nullifier_tree::archived_nonmembership_proof(
+            .await;
+            if expanded.as_ref().err().is_some_and(|error| {
+                error
+                    .downcast_ref::<shieldd_sdk_sct::nullifier_generation::ArchivedNullifierSpent>()
+                    .is_some()
+            }) {
+                return Err(ServiceError::failed_precondition(
+                    shieldd_sdk_sct::nullifier_generation::ArchivedNullifierSpent.into(),
+                ));
+            }
+            if let Ok(proof) = expanded {
+                return Ok(proof.into());
+            }
+            shieldd_sdk_app::nullifier_generation_packs::repair_pack(
                 &state,
+                &repository,
                 request.generation_index,
-                nullifier,
             )
             .await
-            .map_err(ServiceError::failed_precondition)?,
+            .context("repair historical generation pack")
+            .map_err(ServiceError::failed_precondition)?;
+            tokio::task::spawn_blocking(move || {
+                repository
+                    .nonmembership_proof(archived, nullifier)
+                    .map(|proof| *proof)
+            })
+            .await
+            .context("repaired historical witness task failed")
+            .map_err(ServiceError::internal)?
+            .map_err(ServiceError::failed_precondition)?
         };
         Ok(proof.into())
     }
@@ -828,11 +854,13 @@ fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::StateDelta;
+    use cnidarium::{StateDelta, StateWrite as _};
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_compact_block::CompactBlock;
     use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
+    use shieldd_sdk_proto::DomainType as _;
     use shieldd_sdk_sct::{nullifier_tree, Nullifier};
     use shieldd_sdk_shielded_pool::{EvmCall, HostExecution};
     use std::ops::Deref;
@@ -865,15 +893,51 @@ mod tests {
         drop(initializer);
         let mut state = StateDelta::new(storage.latest_snapshot());
         nullifier_tree::insert_batch(&mut state, [nullifier(7), nullifier(1)]).await?;
+        let initial_window = nullifier_tree::generation_state(&state).await?.window();
+        state.nonverifiable_put_raw(
+            shieldd_sdk_compact_block::state_key::compact_block(0).into_bytes(),
+            CompactBlock {
+                height: 0,
+                nullifiers: vec![nullifier(7), nullifier(1)],
+                nullifier_window: Some(initial_window),
+                ..Default::default()
+            }
+            .encode_to_vec(),
+        );
         nullifier_tree::rollover(&mut state, 30, 1 << 32).await?;
         nullifier_tree::rollover(&mut state, 60, 2 << 32).await?;
+        let retired_window = nullifier_tree::generation_state(&state).await?.window();
+        state.nonverifiable_put_raw(
+            shieldd_sdk_compact_block::state_key::compact_block(1).into_bytes(),
+            CompactBlock {
+                height: 1,
+                nullifier_window: Some(retired_window),
+                ..Default::default()
+            }
+            .encode_to_vec(),
+        );
         let archived = nullifier_tree::archived_generation(&state, 0).await?;
         let pack = nullifier_tree::build_generation_pack(&state, 0).await?;
         let directory = tempfile::tempdir()?;
         let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
         let receipt = repository.write(&pack)?;
+        let pack_path = repository.path(0);
         nullifier_tree::record_generation_pack_completion(&mut state, &receipt).await?;
-        nullifier_tree::prune_packed_generation(&mut state, &receipt).await?;
+        for prefix_index in 0..4 {
+            loop {
+                if nullifier_tree::prune_packed_generation_page(
+                    &mut state,
+                    &receipt,
+                    prefix_index,
+                    256,
+                )
+                .await?
+                    < 256
+                {
+                    break;
+                }
+            }
+        }
         storage.commit(state).await?;
 
         let mut service = ExecutionService::new_with_generation_packs(
@@ -892,6 +956,26 @@ mod tests {
             response.try_into()?;
         proof.verify_for(nullifier(8))?;
         assert_eq!(proof.generation_root, archived.generation_root);
+        let spent = service
+            .archived_nullifier_proof(ArchivedNullifierProofRequest {
+                generation_index: 0,
+                nullifier: Some(nullifier(7).into()),
+            })
+            .await
+            .expect_err("spent archived nullifier must not trigger pack repair");
+        assert_eq!(spent.kind(), ErrorKind::FailedPrecondition);
+        assert!(pack_path.is_file());
+        std::fs::remove_file(&pack_path)?;
+        let recovered = service
+            .archived_nullifier_proof(ArchivedNullifierProofRequest {
+                generation_index: 0,
+                nullifier: Some(nullifier(8).into()),
+            })
+            .await?;
+        let recovered: shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof =
+            recovered.try_into()?;
+        recovered.verify_for(nullifier(8))?;
+        assert!(pack_path.is_file());
         service.close().await?;
         Ok(())
     }

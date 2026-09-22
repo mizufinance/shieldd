@@ -313,7 +313,7 @@ enum MachineStatus {
 struct MachineResult {
     protocol: u32,
     package_version: u32,
-    circuit: &'static str,
+    circuit: String,
     status: MachineStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     result: Option<sdk::VerificationResult>,
@@ -343,7 +343,7 @@ async fn verify_machine(input: &[u8], node: &str, keys: Option<&Utf8Path>) -> Ma
     let mut response = MachineResult {
         protocol: 2,
         package_version: sdk::VERSION,
-        circuit: sdk::CIRCUIT_ID,
+        circuit: String::new(),
         status: MachineStatus::Rejected,
         result: None,
         statement: None,
@@ -359,6 +359,7 @@ async fn verify_machine(input: &[u8], node: &str, keys: Option<&Utf8Path>) -> Ma
             "unsupported disclosure version"
         );
         sdk::validate_request(&package.statement.request)?;
+        response.circuit = sdk::circuit_id(&package.statement.request)?.into();
         check_expected(&package, input.request.as_ref())?;
         let candidates = input
             .transactions
@@ -641,7 +642,7 @@ impl DisclosureCmd {
             }
             Self::Capabilities => println!(
                 "{}",
-                serde_json::json!({"protocol":2,"package_version":sdk::VERSION,"audit_ciphertext_version":3,"live_pet":false,"protected_delivery":false,"issuer_disclosure_version":1,"circuit":sdk::CIRCUIT_ID})
+                serde_json::json!({"protocol":2,"package_version":sdk::VERSION,"audit_ciphertext_version":3,"live_pet":false,"protected_delivery":false,"issuer_disclosure_version":1,"circuits":[sdk::CIRCUIT_ID_ONE,sdk::CIRCUIT_ID_MANY]})
             ),
             Self::Inspect { package } => {
                 let package = sdk::decode_package(&read_bounded(package, sdk::MAX_PACKAGE_BYTES)?)?;
@@ -720,11 +721,17 @@ impl DisclosureCmd {
                     serde_json::to_string_pretty(&witness.request)?
                 );
                 if *payload_keys {
-                    eprintln!("Shares decryption of every selected note (amount, asset, recipient and note seed) and the entire transaction memo, including its return address.");
+                    eprintln!(
+                        "Shares decryption of every selected note (amount, asset, recipient and note seed) and the entire transaction memo, including its return address."
+                    );
                 } else if *openings {
-                    eprintln!("Shares all committed note fields and blinding, without note seeds or decryption keys.");
+                    eprintln!(
+                        "Shares all committed note fields and blinding, without note seeds or decryption keys."
+                    );
                 } else {
-                    eprintln!("Shares selected fields and explicit predicate results using a local Pari proof.");
+                    eprintln!(
+                        "Shares selected fields and explicit predicate results using a local Pari proof."
+                    );
                 }
                 if witness.request.outputs.iter().any(|c| c.spending_control) {
                     use crate::config::{CustodyConfig, PcliConfig};
@@ -755,9 +762,23 @@ impl DisclosureCmd {
                             signature.clone()
                         } else {
                             let signature = match &config.custody {
-                            CustodyConfig::SoftKms(c) => shieldd_sdk_custody::soft_kms::SoftKms::new(c.clone()).sign_disclosure(&witness.request, &output.public, authority.randomizer)?,
-                            CustodyConfig::Encrypted(c) => c.clone().sign_disclosure(&rpassword::prompt_password("Custody password: ")?, &witness.request, &output.public, authority.randomizer)?,
-                            _ => anyhow::bail!("disclosure signing unavailable for this custody; use an external signature through the SDK"),
+                                CustodyConfig::SoftKms(c) => {
+                                    shieldd_sdk_custody::soft_kms::SoftKms::new(c.clone())
+                                        .sign_disclosure(
+                                            &witness.request,
+                                            &output.public,
+                                            authority.randomizer,
+                                        )?
+                                }
+                                CustodyConfig::Encrypted(c) => c.clone().sign_disclosure(
+                                    &rpassword::prompt_password("Custody password: ")?,
+                                    &witness.request,
+                                    &output.public,
+                                    authority.randomizer,
+                                )?,
+                                _ => anyhow::bail!(
+                                    "disclosure signing unavailable for this custody; use an external signature through the SDK"
+                                ),
                             };
                             signatures.insert(key, signature.clone());
                             signature
@@ -1000,13 +1021,13 @@ mod tests {
 
     #[cfg(unix)]
     #[tokio::test]
-    async fn worker_suppresses_dumps_and_cancels_process_group() {
+    async fn worker_cancellation_stops_a_ready_process_group() {
         use std::os::unix::fs::PermissionsExt;
         let dir = tempfile::tempdir().unwrap();
         let executable = dir.path().join("worker");
         std::fs::write(
             &executable,
-            b"#!/bin/sh\n[ -z \"${RUST_LOG+x}\" ] || exit 1\nprintf '%s' $$ > \"$0.pid\"\nsleep 30 &\nwait\n",
+            b"#!/bin/sh\n[ -z \"${RUST_LOG+x}\" ] || exit 1\nsleep 30 &\nprintf '%s %s' $$ $! > \"$0.pid.tmp\"\nmv \"$0.pid.tmp\" \"$0.pid\"\nwait\n",
         )
         .unwrap();
         std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -1021,22 +1042,43 @@ mod tests {
             },
             outputs: vec![],
         };
-        let result = tokio::time::timeout(
-            std::time::Duration::from_millis(300),
-            run_worker(&witness, &executable, None),
-        )
-        .await;
-        assert!(result.is_err());
-        let pid: i32 = std::fs::read_to_string(dir.path().join("worker.pid"))
-            .unwrap()
-            .parse()
-            .unwrap();
-        for _ in 0..50 {
-            if unsafe { libc::kill(-pid, 0) } != 0 {
-                return;
+        let mut running = Box::pin(run_worker(&witness, &executable, None));
+        let ready = async {
+            loop {
+                if let Ok(contents) = std::fs::read_to_string(dir.path().join("worker.pid")) {
+                    let ids: Vec<i32> = contents
+                        .split_whitespace()
+                        .map(str::parse)
+                        .collect::<Result<_, _>>()
+                        .unwrap();
+                    if let [pid, child] = ids.as_slice() {
+                        return (*pid, *child);
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
             }
-            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-        }
-        panic!("cancelled worker group is still alive");
+        };
+        let (pid, child) = tokio::select! {
+            result = &mut running => panic!("worker exited before readiness: {result:?}"),
+            result = tokio::time::timeout(std::time::Duration::from_secs(10), ready) =>
+                result.expect("worker did not become ready"),
+        };
+        assert_eq!(unsafe { libc::kill(-pid, 0) }, 0);
+        assert_eq!(unsafe { libc::kill(child, 0) }, 0);
+        // Drop only after the worker and its descendant exist, exercising cancellation.
+        drop(running);
+        let stopped = async {
+            loop {
+                if unsafe { libc::kill(-pid, 0) } != 0
+                    && std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
+                {
+                    return;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
+        };
+        tokio::time::timeout(std::time::Duration::from_secs(10), stopped)
+            .await
+            .expect("cancelled worker group is still alive");
     }
 }

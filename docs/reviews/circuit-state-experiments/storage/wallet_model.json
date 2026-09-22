@@ -1,0 +1,53 @@
+{
+  "assumptions": {
+    "quad_depth": 16,
+    "hash_bytes": 32,
+    "hashes_per_quad_level": 3,
+    "two_proof_path_hash_bytes": 3072,
+    "single_tree_update_path_hash_bytes": 512
+  },
+  "scenarios": [
+    {
+      "global_compliance_updates": 1000,
+      "needed_recipient_queries": 1,
+      "full_projection_path_hash_write_bytes_per_tree": 512000,
+      "two_tree_batch_path_hash_bytes": 3072,
+      "raw_path_hash_payload_ratio_full_writes_to_batch": 166.67
+    },
+    {
+      "global_compliance_updates": 1000,
+      "needed_recipient_queries": 10,
+      "full_projection_path_hash_write_bytes_per_tree": 512000,
+      "two_tree_batch_path_hash_bytes": 30720,
+      "raw_path_hash_payload_ratio_full_writes_to_batch": 16.67
+    },
+    {
+      "global_compliance_updates": 1000,
+      "needed_recipient_queries": 100,
+      "full_projection_path_hash_write_bytes_per_tree": 512000,
+      "two_tree_batch_path_hash_bytes": 307200,
+      "raw_path_hash_payload_ratio_full_writes_to_batch": 1.67
+    },
+    {
+      "global_compliance_updates": 100000,
+      "needed_recipient_queries": 1,
+      "full_projection_path_hash_write_bytes_per_tree": 51200000,
+      "two_tree_batch_path_hash_bytes": 3072,
+      "raw_path_hash_payload_ratio_full_writes_to_batch": 16666.67
+    },
+    {
+      "global_compliance_updates": 100000,
+      "needed_recipient_queries": 10,
+      "full_projection_path_hash_write_bytes_per_tree": 51200000,
+      "two_tree_batch_path_hash_bytes": 30720,
+      "raw_path_hash_payload_ratio_full_writes_to_batch": 1666.67
+    },
+    {
+      "global_compliance_updates": 100000,
+      "needed_recipient_queries": 100,
+      "full_projection_path_hash_write_bytes_per_tree": 51200000,
+      "two_tree_batch_path_hash_bytes": 307200,
+      "raw_path_hash_payload_ratio_full_writes_to_batch": 166.67
+    }
+  ]
+}

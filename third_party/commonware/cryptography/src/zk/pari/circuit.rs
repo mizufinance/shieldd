@@ -4,7 +4,7 @@ use crate::{
     bls12381::primitives::group::Scalar,
     zk::circuit::{Circuit, CircuitIdx, CircuitNode, ValuedCircuit},
 };
-use commonware_codec::EncodeFixed;
+use commonware_codec::Encode;
 use commonware_math::algebra::{Additive, FieldNTT, Ring};
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
@@ -136,7 +136,6 @@ pub struct Relation {
     rows: Vec<SparseRow>,
     digest: [u8; 32],
     value_sources: Vec<ValueSource>,
-    source_digest: [u8; 32],
 }
 
 impl Relation {
@@ -145,7 +144,7 @@ impl Relation {
         compile(circuit, layout).map_err(Into::into)
     }
 
-    /// Map concrete circuit values into a prover witness after checking circuit identity.
+    /// Compile concrete circuit values into a prover witness.
     ///
     /// One opening is required per committed-input block, in declared order.
     pub fn witness(
@@ -639,18 +638,14 @@ impl<'a> Compiler<'a> {
             }
         }
         self.rows.push(Row {
-            squared: LinearCombination::coordinate(0).sub(&LinearCombination::coordinate(copy)),
+            squared: LinearCombination::coordinate(0)
+                .sub(&LinearCombination::coordinate(copy)),
             linear: LinearCombination::zero(),
         });
         Ok(())
     }
 
     fn finish(mut self) -> Result<Relation, Error> {
-        // Input linking is complete; only rows and value sources survive compilation.
-        drop(self.node_expressions);
-        drop(self.square_nodes);
-        drop(self.witness_columns);
-        drop(self.fusable);
         let required = self.next_column.max(self.rows.len()).max(1);
         let size = required
             .checked_next_power_of_two()
@@ -671,10 +666,10 @@ impl<'a> Compiler<'a> {
         let mut rows = Vec::new();
         rows.try_reserve_exact(self.rows.len())
             .map_err(|_| Error::AllocationFailed)?;
-        for row in self.rows {
+        for row in &self.rows {
             rows.push(SparseRow {
-                squared: to_sparse(row.squared)?,
-                linear: to_sparse(row.linear)?,
+                squared: to_sparse(&row.squared)?,
+                linear: to_sparse(&row.linear)?,
             });
         }
 
@@ -687,7 +682,6 @@ impl<'a> Compiler<'a> {
             rows,
             digest,
             value_sources: self.value_sources,
-            source_digest: source_digest(self.circuit, self.layout)?,
         })
     }
 }
@@ -697,7 +691,7 @@ pub(super) fn compile(circuit: &Circuit<Scalar>, layout: &InputLayout) -> Result
     Compiler::new(circuit, layout)?.compile()
 }
 
-/// Map fresh values using the cached mapping after checking source circuit identity.
+/// Compile values and cross-check them against an expected relation.
 pub(super) fn compile_valued(
     valued: &ValuedCircuit<Scalar>,
     layout: &InputLayout,
@@ -720,17 +714,22 @@ pub(super) fn compile_valued(
         });
     }
 
-    // The stored mapping is valid only for this exact source circuit and layout,
-    // even when another source circuit compiles to the same square relation.
-    if source_digest(&valued.circuit, layout)? != expected.source_digest {
+    let compiled = compile(&valued.circuit, layout)?;
+    if compiled.size != expected.size
+        || compiled.public_inputs != expected.public_inputs
+        || compiled.committed_start != expected.committed_start
+        || compiled.blocks != expected.blocks
+        || compiled.rows != expected.rows
+        || compiled.digest != expected.digest
+    {
         return Err(Error::RelationMismatch);
     }
 
     let mut values: Vec<Scalar> = Vec::new();
     values
-        .try_reserve_exact(expected.size)
+        .try_reserve_exact(compiled.size)
         .map_err(|_| Error::AllocationFailed)?;
-    for source in &expected.value_sources {
+    for source in &compiled.value_sources {
         let value = match *source {
             ValueSource::One => Scalar::one(),
             ValueSource::Circuit(idx) => circuit_value(valued, idx)?,
@@ -745,10 +744,10 @@ pub(super) fn compile_valued(
 
     Ok(Assignment {
         values,
-        public_inputs: expected.public_inputs,
-        committed_start: expected.committed_start,
-        blocks: expected.blocks.clone(),
-        relation_digest: expected.digest,
+        public_inputs: compiled.public_inputs,
+        committed_start: compiled.committed_start,
+        blocks: compiled.blocks,
+        relation_digest: compiled.digest,
     })
 }
 
@@ -859,46 +858,16 @@ fn checked_add(left: usize, right: usize) -> Result<usize, Error> {
 ///
 /// `LinearCombination` stores its terms in a `BTreeMap` and strips zero
 /// coefficients on insert, so the output is canonical by construction.
-fn to_sparse(combination: LinearCombination) -> Result<Vec<(u32, Scalar)>, Error> {
+fn to_sparse(combination: &LinearCombination) -> Result<Vec<(u32, Scalar)>, Error> {
     let mut entries = Vec::new();
     entries
         .try_reserve_exact(combination.terms.len())
         .map_err(|_| Error::AllocationFailed)?;
-    for (column, coefficient) in combination.terms {
+    for (&column, coefficient) in &combination.terms {
         let column = u32::try_from(column).map_err(|_| Error::SizeOverflow)?;
-        entries.push((column, coefficient));
+        entries.push((column, coefficient.clone()));
     }
     Ok(entries)
-}
-
-// This digest binds the cached mapping independently of the protocol relation digest.
-fn source_digest(circuit: &Circuit<Scalar>, layout: &InputLayout) -> Result<[u8; 32], Error> {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(b"_COMMONWARE_CRYPTOGRAPHY_ZK_PARI_SOURCE_DIGEST");
-    hasher.update(&circuit.witnesses.to_be_bytes());
-    hash_usize(&mut hasher, circuit.constants.len())?;
-    for constant in &circuit.constants {
-        hasher.update(&constant.encode_fixed::<32>());
-    }
-    hash_usize(&mut hasher, circuit.nodes.len())?;
-    for node in &circuit.nodes {
-        let (tag, left, right) = match *node {
-            CircuitNode::Add(left, right) => (0u8, left, right),
-            CircuitNode::Mul(left, right) => (1u8, left, right),
-        };
-        hasher.update(&[tag]);
-        hash_indices(&mut hasher, &[left, right])?;
-    }
-    hash_usize(&mut hasher, circuit.assertions.len())?;
-    for &(left, right) in &circuit.assertions {
-        hash_indices(&mut hasher, &[left, right])?;
-    }
-    hash_indices(&mut hasher, &layout.public)?;
-    hash_usize(&mut hasher, layout.blocks.len())?;
-    for block in &layout.blocks {
-        hash_indices(&mut hasher, block)?;
-    }
-    Ok(*hasher.finalize().as_bytes())
 }
 
 fn relation_digest(
@@ -928,7 +897,7 @@ fn hash_entries(hasher: &mut blake3::Hasher, entries: &[(u32, Scalar)]) -> Resul
     hash_usize(hasher, entries.len())?;
     for (column, coefficient) in entries {
         hasher.update(&column.to_be_bytes());
-        hasher.update(&coefficient.encode_fixed::<32>());
+        hasher.update(&coefficient.encode());
     }
     Ok(())
 }
@@ -1122,25 +1091,18 @@ mod tests {
         let relation = compile(&valued.circuit, &layout).unwrap();
         let mut assignment = compile_valued(&valued, &layout, &relation).unwrap();
         assert!(relation.is_satisfied(&assignment));
-        let copy = relation
-            .value_sources
-            .iter()
-            .enumerate()
-            .skip(1)
-            .find_map(|(i, source)| matches!(source, ValueSource::One).then_some(i))
-            .unwrap();
+        let copy = relation.value_sources.iter().enumerate().skip(1)
+            .find_map(|(i, source)| matches!(source, ValueSource::One).then_some(i)).unwrap();
         assert!(copy >= relation.committed_start + relation.committed_inputs());
         assert_eq!(assignment.values[copy], Scalar::one());
-        let uses_of_public_one = relation
-            .rows
-            .iter()
-            .flat_map(|r| r.squared.iter().chain(&r.linear))
-            .filter(|(column, _)| *column == 0)
-            .count();
+        let uses_of_public_one = relation.rows.iter().flat_map(|r|
+            r.squared.iter().chain(&r.linear)).filter(|(column, _)| *column == 0).count();
         assert_eq!(uses_of_public_one, 1);
         assert_eq!(committed_a_rank(&relation), relation.committed_inputs());
-        assignment.values[copy] = scalar(2);
-        assert!(!relation.is_satisfied(&assignment));
+        for value in [Scalar::zero(), scalar(2)] {
+            assignment.values[copy] = value;
+            assert!(!relation.is_satisfied(&assignment));
+        }
     }
 
     #[test]
@@ -1270,188 +1232,6 @@ mod tests {
         let assignment = compile_valued(&valued, &layout, &verifier_relation)
             .expect("relation shape and digest should match");
         assert!(verifier_relation.is_satisfied(&assignment));
-    }
-
-    fn mapping_fixture(x: u64, y: u64) -> (ValuedCircuit<Scalar>, InputLayout) {
-        let (valued, selected) = build_with_values(|ctx| {
-            let x = Var::witness(ctx, move |_| scalar(x));
-            let y = Var::witness(ctx, move |_| scalar(y));
-            let sum = x.clone() + &y;
-            let product = x.clone() * &y;
-            let scaled = product.clone() * &Var::constant(ctx, scalar(3));
-            scaled.clone().assert_eq(&scaled);
-            vec![sum, product, x, y]
-        });
-        let layout = InputLayout::new(
-            selected[..2].to_vec(),
-            vec![vec![selected[2]], vec![selected[3]]],
-        )
-        .unwrap();
-        (valued, layout)
-    }
-
-    #[test]
-    fn fixed_digest_scalar_encoding_matches_canonical_codec() {
-        use commonware_codec::Encode;
-        for value in [
-            Scalar::zero(),
-            Scalar::one(),
-            -Scalar::one(),
-            scalar(256),
-            -scalar(12345),
-        ] {
-            assert_eq!(
-                value.encode_fixed::<32>().as_slice(),
-                value.encode().as_ref()
-            );
-        }
-        let (valued, layout) = mapping_fixture(7, 11);
-        let relation = compile(&valued.circuit, &layout).unwrap();
-        let constants = valued.circuit.constants.iter();
-        let coefficients = relation.rows.iter().flat_map(|row| {
-            row.squared
-                .iter()
-                .chain(&row.linear)
-                .map(|(_, coefficient)| coefficient)
-        });
-        let mut fixed = blake3::Hasher::new();
-        let mut encoded = blake3::Hasher::new();
-        for value in constants.chain(coefficients) {
-            fixed.update(&value.encode_fixed::<32>());
-            encoded.update(&value.encode());
-        }
-        assert_eq!(fixed.finalize(), encoded.finalize());
-    }
-
-    #[test]
-    fn consuming_compiler_finish_preserves_canonical_rows_and_assignment() {
-        let (valued, layout) = mapping_fixture(7, 11);
-        let mut compiler = Compiler::new(&valued.circuit, &layout).unwrap();
-        compiler.compile_nodes().unwrap();
-        compiler.compile_assertions().unwrap();
-        compiler.link_inputs().unwrap();
-        compiler.outline_constant().unwrap();
-        // Borrowed conversion is an independent reference for the consuming finalization.
-        let expected_rows = compiler
-            .rows
-            .iter()
-            .map(|row| {
-                let convert = |side: &LinearCombination| {
-                    side.terms
-                        .iter()
-                        .map(|(&column, coefficient)| {
-                            (u32::try_from(column).unwrap(), coefficient.clone())
-                        })
-                        .collect()
-                };
-                SparseRow {
-                    squared: convert(&row.squared),
-                    linear: convert(&row.linear),
-                }
-            })
-            .collect::<Vec<_>>();
-        let expected_size = compiler
-            .next_column
-            .max(expected_rows.len())
-            .max(1)
-            .next_power_of_two();
-        let expected_digest = relation_digest(expected_size, &expected_rows, &layout).unwrap();
-        let expected_source = source_digest(&valued.circuit, &layout).unwrap();
-        let relation = compiler.finish().unwrap();
-        assert_eq!(relation.rows, expected_rows);
-        assert_eq!(relation.size, expected_size);
-        assert_eq!(relation.digest, expected_digest);
-        assert_eq!(relation.source_digest, expected_source);
-        let assignment = compile_valued(&valued, &layout, &relation).unwrap();
-        assert!(relation.is_satisfied(&assignment));
-    }
-
-    #[test]
-    fn cached_mapping_matches_fresh_compilation_and_uses_fresh_values() {
-        let (initial, layout) = mapping_fixture(2, 3);
-        let cached = compile(&initial.circuit, &layout).unwrap();
-        let initial_assignment = compile_valued(&initial, &layout, &cached).unwrap();
-        for (x, y) in [(2, 3), (7, 11), (0, 1), (19, 19)] {
-            let (valued, layout) = mapping_fixture(x, y);
-            let fresh = compile(&valued.circuit, &layout).unwrap();
-            let assignment = compile_valued(&valued, &layout, &cached).unwrap();
-            let reference = compile_valued(&valued, &layout, &fresh).unwrap();
-            assert_eq!(assignment.values, reference.values);
-            assert_eq!(assignment.relation_digest, reference.relation_digest);
-            assert_eq!(assignment.public_inputs, reference.public_inputs);
-            assert_eq!(assignment.committed_start, reference.committed_start);
-            assert_eq!(assignment.blocks, reference.blocks);
-            assert!(cached.is_satisfied(&assignment));
-            if (x, y) != (2, 3) {
-                assert_ne!(assignment.values, initial_assignment.values);
-            }
-        }
-    }
-
-    #[test]
-    fn cached_mapping_rejects_changed_source_or_layout() {
-        let (initial, layout) = mapping_fixture(2, 3);
-        let cached = compile(&initial.circuit, &layout).unwrap();
-        for mutation in 0..10 {
-            let (mut valued, mut layout) = mapping_fixture(2, 3);
-            match mutation {
-                0 => valued.circuit.constants[0] = scalar(4),
-                1 => {
-                    valued.circuit.nodes[0] =
-                        CircuitNode::Mul(CircuitIdx::Witness(0), CircuitIdx::Witness(1))
-                }
-                // Commuting operands preserves the relation but changes source identity.
-                2 => {
-                    valued.circuit.nodes[0] =
-                        CircuitNode::Add(CircuitIdx::Witness(1), CircuitIdx::Witness(0))
-                }
-                3 => valued.circuit.assertions.clear(),
-                4 => valued.circuit.assertions[0].0 = CircuitIdx::Witness(0),
-                5 => layout.public.swap(0, 1),
-                6 => layout.blocks.swap(0, 1),
-                7 => layout.blocks = vec![layout.blocks.iter().flatten().copied().collect()],
-                8 => {
-                    valued.circuit.witnesses += 1;
-                    valued.witnesses.push(scalar(0));
-                }
-                9 => {
-                    valued.circuit.nodes[0] =
-                        CircuitNode::Add(CircuitIdx::Node(u32::MAX), CircuitIdx::Witness(0))
-                }
-                _ => unreachable!(),
-            }
-            if mutation == 2 {
-                let equivalent = compile(&valued.circuit, &layout).unwrap();
-                assert_eq!(equivalent.rows, cached.rows);
-                assert_eq!(equivalent.digest, cached.digest);
-            }
-            assert_eq!(
-                compile_valued(&valued, &layout, &cached).err(),
-                Some(Error::RelationMismatch),
-                "mutation {mutation}",
-            );
-        }
-    }
-
-    #[test]
-    fn cached_mapping_rejects_missing_values() {
-        let (initial, layout) = mapping_fixture(2, 3);
-        let cached = compile(&initial.circuit, &layout).unwrap();
-        let (mut valued, layout) = mapping_fixture(2, 3);
-        valued.witnesses.pop();
-        assert!(matches!(
-            compile_valued(&valued, &layout, &cached),
-            Err(Error::ValuedShape {
-                kind: "witness",
-                ..
-            })
-        ));
-        let (mut valued, layout) = mapping_fixture(2, 3);
-        valued.nodes.pop();
-        assert!(matches!(
-            compile_valued(&valued, &layout, &cached),
-            Err(Error::ValuedShape { kind: "node", .. })
-        ));
     }
 
     #[test]

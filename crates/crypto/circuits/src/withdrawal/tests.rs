@@ -57,7 +57,7 @@ fn withdrawal_preserves_volume_encryption_and_exact_conservation() {
                 .is_satisfied()
         );
         let issuer = &w.owner.registry.leaf.dk;
-        let user = &w.owner.sender.leaf.capk;
+        let user = &w.owner.registry.leaf.audit.payload;
         let wrong = if w.owner.regulated && !w.volume.use_real {
             user
         } else {
@@ -85,11 +85,11 @@ fn withdrawal_proof_binds_external_effects() {
     let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
     let relation = Relation::compile(&c, &layout).unwrap();
     let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let prepared = pari::PreparedProver::new(pk, &relation).unwrap();
+    let prover = pk;
     let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &g, &w, &digest));
     let proof = Envelope::prove(
         Family::Withdrawal,
-        &prepared,
+        &prover,
         &relation,
         &layout,
         values,

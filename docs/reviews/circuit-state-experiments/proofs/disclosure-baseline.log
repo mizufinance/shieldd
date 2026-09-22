@@ -1,0 +1,35 @@
+COMMAND ['/usr/bin/time', '-l', 'cargo', 'run', '--locked', '--profile', 'ci', '-p', 'shieldd-sdk-circuits', '--example', 'proof_bench', '--', 'disclosure']
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Finished `ci` profile [optimized] target(s) in 6.13s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running `target/ci/examples/proof_bench disclosure`
+EXPERIMENT_METRICS rows=159226 columns=158090 squared_nnz=1714147 linear_nnz=210236 domain=262144
+PROOF_BENCH family=disclosure compile_ms=1682 domain=262144
+PROOF_BENCH setup_ms=31878 pk_bytes=58553237
+EXPERIMENT_METRICS rows=159226 columns=158090 squared_nnz=1714147 linear_nnz=210236 domain=262144
+PROOF_BENCH run=0 witness_ms=29 assignment_ms=1685 claim_ms=0 native_prove_ms=3871 prove_pipeline_ms=5557 verify_us=741 proof_bytes=244
+EXPERIMENT_METRICS rows=159226 columns=158090 squared_nnz=1714147 linear_nnz=210236 domain=262144
+PROOF_BENCH run=1 witness_ms=29 assignment_ms=1706 claim_ms=0 native_prove_ms=3890 prove_pipeline_ms=5597 verify_us=723 proof_bytes=244
+EXPERIMENT_METRICS rows=159226 columns=158090 squared_nnz=1714147 linear_nnz=210236 domain=262144
+PROOF_BENCH run=2 witness_ms=31 assignment_ms=1694 claim_ms=0 native_prove_ms=3894 prove_pipeline_ms=5589 verify_us=724 proof_bytes=244
+       59.25 real        89.56 user         1.55 sys
+          3082223616  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              423155  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               22430  involuntary context switches
+       1683613798290  instructions retired
+        357952806016  cycles elapsed
+          2296776672  peak memory footprint
+EXIT=0

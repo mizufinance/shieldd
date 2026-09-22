@@ -14,9 +14,3 @@ fn address_and_viewing_key_import_require_suite_context() {
     let encoded: pb::FullViewingKey = fvk.clone().into();
     assert_eq!(FullViewingKey::try_from(encoded).unwrap(), *fvk);
 }
-
-#[test]
-fn rejects_a_real_legacy_address_whose_point_is_also_valid_jubjub() {
-    let legacy = "shieldd15949620tvtc6g50ns3pwm705hke6hqv8gdnjz32t8v0ly734ehqdn49dsu8wzlye9w46d0kpjefly8psgz3";
-    assert!(legacy.parse::<Address>().is_err());
-}

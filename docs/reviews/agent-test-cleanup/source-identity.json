@@ -1,0 +1,89 @@
+{
+  "head": "1dc62a7a09480d966b29e7ecfbe8caa3c309c933",
+  "baseline_patch_sha256": "81e9318a81191547f1852fba2f9d89d835c1dbd6866c305bc4a644957bd21ca6",
+  "baseline_file_count": 1383,
+  "unchanged_commonware_files": 359,
+  "changed_preexisting_files": {
+    ".agents/skills/shieldd-plan/SKILL.md": {
+      "before": "8def4be370e515fc01ba5dc908060144c78288eaca32139c38c20728f9c35486",
+      "after": "d2a5f1be3ead6d21ae01ec428cedf5f6c6926314bf7101ab503f6b2453968b68"
+    },
+    ".agents/skills/shieldd-review/SKILL.md": {
+      "before": "43ef38b907d7ff1261ac8bd1c16a876029526e8f2778244456caa743ac4e6ecd",
+      "after": "130c12996437947c1ec3c09436995cc730f129ca77e0d9e90151db1cfd01d864"
+    },
+    "AGENTS.md": {
+      "before": "a6a5b33fc6811abf67f0cda30d78cdf711618f7fb9722f3044e977527feefebc",
+      "after": "47a92d4702c23791819dacba701888b49170f8b6cefb39b5c1b3329287bbea1a"
+    },
+    "crates/bin/pcli/Cargo.toml": {
+      "before": "bc87689784062d3a32db5c9461c2b4263bf2c26ca0511c98bdf7de959677926a",
+      "after": "f67d5b2526ab3839d5fc3cef4232627cbbec6a990df3fc11e4ebc76dcf42e25f"
+    },
+    "crates/bin/pcli/src/command/disclosure.rs": {
+      "before": "4259ed6268eec0dc808054a28bb858653cabdbe31d85a75eb285c79826925b96",
+      "after": "7405156385ef3d0e810cedf86514de49c78e325a2c39997f55f5524079765ff5"
+    },
+    "crates/bin/pcli/tests/cli_surface.rs": {
+      "before": "39209b52ae9412810935b141f241c95193e250c2c381e5ad870188a5f776c004",
+      "after": "101f9329a4537b0f573919bd01f0f60d96ae36a1bdc27b00950eb97c4337328d"
+    },
+    "crates/core/component/compliance/src/indexed_tree_tests.rs": {
+      "before": "bd3911266e9af05c96f215f75ad3c5a4b349ce8ba41a9f010b6bab906c225a3f",
+      "after": "36064a0468b9faa3eaae3b497406cc7dece1a37e2588d0e8a73b968fe19eaef8"
+    },
+    "crates/core/component/compliance/src/registry.rs": {
+      "before": "cdb7de0c9d87d4653051a0c650f7b04718a300150954b74d367f5502a66c9ca9",
+      "after": "cdc6d76f5c03a1dcffb1cbcfa3511fbd28a07614437b48dc4b3cac0886a2ff55"
+    },
+    "crates/core/component/compliance/src/registry_tests.rs": {
+      "before": "a27df8e7628ac5588b88259541f9ec7c72138cc8b96cc11c399752e7520c5119",
+      "after": "880dd9610a129636a40dad5ee087236f2a0587337a0a779defeb997c137191c8"
+    },
+    "crates/core/component/compliance/src/structs.rs": {
+      "before": "6ef4e015708c3e21b6012c6d438fc2f2205f7a393944107644fafd1adebfba00",
+      "after": "e75e3c12fb0fd571957b8f4972624a1c521aef3ae7a2768f857419298303306e"
+    },
+    "crates/core/component/shielded-pool/src/transfer/proof.rs": {
+      "before": "ae975aa6f2723b761ebb10cc84e300b8b6b84f48e3741100ab3388f054725550",
+      "after": "3319a60e41088b3f5bc75d879e9099dd99a9b45b2db1a5dad240164b188e76bf"
+    },
+    "crates/view/src/historical_proof_cache/tests.rs": {
+      "before": "7ddad72b32308c68522791ba171f65bd4f457d0d29a36fe1deef58c5907425d0",
+      "after": "5f450fcd83ec2ab58afee62d9be596db6240b3505a71429285505dc23de1c4ff"
+    },
+    "docs/README.md": {
+      "before": "a2863229fac0d3869e4c15f8ff8d32716475effa32bbf714fe1ccb7c89da67f4",
+      "after": "b99d49221116bb54139ece38b791d8f882e9e580e852efbbf8de2be1dfab688d"
+    },
+    "docs/benchmarks.md": {
+      "before": "7c70339045da81524a62e759d09ee027537d8c1af601f79537053c991e45616d",
+      "after": "b913fb3d1e31279e0c54ae44f06d9d28a4bfbe364602f33f866a7b5f03524bbb"
+    },
+    "docs/development.md": {
+      "before": "8469c570a8579a17a8952b147942cec10518646a05aeca86ca7fc91e48c39282",
+      "after": "fe66f1583bf7ea3dcd102dc05f6f7a42fbee3feb5f458ca810d2d2f5a8a63054"
+    },
+    "docs/reviews/README.md": {
+      "before": "61d2fe42056afe58a697a3a59c05c806f7302b562c3624ab1db72a2d5c1a0082",
+      "after": "97769604951f1303c87908e13057a82697fa297dc8476fccc15d9d2ad5dce21b"
+    },
+    "docs/reviews/agent-test-quality-assessment.md": {
+      "before": "3c5d8d6685fee6e7d1c817d6113aff6eeecbcd563c46d076a0300d568d9738c2",
+      "after": "33e447e18e401d9f104aad02a9a7bbf6c2c98bfcb21b4926ee2fc6e43e454145"
+    },
+    "justfile": {
+      "before": "0c3d34c5f959f68a03e0be5713140558a1da48d9109851bba93bb6aac5dda37b",
+      "after": "3a8698618dc3c48c117f38112478e81c20870132569ccf14100502fa99c1385c"
+    },
+    "scripts/tests/test_stage_artifacts.py": {
+      "before": "06259f989210ff0bfdb248370b1a3b3d1875f7d3be6b42a046e39f82bb581a98",
+      "after": "eb74d05a396a4fc90e31a96a5ef4aa626b944d968afe7f715e0f4536b9b414cc"
+    }
+  },
+  "new_files": [
+    "docs/testing.md",
+    ".agents/skills/shieldd-test/SKILL.md",
+    "docs/reviews/agent-test-cleanup-implementation.md"
+  ]
+}

@@ -1,17 +1,23 @@
 # Proof system
 
-Shieldd uses Commonware's native zk-Pari circuit compiler, prover and batch
-verifier over BLS12-381. Application commitments, key agreement and RedJubjub
+Shieldd uses a pinned Commonware zk-Pari implementation with isolated build, relation-inspection and
+compiler-correctness repairs, constant outlining, and its native prover and batch
+verifier over BLS12-381. Each relation exposes one public statement digest,
+constrained to the hash of its statement fields inside the circuit. Constant
+coefficients use a private witness constrained to one so the implicit public
+constant column stays sparse.
+Application commitments, key agreement and RedJubjub
 signatures use Jubjub. Poseidon operates over the BLS12-381 scalar field, which
 is Jubjub's base field. The suite is `shieldd-jubjub-pari-v1`.
 
-The [catalogue](../crates/crypto/circuits/src/catalogue.rs) fixes eight relations:
-transfer, reshape 1-to-8, reshape 8-to-1, withdrawal, seizure, disclosure with
-32 slots, historical generation and historical chunk with ten raw witnesses.
+The [catalogue](../crates/crypto/circuits/src/catalogue.rs) fixes nine relations:
+transfer, reshape 1-to-8, reshape 8-to-1, withdrawal, seizure, one-note
+disclosure, disclosure with 32 slots, historical generation and historical chunk
+with ten raw witnesses.
 Shieldd owns those relations, compliance semantics, witness construction and
 canonical encoding. Commonware owns the shared cryptographic implementation;
 [the source policy](../third_party/commonware-patches/README.md) describes its
-pin, small patch queue and update checks.
+pin, patch queue and update checks.
 
 ## Key registry
 
@@ -23,15 +29,14 @@ incompatible identities even when the source is identical.
 Set `SHIELDD_PARI_KEYS` (or pcli's `--pari-keys`) to that directory. SDK entry
 points receive an explicit `Arc<Registry>`. Manifest loading checks the exact
 suite, complete family set, relation layout, canonical key encoding and file
-digests. Verifiers need the manifest and all eight `.vk` files. Provers also
+digests. Generation enforces the same key/domain bounds and loads the staged
+registry before publication, then loads the destination. Verifiers need the manifest and all nine `.vk` files. Provers also
 need the corresponding `.pk` files. The registry retains one proving key at a
-time, together with its source-bound witness mapping, public polynomials, FFT
-tables and affine MSM bases, and serializes proving within a registry. Preparation
-consumes the decoded key so projective bases are not retained alongside affine
-bases. Point decoding uses the same bounded strategy and canonical subgroup
-checks. Immutable Poseidon parameters and derived generators are shared. Preparation
-is discarded before another family loads. Witness values and proof randomness
-are fresh for each request; circuit values are released before polynomial proving.
+time with its compiled relation and serializes proving within a registry. Native
+Commonware decoding enforces canonical subgroup encodings. Immutable Poseidon
+parameters and derived generators are shared. The cached key and relation are
+discarded before another family loads. Witness values and proof randomness are
+fresh for each request; circuit values are released before polynomial proving.
 Native provers
 share Commonware's two-worker Rayon strategy; whole-proof callers remain outside
 that pool. Wasm proving and verification use Sequential. Paths are operator
@@ -62,7 +67,7 @@ only self-verified results. Catch-up stages complete raw chunks directly and
 proves individual generations only for the final incomplete tail. Historical
 proof verification and receipt attachment run on blocking workers. Spent notes
 cannot regain history cache rows.
-History format version 3 and pool application version 17 reject stale data.
+History format version 3 and pool application version 19 reject stale data.
 
 Run `just ci-test` and `just pari-proof-tests` with the same explicit registry.
 The latter runs ignored expensive real proofs. Circuit satisfaction, codec,

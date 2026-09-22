@@ -64,3 +64,4 @@ tracing-subscriber = {workspace = true, features = ["env-filter", "ansi"]}
 [dev-dependencies]
 assert_cmd = {workspace = true}
 predicates = "2.1"
+tempfile = {workspace = true}

@@ -3445,86 +3445,61 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn explicit_many_to_one_returns_single_note_reshape_transaction() {
-        let mut rng = OsRng;
-        let source = AddressIndex::new(0);
-        let sender = test_address(4);
-        let view_addresses = BTreeMap::from([(source, sender.clone())]);
-        let notes = vec![
-            spendable_note_record(&mut rng, 7, source, sender.clone(), 1),
-            spendable_note_record(&mut rng, 5, source, sender, 2),
-        ];
-        let mut view = MockNoteManagerView::new(notes, view_addresses);
-        let mut note_manager = NoteManager::new(OsRng);
-        note_manager.set_gas_prices(GasPrices::zero());
-
-        let result = note_manager
-            .plan_note_reshape_from_notes(
-                &mut view,
-                source,
-                *BASE_ASSET_ID,
-                Some(NoteReshapeFamilyId::EightByOne),
-            )
-            .await
-            .expect("note reshape planning succeeds");
-
-        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready note reshape plan");
-        };
-        assert!(matches!(
-            transaction_plan.actions.first(),
-            Some(ActionPlan::NoteReshape(note_reshape))
-                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
-        ));
-    }
-
-    #[tokio::test]
     async fn many_to_one_uses_padded_canonical_family() {
-        let mut rng = OsRng;
-        let source = AddressIndex::new(0);
-        let sender = test_address(6);
-        let view_addresses = BTreeMap::from([(source, sender.clone())]);
-        let notes = vec![
-            spendable_note_record(&mut rng, 7, source, sender.clone(), 1),
-            spendable_note_record(&mut rng, 5, source, sender.clone(), 2),
-            spendable_note_record(&mut rng, 3, source, sender, 3),
-        ];
-        let mut view = MockNoteManagerView::new(notes, view_addresses);
-        let mut note_manager = NoteManager::new(OsRng);
-        note_manager.set_gas_prices(GasPrices::zero());
+        for (count, requested_family) in [
+            (2usize, Some(NoteReshapeFamilyId::EightByOne)),
+            (3, None),
+            (8, Some(NoteReshapeFamilyId::EightByOne)),
+        ] {
+            let mut rng = OsRng;
+            let source = AddressIndex::new(0);
+            let sender = test_address(6);
+            let view_addresses = BTreeMap::from([(source, sender.clone())]);
+            let notes = (0..count)
+                .map(|index| {
+                    spendable_note_record(&mut rng, 10, source, sender.clone(), index as u64 + 1)
+                })
+                .collect();
+            let mut view = MockNoteManagerView::new(notes, view_addresses);
+            let mut note_manager = NoteManager::new(OsRng);
+            note_manager.set_gas_prices(GasPrices::zero());
 
-        let result = note_manager
-            .plan_note_reshape_from_notes(&mut view, source, *BASE_ASSET_ID, None)
-            .await
-            .expect("note reshape planning succeeds");
+            let result = note_manager
+                .plan_note_reshape_from_notes(&mut view, source, *BASE_ASSET_ID, requested_family)
+                .await
+                .expect("note reshape planning succeeds");
 
-        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready note reshape plan");
-        };
-        let Some(ActionPlan::NoteReshape(note_reshape)) = transaction_plan.actions.first() else {
-            panic!("expected note reshape action");
-        };
-        assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::EightByOne);
-        assert_eq!(note_reshape.spends.len(), 3);
-        assert_eq!(note_reshape.family_id().input_count(), 8);
-        let spend_key = test_spend_key(6);
-        let fvk = spend_key.full_viewing_key();
-        let body = note_reshape
-            .note_reshape_body(
-                fvk,
-                &PayloadKey::from([0u8; 32]),
-                shieldd_sdk_tct::Tree::default().root(),
-                0,
-            )
-            .expect("note reshape body materialization succeeds");
-        assert!(body.inputs.iter().all(|input| input.encrypted_backref.len()
-            == shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN));
-        let padded_input = &body.inputs[3];
-        assert!(padded_input
-            .encrypted_backref
-            .decrypt(&fvk.backref_key(), &padded_input.nullifier)
-            .expect("padded backref is a valid ciphertext")
-            .is_some());
+            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+                panic!("expected ready note reshape plan");
+            };
+            let Some(ActionPlan::NoteReshape(note_reshape)) = transaction_plan.actions.first()
+            else {
+                panic!("expected note reshape action");
+            };
+            assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::EightByOne);
+            assert_eq!(transaction_plan.actions.len(), 1);
+            assert_eq!(note_reshape.spends.len(), count);
+            assert_eq!(note_reshape.family_id().input_count(), 8);
+            let spend_key = test_spend_key(6);
+            let fvk = spend_key.full_viewing_key();
+            let body = note_reshape
+                .note_reshape_body(
+                    fvk,
+                    &PayloadKey::from([0u8; 32]),
+                    shieldd_sdk_tct::Tree::default().root(),
+                    0,
+                )
+                .expect("note reshape body materialization succeeds");
+            assert!(body.inputs.iter().all(|input| input.encrypted_backref.len()
+                == shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN));
+            for padded_input in &body.inputs[count..] {
+                assert!(padded_input
+                    .encrypted_backref
+                    .decrypt(&fvk.backref_key(), &padded_input.nullifier)
+                    .expect("padded backref is a valid ciphertext")
+                    .is_some());
+            }
+        }
     }
 
     #[tokio::test]

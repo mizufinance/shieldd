@@ -29,15 +29,15 @@ nullifier, and value constraints are tracked in
   matches native key/address allocation and prevents identity-DTK ownership
   aliasing; it is not merely an honest-construction precondition.
 - Regulated transfers bind the diversified generator, transmission key, asset
-  ID, capability, RNK commitment, and lifecycle into compliance-leaf
+  ID, RNK DH point, RNK commitment, and lifecycle into compliance-leaf
   commitments under the accepted compliance anchor.
-- Native registration rejects a derived `d = 0`, preventing an identity ACK.
+- Native registration rejects an identity RNK DH point and zero RNK commitment.
 - Regulated sender and receiver statuses must both equal `Active`.
-- ACK derivation uses the selected ring point and the bound `d`.
+- Capsule encryption selects the authenticated asset payload key, or the fixed
+  sink for unregulated assets.
 - Unregulated transfers keep the same witness shape but gate membership against
   the exact asset-status branch.
-- Mutation coverage: leaf fields, paths, positions, anchor, derivation, and ACK
-  inputs.
+- Mutation coverage: leaf fields, paths, positions, anchor, and RNK points.
 
 ### Daily Volume And Detection
 
@@ -105,16 +105,17 @@ nullifier, and value constraints are tracked in
 
 ### Public Statement
 
-- Rust and Go reconstruct the same 58-field preimage for the 2×2 family (48 base fields,
-  three per input and two per output).
+- Native Rust reconstruction and the circuit agree on the 69-field preimage
+  for the 2×2 family. `Statement::fields` in the native Transfer circuit fixes
+  its order.
 - The statement hash uses the canonical transfer domain.
 - The preimage binds the consensus recent-position floor and one
   `history_required` bit per spend.
 - The public tail commits both core key confirmations and all eight
   non-duplicate metadata Fq values.
 - ABI tests reject malformed headers and wrong vector lengths.
-- Differential tests compare native Rust/Go reconstruction, circuit public
-  assignment, and statement hash.
+- Parity tests compare native Rust reconstruction, circuit public assignment,
+  and statement hash. External Bankd integration requires separate verification.
 
 ## Consensus And Runtime Checks
 
@@ -162,5 +163,5 @@ nullifier, and value constraints are tracked in
 
 - Audit completion requires `evidence_valid`.
 - Flagged rows may complete through issuer-DK tier decryption.
-- No scanner capsule-release import workflow is exposed. Unflagged ACK-tier audit therefore
-  remains incomplete even when transaction evidence is valid.
+- Distributed PET and authorized audit-release integration are unavailable.
+  Unflagged audit-key tiers remain incomplete even when transaction evidence is valid.

@@ -73,7 +73,7 @@ fn hash_level(level: &[Hash], height: u8) -> Vec<Hash> {
         .collect()
 }
 
-/// A sparse merkle tree to witness up to 65,536 individual [`Commitment`]s.
+/// A sparse merkle tree to witness up to 65,536 individual [`crate::StateCommitment`]s.
 ///
 /// This is one block in an [`epoch`](crate::builder::epoch), which is one epoch in a [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
@@ -192,7 +192,7 @@ impl Builder {
         Self::default()
     }
 
-    /// Add a new [`Commitment`] to this [`block::Builder`](Builder).
+    /// Add a new [`crate::StateCommitment`] to this [`block::Builder`](Builder).
     ///
     /// # Errors
     ///

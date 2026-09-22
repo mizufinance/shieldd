@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 pub const DEFAULT_DEPTH: u8 = 16;
 
 /// Precomputed zero hashes for each level of the tree (up to depth 16).
-/// zero_hashes[0] = hash of empty leaf
+/// `zero_hashes[0]` is the hash of an empty leaf.
 /// Each parent binds its height and four child hashes.
 pub static ZERO_HASHES: Lazy<Vec<StateCommitment>> = Lazy::new(|| {
     let mut zeros = Vec::with_capacity((DEFAULT_DEPTH + 1) as usize);
@@ -551,26 +551,46 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_updates() {
+    fn authentication_paths_preserve_child_order_and_position_digits() {
         let mut tree = QuadTree::new();
-
-        // Update multiple leaves
         tree.update(0, StateCommitment(Fq::from(1u64))).unwrap();
-        tree.update(1, StateCommitment(Fq::from(2u64))).unwrap();
-        tree.update(2, StateCommitment(Fq::from(3u64))).unwrap();
-        tree.update(3, StateCommitment(Fq::from(4u64))).unwrap();
-
-        let root = tree.root();
-
-        // Verify each path
-        for pos in 0..4u64 {
-            let leaf = StateCommitment(Fq::from((pos + 1) as u64));
-            let path = tree.auth_path(pos).unwrap();
+        assert_eq!(tree.auth_path(0).unwrap()[0], [ZERO_HASHES[0]; 3]);
+        for position in [1u64, 2, 3, 5, 10] {
+            tree.update(position, StateCommitment(Fq::from(position + 1)))
+                .unwrap();
+        }
+        assert_eq!(
+            tree.auth_path(0).unwrap()[0],
+            [
+                StateCommitment(Fq::from(2u64)),
+                StateCommitment(Fq::from(3u64)),
+                StateCommitment(Fq::from(4u64)),
+            ]
+        );
+        for position in [0u64, 1, 2, 3, 5, 10] {
+            let leaf = StateCommitment(Fq::from(position + 1));
+            let path = tree.auth_path(position).unwrap();
+            assert_eq!(path.len(), DEFAULT_DEPTH as usize);
+            let mut current = leaf;
+            let mut remaining = position;
+            for (level, siblings) in path.iter().enumerate() {
+                let mut children = siblings.to_vec();
+                children.insert((remaining % 4) as usize, current);
+                current = QuadTree::hash_children(
+                    level as u8 + 1,
+                    children[0],
+                    children[1],
+                    children[2],
+                    children[3],
+                );
+                remaining /= 4;
+            }
+            assert_eq!(current, tree.root());
             assert!(QuadTree::verify_auth_path(
-                pos,
+                position,
                 leaf,
                 &path,
-                root,
+                tree.root(),
                 DEFAULT_DEPTH
             ));
         }

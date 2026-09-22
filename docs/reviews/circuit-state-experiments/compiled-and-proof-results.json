@@ -1,0 +1,1714 @@
+{
+  "relations": {
+    "baseline/catalogue.log": {
+      "sha256": "056de768664ffd772d518831b0097df0a19559844f34f452d08b21f70ccf55e8",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 212174,
+          "columns": 212126,
+          "squared_nnz": 2217505,
+          "linear_nnz": 269074,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 157049,
+          "columns": 156987,
+          "squared_nnz": 1586363,
+          "linear_nnz": 198771,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 185925,
+          "columns": 186308,
+          "squared_nnz": 2704476,
+          "linear_nnz": 236752,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 119090,
+          "columns": 119143,
+          "squared_nnz": 1557588,
+          "linear_nnz": 151601,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16604,
+          "columns": 16686,
+          "squared_nnz": 311780,
+          "linear_nnz": 20845,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 15123,
+          "columns": 15166,
+          "squared_nnz": 216294,
+          "linear_nnz": 19664,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 143357,
+          "columns": 143740,
+          "squared_nnz": 2005662,
+          "linear_nnz": 186774,
+          "domain": 262144
+        }
+      ]
+    },
+    "arithmetic/gadget_shapes.log": {
+      "sha256": "1b887ae4f9ca9d2d3bb9f92b634b112099cacf3565c31b927b57f6ad4a4f855e",
+      "relations": [
+        {
+          "label": "repeat_128x2",
+          "rows": 261,
+          "columns": 262,
+          "squared_nnz": 520,
+          "linear_nnz": 256,
+          "domain": 512
+        },
+        {
+          "label": "reuse_128x2",
+          "rows": 132,
+          "columns": 134,
+          "squared_nnz": 263,
+          "linear_nnz": 128,
+          "domain": 256
+        },
+        {
+          "label": "repeat_48x2",
+          "rows": 101,
+          "columns": 102,
+          "squared_nnz": 200,
+          "linear_nnz": 96,
+          "domain": 128
+        },
+        {
+          "label": "reuse_48x2",
+          "rows": 52,
+          "columns": 54,
+          "squared_nnz": 103,
+          "linear_nnz": 48,
+          "domain": 64
+        },
+        {
+          "label": "repeat_48x8",
+          "rows": 395,
+          "columns": 390,
+          "squared_nnz": 782,
+          "linear_nnz": 384,
+          "domain": 512
+        },
+        {
+          "label": "reuse_48x8",
+          "rows": 52,
+          "columns": 54,
+          "squared_nnz": 103,
+          "linear_nnz": 48,
+          "domain": 64
+        }
+      ]
+    },
+    "arithmetic/run-authorization.log": {
+      "sha256": "40d2f6c0fe921b23d3503a39c7e44c51f9df7ddfc7f422051f0281fabd3a2aa9",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 211674,
+          "columns": 211627,
+          "squared_nnz": 2091005,
+          "linear_nnz": 268324,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 156549,
+          "columns": 156488,
+          "squared_nnz": 1459863,
+          "linear_nnz": 198021,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 185425,
+          "columns": 185809,
+          "squared_nnz": 2577976,
+          "linear_nnz": 236002,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 118590,
+          "columns": 118644,
+          "squared_nnz": 1431088,
+          "linear_nnz": 150851,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16604,
+          "columns": 16686,
+          "squared_nnz": 311780,
+          "linear_nnz": 20845,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 15123,
+          "columns": 15166,
+          "squared_nnz": 216294,
+          "linear_nnz": 19664,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 143357,
+          "columns": 143740,
+          "squared_nnz": 2005662,
+          "linear_nnz": 186774,
+          "domain": 262144
+        }
+      ]
+    },
+    "arithmetic/run-bundle-width10-eq-cap1.log": {
+      "sha256": "73d9fa42abebc83d09df0e8ff2de773a342bcde4c86434cbb15f844e42532cdd",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 204511,
+          "columns": 204426,
+          "squared_nnz": 2072362,
+          "linear_nnz": 258018,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 153460,
+          "columns": 153362,
+          "squared_nnz": 1453422,
+          "linear_nnz": 193057,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 179676,
+          "columns": 180023,
+          "squared_nnz": 2565572,
+          "linear_nnz": 227020,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 114550,
+          "columns": 114566,
+          "squared_nnz": 1421917,
+          "linear_nnz": 144387,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16224,
+          "columns": 16306,
+          "squared_nnz": 310912,
+          "linear_nnz": 20271,
+          "domain": 16384
+        },
+        {
+          "label": "disclosure",
+          "rows": 5172,
+          "columns": 5123,
+          "squared_nnz": 63108,
+          "linear_nnz": 5860,
+          "domain": 8192
+        },
+        {
+          "label": "history_generation",
+          "rows": 13330,
+          "columns": 13368,
+          "squared_nnz": 210524,
+          "linear_nnz": 16668,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 118533,
+          "columns": 118893,
+          "squared_nnz": 1928414,
+          "linear_nnz": 147634,
+          "domain": 131072
+        }
+      ]
+    },
+    "arithmetic/run-bundle-width10-eq.log": {
+      "sha256": "3b956a3e5af4021ecff9110f0483bbfe5adf1d3b576720348988b0ea6f8494f4",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 204511,
+          "columns": 204426,
+          "squared_nnz": 2072362,
+          "linear_nnz": 258018,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 153460,
+          "columns": 153362,
+          "squared_nnz": 1453422,
+          "linear_nnz": 193057,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 179676,
+          "columns": 180023,
+          "squared_nnz": 2565572,
+          "linear_nnz": 227020,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 114550,
+          "columns": 114566,
+          "squared_nnz": 1421917,
+          "linear_nnz": 144387,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16224,
+          "columns": 16306,
+          "squared_nnz": 310912,
+          "linear_nnz": 20271,
+          "domain": 16384
+        },
+        {
+          "label": "disclosure",
+          "rows": 90949,
+          "columns": 89846,
+          "squared_nnz": 1195321,
+          "linear_nnz": 104471,
+          "domain": 131072
+        },
+        {
+          "label": "history_generation",
+          "rows": 13330,
+          "columns": 13368,
+          "squared_nnz": 210524,
+          "linear_nnz": 16668,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 118533,
+          "columns": 118893,
+          "squared_nnz": 1928414,
+          "linear_nnz": 147634,
+          "domain": 131072
+        }
+      ]
+    },
+    "arithmetic/run-bundle-width10.log": {
+      "sha256": "7ed8b20a9632354b2a75fa74fe3f9b467e5c207bee7ef4bfb81c2d03221d064c",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 204757,
+          "columns": 204672,
+          "squared_nnz": 2071336,
+          "linear_nnz": 258260,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 153706,
+          "columns": 153608,
+          "squared_nnz": 1452396,
+          "linear_nnz": 193299,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 179922,
+          "columns": 180269,
+          "squared_nnz": 2564546,
+          "linear_nnz": 227262,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 114796,
+          "columns": 114812,
+          "squared_nnz": 1420891,
+          "linear_nnz": 144629,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16224,
+          "columns": 16306,
+          "squared_nnz": 310912,
+          "linear_nnz": 20271,
+          "domain": 16384
+        },
+        {
+          "label": "disclosure",
+          "rows": 90949,
+          "columns": 89846,
+          "squared_nnz": 1195321,
+          "linear_nnz": 104471,
+          "domain": 131072
+        },
+        {
+          "label": "history_generation",
+          "rows": 13576,
+          "columns": 13614,
+          "squared_nnz": 209498,
+          "linear_nnz": 16910,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 120993,
+          "columns": 121353,
+          "squared_nnz": 1918154,
+          "linear_nnz": 150054,
+          "domain": 131072
+        }
+      ]
+    },
+    "arithmetic/run-bundle-width11-eq.log": {
+      "sha256": "a60c8d4ce342bbaf7bcd8f439ed1cc80e0e048993e2b5430735d832ae967f0ba",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 204511,
+          "columns": 204426,
+          "squared_nnz": 2072362,
+          "linear_nnz": 258018,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 153460,
+          "columns": 153362,
+          "squared_nnz": 1453422,
+          "linear_nnz": 193057,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 179676,
+          "columns": 180023,
+          "squared_nnz": 2565572,
+          "linear_nnz": 227020,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 114550,
+          "columns": 114566,
+          "squared_nnz": 1421917,
+          "linear_nnz": 144387,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16224,
+          "columns": 16306,
+          "squared_nnz": 310912,
+          "linear_nnz": 20271,
+          "domain": 16384
+        },
+        {
+          "label": "disclosure",
+          "rows": 90949,
+          "columns": 89846,
+          "squared_nnz": 1195321,
+          "linear_nnz": 104471,
+          "domain": 131072
+        },
+        {
+          "label": "history_generation",
+          "rows": 13330,
+          "columns": 13368,
+          "squared_nnz": 210524,
+          "linear_nnz": 16668,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 130261,
+          "columns": 130657,
+          "squared_nnz": 2120202,
+          "linear_nnz": 162237,
+          "domain": 131072
+        }
+      ]
+    },
+    "arithmetic/run-bundle-width12-eq.log": {
+      "sha256": "3090b3baab4d633d76e543ffcc04273ba9d8a756dcfae611599245f296749731",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 204511,
+          "columns": 204426,
+          "squared_nnz": 2072362,
+          "linear_nnz": 258018,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 153460,
+          "columns": 153362,
+          "squared_nnz": 1453422,
+          "linear_nnz": 193057,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 179676,
+          "columns": 180023,
+          "squared_nnz": 2565572,
+          "linear_nnz": 227020,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 114550,
+          "columns": 114566,
+          "squared_nnz": 1421917,
+          "linear_nnz": 144387,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16224,
+          "columns": 16306,
+          "squared_nnz": 310912,
+          "linear_nnz": 20271,
+          "domain": 16384
+        },
+        {
+          "label": "disclosure",
+          "rows": 90949,
+          "columns": 89846,
+          "squared_nnz": 1195321,
+          "linear_nnz": 104471,
+          "domain": 131072
+        },
+        {
+          "label": "history_generation",
+          "rows": 13330,
+          "columns": 13368,
+          "squared_nnz": 210524,
+          "linear_nnz": 16668,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 141989,
+          "columns": 142421,
+          "squared_nnz": 2311990,
+          "linear_nnz": 176840,
+          "domain": 262144
+        }
+      ]
+    },
+    "arithmetic/run-bundle-width8-eq.log": {
+      "sha256": "d46d188dcb707bf01368a232b3a4e55cfbedbcc782a196187794dce5a6255e59",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 204511,
+          "columns": 204426,
+          "squared_nnz": 2072362,
+          "linear_nnz": 258018,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 153460,
+          "columns": 153362,
+          "squared_nnz": 1453422,
+          "linear_nnz": 193057,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 179676,
+          "columns": 180023,
+          "squared_nnz": 2565572,
+          "linear_nnz": 227020,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 114550,
+          "columns": 114566,
+          "squared_nnz": 1421917,
+          "linear_nnz": 144387,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16224,
+          "columns": 16306,
+          "squared_nnz": 310912,
+          "linear_nnz": 20271,
+          "domain": 16384
+        },
+        {
+          "label": "disclosure",
+          "rows": 90949,
+          "columns": 89846,
+          "squared_nnz": 1195321,
+          "linear_nnz": 104471,
+          "domain": 131072
+        },
+        {
+          "label": "history_generation",
+          "rows": 13330,
+          "columns": 13368,
+          "squared_nnz": 210524,
+          "linear_nnz": 16668,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 95077,
+          "columns": 95365,
+          "squared_nnz": 1544838,
+          "linear_nnz": 118428,
+          "domain": 131072
+        }
+      ]
+    },
+    "arithmetic/run-bundle-width9-eq.log": {
+      "sha256": "423f1261ea6340f094103d9d2c8b0525b8ef9e9218dc474330f6876ed5f5143e",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 204511,
+          "columns": 204426,
+          "squared_nnz": 2072362,
+          "linear_nnz": 258018,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 153460,
+          "columns": 153362,
+          "squared_nnz": 1453422,
+          "linear_nnz": 193057,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 179676,
+          "columns": 180023,
+          "squared_nnz": 2565572,
+          "linear_nnz": 227020,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 114550,
+          "columns": 114566,
+          "squared_nnz": 1421917,
+          "linear_nnz": 144387,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16224,
+          "columns": 16306,
+          "squared_nnz": 310912,
+          "linear_nnz": 20271,
+          "domain": 16384
+        },
+        {
+          "label": "disclosure",
+          "rows": 90949,
+          "columns": 89846,
+          "squared_nnz": 1195321,
+          "linear_nnz": 104471,
+          "domain": 131072
+        },
+        {
+          "label": "history_generation",
+          "rows": 13330,
+          "columns": 13368,
+          "squared_nnz": 210524,
+          "linear_nnz": 16668,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 106805,
+          "columns": 107129,
+          "squared_nnz": 1736626,
+          "linear_nnz": 133031,
+          "domain": 131072
+        }
+      ]
+    },
+    "arithmetic/run-range-disclosure.log": {
+      "sha256": "07be653e48259459d40fd720c9febee0cf95d9132f03eac7440b21ab188e9cbb",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 212174,
+          "columns": 212126,
+          "squared_nnz": 2217505,
+          "linear_nnz": 269074,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 157049,
+          "columns": 156987,
+          "squared_nnz": 1586363,
+          "linear_nnz": 198771,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 185925,
+          "columns": 186308,
+          "squared_nnz": 2704476,
+          "linear_nnz": 236752,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 119090,
+          "columns": 119143,
+          "squared_nnz": 1557588,
+          "linear_nnz": 151601,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16604,
+          "columns": 16686,
+          "squared_nnz": 311780,
+          "linear_nnz": 20845,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 109066,
+          "columns": 107930,
+          "squared_nnz": 1478824,
+          "linear_nnz": 126020,
+          "domain": 131072
+        },
+        {
+          "label": "history_generation",
+          "rows": 15123,
+          "columns": 15166,
+          "squared_nnz": 216294,
+          "linear_nnz": 19664,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 143357,
+          "columns": 143740,
+          "squared_nnz": 2005662,
+          "linear_nnz": 186774,
+          "domain": 262144
+        }
+      ]
+    },
+    "arithmetic/run-routing-tree-authorization-range.log": {
+      "sha256": "46f413497602a014f96b31ed3690fdc1ce3430c00aa8e3e1bd4f07fdfb78e7f2",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 209753,
+          "columns": 209675,
+          "squared_nnz": 2089853,
+          "linear_nnz": 265396,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 155140,
+          "columns": 155048,
+          "squared_nnz": 1459095,
+          "linear_nnz": 195861,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 182672,
+          "columns": 183025,
+          "squared_nnz": 2576200,
+          "linear_nnz": 231826,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 116797,
+          "columns": 116820,
+          "squared_nnz": 1430032,
+          "linear_nnz": 148115,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16412,
+          "columns": 16494,
+          "squared_nnz": 311621,
+          "linear_nnz": 20557,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 14963,
+          "columns": 15006,
+          "squared_nnz": 216174,
+          "linear_nnz": 19424,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 141757,
+          "columns": 142140,
+          "squared_nnz": 2004462,
+          "linear_nnz": 184374,
+          "domain": 262144
+        }
+      ]
+    },
+    "arithmetic/run-routing.log": {
+      "sha256": "7029afef2ba0c853777c00a8a5e6b98c7ca9eab8edec0cd37477b4164bf61738",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 211213,
+          "columns": 211134,
+          "squared_nnz": 2217073,
+          "linear_nnz": 267586,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 156088,
+          "columns": 155995,
+          "squared_nnz": 1585931,
+          "linear_nnz": 197283,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 184964,
+          "columns": 185316,
+          "squared_nnz": 2704044,
+          "linear_nnz": 235264,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 118129,
+          "columns": 118151,
+          "squared_nnz": 1557156,
+          "linear_nnz": 150113,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16604,
+          "columns": 16686,
+          "squared_nnz": 311780,
+          "linear_nnz": 20845,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 15123,
+          "columns": 15166,
+          "squared_nnz": 216294,
+          "linear_nnz": 19664,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 143357,
+          "columns": 143740,
+          "squared_nnz": 2005662,
+          "linear_nnz": 186774,
+          "domain": 262144
+        }
+      ]
+    },
+    "arithmetic/run-tree.log": {
+      "sha256": "fd38398739d0ac2be39b19efb4a16f1d69c0b4a9de7c6e971e0de9b2c1a30b57",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 211214,
+          "columns": 211166,
+          "squared_nnz": 2216785,
+          "linear_nnz": 267634,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 156601,
+          "columns": 156539,
+          "squared_nnz": 1586027,
+          "linear_nnz": 198099,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 184133,
+          "columns": 184516,
+          "squared_nnz": 2703132,
+          "linear_nnz": 234064,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 118258,
+          "columns": 118311,
+          "squared_nnz": 1556964,
+          "linear_nnz": 150353,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16412,
+          "columns": 16494,
+          "squared_nnz": 311621,
+          "linear_nnz": 20557,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 14963,
+          "columns": 15006,
+          "squared_nnz": 216174,
+          "linear_nnz": 19424,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 141757,
+          "columns": 142140,
+          "squared_nnz": 2004462,
+          "linear_nnz": 184374,
+          "domain": 262144
+        }
+      ]
+    },
+    "crypto/gadget_shapes.log": {
+      "sha256": "cfa6b7eab539f3cfd14f2c7aeda70e26f98861103712f71d32b3ed5bce4071ad",
+      "relations": [
+        {
+          "label": "hash_binary",
+          "rows": 19396,
+          "columns": 19446,
+          "squared_nnz": 391246,
+          "linear_nnz": 24240,
+          "domain": 32768
+        },
+        {
+          "label": "hash_quaternary",
+          "rows": 9892,
+          "columns": 9966,
+          "squared_nnz": 196918,
+          "linear_nnz": 12360,
+          "domain": 16384
+        },
+        {
+          "label": "hash_octary",
+          "rows": 13316,
+          "columns": 13430,
+          "squared_nnz": 264814,
+          "linear_nnz": 16640,
+          "domain": 16384
+        },
+        {
+          "label": "note_current",
+          "rows": 840,
+          "columns": 849,
+          "squared_nnz": 16573,
+          "linear_nnz": 1045,
+          "domain": 1024
+        },
+        {
+          "label": "note_address_digest",
+          "rows": 832,
+          "columns": 841,
+          "squared_nnz": 16435,
+          "linear_nnz": 1035,
+          "domain": 1024
+        },
+        {
+          "label": "notes8_current",
+          "rows": 7528,
+          "columns": 7593,
+          "squared_nnz": 149173,
+          "linear_nnz": 9405,
+          "domain": 8192
+        },
+        {
+          "label": "notes8_shared1",
+          "rows": 4580,
+          "columns": 4617,
+          "squared_nnz": 90739,
+          "linear_nnz": 5720,
+          "domain": 8192
+        },
+        {
+          "label": "notes8_shared2",
+          "rows": 4992,
+          "columns": 5033,
+          "squared_nnz": 98929,
+          "linear_nnz": 6235,
+          "domain": 8192
+        },
+        {
+          "label": "notes8_shared8",
+          "rows": 7464,
+          "columns": 7529,
+          "squared_nnz": 148069,
+          "linear_nnz": 9325,
+          "domain": 8192
+        },
+        {
+          "label": "address_packed",
+          "rows": 4424,
+          "columns": 4418,
+          "squared_nnz": 37804,
+          "linear_nnz": 5775,
+          "domain": 8192
+        },
+        {
+          "label": "address_affine",
+          "rows": 1680,
+          "columns": 1686,
+          "squared_nnz": 34087,
+          "linear_nnz": 2095,
+          "domain": 2048
+        },
+        {
+          "label": "amount_core_one",
+          "rows": 10010,
+          "columns": 10014,
+          "squared_nnz": 56784,
+          "linear_nnz": 12629,
+          "domain": 16384
+        },
+        {
+          "label": "amount_core_two",
+          "rows": 20036,
+          "columns": 20040,
+          "squared_nnz": 113783,
+          "linear_nnz": 25283,
+          "domain": 32768
+        }
+      ]
+    },
+    "crypto/poseidon2_shapes.log": {
+      "sha256": "f45d0dc922361c3a7bc305645de41461d5ce7958547bfaa64394ea6a23e3da11",
+      "relations": [
+        {
+          "label": "p2_binary_w3",
+          "rows": 30724,
+          "columns": 30774,
+          "squared_nnz": 607528,
+          "linear_nnz": 38400,
+          "domain": 32768
+        },
+        {
+          "label": "p2_binary_w8",
+          "rows": 23236,
+          "columns": 23286,
+          "squared_nnz": 470727,
+          "linear_nnz": 29040,
+          "domain": 32768
+        },
+        {
+          "label": "p2_quaternary_w8",
+          "rows": 11620,
+          "columns": 11694,
+          "squared_nnz": 236439,
+          "linear_nnz": 14520,
+          "domain": 16384
+        },
+        {
+          "label": "p2_octary_w8",
+          "rows": 15492,
+          "columns": 15606,
+          "squared_nnz": 315687,
+          "linear_nnz": 19360,
+          "domain": 16384
+        }
+      ]
+    },
+    "crypto/prepared_base.log": {
+      "sha256": "60a46194c00264fa4a4bb2be3b77d936f67eb3714143b583155580ac9f593f64",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 212093,
+          "columns": 212045,
+          "squared_nnz": 2217202,
+          "linear_nnz": 268975,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 157049,
+          "columns": 156987,
+          "squared_nnz": 1586363,
+          "linear_nnz": 198771,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 185925,
+          "columns": 186308,
+          "squared_nnz": 2704476,
+          "linear_nnz": 236752,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 119090,
+          "columns": 119143,
+          "squared_nnz": 1557588,
+          "linear_nnz": 151601,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16604,
+          "columns": 16686,
+          "squared_nnz": 311780,
+          "linear_nnz": 20845,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 15123,
+          "columns": 15166,
+          "squared_nnz": 216294,
+          "linear_nnz": 19664,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 143357,
+          "columns": 143740,
+          "squared_nnz": 2005662,
+          "linear_nnz": 186774,
+          "domain": 262144
+        }
+      ]
+    },
+    "crypto/w3.log": {
+      "sha256": "6f9a22b05840a0a6d9b6622706bd856fa5f3286da1f2557eb939cd6168c757e7",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 207554,
+          "columns": 207506,
+          "squared_nnz": 2218693,
+          "linear_nnz": 263530,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 152849,
+          "columns": 152787,
+          "squared_nnz": 1587443,
+          "linear_nnz": 193731,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 181725,
+          "columns": 182108,
+          "squared_nnz": 2705556,
+          "linear_nnz": 231712,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 116990,
+          "columns": 117043,
+          "squared_nnz": 1558128,
+          "linear_nnz": 149081,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16604,
+          "columns": 16686,
+          "squared_nnz": 311780,
+          "linear_nnz": 20845,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 15123,
+          "columns": 15166,
+          "squared_nnz": 216294,
+          "linear_nnz": 19664,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 143357,
+          "columns": 143740,
+          "squared_nnz": 2005662,
+          "linear_nnz": 186774,
+          "domain": 262144
+        }
+      ]
+    },
+    "crypto/w4.log": {
+      "sha256": "6c645670f8caabd9eef2d9aec3b07bd3e1965dd16d9373a0bde2b62d5947f316",
+      "relations": [
+        {
+          "label": "transfer",
+          "rows": 212174,
+          "columns": 212126,
+          "squared_nnz": 2249526,
+          "linear_nnz": 271153,
+          "domain": 262144
+        },
+        {
+          "label": "reshape1x8",
+          "rows": 157049,
+          "columns": 156987,
+          "squared_nnz": 1615473,
+          "linear_nnz": 200661,
+          "domain": 262144
+        },
+        {
+          "label": "reshape8x1",
+          "rows": 185925,
+          "columns": 186308,
+          "squared_nnz": 2733586,
+          "linear_nnz": 238642,
+          "domain": 262144
+        },
+        {
+          "label": "withdrawal",
+          "rows": 119090,
+          "columns": 119143,
+          "squared_nnz": 1572143,
+          "linear_nnz": 152546,
+          "domain": 131072
+        },
+        {
+          "label": "seizure",
+          "rows": 16604,
+          "columns": 16686,
+          "squared_nnz": 311780,
+          "linear_nnz": 20845,
+          "domain": 32768
+        },
+        {
+          "label": "disclosure",
+          "rows": 159226,
+          "columns": 158090,
+          "squared_nnz": 1714147,
+          "linear_nnz": 210236,
+          "domain": 262144
+        },
+        {
+          "label": "history_generation",
+          "rows": 15123,
+          "columns": 15166,
+          "squared_nnz": 216294,
+          "linear_nnz": 19664,
+          "domain": 16384
+        },
+        {
+          "label": "history_chunk10",
+          "rows": 143357,
+          "columns": 143740,
+          "squared_nnz": 2005662,
+          "linear_nnz": 186774,
+          "domain": 262144
+        }
+      ]
+    }
+  },
+  "proofs": {
+    "disclosure-baseline": {
+      "sha256": "7089b7fe136eee62b5240d989b59482ab96d4bbaffb109322f32d8b2abf50eaa",
+      "measurements": [
+        {
+          "family": "disclosure",
+          "compile_ms": 1682,
+          "domain": 262144
+        },
+        {
+          "setup_ms": 31878,
+          "pk_bytes": 58553237
+        },
+        {
+          "run": 0,
+          "witness_ms": 29,
+          "assignment_ms": 1685,
+          "claim_ms": 0,
+          "native_prove_ms": 3871,
+          "prove_pipeline_ms": 5557,
+          "verify_us": 741,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 29,
+          "assignment_ms": 1706,
+          "claim_ms": 0,
+          "native_prove_ms": 3890,
+          "prove_pipeline_ms": 5597,
+          "verify_us": 723,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 31,
+          "assignment_ms": 1694,
+          "claim_ms": 0,
+          "native_prove_ms": 3894,
+          "prove_pipeline_ms": 5589,
+          "verify_us": 724,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "disclosure-bundle1": {
+      "sha256": "590387678af2d93dce026bfdc6af3d496c0d243b2a1229bfc251742c85829396",
+      "measurements": [
+        {
+          "family": "disclosure",
+          "compile_ms": 71,
+          "domain": 8192
+        },
+        {
+          "setup_ms": 992,
+          "pk_bytes": 1840166
+        },
+        {
+          "run": 0,
+          "witness_ms": 1,
+          "assignment_ms": 65,
+          "claim_ms": 0,
+          "native_prove_ms": 147,
+          "prove_pipeline_ms": 213,
+          "verify_us": 766,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 1,
+          "assignment_ms": 66,
+          "claim_ms": 0,
+          "native_prove_ms": 148,
+          "prove_pipeline_ms": 214,
+          "verify_us": 754,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 1,
+          "assignment_ms": 70,
+          "claim_ms": 0,
+          "native_prove_ms": 147,
+          "prove_pipeline_ms": 218,
+          "verify_us": 733,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "disclosure-bundle32": {
+      "sha256": "2f1ce315cf043ab9386bef46b3149d59ea53255c082fec365dd3ee90bed312cf",
+      "measurements": [
+        {
+          "family": "disclosure",
+          "compile_ms": 1389,
+          "domain": 131072
+        },
+        {
+          "setup_ms": 15825,
+          "pk_bytes": 29838725
+        },
+        {
+          "run": 0,
+          "witness_ms": 24,
+          "assignment_ms": 1378,
+          "claim_ms": 0,
+          "native_prove_ms": 2076,
+          "prove_pipeline_ms": 3455,
+          "verify_us": 740,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 26,
+          "assignment_ms": 1374,
+          "claim_ms": 0,
+          "native_prove_ms": 2081,
+          "prove_pipeline_ms": 3456,
+          "verify_us": 749,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 25,
+          "assignment_ms": 1362,
+          "claim_ms": 0,
+          "native_prove_ms": 2074,
+          "prove_pipeline_ms": 3437,
+          "verify_us": 745,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "history-baseline10": {
+      "sha256": "4c3f297b46415bc198b9d591db6763a2e7a11c95bfefd7303c77115b76550d76",
+      "measurements": [
+        {
+          "family": "history",
+          "compile_ms": 2141,
+          "domain": 262144
+        },
+        {
+          "setup_ms": 32042,
+          "pk_bytes": 57807037
+        },
+        {
+          "run": 0,
+          "witness_ms": 34,
+          "assignment_ms": 2221,
+          "claim_ms": 0,
+          "native_prove_ms": 3950,
+          "prove_pipeline_ms": 6172,
+          "verify_us": 760,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 36,
+          "assignment_ms": 2229,
+          "claim_ms": 0,
+          "native_prove_ms": 3940,
+          "prove_pipeline_ms": 6169,
+          "verify_us": 753,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 42,
+          "assignment_ms": 2194,
+          "claim_ms": 0,
+          "native_prove_ms": 3942,
+          "prove_pipeline_ms": 6136,
+          "verify_us": 771,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "history-bundle10": {
+      "sha256": "3cc097db092145a8d3fe8dbdbe383db550c449a8bd710b27f0c858c0951cda68",
+      "measurements": [
+        {
+          "family": "history",
+          "compile_ms": 2145,
+          "domain": 131072
+        },
+        {
+          "setup_ms": 15693,
+          "pk_bytes": 31349169
+        },
+        {
+          "run": 0,
+          "witness_ms": 33,
+          "assignment_ms": 2171,
+          "claim_ms": 0,
+          "native_prove_ms": 2186,
+          "prove_pipeline_ms": 4357,
+          "verify_us": 751,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 34,
+          "assignment_ms": 2208,
+          "claim_ms": 0,
+          "native_prove_ms": 2181,
+          "prove_pipeline_ms": 4390,
+          "verify_us": 744,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 35,
+          "assignment_ms": 2180,
+          "claim_ms": 0,
+          "native_prove_ms": 2174,
+          "prove_pipeline_ms": 4355,
+          "verify_us": 723,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "history-bundle11": {
+      "sha256": "4a6e731b48caaaf62684937eee353aaa1c7ce61720378e3c362d33992adee541",
+      "measurements": [
+        {
+          "family": "history",
+          "compile_ms": 2365,
+          "domain": 131072
+        },
+        {
+          "setup_ms": 15426,
+          "pk_bytes": 31960897
+        },
+        {
+          "run": 0,
+          "witness_ms": 40,
+          "assignment_ms": 2398,
+          "claim_ms": 0,
+          "native_prove_ms": 2208,
+          "prove_pipeline_ms": 4606,
+          "verify_us": 731,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 42,
+          "assignment_ms": 2406,
+          "claim_ms": 0,
+          "native_prove_ms": 2202,
+          "prove_pipeline_ms": 4609,
+          "verify_us": 726,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 43,
+          "assignment_ms": 2386,
+          "claim_ms": 0,
+          "native_prove_ms": 2211,
+          "prove_pipeline_ms": 4597,
+          "verify_us": 718,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "transfer-baseline": {
+      "sha256": "4b085006692ae059899e6764dc28bb0b9efd5a0f030a46d90d010ab6ef8c65fc",
+      "measurements": [
+        {
+          "family": "transfer",
+          "compile_ms": 2000,
+          "domain": 262144
+        },
+        {
+          "setup_ms": 31898,
+          "pk_bytes": 61363109
+        },
+        {
+          "run": 0,
+          "witness_ms": 56,
+          "assignment_ms": 1969,
+          "claim_ms": 0,
+          "native_prove_ms": 4107,
+          "prove_pipeline_ms": 6077,
+          "verify_us": 755,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 56,
+          "assignment_ms": 1976,
+          "claim_ms": 0,
+          "native_prove_ms": 4125,
+          "prove_pipeline_ms": 6102,
+          "verify_us": 743,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 54,
+          "assignment_ms": 1977,
+          "claim_ms": 0,
+          "native_prove_ms": 4114,
+          "prove_pipeline_ms": 6091,
+          "verify_us": 733,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "transfer-bundle-w3": {
+      "sha256": "1e8642f859e1d34a8eb40a7dc14f0328a4056b0c46c9da07d103bfe6702569cf",
+      "measurements": [
+        {
+          "family": "transfer",
+          "compile_ms": 1920,
+          "domain": 262144
+        },
+        {
+          "setup_ms": 31481,
+          "pk_bytes": 60722469
+        },
+        {
+          "run": 0,
+          "witness_ms": 56,
+          "assignment_ms": 1963,
+          "claim_ms": 0,
+          "native_prove_ms": 4078,
+          "prove_pipeline_ms": 6042,
+          "verify_us": 751,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 59,
+          "assignment_ms": 2011,
+          "claim_ms": 0,
+          "native_prove_ms": 4081,
+          "prove_pipeline_ms": 6093,
+          "verify_us": 739,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 60,
+          "assignment_ms": 1979,
+          "claim_ms": 0,
+          "native_prove_ms": 4083,
+          "prove_pipeline_ms": 6063,
+          "verify_us": 762,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    },
+    "transfer-bundle": {
+      "sha256": "3eeb286120a0ba8b0b97bf101883e3b6c703d2c369263c403004f0cd1a2da5c8",
+      "measurements": [
+        {
+          "family": "transfer",
+          "compile_ms": 1922,
+          "domain": 262144
+        },
+        {
+          "setup_ms": 31414,
+          "pk_bytes": 60962709
+        },
+        {
+          "run": 0,
+          "witness_ms": 56,
+          "assignment_ms": 1956,
+          "claim_ms": 0,
+          "native_prove_ms": 4107,
+          "prove_pipeline_ms": 6064,
+          "verify_us": 752,
+          "proof_bytes": 244
+        },
+        {
+          "run": 1,
+          "witness_ms": 57,
+          "assignment_ms": 1972,
+          "claim_ms": 0,
+          "native_prove_ms": 4103,
+          "prove_pipeline_ms": 6075,
+          "verify_us": 750,
+          "proof_bytes": 244
+        },
+        {
+          "run": 2,
+          "witness_ms": 53,
+          "assignment_ms": 1932,
+          "claim_ms": 0,
+          "native_prove_ms": 4106,
+          "prove_pipeline_ms": 6039,
+          "verify_us": 749,
+          "proof_bytes": 244
+        }
+      ],
+      "exit_zero": true
+    }
+  }
+}

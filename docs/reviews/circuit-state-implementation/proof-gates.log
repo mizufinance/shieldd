@@ -1,0 +1,305 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+   Compiling shieldd-sdk-sct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/sct)
+   Compiling shieldd-sdk-compliance v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compliance)
+   Compiling shieldd-sdk-proof-params v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/proof-params)
+   Compiling shieldd-sdk-shielded-pool v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/shielded-pool)
+   Compiling shieldd-sdk-fee v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/fee)
+   Compiling shieldd-sdk-transaction v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/transaction)
+   Compiling shieldd-sdk-disclosure v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/disclosure)
+   Compiling shieldd-sdk-compact-block v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/compact-block)
+   Compiling shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+   Compiling shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+   Compiling shieldd-sdk-mock-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/mock-client)
+   Compiling shieldd-sdk-app-tests v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app-tests)
+   Compiling shieldd-sdk-custody v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/custody)
+   Compiling pcli v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/pcli)
+   Compiling shieldd v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/bin/shieldd)
+    Finished `ci` profile [optimized] target(s) in 6m 01s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/pcli-4957daf70ac4ae26)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/ci/deps/pcli-b732dc03c259331f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_surface.rs (target/ci/deps/cli_surface-72d3cdeae6655f3d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd-f6dd2a365a21870e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_app-656d95fdda21ff00)
+
+running 1 test
+test app::host::tests::note_seizure_verifies_capsule_release_and_commits_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 101 filtered out; finished in 16.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_app_tests-f737837bc4b985d6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/app_can_sweep_a_collection_of_small_notes.rs (target/ci/deps/app_can_sweep_a_collection_of_small_notes-f36f647bf05a0d47)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/app_can_transfer_notes_and_detect_new_notes.rs (target/ci/deps/app_can_transfer_notes_and_detect_new_notes-31ffd76c69c5a50d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/compliance_diversifier_fix.rs (target/ci/deps/compliance_diversifier_fix-f2dfe4cf0440eed1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/disclosure.rs (target/ci/deps/disclosure-06bdc5584378be79)
+
+running 2 tests
+test accepted_disclosure_opening ... ok
+test export_import_between_wallet_directories ... Disclosure request: {
+  "version": 2,
+  "chain_id": "shieldd-test",
+  "recipient": "recipient",
+  "challenge": "c67d2eb6f94e495e822c77bbd833236fbfbd4ed37a08452f9724cce95f22c452",
+  "outputs": [
+    {
+      "reference": {
+        "transaction_id": "124574fecec34ff3bdd345b4263619cd59eb1bb851e044b06311a2d8396ccc4b",
+        "height": 2,
+        "action": {
+          "Body": 0
+        },
+        "output": 0
+      },
+      "amount": false,
+      "asset": true,
+      "recipient": false,
+      "predicate": {
+        "AtLeast": "42"
+      },
+      "memo": false,
+      "spending_control": false
+    }
+  ],
+  "total": null
+}
+Shares selected fields and explicit predicate results using a local Pari proof.
+Fields to share: {
+  "outputs": [
+    {
+      "reference": {
+        "transaction_id": "124574fecec34ff3bdd345b4263619cd59eb1bb851e044b06311a2d8396ccc4b",
+        "height": 2,
+        "action": {
+          "Body": 0
+        },
+        "output": 0
+      },
+      "amount": null,
+      "asset": "passet1yqxkeed0gc2cfljnsqzmtcsxmdu49gfuj2dmsee67uwwedghsu7qkfpkzj",
+      "recipient": null,
+      "memo": null,
+      "predicate_result": true
+    }
+  ],
+  "selected_output_total": null
+}
+Local proof running; Ctrl-C cancels the job.
+Local proof running; Ctrl-C cancels the job.
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 128.74s
+
+     Running tests/host_blocks.rs (target/ci/deps/host_blocks-4568572deb681ba2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/local_wallet_planning.rs (target/ci/deps/local_wallet_planning-2c6d56a1110c7049)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/paid_wallet_withdrawal.rs (target/ci/deps/paid_wallet_withdrawal-2f7c15663eee07ff)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/storage_query.rs (target/ci/deps/storage_query-de5e968be84ad69e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_compliance-0bf5576b84e89f6e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 235 filtered out; finished in 0.00s
+
+     Running tests/codec_boundaries.rs (target/ci/deps/codec_boundaries-6bf9e8e34f9e5c3c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/pari_runtime.rs (target/ci/deps/pari_runtime-9c30cdba5b2f6b9e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_disclosure-c4dd143abe131e50)
+
+running 2 tests
+test proof::tests::one_note_package_rejects_evidence_family_and_request_substitution ... ok
+test proof::tests::runtime_disclosure_proof_binds_context_and_key ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 38.18s
+
+     Running tests/claims.rs (target/ci/deps/claims-56f60b9d0fb8b490)
+
+running 2 tests
+test real_machine_verification_outcomes ... ok
+test real_proofs ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 88.45s
+
+     Running tests/handoff.rs (target/ci/deps/handoff-4534cd2b3a62db3e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_proof_params-564d03ed8390ba99)
+
+running 1 test
+test pari::tests::warm_registry_load_rechecks_artifacts_and_relation_shape ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 15.71s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_shielded_pool-7f14b74ea6665bd3)
+
+running 9 tests
+test note_reshape::proof::tests::pari_proof_note_reshape_1x8_roundtrip ... ok
+test note_reshape::proof::tests::pari_proof_note_reshape_8x1_roundtrip ... ok
+test shielded_host_withdrawal::plan::tests::pari_proof_padded_host_withdrawal_proof_roundtrip ... ok
+test shielded_withdrawal::proof::tests::pari_proof_shielded_withdrawal_accumulator_branches_roundtrip ... ok
+test shielded_withdrawal::proof::tests::pari_proof_shielded_withdrawal_proof_roundtrip ... ok
+test transfer::proof::tests::native_registry_proves_distinct_witnesses_and_batches_with_existing_keys ... ok
+test transfer::proof::tests::pari_proof_transfer_action_public_matches_proving_public_regulated ... ok
+test transfer::proof::tests::pari_proof_transfer_proof_roundtrip_regulated ... ok
+test transfer::proof::tests::pari_proof_transfer_proof_roundtrip_unregulated ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 113 filtered out; finished in 260.55s
+
+     Running tests/volume_boundary.rs (target/ci/deps/volume_boundary-53c95474e54e84f1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_transaction-70db905efe08a913)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.00s
+
+     Running tests/generate_transaction_signing_test_vectors.rs (target/ci/deps/generate_transaction_signing_test_vectors-9dbcfebbc293de00)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_view-c6a499d1b3b2bef6)
+
+running 2 tests
+test historical_proof_cache::tests::concurrent_provers_share_bounded_workers ... ok
+test historical_proof_cache::tests::runtime_history_closes_raw_chunk_after_failed_proof_and_restart ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 45.41s
+
+   Doc-tests pcli
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_app
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_app_tests
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_compliance
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_disclosure
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_proof_params
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_shielded_pool
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_transaction
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests shieldd_sdk_view
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

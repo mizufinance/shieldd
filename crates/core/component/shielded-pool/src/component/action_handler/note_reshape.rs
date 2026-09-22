@@ -165,10 +165,8 @@ mod tests {
         .await
     }
 
-    /// Assurance-case R2.2 (evidence gap #1): the check-then-nullify handler
-    /// path rejects a nullifier that was already spent.
     #[tokio::test]
-    async fn execute_rejects_repeated_nullifier() -> Result<()> {
+    async fn execution_persists_each_input_and_rejects_respending() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
         shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
@@ -176,15 +174,24 @@ mod tests {
         state.put_current_source(Some(TransactionId([7u8; 32])));
         let nullifier = Nullifier(Fq::from(42u64));
 
-        run_execute(&mut state, nullifier, &[]).await?;
-
-        let err = run_execute(&mut state, nullifier, &[])
-            .await
-            .expect_err("second spend of the same nullifier must be rejected");
-        assert!(
-            err.to_string().contains("already spent"),
-            "unexpected rejection reason: {err:#}"
-        );
+        let second = Nullifier(Fq::from(44u64));
+        execute_proof_bound_effects::<_, TestInput, NotePayload>(
+            &mut state,
+            &[TestInput(nullifier), TestInput(second)],
+            &[],
+            |input| input.0,
+            |payload| payload,
+        )
+        .await?;
+        for nullifier in [nullifier, second] {
+            let err = run_execute(&mut state, nullifier, &[])
+                .await
+                .expect_err("second spend of the same nullifier must be rejected");
+            assert!(
+                err.to_string().contains("already spent"),
+                "unexpected rejection reason: {err:#}"
+            );
+        }
 
         // A distinct nullifier is still accepted after the rejection.
         run_execute(&mut state, Nullifier(Fq::from(43u64)), &[]).await?;
@@ -216,27 +223,6 @@ mod tests {
         assert!(
             state.pending_nullifiers().is_empty(),
             "duplicate rejection must not stage a partial nullifier write"
-        );
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn note_reshape_persists_every_proof_bound_nullifier() -> Result<()> {
-        let storage = TempStorage::new().await?;
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
-        shieldd_sdk_sct::component::clock::EpochManager::put_block_height(&mut state, 1);
-        state.put_current_source(Some(TransactionId([8u8; 32])));
-        let real_nullifier = Nullifier(Fq::from(44u64));
-
-        run_execute(&mut state, real_nullifier, &[]).await?;
-
-        let err = run_execute(&mut state, real_nullifier, &[])
-            .await
-            .expect_err("a proof-bound nullifier must be persisted");
-        assert!(
-            err.to_string().contains("already spent"),
-            "unexpected rejection reason: {err:#}"
         );
         Ok(())
     }

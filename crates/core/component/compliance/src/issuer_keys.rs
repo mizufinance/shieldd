@@ -1,11 +1,4 @@
-//! Issuer Compliance Key Hierarchy
-//!
-//! This module implements the issuer-side key hierarchy for per-asset compliance.
-//!
-//! - `MCK`: Master Compliance Key (Orbis secret, per-issuer, for future signature verification)
-//! - `DK`: Detection Key (per-asset, generated and held by the issuer for scanning and decryption)
-//!
-//! DK is standalone (not derived from MCK or any Orbis key). The issuer registers dk_pub on-chain.
+//! Standalone issuer detection keys for per-asset scanning and flagged decryption.
 
 use ff::Field;
 use group::{Group, GroupEncoding};
@@ -29,71 +22,13 @@ pub(crate) fn detection_flag_from_fq(value: Fq) -> anyhow::Result<bool> {
     Ok(value == Fq::from(1u64))
 }
 
-/// Master Compliance Key (Orbis Secret).
-///
-/// Per-issuer master secret key held by Orbis. Used for:
-/// - Future signature verification of policy updates
-/// - Deriving asset-specific keys (if needed)
-///
-/// Note: MCK is NOT currently used for detection. Detection uses DK directly.
-/// MCK_pub is stored in the asset leaf for future signature verification.
-/// The issuer never sees MCK - only Orbis holds this secret.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MasterComplianceKey(pub Fr);
-
-impl MasterComplianceKey {
-    pub fn new(scalar: Fr) -> Self {
-        Self(scalar)
-    }
-
-    /// Generate a deterministic demo MCK for testing.
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn demo() -> Self {
-        Self::new(Fr::from(99999u64))
-    }
-
-    /// Derive MCK from a seed (for deterministic testing).
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn from_seed(seed: &[u8; 32]) -> Self {
-        let personal = b"shieldd_mck_der";
-        let hash = blake2b_simd::Params::new()
-            .hash_length(64)
-            .personal(personal)
-            .hash(seed);
-        let scalar = Fr::from_bytes_wide(hash.as_array());
-        Self::new(scalar)
-    }
-
-    /// Derive the public key (MCK_pub = MCK * G).
-    ///
-    /// This is stored in the asset leaf for future signature verification.
-    pub fn public_key(&self) -> SubgroupPoint {
-        (*shieldd_sdk_crypto::generators::SPEND_AUTH) * self.0
-    }
-
-    /// Access the inner scalar (use with caution - this is secret material).
-    pub fn inner(&self) -> &Fr {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.to_bytes()
-    }
-
-    pub fn from_bytes(bytes: &[u8; 32]) -> anyhow::Result<Self> {
-        let scalar = shieldd_sdk_crypto::encoding::scalar(bytes)?;
-        anyhow::ensure!(!bool::from(scalar.is_zero()), "zero issuer secret key");
-        Ok(Self::new(scalar))
-    }
-}
-
 /// Detection Key (Per-Asset Secret, Held by Issuer).
 ///
 /// Per-asset secret key generated and held by the issuer. Used for:
 /// - Scanning: Decrypting the detection tier to identify transfers of this asset
 /// - Flagged decryption: Decrypting core+extension data for flagged transactions
 ///
-/// **Important**: DK is standalone (not derived from MCK or any Orbis key).
+/// **Important**: DK is generated independently of Orbis keys.
 /// The issuer registers dk_pub on-chain; the private scalar never leaves the issuer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DetectionKey(pub Fr);
@@ -299,58 +234,10 @@ impl DetectionKeyPublic {
     }
 }
 
-/// Master Compliance Key Public (Point).
-///
-/// The public component of the master compliance key, stored in the asset leaf.
-/// Used for future signature verification of policy updates.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MasterComplianceKeyPublic(pub SubgroupPoint);
-
-impl MasterComplianceKeyPublic {
-    pub fn new(point: SubgroupPoint) -> Self {
-        Self(point)
-    }
-
-    pub fn from_mck(mck: &MasterComplianceKey) -> Self {
-        Self(mck.public_key())
-    }
-
-    pub fn inner(&self) -> &SubgroupPoint {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.to_bytes()
-    }
-
-    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
-        let point = shieldd_sdk_crypto::encoding::point(&bytes)
-            .map_err(|_| anyhow::anyhow!("invalid master compliance key public bytes"))?;
-        Ok(Self(point))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand_core::OsRng;
-
-    #[test]
-    fn test_mck_basic() {
-        let mck = MasterComplianceKey::demo();
-        let mck_pub = mck.public_key();
-
-        // Verify public key is derived correctly
-        assert_eq!(
-            mck_pub,
-            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * mck.0
-        );
-
-        // Round-trip through bytes
-        let bytes = mck.to_bytes();
-        let recovered = MasterComplianceKey::from_bytes(&bytes).unwrap();
-        assert_eq!(mck, recovered);
-    }
 
     #[test]
     fn test_dk_basic() {
@@ -380,24 +267,6 @@ mod tests {
         // Same asset gets same DK (deterministic)
         let dk1_again = DetectionKey::demo_for_asset(&asset1);
         assert_eq!(dk1, dk1_again);
-    }
-
-    #[test]
-    fn test_encrypt_to_dk_pub_without_dk() {
-        let mut rng = OsRng;
-        let dk = DetectionKey::demo();
-        let dk_pub = dk.public_key();
-        let asset_id = asset::Id(Fq::from(55555u64));
-
-        let (ciphertext, epk) =
-            DetectionKey::encrypt_to_dk_pub(&mut rng, &dk_pub, &asset_id, false);
-
-        let (decrypted_asset, decrypted_flag, _salt) = dk
-            .try_decrypt_detection(&epk, &ciphertext, &asset_id)
-            .expect("decryption should succeed");
-
-        assert_eq!(decrypted_asset, asset_id);
-        assert!(!decrypted_flag);
     }
 
     #[test]
@@ -436,25 +305,6 @@ mod tests {
     }
 
     #[test]
-    fn test_mck_public_roundtrip() {
-        let mck = MasterComplianceKey::demo();
-        let mck_pub = MasterComplianceKeyPublic::from_mck(&mck);
-
-        let bytes = mck_pub.to_bytes();
-        let recovered = MasterComplianceKeyPublic::from_bytes(bytes).unwrap();
-
-        assert_eq!(mck_pub, recovered);
-    }
-
-    #[test]
-    fn test_mck_and_dk_are_independent() {
-        let mck = MasterComplianceKey::demo();
-        let dk = DetectionKey::demo();
-        assert_ne!(mck.0, dk.0);
-        assert_ne!(mck.public_key(), dk.public_key());
-    }
-
-    #[test]
     fn detection_flags_roundtrip_across_asset_bits() {
         let mut realistic = [0u8; 32];
         realistic[0] = 0x42;
@@ -481,7 +331,8 @@ mod tests {
         ] {
             let asset_id = asset::Id(value);
             for flag in [false, true] {
-                let (ct, epk) = dk.encrypt_to_public(&mut OsRng, &asset_id, flag);
+                let (ct, epk) =
+                    DetectionKey::encrypt_to_dk_pub(&mut OsRng, &dk.public_key(), &asset_id, flag);
                 let (actual_id, actual_flag, _) =
                     dk.try_decrypt_detection(&epk, &ct, &asset_id).unwrap();
                 assert_eq!((actual_id, actual_flag), (asset_id, flag), "{name}");

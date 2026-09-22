@@ -721,7 +721,7 @@ mod tests {
                 base.address.clone(),
                 base.value,
                 Rseed::generate(&mut rng),
-                base.user_leaf.capk,
+                base.action_witness().asset.payload_key(),
             )
             .unwrap();
             actions.push(ActionIntent::Transfer(TransferIntent {

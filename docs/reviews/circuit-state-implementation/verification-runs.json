@@ -1,0 +1,69 @@
+{
+  "date": "2026-09-21",
+  "working_directory": "repository root",
+  "environment": {
+    "CARGO_BUILD_JOBS": "2",
+    "RAYON_NUM_THREADS": "2",
+    "GOMAXPROCS": "2",
+    "SHIELDD_PARI_KEYS": "target/optimized-pari-keys-20260921",
+    "SHIELDD_PCLI_BIN": "target/ci/pcli"
+  },
+  "path_note": "Registry and CLI paths were absolute during integration/prover execution; resolve these paths against the repository root. Circuit-library tests and key setup do not load this registry.",
+  "runs": [
+    {
+      "command": "cargo test --locked --profile ci -p shieldd-sdk-circuits -- --test-threads=1",
+      "log": "circuit-tests.log",
+      "exit_code": 0,
+      "passed_tests": 64
+    },
+    {
+      "command": "cargo run --locked --profile ci -p shieldd-sdk-proof-params --example pari_setup -- target/optimized-pari-keys-20260921",
+      "log": "key-setup.log",
+      "exit_code": 0,
+      "passed_tests": null
+    },
+    {
+      "command": "cargo test --locked --profile ci -p shieldd-sdk-app -p shieldd -p shieldd-sdk-view -p shieldd-sdk-disclosure -p shieldd-sdk-proof-params -p shieldd-sdk-shielded-pool -p shieldd-sdk-compliance -p shieldd-sdk-transaction -p shieldd-sdk-app-tests -p pcli --all-features -- --test-threads=1",
+      "log": "integration-tests.log",
+      "exit_code": 0,
+      "passed_tests": 648
+    },
+    {
+      "command": "cargo check --locked --profile ci --workspace --all-targets --all-features",
+      "log": "workspace-check.log",
+      "exit_code": 0,
+      "passed_tests": null
+    },
+    {
+      "command": "cargo build --locked --profile ci -p pcli --all-features",
+      "log": "pcli-build.log",
+      "exit_code": 0,
+      "passed_tests": null
+    },
+    {
+      "command": "cargo test --locked --profile ci -p shieldd-sdk-app -p shieldd -p shieldd-sdk-view -p shieldd-sdk-disclosure -p shieldd-sdk-proof-params -p shieldd-sdk-shielded-pool -p shieldd-sdk-compliance -p shieldd-sdk-transaction -p shieldd-sdk-app-tests -p pcli --all-features -- --ignored --skip prover_strategy_ --skip generate_transaction_signing_test_vectors --test-threads=1",
+      "log": "proof-gates.log",
+      "exit_code": 0,
+      "passed_tests": 19
+    },
+    {
+      "command": "python3 scripts/commonware.py check",
+      "log": "commonware-check.log",
+      "exit_code": 0,
+      "passed_tests": null
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "log": null,
+      "exit_code": 0,
+      "passed_tests": null
+    },
+    {
+      "command": "git diff --check",
+      "log": null,
+      "exit_code": 0,
+      "passed_tests": null
+    }
+  ],
+  "scope": "Focused storage and wallet results are preserved in their logs. Counts exclude duplicated child-process results. No release-profile or full workspace test matrix was executed."
+}

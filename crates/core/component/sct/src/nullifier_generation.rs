@@ -10,6 +10,17 @@ pub const GENERATION_EPOCHS: u64 = 30;
 pub const CHUNK_WIDTH: u64 = 10;
 pub const PROOF_BYTES: usize = shieldd_sdk_circuits::proof::ENCODED_LEN;
 
+#[derive(Debug)]
+pub struct ArchivedNullifierSpent;
+
+impl std::fmt::Display for ArchivedNullifierSpent {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("nullifier was spent in archived generation")
+    }
+}
+
+impl std::error::Error for ArchivedNullifierSpent {}
+
 const MAX_SCT_POSITION: u64 = (1u64 << 48) - 1;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

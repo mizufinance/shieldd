@@ -1,8 +1,9 @@
 use crate::{hash::Parameters, range::decompose};
 use commonware_cryptography::{
     bls12381::primitives::group::Scalar,
-    zk::circuit::{Context, Var},
+    zk::circuit::{BoolVar, Context, Var},
 };
+use commonware_math::algebra::{Additive, Ring};
 
 pub const STATE_DEPTH: usize = 24;
 pub const COMPLIANCE_DEPTH: usize = 16;
@@ -64,24 +65,47 @@ pub fn root<'ctx, const D: usize>(
     ctx: Context<'ctx, Scalar>,
     params: &Parameters,
     kind: Tree,
-    mut node: Var<'ctx, Scalar>,
+    node: Var<'ctx, Scalar>,
     path: &Path<Var<'ctx, Scalar>, D>,
 ) -> Var<'ctx, Scalar> {
     assert!((1..=32).contains(&D));
     let bits = decompose(ctx, &path.position, 2 * D);
+    root_with_position_bits(ctx, params, kind, node, path, &bits)
+}
+
+/// Use the same constrained position bits for membership and age checks.
+pub fn root_with_position_bits<'ctx, const D: usize>(
+    _ctx: Context<'ctx, Scalar>,
+    params: &Parameters,
+    kind: Tree,
+    mut node: Var<'ctx, Scalar>,
+    path: &Path<Var<'ctx, Scalar>, D>,
+    bits: &[BoolVar<'ctx, Scalar>],
+) -> Var<'ctx, Scalar> {
+    assert!((1..=32).contains(&D));
+    assert_eq!(bits.len(), 2 * D);
+    let mut sum = Var::zero();
+    let mut weight = Scalar::one();
+    for bit in bits {
+        sum += &(bit.var().clone() * &Var::native(weight.clone()));
+        weight = weight.clone() + &weight;
+    }
+    sum.assert_eq(&path.position);
     for (level, siblings) in path.siblings.iter().enumerate() {
         let low = bits[2 * level].clone();
         let high = bits[2 * level + 1].clone();
-        let first = !low.clone() & !high.clone();
-        let second = low.clone() & !high.clone();
-        let third = !low.clone() & high.clone();
-        let fourth = low & high;
+        let left_swap = low.var().clone() * &(siblings[0].clone() - &node);
+        let right_swap = low.var().clone() * &(siblings[2].clone() - &node);
+        let left_first = node.clone() + &left_swap;
+        let left_second = siblings[0].clone() - &left_swap;
+        let right_third = node.clone() + &right_swap;
+        let right_fourth = siblings[2].clone() - &right_swap;
         let inputs = [
             Var::native(Scalar::from(level as u64 + 1)),
-            first.select(&node, &siblings[0]),
-            first.select(&siblings[0], &second.select(&node, &siblings[1])),
-            fourth.select(&siblings[2], &third.select(&node, &siblings[1])),
-            fourth.select(&node, &siblings[2]),
+            high.select(&siblings[0], &left_first),
+            high.select(&siblings[1], &left_second),
+            high.select(&right_third, &siblings[1]),
+            high.select(&right_fourth, &siblings[2]),
         ];
         node = params.circuit(kind as u8, &inputs);
     }
@@ -92,6 +116,31 @@ pub fn root<'ctx, const D: usize>(
 mod tests {
     use super::*;
     use commonware_cryptography::zk::circuit::build_with_values;
+    #[test]
+    fn reused_bits_must_match_the_path_position() {
+        let params = Parameters::load().unwrap();
+        for bit_position in [0u64, 1, 3, (1 << 48) - 1] {
+            let check = |position| {
+                build_with_values(|ctx| {
+                    let path = Path {
+                        position: Scalar::from(position),
+                        siblings: std::array::from_fn::<_, STATE_DEPTH, _>(|_| {
+                            std::array::from_fn(|_| Scalar::one())
+                        }),
+                    }
+                    .witness(ctx);
+                    let bits =
+                        decompose(ctx, &Var::witness(ctx, |_| Scalar::from(bit_position)), 48);
+                    root_with_position_bits(ctx, &params, Tree::State, Var::one(), &path, &bits);
+                    Vec::new()
+                })
+                .0
+                .is_satisfied()
+            };
+            assert!(check(bit_position));
+            assert!(!check(bit_position ^ 1));
+        }
+    }
     #[test]
     fn all_quaternary_slots_and_high_position_bits_are_bound() {
         let params = Parameters::load().unwrap();

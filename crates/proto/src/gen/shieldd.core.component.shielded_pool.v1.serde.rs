@@ -886,7 +886,10 @@ impl serde::Serialize for CapsuleReleaseRequest {
         if self.address.is_some() {
             len += 1;
         }
-        if !self.capk.is_empty() {
+        if !self.payload_key.is_empty() {
+            len += 1;
+        }
+        if self.audit_epoch != 0 {
             len += 1;
         }
         if self.note_commitment.is_some() {
@@ -931,10 +934,15 @@ impl serde::Serialize for CapsuleReleaseRequest {
         if let Some(v) = self.address.as_ref() {
             struct_ser.serialize_field("address", v)?;
         }
-        if !self.capk.is_empty() {
+        if !self.payload_key.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("capk", pbjson::private::base64::encode(&self.capk).as_str())?;
+            struct_ser.serialize_field("payloadKey", pbjson::private::base64::encode(&self.payload_key).as_str())?;
+        }
+        if self.audit_epoch != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("auditEpoch", ToString::to_string(&self.audit_epoch).as_str())?;
         }
         if let Some(v) = self.note_commitment.as_ref() {
             struct_ser.serialize_field("noteCommitment", v)?;
@@ -982,7 +990,10 @@ impl<'de> serde::Deserialize<'de> for CapsuleReleaseRequest {
             "asset_id",
             "assetId",
             "address",
-            "capk",
+            "payload_key",
+            "payloadKey",
+            "audit_epoch",
+            "auditEpoch",
             "note_commitment",
             "noteCommitment",
             "recovery_commitment",
@@ -1005,7 +1016,8 @@ impl<'de> serde::Deserialize<'de> for CapsuleReleaseRequest {
             RingPk,
             AssetId,
             Address,
-            Capk,
+            PayloadKey,
+            AuditEpoch,
             NoteCommitment,
             RecoveryCommitment,
             CapsuleEpk,
@@ -1041,7 +1053,8 @@ impl<'de> serde::Deserialize<'de> for CapsuleReleaseRequest {
                             "ringPk" | "ring_pk" => Ok(GeneratedField::RingPk),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "address" => Ok(GeneratedField::Address),
-                            "capk" => Ok(GeneratedField::Capk),
+                            "payloadKey" | "payload_key" => Ok(GeneratedField::PayloadKey),
+                            "auditEpoch" | "audit_epoch" => Ok(GeneratedField::AuditEpoch),
                             "noteCommitment" | "note_commitment" => Ok(GeneratedField::NoteCommitment),
                             "recoveryCommitment" | "recovery_commitment" => Ok(GeneratedField::RecoveryCommitment),
                             "capsuleEpk" | "capsule_epk" => Ok(GeneratedField::CapsuleEpk),
@@ -1074,7 +1087,8 @@ impl<'de> serde::Deserialize<'de> for CapsuleReleaseRequest {
                 let mut ring_pk__ = None;
                 let mut asset_id__ = None;
                 let mut address__ = None;
-                let mut capk__ = None;
+                let mut payload_key__ = None;
+                let mut audit_epoch__ = None;
                 let mut note_commitment__ = None;
                 let mut recovery_commitment__ = None;
                 let mut capsule_epk__ = None;
@@ -1132,12 +1146,20 @@ impl<'de> serde::Deserialize<'de> for CapsuleReleaseRequest {
                             }
                             address__ = map_.next_value()?;
                         }
-                        GeneratedField::Capk => {
-                            if capk__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("capk"));
+                        GeneratedField::PayloadKey => {
+                            if payload_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("payloadKey"));
                             }
-                            capk__ =
+                            payload_key__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::AuditEpoch => {
+                            if audit_epoch__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("auditEpoch"));
+                            }
+                            audit_epoch__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
                         GeneratedField::NoteCommitment => {
@@ -1192,7 +1214,8 @@ impl<'de> serde::Deserialize<'de> for CapsuleReleaseRequest {
                     ring_pk: ring_pk__.unwrap_or_default(),
                     asset_id: asset_id__,
                     address: address__,
-                    capk: capk__.unwrap_or_default(),
+                    payload_key: payload_key__.unwrap_or_default(),
+                    audit_epoch: audit_epoch__.unwrap_or_default(),
                     note_commitment: note_commitment__,
                     recovery_commitment: recovery_commitment__.unwrap_or_default(),
                     capsule_epk: capsule_epk__.unwrap_or_default(),

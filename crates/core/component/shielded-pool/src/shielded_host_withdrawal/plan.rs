@@ -142,7 +142,7 @@ impl ShieldedHostWithdrawalPlan {
             first_spend_randomizer: self.first_spend().randomizer,
             sender_address: self.sender_address(),
             asset_id: self.withdrawal_asset_id(),
-            capk: self.compliance.witness.sender.leaf.capk,
+            payload_key: self.compliance.witness.asset.payload_key(),
             nullifier_domain: shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
             nullifier_seed_label:
                 b"shieldd.shielded_host_withdrawal.synthetic_dummy.nullifier_seed",
@@ -330,7 +330,7 @@ impl ShieldedHostWithdrawalPlan {
         let change_note = self
             .change_output
             .as_ref()
-            .map(|output| output.output_note(self.compliance.witness.sender.leaf.capk))
+            .map(|output| output.output_note(self.compliance.witness.asset.payload_key()))
             .unwrap_or_else(|| self.padder().synthetic_dummy_output_note(1));
         let withdrawal_effect_hash_limbs = self.withdrawal_effect_hash_limbs();
         let routing_nonce = shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce);
@@ -441,7 +441,9 @@ impl ShieldedHostWithdrawalPlan {
         let (change_note, recovery_capsule) = self
             .change_output
             .as_ref()
-            .map(|output| output.output_note_and_capsule(self.compliance.witness.sender.leaf.capk))
+            .map(|output| {
+                output.output_note_and_capsule(self.compliance.witness.asset.payload_key())
+            })
             .unwrap_or_else(|| padder.synthetic_dummy_output_note_and_capsule(1));
         let esk = change_note.ephemeral_secret_key();
         let ovk_wrapped_key = change_note.encrypt_key(

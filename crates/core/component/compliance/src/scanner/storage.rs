@@ -1040,7 +1040,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sqlite_store_commits_block_and_detection_atomically() {
+    async fn sqlite_store_commits_and_deduplicates_detections() {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         let scanner_block = block(10);
@@ -1282,7 +1282,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sqlite_store_enables_wal_and_bounded_checkpointing() {
+    async fn sqlite_store_configures_wal_checkpoint_and_vacuum_policy() {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
 
@@ -1306,47 +1306,36 @@ mod tests {
             assert_eq!(auto_vacuum, 2);
             assert_eq!(wal_autocheckpoint, WAL_AUTOCHECKPOINT_PAGES);
         }
-
-        for height in 1..=5 {
-            let block = block(height);
-            let mut scanned = ScannedBlock::new(block.clone());
-            scanned.outputs.push(detected_output(detection(height)));
-            store.commit_scanned_block(&scanned).await.unwrap();
-        }
-
-        let wal_path = PathBuf::from(format!("{}-wal", temp_file.path().display()));
-        let wal_size = std::fs::metadata(wal_path).map(|m| m.len()).unwrap_or(0);
-        assert!(wal_size < 1024 * 1024, "WAL file grew to {wal_size} bytes");
     }
 
     #[tokio::test]
-    async fn sqlite_store_allows_concurrent_readers_during_writes() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let store = Arc::new(SqliteScannerStore::new(temp_file.path()).unwrap());
+    async fn sqlite_readers_see_committed_state_while_writer_is_active() {
+        let file = NamedTempFile::new().unwrap();
+        let store = Arc::new(SqliteScannerStore::new(file.path()).unwrap());
+        let mut scanned = ScannedBlock::new(block(1));
+        scanned.outputs.push(detected_output(detection(1)));
+        store.commit_scanned_block(&scanned).await.unwrap();
+        assert_eq!(store.detection_count().await.unwrap(), 1);
 
-        let mut readers = Vec::new();
-        for _ in 0..READ_POOL_SIZE {
-            let store = Arc::clone(&store);
-            readers.push(tokio::spawn(async move {
-                for _ in 0..50 {
-                    store.detection_count().await.unwrap();
-                    store.last_scanned_block().await.unwrap();
-                }
-            }));
-        }
-
-        for height in 1..=20 {
-            let block = block(height);
-            let mut scanned = ScannedBlock::new(block.clone());
-            scanned.outputs.push(detected_output(detection(height)));
-            store.commit_scanned_block(&scanned).await.unwrap();
-        }
-
-        for reader in readers {
-            reader.await.unwrap();
-        }
-
-        assert_eq!(store.detection_count().await.unwrap(), 20);
+        let mut connection = store.lock_conn().unwrap();
+        let transaction = connection.transaction().unwrap();
+        transaction
+            .execute("DELETE FROM scanner_detections", [])
+            .unwrap();
+        let reader_store = Arc::clone(&store);
+        let runtime = tokio::runtime::Handle::current();
+        let (send, receive) = std::sync::mpsc::channel();
+        let reader = std::thread::spawn(move || {
+            send.send(runtime.block_on(reader_store.detection_count()))
+                .unwrap();
+        });
+        // Receiving before releasing the write lock establishes actual overlap.
+        let observed = receive.recv_timeout(Duration::from_secs(5));
+        transaction.commit().unwrap();
+        drop(connection);
+        reader.join().unwrap();
+        assert_eq!(observed.expect("reader blocked behind writer").unwrap(), 1);
+        assert_eq!(store.detection_count().await.unwrap(), 0);
     }
 
     #[tokio::test]

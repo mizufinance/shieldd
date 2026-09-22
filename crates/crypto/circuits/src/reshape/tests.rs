@@ -84,10 +84,10 @@ fn split_and_merge_prove_with_distinct_fixed_relations() {
         let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
         let relation = Relation::compile(&c, &layout).unwrap();
         let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-        let prepared = pari::PreparedProver::new(pk, &relation).unwrap();
+        let prover = pk;
         let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &g, &w, &digest));
         let proof =
-            Envelope::prove(family, &prepared, &relation, &layout, values, &Sequential).unwrap();
+            Envelope::prove(family, &prover, &relation, &layout, values, &Sequential).unwrap();
         proof.verify(family, &vk, &digest).unwrap();
         assert!(
             proof

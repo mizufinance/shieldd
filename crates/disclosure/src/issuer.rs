@@ -276,9 +276,7 @@ mod tests {
             .payment_address(0u32.into());
         let keys = |n| AuditKeys {
             epoch: 1,
-            amount: Element::generator() * Fr::from(n),
-            sender: Element::generator() * Fr::from(n + 1),
-            receiver: Element::generator() * Fr::from(n + 2),
+            payload: Element::generator() * Fr::from(n),
             checking: Element::generator() * Fr::from(n + 3),
         };
         let asset = asset::Id(Fq::from(42u64));

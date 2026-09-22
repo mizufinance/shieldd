@@ -184,7 +184,7 @@ impl Component for Compliance {
 
 /// ActionHandler implementation for MsgRegisterUser.
 ///
-/// This handler registers a user's address compliance key (ACK) for a regulated asset.
+/// This handler registers an address's RNK derivation and authorization state for a regulated asset.
 #[async_trait]
 impl ActionHandler for MsgRegisterUser {
     type CheckStatelessContext = ();
@@ -491,7 +491,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_init_chain() {
+    async fn default_genesis_initializes_empty_compliance_trees() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -502,6 +502,8 @@ mod tests {
 
         // Initialize the component with default genesis
         let genesis = genesis::Content::default();
+        assert!(genesis.native_assets.is_empty());
+        assert!(genesis.user_registrations.is_empty());
         Compliance::init_chain(&mut state, Some(&genesis)).await;
 
         // Verify trees were initialized
@@ -510,43 +512,22 @@ mod tests {
 
         assert_eq!(user_tree.depth(), 16);
         assert_eq!(asset_imt.depth(), 16);
-    }
-
-    #[tokio::test]
-    async fn test_init_chain_without_genesis() {
-        let storage = TempStorage::new().await.unwrap();
-        let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
-
-        // Initialize without genesis content
-        Compliance::init_chain(&mut state, Some(&genesis::Content::default())).await;
-        Compliance::init_chain(&mut state, None).await;
-
-        // Trees should be initialized
-        let user_tree = state.reconstruct_user_tree().await.unwrap();
-        let asset_imt = state.reconstruct_asset_tree().await.unwrap();
-
-        assert_eq!(user_tree.depth(), 16);
-        // IMT contains only the sentinel until regulated assets are registered.
+        assert_eq!(state.get_user_count().await.unwrap(), 0);
         assert_eq!(asset_imt.leaf_count(), 1);
-
         let proof_data = state.get_asset_proof_data(*BASE_ASSET_ID).await.unwrap();
-        assert!(
-            !proof_data.is_regulated,
-            "the base asset must be proven unregulated by non-membership"
-        );
+        assert!(!proof_data.is_regulated);
         assert!(
             crate::indexed_tree::FqOrdKey::from(proof_data.indexed_leaf.value)
-                < crate::indexed_tree::FqOrdKey::from(BASE_ASSET_ID.0)
+                < BASE_ASSET_ID.0.into()
         );
         assert!(
             crate::indexed_tree::FqOrdKey::from(BASE_ASSET_ID.0)
-                < crate::indexed_tree::FqOrdKey::from(proof_data.indexed_leaf.next_value)
+                < proof_data.indexed_leaf.next_value.into()
         );
     }
 
     #[tokio::test]
-    async fn test_init_chain_with_custom_genesis() {
+    async fn custom_genesis_is_preserved_when_no_genesis_is_supplied() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -560,7 +541,6 @@ mod tests {
         let leaf = ComplianceLeaf::registered_from_rnk(
             address.clone(),
             custom_asset,
-            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             address.diversified_generator().clone(),
             Fq::from(1u64),
         )
@@ -599,6 +579,15 @@ mod tests {
         // Custom asset should be in IMT (regulated)
         let proof_data = state.get_asset_proof_data(custom_asset).await.unwrap();
         assert!(proof_data.is_regulated, "custom asset should be regulated");
+        assert_eq!(
+            state.get_user_leaf(&address, custom_asset).await.unwrap(),
+            Some(leaf.clone())
+        );
+        let user_root = state.get_user_tree_root().await.unwrap();
+        let asset_root = state.get_asset_imt_root().await.unwrap();
+        Compliance::init_chain(&mut state, None).await;
+        assert_eq!(state.get_user_tree_root().await.unwrap(), user_root);
+        assert_eq!(state.get_asset_imt_root().await.unwrap(), asset_root);
         assert_eq!(
             state.get_user_leaf(&address, custom_asset).await.unwrap(),
             Some(leaf)
@@ -682,7 +671,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn user_registration_derives_distinct_capabilities_from_distinct_addresses() {
+    async fn registration_persists_distinct_address_scopes() {
         let storage = TempStorage::new().await.unwrap();
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -703,6 +692,7 @@ mod tests {
         .await
         .unwrap();
 
+        let mut leaves = Vec::new();
         for address in [
             Address::dummy(&mut rand::thread_rng()),
             Address::dummy(&mut rand::thread_rng()),
@@ -712,69 +702,33 @@ mod tests {
                 leaf: leaf.clone(),
                 capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
                 grant: Some(user_registration_grant(
-                    leaf,
+                    leaf.clone(),
                     "test-policy".to_string(),
                     &authority_sk,
                     TEST_VALID_UNTIL_UNIX,
                 )),
             };
             msg.check_and_execute(&mut state).await.unwrap();
+            assert_eq!(
+                state.get_user_leaf(&leaf.address, asset_id).await.unwrap(),
+                Some(leaf.clone())
+            );
+            leaves.push(leaf);
         }
         assert_eq!(state.get_user_count().await.unwrap(), 2);
+        for (position, leaf) in leaves.iter().enumerate() {
+            assert_eq!(
+                state
+                    .get_user_leaf_position(&leaf.address, asset_id)
+                    .await
+                    .unwrap(),
+                Some(position as u64)
+            );
+        }
     }
 
     #[tokio::test]
-    async fn user_registration_rejects_another_addresses_capability() {
-        let storage = TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
-        let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
-        let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
-        let asset_id = asset::Id(Fq::from(12u64));
-        Compliance::init_chain(
-            &mut state,
-            Some(&registrar_genesis(VerificationKey::from(&registrar_sk))),
-        )
-        .await;
-        set_test_block_time(&mut state, TEST_BLOCK_UNIX);
-        sign_asset_registration(
-            regulated_asset_msg(asset_id, VerificationKey::from(&authority_sk)),
-            &registrar_sk,
-            TEST_VALID_UNTIL_UNIX,
-        )
-        .check_and_execute(&mut state)
-        .await
-        .unwrap();
-
-        let first_address = Address::dummy(&mut rand::thread_rng());
-        let second_address = Address::dummy(&mut rand::thread_rng());
-        let first_leaf = ComplianceLeaf::registered_for_test(first_address, asset_id);
-        let mut reused_key_leaf = ComplianceLeaf::registered_for_test(second_address, asset_id);
-        reused_key_leaf.capk = first_leaf.capk;
-        let msg = MsgRegisterUser {
-            leaf: reused_key_leaf.clone(),
-            capability_certificate: Some(capability_certificate(&reused_key_leaf, "test-policy")),
-            grant: Some(user_registration_grant(
-                reused_key_leaf,
-                "test-policy".to_string(),
-                &authority_sk,
-                TEST_VALID_UNTIL_UNIX,
-            )),
-        };
-        let error = msg
-            .check_and_execute(&mut state)
-            .await
-            .expect_err("an address cannot reuse another address's capability");
-        assert!(
-            error
-                .to_string()
-                .contains("capk does not match the address and asset ring"),
-            "unexpected error: {error:#}"
-        );
-        assert_eq!(state.get_user_count().await.unwrap(), 0);
-    }
-
-    #[tokio::test]
-    async fn test_msg_register_user_rejects_identity_capability() {
+    async fn test_msg_register_user_rejects_identity_rnk_dh() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -798,7 +752,7 @@ mod tests {
 
         let mut leaf =
             ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
-        leaf.capk = shieldd_sdk_crypto::SubgroupPoint::identity();
+        leaf.rnk_dh_pk = shieldd_sdk_crypto::SubgroupPoint::identity();
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
             capability_certificate: Some(capability_certificate(&leaf, "test-policy")),
@@ -813,83 +767,49 @@ mod tests {
         let err = msg
             .check_stateless(())
             .await
-            .expect_err("identity capability must be rejected");
+            .expect_err("identity RNK DH point must be rejected");
         assert!(
-            err.to_string().contains("capk must be nonidentity"),
+            err.to_string().contains("rnk_dh_pk must be nonidentity"),
             "unexpected error: {err}"
         );
         assert_eq!(state.get_user_count().await.unwrap(), 0);
     }
 
     #[tokio::test]
-    async fn test_msg_register_user_for_unregulated_asset_fails_without_mutating_state() {
+    async fn registration_for_unregulated_assets_leaves_no_user_or_event() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
 
         Compliance::init_chain(&mut state, Some(&genesis::Content::default())).await;
 
-        let msg = MsgRegisterUser {
-            leaf: ComplianceLeaf::registered_for_test(
-                Address::dummy(&mut rand::thread_rng()),
-                *BASE_ASSET_ID,
-            ),
-            grant: None,
-            capability_certificate: None,
-        };
+        for asset_id in [*BASE_ASSET_ID, asset::Id(Fq::from(999_999u64))] {
+            let msg = MsgRegisterUser {
+                leaf: ComplianceLeaf::registered_for_test(
+                    Address::dummy(&mut rand::thread_rng()),
+                    asset_id,
+                ),
+                grant: None,
+                capability_certificate: None,
+            };
 
-        let error = msg.check_and_execute(&mut state).await.expect_err(
-            "unregulated assets, including the base asset, must reject user registration",
-        );
-        assert!(
-            error
-                .to_string()
-                .contains("cannot register user for unregulated asset"),
-            "unexpected error: {error}"
-        );
+            let error = msg.check_and_execute(&mut state).await.expect_err(
+                "unregulated assets, including the base asset, must reject user registration",
+            );
+            assert!(
+                error
+                    .to_string()
+                    .contains("cannot register user for unregulated asset"),
+                "unexpected error: {error}"
+            );
 
-        assert_eq!(state.get_user_count().await.unwrap(), 0);
-        assert!(state
-            .object_get::<Vec<crate::event::EventUserRegistered>>(
-                crate::state_key::pending_user_registrations()
-            )
-            .is_none());
-    }
-
-    #[tokio::test]
-    async fn test_msg_register_user_for_absent_asset_fails_without_mutating_state() {
-        let storage = TempStorage::new().await.unwrap();
-        let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
-
-        Compliance::init_chain(&mut state, Some(&genesis::Content::default())).await;
-
-        let msg = MsgRegisterUser {
-            leaf: ComplianceLeaf::registered_for_test(
-                Address::dummy(&mut rand::thread_rng()),
-                asset::Id(Fq::from(999_999u64)),
-            ),
-            grant: None,
-            capability_certificate: None,
-        };
-
-        let error = msg
-            .check_and_execute(&mut state)
-            .await
-            .expect_err("absent assets must reject user registration");
-        assert!(
-            error
-                .to_string()
-                .contains("cannot register user for unregulated asset"),
-            "unexpected error: {error}"
-        );
-
-        assert_eq!(state.get_user_count().await.unwrap(), 0);
-        assert!(state
-            .object_get::<Vec<crate::event::EventUserRegistered>>(
-                crate::state_key::pending_user_registrations()
-            )
-            .is_none());
+            assert_eq!(state.get_user_count().await.unwrap(), 0);
+            assert!(state
+                .object_get::<Vec<crate::event::EventUserRegistered>>(
+                    crate::state_key::pending_user_registrations()
+                )
+                .is_none());
+        }
     }
 
     #[tokio::test]
@@ -1125,30 +1045,67 @@ mod tests {
             error.to_string().contains("expired"),
             "unexpected error: {error}"
         );
+    }
 
-        let mut mismatched_leaf =
-            ComplianceLeaf::registered_for_test(Address::dummy(&mut rand::thread_rng()), asset_id);
-        mismatched_leaf.capk =
-            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * shieldd_sdk_crypto::Fr::from(222u64);
-        let mismatched_msg = MsgRegisterUser {
-            leaf: mismatched_leaf.clone(),
-            capability_certificate: Some(capability_certificate(&mismatched_leaf, "test-policy")),
-            grant: Some(user_registration_grant(
-                mismatched_leaf,
-                "test-policy".to_string(),
-                &authority_sk,
-                TEST_VALID_UNTIL_UNIX,
-            )),
-        };
-        let error = mismatched_msg
+    #[tokio::test]
+    async fn asset_admission_rejects_audit_keys_shared_with_other_authorities() {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let registrar = SigningKey::<SpendAuth>::new(OsRng);
+        let authority = SigningKey::<SpendAuth>::new(OsRng);
+        Compliance::init_chain(
+            &mut state,
+            Some(&registrar_genesis(VerificationKey::from(&registrar))),
+        )
+        .await;
+        set_test_block_time(&mut state, TEST_BLOCK_UNIX);
+        let asset_id = asset::Id(Fq::from(457u64));
+        let mut original = regulated_asset_msg(asset_id, VerificationKey::from(&authority));
+        original.dk_pub =
+            Some(*shieldd_sdk_crypto::generators::SPEND_AUTH * shieldd_sdk_crypto::Fr::from(7u64));
+        for forbidden in [
+            original.dk_pub.unwrap(),
+            original.ring_pk.unwrap(),
+            *crate::UNREGULATED_RING,
+        ] {
+            for payload in [true, false] {
+                let mut bad = original.clone();
+                let keys = bad.audit_keys.as_mut().unwrap();
+                if payload {
+                    keys.payload = forbidden;
+                } else {
+                    keys.checking = forbidden;
+                }
+                let bad = sign_asset_registration(bad, &registrar, TEST_VALID_UNTIL_UNIX);
+                assert!(bad.check_and_execute(&mut state).await.is_err());
+                assert!(
+                    !state
+                        .get_asset_proof_data(asset_id)
+                        .await
+                        .unwrap()
+                        .is_regulated
+                );
+            }
+        }
+        let mut equal = original.clone();
+        let keys = equal.audit_keys.as_mut().unwrap();
+        keys.checking = keys.payload;
+        assert!(
+            sign_asset_registration(equal, &registrar, TEST_VALID_UNTIL_UNIX)
+                .check_and_execute(&mut state)
+                .await
+                .is_err()
+        );
+        sign_asset_registration(original, &registrar, TEST_VALID_UNTIL_UNIX)
             .check_and_execute(&mut state)
             .await
-            .expect_err("mismatched capk must be rejected before execution");
+            .unwrap();
         assert!(
-            error
-                .to_string()
-                .contains("capk does not match the address and asset ring"),
-            "unexpected error: {error}"
+            state
+                .get_asset_proof_data(asset_id)
+                .await
+                .unwrap()
+                .is_regulated
         );
     }
 

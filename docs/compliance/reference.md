@@ -1,7 +1,7 @@
 # Compliance Reference
 
 Technical lookup material for the current transfer compliance surface.
-See `flow.md` for the end-to-end lifecycle.
+See [the flow](flow.md) for the end-to-end lifecycle.
 
 ## Transfer Wire Format
 
@@ -89,6 +89,17 @@ native privacy premises, not public circuit facts.
 
 ## Registry Trees
 
+`AssetPolicy` groups issuer parameters (`dk_pub`, daily volume limit, IBC routes
+and origin), ring data (RNK derivation key, audit keys and policy identifiers),
+and registration/seizure authority keys. [The domain record](../../crates/core/component/compliance/src/structs.rs)
+defines storage encoding; [the indexed leaf](../../crates/core/component/compliance/src/indexed_tree.rs)
+defines its authenticated projection.
+
+The IMT commits issuer parameters and ring data through policy subhashes, including
+the canonical route-policy hash and both audit keys with their epoch. Registration
+and seizure authority verification keys remain host-validated policy state outside
+that leaf. Successful membership alone does not establish a host authority grant.
+
 | Tree | Purpose | Shape |
 | --- | --- | --- |
 | Compliance tree | `(address, asset) -> ComplianceLeaf` | arity 4, depth 16 |
@@ -102,22 +113,17 @@ roots.
 `ComplianceLeaf` is
 
 ```text
-PoseidonHash7(
-  "shieldd.compliance.leaf",
-  diversified_generator_fq,
-  transmission_key_fq,
-  asset_id,
-  compressed_capk,
-  compressed_rnk_dh_pk,
-  Poseidon(rnk),
-  packed_lifecycle
-)
+Poseidon(COMPLIANCE_LEAF, [
+  diversified_generator.x, diversified_generator.y,
+  transmission_key.x, transmission_key.y, asset_id,
+  rnk_dh_pk.x, rnk_dh_pk.y, RNK_commitment, packed_lifecycle
+])
 ```
 
-The address encodings must be canonical. `capk` is the nonidentity capsule
-capability. The registration certificate binds both `rnk_dh_pk = ring_sk * G_d`
-and `Poseidon(rnk)`. The wallet derives the RNK through static DH; the
-corresponding production Orbis release API is not implemented.
+Address and RNK DH points must be canonical, nonidentity subgroup points. The
+registration certificate binds `rnk_dh_pk = ring_sk * G_d` and the RNK commitment.
+The wallet derives the RNK through static DH; the corresponding production Orbis
+release API is not implemented. Capsules use the asset policy's payload key.
 The leaf exposes only its Poseidon commitment. The packed lifecycle injectively
 contains status, freeze generation, and frozen-since height. Asset ID zero is
 reserved for the indexed-tree sentinel and cannot be registered or used as a

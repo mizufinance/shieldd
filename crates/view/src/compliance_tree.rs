@@ -78,12 +78,6 @@ impl ComplianceUserTree {
             tree.update(pos, commitment)?;
         }
 
-        // Load internal hashes (optimization to avoid recomputation)
-        // The QuadTree will compute hashes on demand, but loading them
-        // speeds up initial path queries
-        // Note: For simplicity, we rely on the tree to recompute hashes
-        // from the commitments. This is correct but could be optimized.
-
         Ok(Self {
             inner: tree,
             position,
@@ -165,8 +159,8 @@ impl Default for ComplianceUserTree {
 ///
 /// Syncs the full IMT for non-membership proofs.
 ///
-/// During sync, we store the raw asset IDs (Fq values) that have been inserted.
-/// On load, we replay the inserts to reconstruct the tree with correct structure.
+/// Sync persists full indexed leaves, including policy and linked-list positions.
+/// Loading restores those leaves and rebuilds internal hashes.
 #[derive(Debug, Clone)]
 pub struct ComplianceAssetTree {
     inner: IndexedMerkleTree,
@@ -446,9 +440,33 @@ mod tests {
         assert_eq!(pos2, 1);
         assert_eq!(tree.position(), 2);
 
-        // Witness should work
-        let _path = tree.witness(0).unwrap();
-        let _path = tree.witness(1).unwrap();
+        for (position, commitment) in [(pos1, c1), (pos2, c2)] {
+            let path = tree.witness(position).unwrap();
+            path.validate().unwrap();
+            let path: Vec<[StateCommitment; 3]> = path
+                .layers
+                .iter()
+                .map(|layer| {
+                    std::array::from_fn(|i| {
+                        StateCommitment::try_from(layer.siblings[i].as_slice()).unwrap()
+                    })
+                })
+                .collect();
+            assert!(QuadTree::verify_auth_path(
+                position,
+                commitment,
+                &path,
+                tree.root(),
+                shieldd_sdk_compliance::DEFAULT_DEPTH
+            ));
+            assert!(!QuadTree::verify_auth_path(
+                position,
+                StateCommitment(commitment.0 + shieldd_sdk_crypto::Fq::from(1u64)),
+                &path,
+                tree.root(),
+                shieldd_sdk_compliance::DEFAULT_DEPTH
+            ));
+        }
     }
 
     #[test]
@@ -529,8 +547,7 @@ mod tests {
 
         assert_eq!(position, 1);
         assert!(is_regulated);
-        assert_eq!(retrieved_leaf.params.dk_pub, dk_pub);
-        assert_eq!(retrieved_leaf.params.daily_volume_limit, daily_volume_limit);
+        assert_eq!(retrieved_leaf, new_leaf);
     }
 
     #[test]

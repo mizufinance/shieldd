@@ -160,7 +160,7 @@ mod test {
     }
 
     #[test]
-    fn views_address_succeeds_on_own_address() {
+    fn views_address_distinguishes_owner_from_foreign_wallet() {
         let rng = rand::rngs::OsRng;
         let spend_key =
             SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
@@ -168,6 +168,12 @@ mod test {
         let ivk = spend_key.full_viewing_key().incoming();
         let own_address = ivk.payment_address(AddressIndex::from(0u32));
         assert!(ivk.views_address(&own_address));
+        let other_key =
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
+                .unwrap();
+        let other = other_key.full_viewing_key().incoming();
+        assert!(!ivk.views_address(&other.payment_address(AddressIndex::from(0u32))));
+        assert!(!other.views_address(&own_address));
     }
 
     proptest! {
@@ -184,23 +190,5 @@ mod test {
             let derived_address_index = fvk.address_index(&own_address);
             assert_eq!(derived_address_index.expect("index exists").account, AddressIndex::from(address_index).account);
         }
-    }
-
-    #[test]
-    fn views_address_fails_on_other_address() {
-        let rng = rand::rngs::OsRng;
-        let spend_key =
-            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
-                .expect("generated spend key satisfies key refinements");
-        let ivk = spend_key.full_viewing_key().incoming();
-
-        let other_address =
-            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(rng), &Bip44Path::new(0))
-                .expect("generated spend key satisfies key refinements")
-                .full_viewing_key()
-                .incoming()
-                .payment_address(AddressIndex::from(0u32));
-
-        assert!(!ivk.views_address(&other_address));
     }
 }

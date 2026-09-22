@@ -1,0 +1,75 @@
+[
+  {
+    "name": "fault-leaf-volume",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--profile",
+      "ci",
+      "-p",
+      "shieldd-sdk-compliance",
+      "--all-features",
+      "--lib",
+      "leaf_commit",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit_code": 101,
+    "detected": true,
+    "original_test_passed": true,
+    "expected_test": "indexed_tree::tests::indexed_leaf_commitment_binds_each_policy_and_link_field",
+    "source_files": [
+      "crates/core/component/compliance/src/indexed_tree.rs",
+      "crates/core/component/compliance/src/indexed_tree_tests.rs"
+    ]
+  },
+  {
+    "name": "fault-reader-lock",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--profile",
+      "ci",
+      "-p",
+      "shieldd-sdk-compliance",
+      "--all-features",
+      "--lib",
+      "sqlite_readers",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit_code": 101,
+    "detected": true,
+    "original_test_passed": true,
+    "expected_test": "scanner::storage::tests::sqlite_readers_see_committed_state_while_writer_is_active",
+    "source_files": [
+      "crates/core/component/compliance/src/scanner/storage.rs"
+    ]
+  },
+  {
+    "name": "fault-metadata-binding",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--profile",
+      "ci",
+      "-p",
+      "shieldd-sdk-asset",
+      "--all-features",
+      "--lib",
+      "metadata_codec_checks_the_denom_asset_binding",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit_code": 101,
+    "detected": true,
+    "original_test_passed": null,
+    "expected_test": "asset::denom_metadata::tests::metadata_codec_checks_the_denom_asset_binding",
+    "source_files": [
+      "crates/core/asset/src/asset/denom_metadata.rs"
+    ]
+  }
+]

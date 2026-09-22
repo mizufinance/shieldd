@@ -746,7 +746,7 @@ pub trait ComplianceRegistryRead: StateRead {
 
     /// Get the full ComplianceLeaf for a user.
     ///
-    /// This retrieves the complete leaf data (including the ACK) that was registered
+    /// This retrieves the complete authenticated leaf data that was registered
     /// on-chain. This is needed for proof generation to ensure the leaf used in the
     /// proof matches what was registered.
     ///
@@ -798,25 +798,6 @@ pub trait ComplianceRegistryRead: StateRead {
     ) -> Result<Option<u64>> {
         self.get_proto(&state_key::user_asset_position(address, &asset_id))
             .await
-    }
-
-    /// Verify that a compliance leaf exists on-chain by checking if its commitment
-    /// is in the user tree.
-    ///
-    /// This function is used to verify that a leaf shared off-chain actually exists
-    /// in the on-chain registry.
-    ///
-    /// # Arguments
-    /// * `leaf` - The compliance leaf to verify
-    ///
-    /// # Returns
-    /// Returns `Ok(true)` if the indexed leaf matches the committed tree position,
-    /// `Ok(false)` if not found.
-    async fn verify_compliance_leaf(&self, leaf: &ComplianceLeaf) -> Result<bool> {
-        Ok(self
-            .get_user_leaf(&leaf.address, leaf.asset_id)
-            .await?
-            .is_some_and(|stored| stored == *leaf))
     }
 
     // ========== Historical Anchor Validation ==========
@@ -1084,13 +1065,13 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
     /// Add a compliance leaf for a user.
     ///
-    /// This registers a user's address compliance key (ACK) for a regulated asset.
+    /// This registers an address's RNK derivation and authorization state for a regulated asset.
     /// Compliance leaves are current authorization facts; revocation needs an
     /// explicit state machine rather than deletion or archival from this tree.
     /// The leaf is committed and added to the user tree at the next available position.
     ///
     /// # Arguments
-    /// * `leaf` - The compliance leaf containing address, ACK, and asset_id
+    /// * `leaf` - The compliance leaf containing address, RNK fields, lifecycle and asset_id
     ///
     /// # Returns
     /// The position in the user tree where the leaf was added.
@@ -1466,10 +1447,8 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
     /// Record the current compliance tree anchors at the given block height.
     ///
-    /// This should be called at the end of each block to store the append-only
-    /// user root used by historical compliance proofs. The mutable asset-policy
-    /// root is emitted for synchronization but is never retained as admissible
-    /// proof history.
+    /// Retains the user root for historical lookup and emits both roots for sync.
+    /// Retention does not make a stale user or asset root admissible for authorization.
     async fn record_compliance_anchors(&mut self, height: u64) -> Result<()> {
         // Get current anchors
         let user_anchor = self.get_user_tree_root().await?;

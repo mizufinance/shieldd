@@ -1,0 +1,19 @@
+--- a/crates/crypto/circuits/src/volume.rs
++++ b/crates/crypto/circuits/src/volume.rs
+@@ -1,6 +1,6 @@
+ use crate::{
+     hash::Parameters,
+-    range::{decompose, less_or_equal},
++    range::{decompose, less_or_equal, less_or_equal_bounded},
+     tree::{self, Path, STATE_DEPTH, Tree},
+ };
+ use commonware_cryptography::{
+@@ -107,7 +107,7 @@
+     let candidate = prior.clone() + &shared.outbound;
+     let candidate_bits = decompose(ctx, &candidate, 128);
+     equal_if(&use_real, &successor, &candidate);
+-    let within = less_or_equal(&candidate_bits, &limit_bits);
++    let within = less_or_equal_bounded(ctx, &candidate_bits, &limit_bits);
+     (use_real.clone() & !within).assert_eq(&BoolVar::constant(false));
+     equal_if(
+         &(use_real.clone() & starts_new_day.clone()),

@@ -15,10 +15,14 @@ build:
     cargo build --release --workspace --all-features --all-targets
 
 check:
+    cargo fmt --all -- --check
+    just docs-check
     python3 scripts/commonware.py check
     just tooling-test
     cargo check --profile ci --workspace --all-targets --all-features
-    cargo fmt --all -- --check
+
+docs-check:
+    python3 scripts/check_docs.py
 
 tooling-test:
     python3 -m unittest discover -s scripts/tests
@@ -36,16 +40,14 @@ ci-test:
     cargo test --locked --profile ci --workspace --all-features -- --test-threads=1
 
 commonware-test:
-    CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-math ntt::prepared -- --test-threads=1
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-cryptography --lib --no-default-features --features std,bls12381 zk::pari -- --test-threads=1
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-cryptography --lib --no-default-features --features std,bls12381 zk::circuit -- --test-threads=1
-    CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-cryptography --lib --no-default-features --features std,bls12381 prepared_msm_tests -- --test-threads=1
 
 pari-proof-tests:
-    cargo build --locked --profile ci -p pcli
-    SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci -p shieldd-sdk-shielded-pool -p shieldd-sdk-app -p shieldd-sdk-disclosure -p shieldd-sdk-view -p shieldd-sdk-proof-params --all-features -- --ignored --skip prover_strategy_ --test-threads=1
+    cargo build --locked --profile ci -p pcli --features disclosure-prover
+    SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci -p shieldd-sdk-shielded-pool -p shieldd-sdk-app -p shieldd-sdk-app-tests -p shieldd-sdk-disclosure -p shieldd-sdk-view -p shieldd-sdk-proof-params --all-features -- --ignored --test-threads=1
 
-ci-preflight: check features-check commonware-test ci-test pari-proof-tests
+ci-preflight: check rustdocs-check features-check commonware-test ci-test pari-proof-tests
 
 # Validate local dependencies for the Orbis integration flow.
 orbis-integration-preflight:
@@ -95,6 +97,10 @@ wasm-check:
 # Rebuild Rust crate documentation
 rustdocs:
     ./deployments/scripts/rust-docs
+
+# Check all first-party feature APIs without applying lint policy to dependencies.
+rustdocs-check:
+    RUSTDOCFLAGS="-D rustdoc::broken_intra_doc_links" cargo doc --locked --profile ci --workspace --all-features --no-deps
 
 test: ci-test
 

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 /// An asset denomination.
 ///
-/// Each denomination has a unique [`asset::Id`] and base unit, and may also
+/// Each denomination has a unique [`Id`](crate::asset::Id) and base unit, and may also
 /// have other display units.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(try_from = "pb::Denom", into = "pb::Denom")]

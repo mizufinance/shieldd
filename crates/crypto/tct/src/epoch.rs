@@ -13,7 +13,7 @@ use crate::{prelude::*, Witness};
 pub(crate) mod block;
 
 /// A sparse merkle tree to witness up to 65,536 blocks, each witnessing up to 65,536
-/// [`Commitment`]s.
+/// [`crate::StateCommitment`]s.
 ///
 /// This is one epoch in a [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
@@ -137,7 +137,7 @@ impl Builder {
         Self::default()
     }
 
-    /// Add a new [`Commitment`] to the most recent block of this [`epoch::Builder`](Builder).
+    /// Add a new [`crate::StateCommitment`] to the most recent block of this [`epoch::Builder`](Builder).
     ///
     /// # Errors
     ///

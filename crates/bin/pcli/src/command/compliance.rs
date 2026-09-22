@@ -84,9 +84,6 @@ pub enum ComplianceCmd {
         /// Vera policy ID bound to this grant.
         #[clap(long)]
         policy_id: String,
-        /// Orbis ring public key for the registered asset.
-        #[clap(long)]
-        ring_pk_hex: String,
         /// Orbis ring public key evaluated on the address diversified generator.
         #[clap(long)]
         rnk_dh_pk_hex: String,
@@ -249,20 +246,17 @@ impl ComplianceCmd {
                 asset_id,
                 address,
                 policy_id,
-                ring_pk_hex,
                 rnk_dh_pk_hex,
                 rnk_commitment_hex,
                 registration_authority_sk_hex,
                 valid_until_unix,
             } => {
                 let asset_id = Self::parse_asset_id(asset_id)?;
-                let ring_pk = parse_point(ring_pk_hex, "ring_pk_hex")?;
                 let rnk_dh_pk = parse_point(rnk_dh_pk_hex, "rnk_dh_pk_hex")?;
                 let rnk_commitment = parse_fq(rnk_commitment_hex, "rnk_commitment_hex")?;
                 let leaf = ComplianceLeaf::registered(
                     address.clone(),
                     asset_id,
-                    ring_pk,
                     rnk_dh_pk,
                     rnk_commitment,
                 )?;
@@ -295,9 +289,7 @@ impl ComplianceCmd {
         }
     }
 
-    /// Create the transaction plan for this compliance command.
-    /// Helper to parse asset ID from string.
-    /// Accepts either a full asset ID or a unit name like "shieldd" or "ushieldd".
+    /// Parse a full asset ID or a unit name such as "shieldd" or "ushieldd".
     fn parse_asset_id(asset_str: &str) -> Result<asset::Id> {
         if let Ok(asset_id) = asset_str.parse() {
             return Ok(asset_id);

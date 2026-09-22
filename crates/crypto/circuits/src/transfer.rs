@@ -284,13 +284,14 @@ pub fn constrain<'ctx>(
             Some((&w.optional, note::Padding::Transfer)),
         ),
     ];
+    let payload_key = select_point(&leaf.audit.payload, &generators.unregulated_ring);
     let outputs = [
         note::constrain_output(
             ctx,
             params,
             &asset,
             &receiver.address,
-            &receiver.capk,
+            &payload_key,
             true,
             &w.outputs[0],
         ),
@@ -299,7 +300,7 @@ pub fn constrain<'ctx>(
             params,
             &asset,
             &sender.address,
-            &sender.capk,
+            &payload_key,
             false,
             &w.outputs[1],
         ),
@@ -341,9 +342,7 @@ pub fn constrain<'ctx>(
             detection_key: issuer,
             audit: audit::Keys {
                 epoch: regulated.select(&leaf.audit.epoch, &Var::zero()),
-                amount: select_point(&leaf.audit.amount, &generators.unregulated_ring),
-                sender: select_point(&leaf.audit.sender, &generators.unregulated_ring),
-                receiver: select_point(&leaf.audit.receiver, &generators.unregulated_ring),
+                payload: select_point(&leaf.audit.payload, &generators.unregulated_ring),
                 checking: select_point(&leaf.audit.checking, &generators.unregulated_ring),
             },
             sender: sender.address.clone(),

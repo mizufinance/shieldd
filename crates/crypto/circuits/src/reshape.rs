@@ -128,13 +128,23 @@ pub fn constrain<'a>(
     claimed: &Scalar,
 ) -> Vec<Var<'a, Scalar>> {
     let f = self_action::constrain(ctx, p, g, &w.owner);
+    let payload_key = crate::group::Point {
+        x: f.regulated.select(
+            &f.registry.audit.payload.x,
+            &Var::native(g.unregulated_ring.x.clone()),
+        ),
+        y: f.regulated.select(
+            &f.registry.audit.payload.y,
+            &Var::native(g.unregulated_ring.y.clone()),
+        ),
+    };
     let output = |w| {
         note::constrain_output(
             ctx,
             p,
             &f.spend.asset,
             &f.sender.address,
-            &f.sender.capk,
+            &payload_key,
             false,
             w,
         )

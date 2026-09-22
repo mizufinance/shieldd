@@ -26,7 +26,7 @@ pub fn validate_user_grant(
         grant.body.leaf == action.leaf,
         "user registration grant leaf does not match action leaf"
     );
-    action.leaf.validate_registration(policy.ring.ring_pk)?;
+    action.leaf.validate()?;
     anyhow::ensure!(
         action.leaf.status == UserAssetStatus::Active,
         "user registrations must start active"

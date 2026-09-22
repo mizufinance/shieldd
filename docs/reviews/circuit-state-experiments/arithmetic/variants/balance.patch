@@ -1,0 +1,53 @@
+--- a/crates/crypto/circuits/src/balance.rs
++++ b/crates/crypto/circuits/src/balance.rs
+@@ -6,9 +6,10 @@
+     scalar,
+ };
+ use anyhow::{Result, ensure};
++use commonware_codec::Encode;
+ use commonware_cryptography::{
+     bls12381::primitives::group::Scalar,
+-    zk::circuit::{Context, Var},
++    zk::circuit::{BoolVar, Context, Var},
+ };
+ 
+ fn amount(n: u128) -> Scalar {
+@@ -54,20 +55,26 @@
+     let hash = params.circuit(map::ASSET_GENERATOR, &[asset.clone()]);
+     let generator = map::circuit(ctx, &hash);
+     generator.assert_non_identity();
+-    let sum = |values: &[Var<'ctx, Scalar>; 2]| {
+-        for v in values {
+-            decompose(ctx, v, 128);
++    for value in inputs.iter().chain(outputs.iter()) {
++        decompose(ctx, value, 128);
++    }
++    let input = inputs[0].clone() + &inputs[1];
++    let output = outputs[0].clone() + &outputs[1];
++    let negative = BoolVar::witness(ctx, |values| {
++        input.value(values).encode() < output.value(values).encode()
++    });
++    let magnitude = Var::witness(ctx, |values| {
++        if input.value(values).encode() < output.value(values).encode() {
++            output.value(values) - &input.value(values)
++        } else {
++            input.value(values) - &output.value(values)
+         }
+-        decompose(ctx, &(values[0].clone() + &values[1]), 129)
+-    };
+-    let input = generator.multiply_bits(&sum(inputs));
+-    let output = generator.multiply_bits(&sum(outputs));
+-    let negated = Point {
+-        x: -output.x,
+-        y: output.y,
+-    };
++    });
++    let magnitude_bits = decompose(ctx, &magnitude, 129);
++    (input - &output).assert_eq(&negative.select(&(-magnitude.clone()), &magnitude));
++    let mut value = generator.multiply_bits(&magnitude_bits);
++    value.x = negative.select(&(-value.x.clone()), &value.x);
+     let d = Var::native(coefficient_d());
+-    let value = input.add(&negated, &d);
+     let blinded = generators
+         .blinding
+         .multiply_fixed(&scalar::canonical_bits(ctx, blinding));

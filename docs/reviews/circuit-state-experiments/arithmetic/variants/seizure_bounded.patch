@@ -1,0 +1,20 @@
+--- a/crates/crypto/circuits/src/seizure.rs
++++ b/crates/crypto/circuits/src/seizure.rs
+@@ -4,7 +4,7 @@
+     group,
+     hash::Parameters,
+     note::Note,
+-    range::{decompose, less_or_equal},
++    range::{decompose, less_or_equal_bounded},
+     recovery::{self, Capsule},
+     tree::{self, Path, STATE_DEPTH, Tree},
+ };
+@@ -118,7 +118,7 @@
+     tree::root(ctx, p, Tree::State, s.commitment.clone(), &path).assert_eq(&s.anchor);
+     let position = decompose(ctx, &path.position, 48);
+     let floor = decompose(ctx, &s.recent_floor, 48);
+-    (!less_or_equal(&floor, &position)).assert_eq(&BoolVar::assert(s.history_required.clone()));
++    (!less_or_equal_bounded(ctx, &floor, &position)).assert_eq(&BoolVar::assert(s.history_required.clone()));
+     let digest = var(claimed);
+     p.circuit(domains::SEIZURE_STATEMENT, &s.fields())
+         .assert_eq(&digest);

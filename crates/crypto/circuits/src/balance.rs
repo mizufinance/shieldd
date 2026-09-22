@@ -8,11 +8,23 @@ use crate::{
 use anyhow::{Result, ensure};
 use commonware_cryptography::{
     bls12381::primitives::group::Scalar,
-    zk::circuit::{Context, Var},
+    zk::circuit::{BoolVar, Context, Var},
 };
 
 fn amount(n: u128) -> Scalar {
     Scalar::from_limbs([n as u64, (n >> 64) as u64, 0, 0])
+}
+
+fn signed_bits<'a>(
+    ctx: Context<'a, Scalar>,
+    difference: &Var<'a, Scalar>,
+    negative: &BoolVar<'a, Scalar>,
+    magnitude: &Var<'a, Scalar>,
+) -> Vec<BoolVar<'a, Scalar>> {
+    let bits = decompose(ctx, magnitude, 129);
+    // Both sums are below 2^129; this bound excludes a field-wrapped magnitude.
+    difference.assert_eq(&negative.select(&(-magnitude.clone()), magnitude));
+    bits
 }
 
 pub fn native(
@@ -54,20 +66,23 @@ pub fn constrain<'ctx>(
     let hash = params.circuit(map::ASSET_GENERATOR, &[asset.clone()]);
     let generator = map::circuit(ctx, &hash);
     generator.assert_non_identity();
-    let sum = |values: &[Var<'ctx, Scalar>; 2]| {
-        for v in values {
-            decompose(ctx, v, 128);
+    for value in inputs.iter().chain(outputs.iter()) {
+        decompose(ctx, value, 128);
+    }
+    let input = inputs[0].clone() + &inputs[1];
+    let output = outputs[0].clone() + &outputs[1];
+    let negative = BoolVar::witness(ctx, |values| input.value(values) < output.value(values));
+    let magnitude = Var::witness(ctx, |values| {
+        if input.value(values) < output.value(values) {
+            output.value(values) - &input.value(values)
+        } else {
+            input.value(values) - &output.value(values)
         }
-        decompose(ctx, &(values[0].clone() + &values[1]), 129)
-    };
-    let input = generator.multiply_bits(&sum(inputs));
-    let output = generator.multiply_bits(&sum(outputs));
-    let negated = Point {
-        x: -output.x,
-        y: output.y,
-    };
+    });
+    let magnitude_bits = signed_bits(ctx, &(input - &output), &negative, &magnitude);
+    let mut value = generator.multiply_bits(&magnitude_bits);
+    value.x = negative.select(&(-value.x.clone()), &value.x);
     let d = Var::native(coefficient_d());
-    let value = input.add(&negated, &d);
     let blinded = generators
         .blinding
         .multiply_fixed(&scalar::canonical_bits(ctx, blinding));
@@ -80,6 +95,46 @@ mod tests {
     use commonware_cryptography::zk::circuit::build_with_values;
     use commonware_math::algebra::Additive;
     use commonware_math::algebra::Ring;
+
+    #[test]
+    fn signed_magnitude_rejects_wrong_sign_magnitude_and_field_wrap() {
+        let check = |difference: Scalar, negative: bool, magnitude: Scalar| {
+            build_with_values(|ctx| {
+                signed_bits(
+                    ctx,
+                    &Var::witness(ctx, |_| difference.clone()),
+                    &BoolVar::witness(ctx, |_| negative),
+                    &Var::witness(ctx, |_| magnitude.clone()),
+                );
+                Vec::new()
+            })
+            .0
+            .is_satisfied()
+        };
+        let max = amount(u128::MAX) + &amount(u128::MAX);
+        for magnitude in [Scalar::one(), Scalar::from(29), max] {
+            for negative in [false, true] {
+                let difference = if negative {
+                    -magnitude.clone()
+                } else {
+                    magnitude.clone()
+                };
+                assert!(check(difference.clone(), negative, magnitude.clone()));
+                assert!(!check(difference.clone(), !negative, magnitude.clone()));
+                assert!(!check(
+                    difference.clone(),
+                    negative,
+                    magnitude.clone() + &Scalar::one()
+                ));
+                assert!(!check(difference, !negative, -magnitude.clone()));
+            }
+        }
+        assert!(check(Scalar::zero(), false, Scalar::zero()));
+        assert!(check(Scalar::zero(), true, Scalar::zero()));
+        let outside = Scalar::from_limbs([0, 0, 2, 0]);
+        assert!(!check(outside.clone(), false, outside));
+        assert!(!check(Scalar::zero(), false, Scalar::one()));
+    }
 
     fn satisfied(
         p: &Parameters,

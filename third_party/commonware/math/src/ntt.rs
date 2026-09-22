@@ -1,6 +1,3 @@
-mod prepared;
-pub use prepared::PreparedTransform;
-
 use crate::algebra::{Additive, FieldNTT, Ring};
 #[cfg(not(feature = "std"))]
 use alloc::{vec, vec::Vec};
@@ -1287,9 +1284,6 @@ pub fn lagrange_coefficients<F: FieldNTT>(
 /// Errors returned by evaluation-domain operations.
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
-    /// A transform buffer or root table could not be allocated.
-    #[error("transform allocation failed")]
-    AllocationFailed,
     /// A radix-2 domain cannot be constructed for an empty input.
     #[error("domain size cannot be zero")]
     EmptyDomain,

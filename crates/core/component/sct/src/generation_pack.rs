@@ -16,8 +16,8 @@ use crate::{
         ZERO_HASHES,
     },
     nullifier_generation::{
-        ArchivedNullifierProof, NullifierGenerationArchived, NullifierGenerationPackReceipt,
-        PROTOCOL_VERSION,
+        ArchivedNullifierProof, ArchivedNullifierSpent, NullifierGenerationArchived,
+        NullifierGenerationPackReceipt, PROTOCOL_VERSION,
     },
     Nullifier,
 };
@@ -248,6 +248,28 @@ pub struct ReconstructedGeneration {
 }
 
 impl ReconstructedGeneration {
+    fn cached_bytes(&self) -> usize {
+        let mut bytes = self
+            .leaves
+            .capacity()
+            .saturating_mul(std::mem::size_of::<IndexedNullifierLeaf>())
+            .saturating_add(
+                self.ordered
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<(FqOrdKey, u64)>()),
+            )
+            .saturating_add(
+                self.levels
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<Vec<Fq>>()),
+            );
+        for level in &self.levels {
+            bytes =
+                bytes.saturating_add(level.capacity().saturating_mul(std::mem::size_of::<Fq>()));
+        }
+        bytes
+    }
+
     fn new(pack: &NullifierGenerationPack) -> Result<Self> {
         pack.validate()?;
         let mut ordered = pack
@@ -346,7 +368,7 @@ impl ReconstructedGeneration {
         let target = FqOrdKey::from(nullifier.0);
         let predecessor_position = match self.ordered.binary_search_by_key(&target, |(key, _)| *key)
         {
-            Ok(_) => anyhow::bail!("nullifier was spent in archived generation"),
+            Ok(_) => return Err(ArchivedNullifierSpent.into()),
             Err(0) => 0,
             Err(index) => self.ordered[index - 1].1,
         };
@@ -396,7 +418,8 @@ impl ReconstructedGeneration {
 struct PackCache {
     generations: BTreeMap<u64, Arc<ReconstructedGeneration>>,
     order: VecDeque<u64>,
-    loading: BTreeSet<u64>,
+    cached_bytes: usize,
+    loading: bool,
 }
 
 #[cfg(test)]
@@ -417,28 +440,53 @@ struct PublicationGate {
 #[derive(Clone, Debug)]
 pub struct GenerationPackRepository {
     directory: Arc<PathBuf>,
-    max_cached_generations: usize,
+    max_cached_bytes: usize,
     cache: Arc<Mutex<PackCache>>,
     cache_ready: Arc<Condvar>,
+    ready_receipts: Arc<Mutex<BTreeMap<u64, (NullifierGenerationPackReceipt, PackFileIdentity)>>>,
     #[cfg(test)]
     publication_gate: Option<Arc<PublicationGate>>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct PackFileIdentity {
+    length: u64,
+    modified: std::time::SystemTime,
+    #[cfg(unix)]
+    device: u64,
+    #[cfg(unix)]
+    inode: u64,
+}
+
+impl PackFileIdentity {
+    fn for_path(path: &Path) -> Result<Self> {
+        let metadata = fs::metadata(path)?;
+        #[cfg(unix)]
+        use std::os::unix::fs::MetadataExt as _;
+        Ok(Self {
+            length: metadata.len(),
+            modified: metadata.modified()?,
+            #[cfg(unix)]
+            device: metadata.dev(),
+            #[cfg(unix)]
+            inode: metadata.ino(),
+        })
+    }
+}
+
 impl GenerationPackRepository {
-    pub fn new(directory: PathBuf, max_cached_generations: usize) -> Result<Self> {
-        ensure!(
-            max_cached_generations > 0,
-            "generation pack cache must retain at least one generation"
-        );
+    pub fn new(directory: PathBuf, max_cached_bytes: usize) -> Result<Self> {
         Ok(Self {
             directory: Arc::new(directory),
-            max_cached_generations,
+            max_cached_bytes,
             cache: Arc::new(Mutex::new(PackCache {
                 generations: BTreeMap::new(),
                 order: VecDeque::new(),
-                loading: BTreeSet::new(),
+                cached_bytes: 0,
+                loading: false,
             })),
             cache_ready: Arc::new(Condvar::new()),
+            ready_receipts: Arc::new(Mutex::new(BTreeMap::new())),
             #[cfg(test)]
             publication_gate: None,
         })
@@ -471,7 +519,45 @@ impl GenerationPackRepository {
         self.path(generation_index).is_file()
     }
 
+    pub fn remember_verified_receipt(&self, receipt: NullifierGenerationPackReceipt) -> Result<()> {
+        receipt.validate()?;
+        let identity = PackFileIdentity::for_path(&self.path(receipt.generation_index))?;
+        self.ready_receipts
+            .lock()
+            .map_err(|_| anyhow::anyhow!("generation pack receipt lock is poisoned"))?
+            .insert(receipt.generation_index, (receipt, identity));
+        Ok(())
+    }
+
+    pub fn ready_receipt(
+        &self,
+        generation_index: u64,
+    ) -> Result<Option<NullifierGenerationPackReceipt>> {
+        let mut ready = self
+            .ready_receipts
+            .lock()
+            .map_err(|_| anyhow::anyhow!("generation pack receipt lock is poisoned"))?;
+        let Some((receipt, identity)) = ready.get(&generation_index) else {
+            return Ok(None);
+        };
+        let current = PackFileIdentity::for_path(&self.path(generation_index));
+        if !matches!(current, Ok(current) if current == *identity) {
+            ready.remove(&generation_index);
+            return Ok(None);
+        }
+        Ok(Some(receipt.clone()))
+    }
+
+    pub fn forget_ready_receipt(&self, generation_index: u64) -> Result<()> {
+        self.ready_receipts
+            .lock()
+            .map_err(|_| anyhow::anyhow!("generation pack receipt lock is poisoned"))?
+            .remove(&generation_index);
+        Ok(())
+    }
+
     pub fn quarantine(&self, generation_index: u64) -> Result<Option<PathBuf>> {
+        self.forget_ready_receipt(generation_index)?;
         let path = self.path(generation_index);
         if !path.exists() {
             return Ok(None);
@@ -482,11 +568,14 @@ impl GenerationPackRepository {
         let quarantine = path.with_extension(format!("ngp.corrupt-{suffix}"));
         fs::rename(&path, &quarantine)?;
         File::open(self.directory())?.sync_all()?;
-        self.cache
+        let mut cache = self
+            .cache
             .lock()
-            .map_err(|_| anyhow::anyhow!("generation pack cache lock is poisoned"))?
-            .generations
-            .remove(&generation_index);
+            .map_err(|_| anyhow::anyhow!("generation pack cache lock is poisoned"))?;
+        if let Some(removed) = cache.generations.remove(&generation_index) {
+            cache.cached_bytes -= removed.cached_bytes();
+            cache.order.retain(|index| *index != generation_index);
+        }
         Ok(Some(quarantine))
     }
 
@@ -640,7 +729,8 @@ impl GenerationPackRepository {
                 drop(cache);
                 return reconstructed.nonmembership_proof(nullifier);
             }
-            if cache.loading.insert(generation) {
+            if !cache.loading {
+                cache.loading = true;
                 break;
             }
             drop(
@@ -657,18 +747,26 @@ impl GenerationPackRepository {
             .cache
             .lock()
             .map_err(|_| anyhow::anyhow!("generation pack cache lock is poisoned"))?;
-        cache.loading.remove(&generation);
+        cache.loading = false;
         self.cache_ready.notify_all();
         let reconstructed = loaded?;
-        while cache.generations.len() >= self.max_cached_generations {
-            let oldest = cache
-                .order
-                .pop_front()
-                .context("generation pack cache order is empty")?;
-            cache.generations.remove(&oldest);
+        let bytes = reconstructed.cached_bytes();
+        if bytes <= self.max_cached_bytes {
+            while cache.cached_bytes > self.max_cached_bytes - bytes {
+                let oldest = cache
+                    .order
+                    .pop_front()
+                    .context("generation pack cache order is empty")?;
+                let removed = cache
+                    .generations
+                    .remove(&oldest)
+                    .context("cached generation is missing")?;
+                cache.cached_bytes -= removed.cached_bytes();
+            }
+            cache.cached_bytes += bytes;
+            cache.generations.insert(generation, reconstructed.clone());
+            touch(&mut cache.order, generation);
         }
-        cache.generations.insert(generation, reconstructed.clone());
-        touch(&mut cache.order, generation);
         drop(cache);
         reconstructed.nonmembership_proof(nullifier)
     }
@@ -818,9 +916,99 @@ mod tests {
     }
 
     #[test]
+    fn reconstruction_cache_respects_byte_budget() -> Result<()> {
+        let directory = TempDir::new()?;
+        let pack = pack(&[7, 1, 12])?;
+        let archived = archived(pack.metadata.generation_root);
+        let zero = GenerationPackRepository::new(directory.path().to_path_buf(), 0)?;
+        zero.write(&pack)?;
+        zero.nonmembership_proof(archived, Nullifier(Fq::from(8u64)))?;
+        assert!(zero.cache.lock().unwrap().generations.is_empty());
+        assert_eq!(zero.cache.lock().unwrap().cached_bytes, 0);
+
+        let bytes = pack.reconstruct()?.cached_bytes();
+        let cached = GenerationPackRepository::new(directory.path().to_path_buf(), bytes)?;
+        cached.nonmembership_proof(archived, Nullifier(Fq::from(8u64)))?;
+        assert_eq!(cached.cache.lock().unwrap().cached_bytes, bytes);
+        assert_eq!(cached.cache.lock().unwrap().generations.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn concurrent_cold_loads_wake_after_failure_and_stay_within_budget() -> Result<()> {
+        use std::{sync::mpsc, time::Duration};
+
+        let directory = TempDir::new()?;
+        let first = pack(&[7, 1, 12])?;
+        let first_archived = archived(first.metadata.generation_root);
+        let mut second = pack(&[8, 2, 13])?;
+        second.metadata.generation_index += 1;
+        let mut second_archived = archived(second.metadata.generation_root);
+        second_archived.generation_index += 1;
+        let budget = first
+            .reconstruct()?
+            .cached_bytes()
+            .max(second.reconstruct()?.cached_bytes());
+        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), budget)?;
+
+        let missing = second_archived;
+        let (sent, received) = mpsc::channel();
+        let mut handles = Vec::new();
+        for _ in 0..2 {
+            let repository = repository.clone();
+            let sent = sent.clone();
+            handles.push(std::thread::spawn(move || {
+                sent.send(
+                    repository
+                        .nonmembership_proof(missing, Nullifier(Fq::from(9u64)))
+                        .is_err(),
+                )
+            }));
+        }
+        for _ in 0..2 {
+            assert!(received.recv_timeout(Duration::from_secs(10))?);
+        }
+        for handle in handles {
+            handle.join().expect("cold load thread panicked")?;
+        }
+
+        repository.write(&first)?;
+        repository.write(&second)?;
+        let (sent, received) = mpsc::channel();
+        let mut handles = Vec::new();
+        for generation in [
+            first_archived,
+            second_archived,
+            first_archived,
+            second_archived,
+        ] {
+            let repository = repository.clone();
+            let sent = sent.clone();
+            handles.push(std::thread::spawn(move || {
+                sent.send(
+                    repository
+                        .nonmembership_proof(generation, Nullifier(Fq::from(9u64)))
+                        .and_then(|proof| proof.verify_for(Nullifier(Fq::from(9u64)))),
+                )
+            }));
+        }
+        for _ in 0..4 {
+            received.recv_timeout(Duration::from_secs(10))??;
+        }
+        for handle in handles {
+            handle.join().expect("cold load thread panicked")?;
+        }
+        let cache = repository.cache.lock().unwrap();
+        assert!(cache.cached_bytes <= budget);
+        assert_eq!(cache.generations.len(), cache.order.len());
+        assert!(!cache.loading);
+        Ok(())
+    }
+
+    #[test]
     fn repository_reloads_verified_pack_and_quarantines_damage() -> Result<()> {
         let directory = TempDir::new()?;
-        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
+        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 64 << 20)?;
         let pack = pack(&[7, 1, 12])?;
         let archived = archived(pack.metadata.generation_root);
         let receipt = repository.write(&pack)?;
@@ -828,6 +1016,7 @@ mod tests {
         repository
             .nonmembership_proof(archived, Nullifier(Fq::from(8u64)))?
             .verify_for(Nullifier(Fq::from(8u64)))?;
+        assert!(repository.cache.lock().unwrap().cached_bytes > 0);
 
         let path = repository.path(archived.generation_index);
         let mut damaged = fs::read(&path)?;
@@ -839,6 +1028,8 @@ mod tests {
             .context("damaged pack was not quarantined")?;
         assert!(!path.exists());
         assert!(quarantine.exists());
+        assert_eq!(repository.cache.lock().unwrap().cached_bytes, 0);
+        assert!(repository.cache.lock().unwrap().order.is_empty());
         Ok(())
     }
 

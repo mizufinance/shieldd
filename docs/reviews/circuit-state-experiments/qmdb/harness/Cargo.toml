@@ -1,0 +1,16 @@
+[package]
+name="shieldd-qmdb-experiment"
+version="0.1.0"
+edition="2024"
+[dependencies]
+commonware-storage = { path="/tmp/shieldd-experiments/qmdb/monorepo-bd0f7eb33af26c4aa9831d98d53621ba3cb4b14e/storage", features=["test-traits"] }
+commonware-runtime = { path="/tmp/shieldd-experiments/qmdb/monorepo-bd0f7eb33af26c4aa9831d98d53621ba3cb4b14e/runtime" }
+commonware-cryptography = { path="/tmp/shieldd-experiments/qmdb/monorepo-bd0f7eb33af26c4aa9831d98d53621ba3cb4b14e/cryptography" }
+commonware-utils = { path="/tmp/shieldd-experiments/qmdb/monorepo-bd0f7eb33af26c4aa9831d98d53621ba3cb4b14e/utils" }
+commonware-parallel = { path="/tmp/shieldd-experiments/qmdb/monorepo-bd0f7eb33af26c4aa9831d98d53621ba3cb4b14e/parallel" }
+commonware-codec = { path="/tmp/shieldd-experiments/qmdb/monorepo-bd0f7eb33af26c4aa9831d98d53621ba3cb4b14e/codec" }
+futures = "0.3"
+[profile.ci]
+inherits="release"
+debug-assertions=true
+codegen-units=16

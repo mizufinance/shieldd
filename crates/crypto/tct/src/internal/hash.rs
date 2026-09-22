@@ -69,7 +69,7 @@ impl<T: GetHash> GetHash for &mut T {
     }
 }
 
-/// The hash of an individual [`Commitment`] or internal node in the tree.
+/// The hash of an individual [`crate::StateCommitment`] or internal node in the tree.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Hash(Option<Fq>);
 
@@ -325,21 +325,6 @@ mod arbitrary {
                 wide[..32].copy_from_slice(&bytes);
                 wide
             }))))
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn forgotten_increments() {
-        use super::Forgotten;
-
-        let mut last = Forgotten::default();
-        for _ in 0..10 {
-            let next = last.next();
-            assert_eq!(u64::from(next), u64::from(last) + 1);
-            last = next;
         }
     }
 }

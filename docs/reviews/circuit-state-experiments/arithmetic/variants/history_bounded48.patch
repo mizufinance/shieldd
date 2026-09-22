@@ -1,0 +1,20 @@
+--- a/crates/crypto/circuits/src/history.rs
++++ b/crates/crypto/circuits/src/history.rs
+@@ -1,7 +1,7 @@
+ use crate::{
+     encoding::canonical_bits,
+     hash::Parameters,
+-    range::{decompose, is_zero, less_or_equal},
++    range::{decompose, is_zero, less_or_equal, less_or_equal_bounded},
+     tree::{self, Path, Tree},
+ };
+ use commonware_cryptography::{
+@@ -147,7 +147,7 @@
+     let end_position = integer(s.end_position);
+     let start_bits = decompose(ctx, &start_position, 48);
+     let end_bits = decompose(ctx, &end_position, 48);
+-    less_or_equal(&start_bits, &end_bits).assert_eq(&BoolVar::constant(true));
++    less_or_equal_bounded(ctx, &start_bits, &end_bits).assert_eq(&BoolVar::constant(true));
+     let start_head = var(&s.start_head);
+     let end_head = var(&s.end_head);
+     let leaf = &w.leaf;

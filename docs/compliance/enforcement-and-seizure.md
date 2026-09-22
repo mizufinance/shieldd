@@ -7,7 +7,7 @@ They do not jointly produce proofs.
 
 ## Capsule release
 
-For capsule EPK `E`, registered capability `C`, and released point `S`, Shieldd
+For capsule EPK `E`, asset payload key `C`, and released point `S`, Shieldd
 verifies an equality-of-discrete-logs proof for
 
 ```text
@@ -16,31 +16,38 @@ S = xE
 ```
 
 The proof transcript binds a canonical release ID derived from the exact
-capsule, note, registered address and asset, current capability, Orbis policy,
+capsule, note, claimed address and asset, authenticated payload key and epoch, Orbis policy,
 authority instruction, and expiry. It proves the DH relation for `S` under
-`C`, not that an ACP granted access. The note proof separately checks the
-capsule plaintext and note commitment.
+`C`. It does not prove owner identity or ACP authorization. The note proof
+checks the owner, RNK, capsule plaintext and note commitment after opening.
 
 `CapsuleReleaseRequest::release_id` defines the canonical resource ID;
 `CapsuleReleaseEvidence` carries the point and proof for that ID.
 
+The production contract permits only authority-approved public disclosure of an
+exact accepted note/capsule, independently of whether a claimed owner matches.
+Before release, the external service must validate accepted-note provenance and
+the authority's exact disclosure grant. A request alone is not a grant. A host
+owner check after opening cannot enforce pre-release confidentiality.
+
 The intended production sequence is:
 
-1. an authority signs the exact note-seizure instruction;
-2. an ACP grants access to that capsule-specific release ID;
-3. Orbis returns `S` and the DLEQ proof only after the grant;
-4. Shieldd verifies the instruction, release, note proof, and nullifier; and
+1. an authority approves public opening of the exact accepted note/capsule and
+   signs the exact seizure instruction;
+2. the release service checks that grant and provenance;
+3. Orbis returns `S` and a request-bound DLEQ proof;
+4. Shieldd verifies the instruction, release, owner/RNK note proof and nullifier;
 5. Bankd atomically applies the withdrawal returned by Shieldd.
 
-The reusable `reader_secret` never enters Bankd consensus. Publishing `S` opens
-the seized capsule to observers; reusing its capability and EPK would share
-that opening with another capsule. Hiding the opening requires a larger ZK
-release relation or a threshold attestation over a hidden opening.
+No reusable payload or RNK secret enters Bankd consensus. Publishing `S` opens
+that capsule to observers; reusing its key and EPK would share the opening.
+Private/address-scoped capsule release, collection and ownership PET are
+unavailable. Ordinary Transfer ownership ciphertexts do not cover all capsules.
 
 ## State transition
 
 Each registered `(address, asset_id)` leaf commits the address, asset,
-capability, regulated-nullifier derivation data, status, freeze generation, and
+regulated-nullifier derivation data, status, freeze generation, and
 freeze height. Legal transitions are:
 
 ```text

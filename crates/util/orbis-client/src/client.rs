@@ -556,18 +556,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn containerized_p2p_address_can_be_derived_without_cli_parsing() {
-        let info = NodeInfo {
-            public_address: "vera1deadbeef".to_string(),
-            node_key: "node-key".to_string(),
-            peer_id: "12D3KooWExample".to_string(),
-            p2p_address: "/ip4/127.0.0.1/tcp/4001".to_string(),
-        };
-        assert_eq!(info.peer_id, "12D3KooWExample");
-        assert!(info.p2p_address.contains("4001"));
-    }
-
-    #[test]
     fn invalid_endpoint_is_rejected() {
         assert!(OrbisClient::new("not a valid endpoint").is_err());
     }

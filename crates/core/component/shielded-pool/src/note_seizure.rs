@@ -25,7 +25,7 @@ pub const MAX_NOTE_SEIZURE_CHAIN_ID_BYTES: usize = 128;
 const NOTE_SEIZURE_AUTHORIZATION_DOMAIN: &[u8] = b"shieldd.note_seizure.authorization";
 const NOTE_SEIZURE_AUTHORIZATION_COMMITMENT_DOMAIN: &[u8] =
     b"shieldd.note_seizure.authorization_commitment";
-const CAPSULE_RELEASE_ID_DOMAIN: &[u8] = b"shieldd.capsule_release.request.v1";
+const CAPSULE_RELEASE_ID_DOMAIN: &[u8] = b"shieldd.capsule_release.request.v2";
 
 /// Immutable facts approved by the asset's seizure authority.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -179,7 +179,8 @@ impl From<NoteSeizureAuthorizationBody> for pb::NoteSeizureAuthorizationBody {
     }
 }
 
-/// Capsule-specific resource identity for future ACP authorization.
+/// Exact accepted-note opening requested for authority-approved public disclosure.
+/// DLEQ evidence authenticates the key and request, not ownership or authorization.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CapsuleReleaseRequest {
     pub chain_id: String,
@@ -190,7 +191,8 @@ pub struct CapsuleReleaseRequest {
     pub ring_pk: SubgroupPoint,
     pub asset_id: asset::Id,
     pub address: Address,
-    pub capk: SubgroupPoint,
+    pub payload_key: SubgroupPoint,
+    pub audit_epoch: u64,
     pub note_commitment: tct::StateCommitment,
     pub recovery_commitment: RecoveryCommitment,
     pub capsule_epk: SubgroupPoint,
@@ -200,6 +202,14 @@ pub struct CapsuleReleaseRequest {
 
 impl CapsuleReleaseRequest {
     pub fn validate(&self) -> Result<()> {
+        ensure!(
+            self.audit_epoch > 0,
+            "capsule release audit epoch must be nonzero"
+        );
+        ensure!(
+            self.payload_key != self.ring_pk,
+            "capsule payload and RNK keys must differ"
+        );
         ensure!(
             !self.chain_id.is_empty() && self.chain_id.len() <= MAX_NOTE_SEIZURE_CHAIN_ID_BYTES,
             "invalid capsule release chain_id length"
@@ -220,8 +230,8 @@ impl CapsuleReleaseRequest {
             "capsule release ring_pk must not be identity"
         );
         ensure!(
-            !bool::from(self.capk.is_identity()),
-            "capsule release capk must not be identity"
+            !bool::from(self.payload_key.is_identity()),
+            "capsule release payload_key must not be identity"
         );
         ensure!(
             !bool::from(self.capsule_epk.is_identity()),
@@ -278,7 +288,8 @@ impl TryFrom<pb::CapsuleReleaseRequest> for CapsuleReleaseRequest {
                 .address
                 .context("capsule release is missing address")?
                 .try_into()?,
-            capk: decode_element(value.capk, "capsule release capk")?,
+            payload_key: decode_element(value.payload_key, "capsule release payload_key")?,
+            audit_epoch: value.audit_epoch,
             note_commitment: value
                 .note_commitment
                 .context("capsule release is missing note commitment")?
@@ -310,7 +321,8 @@ impl From<CapsuleReleaseRequest> for pb::CapsuleReleaseRequest {
             ring_pk: value.ring_pk.to_bytes().to_vec(),
             asset_id: Some(value.asset_id.into()),
             address: Some(value.address.into()),
-            capk: value.capk.to_bytes().to_vec(),
+            payload_key: value.payload_key.to_bytes().to_vec(),
+            audit_epoch: value.audit_epoch,
             note_commitment: Some(value.note_commitment.into()),
             recovery_commitment: value.recovery_commitment.0.to_bytes().to_vec(),
             capsule_epk: value.capsule_epk.to_bytes().to_vec(),
@@ -353,7 +365,7 @@ impl CapsuleReleaseEvidence {
         verify_dleq(
             *shieldd_sdk_crypto::generators::SPEND_AUTH,
             request.capsule_epk,
-            request.capk,
+            request.payload_key,
             self.recovered_point,
             &self.proof,
             challenge,
@@ -362,21 +374,21 @@ impl CapsuleReleaseEvidence {
     }
 
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    /// Insecure local fixture: never use its fixed nonce with real capability keys.
-    pub fn from_capability_secret_for_test(
+    /// Insecure local fixture: never use its fixed nonce with real payload keys.
+    pub fn from_payload_secret_for_test(
         request: &CapsuleReleaseRequest,
-        capability_secret: Fr,
+        payload_secret: Fr,
     ) -> Self {
         assert_eq!(
-            request.capk,
-            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * capability_secret
+            request.payload_key,
+            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * payload_secret
         );
         let nonce = Fr::from(29u64);
         let mut evidence = Self {
             release_id: request
                 .release_id()
                 .expect("test release request must be valid"),
-            recovered_point: request.capsule_epk * capability_secret,
+            recovered_point: request.capsule_epk * payload_secret,
             proof: DleqProof {
                 commitment_g: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * nonce,
                 commitment_h: request.capsule_epk * nonce,
@@ -384,7 +396,7 @@ impl CapsuleReleaseEvidence {
             },
         };
         evidence.proof.response =
-            nonce + capsule_release_challenge(request, &evidence) * capability_secret;
+            nonce + capsule_release_challenge(request, &evidence) * payload_secret;
         evidence
     }
 }
@@ -401,7 +413,7 @@ fn capsule_release_challenge(
     state.update(&evidence.release_id);
     for point in [
         *shieldd_sdk_crypto::generators::SPEND_AUTH,
-        request.capk,
+        request.payload_key,
         request.capsule_epk,
         evidence.recovered_point,
         evidence.proof.commitment_g,
@@ -798,7 +810,7 @@ mod tests {
     fn release_request(
         authorization: &NoteSeizureAuthorizationBody,
         capsule: &RecoveryCapsule,
-        capk: SubgroupPoint,
+        payload_key: SubgroupPoint,
     ) -> CapsuleReleaseRequest {
         CapsuleReleaseRequest {
             chain_id: authorization.chain_id.clone(),
@@ -809,7 +821,8 @@ mod tests {
             ring_pk: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(3u64),
             asset_id: authorization.asset_id,
             address: authorization.address.clone(),
-            capk,
+            payload_key,
+            audit_epoch: 1,
             note_commitment: authorization.note_commitment,
             recovery_commitment: capsule.commitment(),
             capsule_epk: capsule.epk,
@@ -820,9 +833,9 @@ mod tests {
 
     fn release_evidence(
         request: &CapsuleReleaseRequest,
-        capability_secret: Fr,
+        payload_secret: Fr,
     ) -> CapsuleReleaseEvidence {
-        CapsuleReleaseEvidence::from_capability_secret_for_test(request, capability_secret)
+        CapsuleReleaseEvidence::from_payload_secret_for_test(request, payload_secret)
     }
 
     #[test]
@@ -864,17 +877,17 @@ mod tests {
     #[test]
     fn capsule_release_dleq_binds_the_capsule_and_metadata() {
         let authorization = authorization();
-        let capability_secret = Fr::from(19u64);
-        let capk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * capability_secret;
+        let payload_secret = Fr::from(19u64);
+        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * payload_secret;
         let (capsule, _) = RecoveryCapsule::encrypt(
             authorization.amount,
             Fq::from(7u64),
-            capk,
+            payload_key,
             crate::Rseed([17; 32]),
         )
         .unwrap();
-        let request = release_request(&authorization, &capsule, capk);
-        let evidence = release_evidence(&request, capability_secret);
+        let request = release_request(&authorization, &capsule, payload_key);
+        let evidence = release_evidence(&request, payload_secret);
 
         assert_eq!(evidence.verify(&request).unwrap(), evidence.recovered_point);
 
@@ -889,9 +902,10 @@ mod tests {
             }),
             ("asset", |r| r.asset_id.0 += Fq::from(1u64)),
             ("address", |r| r.address = test_keys::ADDRESS_1.clone()),
-            ("capability", |r| {
-                r.capk += *shieldd_sdk_crypto::generators::SPEND_AUTH
+            ("payload key", |r| {
+                r.payload_key += *shieldd_sdk_crypto::generators::SPEND_AUTH
             }),
+            ("epoch", |r| r.audit_epoch += 1),
             ("note", |r| r.note_commitment.0 += Fq::from(1u64)),
             ("capsule", |r| r.recovery_commitment.0 += Fq::from(1u64)),
             ("EPK", |r| {
@@ -913,6 +927,22 @@ mod tests {
                 "rewriting the release ID must not rebind {label}"
             );
         }
+
+        // A fresh valid DLEQ for another claimed owner still opens the same capsule.
+        // Ownership is enforced by the note proof, never by this release verifier.
+        let mut other_owner = request.clone();
+        other_owner.address = test_keys::ADDRESS_1.clone();
+        let other_owner_evidence = release_evidence(&other_owner, payload_secret);
+        assert_eq!(
+            other_owner_evidence.verify(&other_owner).unwrap(),
+            evidence.recovered_point
+        );
+        let mut stale: pb::CapsuleReleaseRequest = request.clone().into();
+        stale.audit_epoch = 0;
+        assert!(CapsuleReleaseRequest::try_from(stale).is_err());
+        let mut missing: pb::CapsuleReleaseRequest = request.clone().into();
+        missing.payload_key.clear();
+        assert!(CapsuleReleaseRequest::try_from(missing).is_err());
 
         let mut other_point = evidence.clone();
         other_point.recovered_point += *shieldd_sdk_crypto::generators::SPEND_AUTH;
@@ -937,11 +967,11 @@ mod tests {
     #[test]
     fn seizure_witness_needs_recovered_blinding_not_note_rseed() {
         let mut body = authorization();
-        let capk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(19u64);
+        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(19u64);
         let rseed = crate::Rseed([17; 32]);
         let note_blinding = rseed.derive_note_blinding();
         let (capsule, opening) =
-            RecoveryCapsule::encrypt(body.amount, note_blinding, capk, rseed).unwrap();
+            RecoveryCapsule::encrypt(body.amount, note_blinding, payload_key, rseed).unwrap();
         body.note_commitment = crate::note::commitment_from_address(
             body.address.clone(),
             Value {

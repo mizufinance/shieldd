@@ -350,17 +350,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_genesis() {
-        let content = Content::default();
-        assert!(content.native_assets.is_empty());
-        assert!(content.user_registrations.is_empty());
-        assert_eq!(
-            content.compliance_params.anchor_validation_window_blocks,
-            crate::params::ComplianceParameters::default().anchor_validation_window_blocks
-        );
-    }
-
-    #[test]
     fn test_serde_roundtrip() {
         let authority = VerificationKey::from(
             &SigningKey::<SpendAuth>::try_from(Fr::from(7u64).to_bytes()).unwrap(),

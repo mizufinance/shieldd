@@ -47,12 +47,9 @@ INSERT INTO sct_forgotten VALUES ( 0 ); -- starting forgotten version is 0
 CREATE TABLE sct_hashes (
     position BIGINT NOT NULL,
     height   TINYINT NOT NULL,
-    hash     BLOB NOT NULL
-);
-
--- these indices may help with 2-dimensional range deletion
-CREATE INDEX hash_position_idx ON sct_hashes ( position );
---CREATE INDEX hash_height_idx ON sct_hashes ( height );
+    hash     BLOB NOT NULL,
+    PRIMARY KEY (position, height)
+) WITHOUT ROWID;
 
 -- all the commitments stored in the sct
 CREATE TABLE sct_commitments (
@@ -178,14 +175,6 @@ CREATE TABLE compliance_user_positions (
     commitment BLOB NOT NULL
 );
 
--- Internal hashes for user tree auth paths
-CREATE TABLE compliance_user_hashes (
-    position BIGINT NOT NULL,
-    height TINYINT NOT NULL,
-    hash BLOB NOT NULL,
-    PRIMARY KEY (position, height)
-);
-
 -- Asset tree (IMT) indexed leaves (full policy for correct tree reconstruction)
 CREATE TABLE compliance_asset_leaves (
     position BIGINT PRIMARY KEY,
@@ -200,15 +189,7 @@ CREATE TABLE compliance_asset_leaves (
     policy_id_hash BLOB NOT NULL,  -- 32 bytes Fq
     permission_hash BLOB NOT NULL, -- 32 bytes Fq
     resource_hash BLOB NOT NULL,    -- 32 bytes Fq
-    audit_keys BLOB NOT NULL CHECK(length(audit_keys) = 137)
-);
-
--- Internal hashes for asset tree auth paths
-CREATE TABLE compliance_asset_hashes (
-    position BIGINT NOT NULL,
-    height TINYINT NOT NULL,
-    hash BLOB NOT NULL,
-    PRIMARY KEY (position, height)
+    audit_keys BLOB NOT NULL CHECK(length(audit_keys) = 73)
 );
 
 -- Compliance tree anchors per block
@@ -225,7 +206,6 @@ CREATE TABLE compliance_user_leaf_data (
     address BLOB NOT NULL,
     asset_id BLOB NOT NULL,
     position BIGINT NOT NULL,
-    capk BLOB NOT NULL,                -- 32-byte compressed Jubjub point
     rnk_dh_pk BLOB NOT NULL,           -- 32-byte compressed Jubjub point
     rnk_commitment BLOB NOT NULL,      -- 32-byte Fq
     status INTEGER NOT NULL,

@@ -1,0 +1,19 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-app v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/app)
+   Compiling shieldd-sdk-view v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/view)
+   Compiling shieldd-sdk-mock-client v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/test/mock-client)
+    Finished `ci` profile [optimized] target(s) in 44.15s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_app-987543e7c204c64c)
+
+running 6 tests
+test nullifier_generation_packs::tests::compact_blocks_rebuild_the_exact_retired_root ... ok
+test nullifier_generation_packs::tests::invalid_pack_with_a_stored_receipt_is_rebuilt_before_pruning ... ok
+test nullifier_generation_packs::tests::startup_preparation_publishes_packs_for_bounded_maintenance ... ok
+test nullifier_generation_packs::tests::retired_pruning_is_bounded_and_resumes_after_reopen ... ok
+test nullifier_generation_packs::tests::worker_processes_generation_retired_after_preparation_before_first_poll ... ok
+test nullifier_generation_packs::tests::valid_receipt_allows_restart_after_expanded_state_is_pruned ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 1.26s
+

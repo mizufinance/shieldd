@@ -1,6 +1,6 @@
 //! This module contains trait definitions for the entire interface of the internal tree. All of
-//! them are exported from either [`frontier`](crate::internal::frontier) or
-//! [`complete`](crate::internal::complete), but they are also exported from here for ease of
+//! them are exported from either [`frontier`] or
+//! [`complete`], but they are also exported from here for ease of
 //! reading.
 
 use std::fmt::Debug;

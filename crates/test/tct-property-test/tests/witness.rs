@@ -124,7 +124,7 @@ proptest! {
     }
 
     #[test]
-    fn validate_index(
+    fn trace_preserves_index_proofs_and_cached_hashes(
         actions in
             prop::collection::vec(any::<StateCommitment>(), 1..MAX_USED_COMMITMENTS)
                 .prop_flat_map(|commitments| {
@@ -135,38 +135,14 @@ proptest! {
         for action in actions {
             action.apply(&mut tree).unwrap();
         }
-        validate::index(&tree).unwrap();
+        validate::index(&tree).expect("index after trace");
+        validate::all_proofs(&tree).expect("authentication proofs after trace");
+        validate::cached_hashes(&tree).expect("cached hashes after trace");
     }
 
-    #[test]
-    fn verify_all_proofs(
-        actions in
-            prop::collection::vec(any::<StateCommitment>(), 1..MAX_USED_COMMITMENTS)
-                .prop_flat_map(|commitments| {
-                    prop::collection::vec(any_with::<Action>(commitments), 1..MAX_TIER_ACTIONS)
-                })
-    ) {
-        let mut tree = Tree::new();
-        for action in actions {
-            action.apply(&mut tree).unwrap();
-        }
-        validate::all_proofs(&tree).unwrap();
-    }
 
-    #[test]
-    fn validate_cached_hashes(
-        actions in
-            prop::collection::vec(any::<StateCommitment>(), 1..MAX_USED_COMMITMENTS)
-                .prop_flat_map(|commitments| {
-                    prop::collection::vec(any_with::<Action>(commitments), 1..MAX_TIER_ACTIONS)
-                })
-    ) {
-        let mut tree = Tree::new();
-        for action in actions {
-            action.apply(&mut tree).unwrap();
-        }
-        validate::cached_hashes(&tree).unwrap();
-    }
+
+
 
 
     #[test]
@@ -200,7 +176,7 @@ proptest! {
 
             // Check that the count is increasing correctly
             if should_increase {
-                assert_eq!(post, pre.next());
+                assert_eq!(u64::from(post), u64::from(pre) + 1);
             } else {
                 assert_eq!(post, pre);
             }

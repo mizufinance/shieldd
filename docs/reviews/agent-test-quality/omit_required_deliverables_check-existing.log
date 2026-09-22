@@ -1,0 +1,7 @@
+test_default_build_pins_host_target_despite_cargo_environment (test_stage_artifacts.StagedArtifactsTests.test_default_build_pins_host_target_despite_cargo_environment) ... ok
+test_manifest_binds_suite_revision_profile_and_bytes (test_stage_artifacts.StagedArtifactsTests.test_manifest_binds_suite_revision_profile_and_bytes) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.006s
+
+OK

@@ -1,0 +1,19 @@
+{
+  "README.md": "d4b967bbd588f3639e2a4feac9a7b466fa0e23cc26d5e598216c2436a7e0b8b1",
+  "circuit-tests.log": "6a8a45f365200eec88351ab10505ff84e70adde55e95a089a07714ec510bc802",
+  "commonware-check.log": "505a90921f962d5cdbc4e98ec5f709fe0a7ba3e54edf645f6b8395d9d44c8df9",
+  "integration-tests.log": "f7917777474e3ddeb2198cd520e741911aa87c67c8bb1c6900f57ec1eac15a52",
+  "key-setup.log": "49fd54e8d152561907b20199ea9bf4c0892ad0f7eb92619eb138d4692df196ff",
+  "pcli-build.log": "0b4ea38a47cdbd7a56824c8327562c762514f9514c08a43bf57653536be19326",
+  "proof-gates.log": "c9cc4370dcccbd243b58355ce0a22e40c6c823b5eb067ee4ccb4542c9c4ca0a5",
+  "registry-manifest.json": "f3e342c0c80da1b8122e749eb577fdd9e53360cbb5ac49b4da4749c3214d91ad",
+  "source-fingerprints.json": "e0c93bb331dcb770559db4797d011efe2e557850def8fe60b9c70519055a96c2",
+  "storage/app-maintenance-test.log": "c3a9416e0baa5d02016e6e2490c1753c9f86df4819bf1a4962d6b3eb3131cfa4",
+  "storage/app-packs-test.log": "53391c6fa9fed82b59003f751ddb2428ce75c11193781b0db7a2ee7531a7e860",
+  "storage/sct-test.log": "05fefe3609c5a565c4fd84350aaad73d5439204b4627e3d0272f9c8f41bf29e6",
+  "storage/service-pack-test.log": "6366cf2b404957c16814559245780a99e4d295e1e0d043f848b096de24a471ac",
+  "verification-runs.json": "3f95ae199311c5d93dbdcb4329eacc47251b21406094137312d3a1b648009632",
+  "wallet/sct-after.log": "aea37dbc5f1794e26b659fa0251362f658e0de715f21ce70be42624dbf82495b",
+  "wallet/sct-before.log": "5ec030946b4298e0d78c6e75c454efb158567d892dbf25ab6bc40efdd6c39e19",
+  "workspace-check.log": "7290dd53e51bfb8c08f513ef28315ce8a4bf592effc1a8c59f5c6ca38a44f625"
+}

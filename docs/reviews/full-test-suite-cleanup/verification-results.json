@@ -1,0 +1,107 @@
+[
+  {
+    "name": "workspace-remaining",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--profile",
+      "ci",
+      "--workspace",
+      "--exclude",
+      "shieldd-sdk-app",
+      "--exclude",
+      "shieldd-sdk-app-tests",
+      "--exclude",
+      "shieldd-sdk-circuits",
+      "--all-features",
+      "--no-fail-fast",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "seconds": 391.73
+  },
+  {
+    "name": "remaining-doc-tests",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--profile",
+      "ci",
+      "-p",
+      "shieldd-sdk-app",
+      "-p",
+      "shieldd-sdk-app-tests",
+      "-p",
+      "shieldd-sdk-circuits",
+      "--all-features",
+      "--doc",
+      "--",
+      "--test-threads=1"
+    ],
+    "exit_code": 0,
+    "seconds": 65.77
+  },
+  {
+    "name": "pari-proof-tests",
+    "command": [
+      "just",
+      "pari-proof-tests"
+    ],
+    "exit_code": 0,
+    "seconds": 929.42
+  },
+  {
+    "name": "c-abi-build",
+    "command": [
+      "cc",
+      "-I",
+      "crates/bin/shieldd/include",
+      "crates/bin/shieldd/tests/c_abi_smoke.c",
+      "target/ci/deps/libshieldd-c16fe38760f3da54.a",
+      "-framework",
+      "Security",
+      "-framework",
+      "CoreFoundation",
+      "-framework",
+      "SystemConfiguration",
+      "-lresolv",
+      "-liconv",
+      "-lc++",
+      "-o",
+      "/tmp/shieldd-full-test-review-20260922/c_abi_smoke"
+    ],
+    "exit_code": 0,
+    "seconds": 0.7
+  },
+  {
+    "name": "c-abi-smoke",
+    "command": [
+      "/tmp/shieldd-full-test-review-20260922/c_abi_smoke",
+      "/tmp/shieldd-full-test-review-20260922/c-abi-db"
+    ],
+    "exit_code": 0,
+    "seconds": 11.98
+  },
+  {
+    "name": "state-persistence",
+    "command": [
+      "/Users/antoinecyr/Documents/Source/shieldd/target/ci/examples/state_persistence",
+      "/tmp/shieldd-full-test-review-20260922/persistence-db",
+      "/tmp/shieldd-full-test-review-20260922/persistence-result"
+    ],
+    "exit_code": 0,
+    "seconds": 12.33
+  },
+  {
+    "name": "final-check",
+    "command": [
+      "just",
+      "check"
+    ],
+    "exit_code": 0,
+    "seconds": 19.46
+  }
+]

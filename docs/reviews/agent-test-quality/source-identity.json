@@ -1,0 +1,13 @@
+{
+  "head": "1dc62a7a09480d966b29e7ecfbe8caa3c309c933",
+  "branch": "codex/zkpari-migration",
+  "tracked_patch_sha256": "81e9318a81191547f1852fba2f9d89d835c1dbd6866c305bc4a644957bd21ca6",
+  "baseline_file_count": 1363,
+  "preservation": "All 1363 preexisting inventoried files unchanged before adding the report-index link.",
+  "source_sha256": {
+    "scripts/stage_artifacts.py": "282266631a12cf963e71144c58535aca29ea8611bc3cc36debb71222fa6aea7f",
+    "scripts/tests/test_stage_artifacts.py": "06259f989210ff0bfdb248370b1a3b3d1875f7d3be6b42a046e39f82bb581a98",
+    "crates/bin/shieldd/include/shieldd.h": "8810f7583bb65ffade2633aeec9a6f0d0d9541efdfb1863e8ba1ee87b5ecdb4e"
+  },
+  "experiment_sha256": "acb1c02039d9f2eafaacf01412b9fcb2a5d8e1eb7746a11818f8f722c9f2b478"
+}

@@ -73,7 +73,7 @@ message NoteCiphertext {
   bytes inner = 1;
 }
 
-// Fixed-shape capability ciphertext for amount and note blinding.
+// Fixed-shape payload-key ciphertext for amount and note blinding.
 message RecoveryCapsule {
   // Canonical 192-byte encoding of epk and five Fq words.
   bytes inner = 1;
@@ -139,7 +139,10 @@ message CapsuleReleaseRequest {
   bytes ring_pk = 6;
   asset.v1.AssetId asset_id = 7;
   keys.v1.Address address = 8;
-  bytes capk = 9;
+  reserved 9;
+  reserved "capk";
+  bytes payload_key = 15;
+  uint64 audit_epoch = 16;
   crypto.tct.v1.StateCommitment note_commitment = 10;
   bytes recovery_commitment = 11;
   bytes capsule_epk = 12;

@@ -272,7 +272,6 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
     let effective_nk = if f.regulated { rnk.clone() } else { nk.clone() };
     let sender_leaf = compliance::Leaf {
         address: sender_address.clone(),
-        capk: point(&mut rng),
         rnk_dh,
         rnk_commitment: p.native(authorization::RNK_COMMITMENT, &[rnk]),
         lifecycle: field(&f.sender_status)?,
@@ -282,7 +281,6 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
     } else {
         compliance::Leaf {
             address: receiver_address.clone(),
-            capk: point(&mut rng),
             rnk_dh: receiver_address.diversified.clone(),
             rnk_commitment: p.native(authorization::RNK_COMMITMENT, &[Scalar::from(2)]),
             lifecycle: field(&f.receiver_status)?,
@@ -321,9 +319,7 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
         resource: field(&r.resource)?,
         audit: audit::Keys {
             epoch: Scalar::from(1),
-            amount: point(&mut rng),
-            sender: point(&mut rng),
-            receiver: point(&mut rng),
+            payload: point(&mut rng),
             checking: point(&mut rng),
         },
     };
@@ -424,7 +420,11 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
         let blinding = Scalar::random(&mut rng);
         let capsule = recovery::encrypt(
             p,
-            &owner.capk,
+            if f.regulated {
+                &registry_leaf.audit.payload
+            } else {
+                &g.unregulated_ring
+            },
             &value,
             &blinding,
             secret(&mut rng),
@@ -616,9 +616,14 @@ pub fn self_output(
 ) -> note::OutputWitness {
     let blinding = Scalar::from(blinding);
     let amount = self::amount(amount);
+    let sink = group::native_point(&shieldd_sdk_crypto::audit::UNREGULATED_RING);
     let capsule = recovery::encrypt(
         p,
-        &owner.sender.leaf.capk,
+        if owner.regulated {
+            &owner.registry.leaf.audit.payload
+        } else {
+            &sink
+        },
         &amount,
         &blinding,
         Scalar::from(43),
@@ -746,7 +751,11 @@ pub fn withdrawal(
     let key = if flagged {
         &owner.registry.leaf.dk
     } else {
-        &owner.sender.leaf.capk
+        if owner.regulated {
+            &owner.registry.leaf.audit.payload
+        } else {
+            &group::native_point(&shieldd_sdk_crypto::audit::UNREGULATED_RING)
+        }
     };
     let encryption = crate::withdrawal::encrypt(
         p,

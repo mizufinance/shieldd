@@ -199,6 +199,16 @@ pub fn constrain<'a>(
 ) -> Vec<Var<'a, Scalar>> {
     let var = |s: &Scalar| Var::witness(ctx, |_| s.clone());
     let f = self_action::constrain(ctx, p, g, &w.owner);
+    let payload_key = crate::group::Point {
+        x: f.regulated.select(
+            &f.registry.audit.payload.x,
+            &Var::native(g.unregulated_ring.x.clone()),
+        ),
+        y: f.regulated.select(
+            &f.registry.audit.payload.y,
+            &Var::native(g.unregulated_ring.y.clone()),
+        ),
+    };
     let timestamp = var(&w.timestamp);
     let amount = var(&w.amount);
     let volume = volume::constrain(
@@ -226,8 +236,8 @@ pub fn constrain<'a>(
     };
     issuer.assert_non_identity();
     let key = Point {
-        x: volume.flagged.select(&issuer.x, &f.sender.capk.x),
-        y: volume.flagged.select(&issuer.y, &f.sender.capk.y),
+        x: volume.flagged.select(&issuer.x, &payload_key.x),
+        y: volume.flagged.select(&issuer.y, &payload_key.y),
     };
     let e = &w.encryption;
     let ciphertext = Ciphertext {
@@ -278,7 +288,7 @@ pub fn constrain<'a>(
         p,
         &f.spend.asset,
         &f.sender.address,
-        &f.sender.capk,
+        &payload_key,
         false,
         &w.change,
     );

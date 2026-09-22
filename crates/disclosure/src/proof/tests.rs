@@ -79,10 +79,42 @@ fn native(w: &DisclosureWitness) -> circuit::Witness {
     )
     .unwrap()
 }
+#[test]
+fn validated_request_count_selects_exact_disclosure_family() {
+    let one = fixture(1);
+    let two = fixture(2);
+    assert_eq!(family(&one.request).unwrap(), Family::DisclosureOne);
+    assert_eq!(family(&two.request).unwrap(), Family::Disclosure);
+    assert_eq!(circuit_id(&one.request).unwrap(), CIRCUIT_ID_ONE);
+    assert_eq!(circuit_id(&two.request).unwrap(), CIRCUIT_ID_MANY);
+    let mut invalid = one.request;
+    invalid.outputs.clear();
+    assert!(family(&invalid).is_err());
+}
 fn satisfied(w: circuit::Witness) -> bool {
     shieldd_sdk_circuits::catalogue::evaluate(&Witness::Disclosure(Box::new(w)))
         .unwrap()
         .is_satisfied()
+}
+#[test]
+fn one_note_runtime_statement_matches_one_note_relation() {
+    let w = fixture(1);
+    let s = evaluate(&w).unwrap();
+    let native = witness::<1>(&s, &crate::evidence::openings(&w).unwrap()).unwrap();
+    assert!(
+        shieldd_sdk_circuits::catalogue::evaluate(&Witness::DisclosureOne(Box::new(
+            native.clone()
+        )))
+        .unwrap()
+        .is_satisfied()
+    );
+    let mut bad = native;
+    bad.statement.slots[0].commitment += &Scalar::from(1);
+    assert!(
+        !shieldd_sdk_circuits::catalogue::evaluate(&Witness::DisclosureOne(Box::new(bad)))
+            .unwrap()
+            .is_satisfied()
+    );
 }
 #[test]
 fn runtime_disclosure_matches_native_relation_at_capacity_and_with_padding() {
@@ -123,4 +155,46 @@ fn runtime_disclosure_proof_binds_context_and_key() {
         *verification_key_digest = "00".repeat(32);
     }
     assert!(verify(&changed, Some(&registry)).is_err());
+}
+
+#[test]
+#[ignore = "requires local Pari keys and actual proof generation"]
+fn one_note_package_rejects_evidence_family_and_request_substitution() {
+    let registry = Registry::load(std::env::var("SHIELDD_PARI_KEYS").unwrap()).unwrap();
+    let package = prove(&fixture(1), &registry).unwrap();
+    verify(&package, Some(&registry)).unwrap();
+
+    let mut wrong_circuit = package.clone();
+    if let Evidence::Pari { circuit, .. } = &mut wrong_circuit.evidence {
+        *circuit = CIRCUIT_ID_MANY.into();
+    }
+    assert!(verify(&wrong_circuit, Some(&registry)).is_err());
+
+    let mut wrong_family = package.clone();
+    if let Evidence::Pari { proof, .. } = &mut wrong_family.evidence {
+        proof[1] = Family::Disclosure as u8;
+    }
+    assert!(verify(&wrong_family, Some(&registry)).is_err());
+
+    let mut wrong_key = package.clone();
+    if let Evidence::Pari {
+        verification_key_digest,
+        ..
+    } = &mut wrong_key.evidence
+    {
+        *verification_key_digest = "00".repeat(32);
+    }
+    assert!(verify(&wrong_key, Some(&registry)).is_err());
+
+    let mut wrong_shape = package.clone();
+    wrong_shape.statement.outputs.clear();
+    assert!(verify(&wrong_shape, Some(&registry)).is_err());
+
+    let mut wrong_count = package;
+    wrong_count
+        .statement
+        .request
+        .outputs
+        .push(fixture(2).request.outputs[1].clone());
+    assert!(verify(&wrong_count, Some(&registry)).is_err());
 }

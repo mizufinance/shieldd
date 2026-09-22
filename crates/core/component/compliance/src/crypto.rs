@@ -1,30 +1,10 @@
 //! Jubjub KEM and Poseidon field-stream primitives shared by compliance tiers.
 use anyhow::{ensure, Result};
 use group::Group;
-use sha2::{Digest, Sha512};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_crypto::{audit::point_fields, domains, encoding, poseidon, Fq, Fr, SubgroupPoint};
-use shieldd_sdk_keys::Address;
 
 pub use shieldd_sdk_crypto::audit::{UNREGULATED_DETECTION, UNREGULATED_RING};
-
-const DERIVATION_DOMAIN: &[u8] = b"elgamal-derivation-v1\0\0";
-
-pub fn compliance_derivation(address: &Address) -> Vec<u8> {
-    address.to_vec()
-}
-
-/// Orbis must use this suite-tagged address and canonical wide scalar reduction.
-pub fn derive_compliance_scalar(address: &Address) -> Fr {
-    capability_scalar(&compliance_derivation(address))
-}
-
-fn capability_scalar(derivation: &[u8]) -> Fr {
-    let mut hasher = Sha512::new();
-    hasher.update(DERIVATION_DOMAIN);
-    hasher.update(derivation);
-    Fr::from_bytes_wide(&hasher.finalize().into())
-}
 
 pub fn shared_secret(point: &SubgroupPoint) -> Fq {
     poseidon::hash(domains::SHARED_SECRET, &point_fields(point))
@@ -112,17 +92,5 @@ mod tests {
                 assert!(decrypt_tier_bytes(&ciphertext, seed, wrong_length).is_err());
             }
         }
-    }
-    #[test]
-    fn capability_derivation_binds_suite_and_full_address() {
-        let a = &*shieldd_sdk_keys::test_keys::ADDRESS_0;
-        let b = &*shieldd_sdk_keys::test_keys::ADDRESS_1;
-        assert_eq!(compliance_derivation(a).len(), 49);
-        assert_eq!(compliance_derivation(a)[0], shieldd_sdk_crypto::SUITE);
-        assert_ne!(derive_compliance_scalar(a), derive_compliance_scalar(b));
-        assert_ne!(
-            capability_scalar(&compliance_derivation(a)),
-            capability_scalar(&compliance_derivation(a)[1..])
-        );
     }
 }

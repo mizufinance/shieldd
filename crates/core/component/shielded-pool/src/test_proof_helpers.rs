@@ -61,7 +61,7 @@ pub mod proof_test_helpers {
 
     /// Create valid IMT proof data for a regulated asset.
     ///
-    /// `ring_pk` and `dk_pub` must match the keys used for ACK derivation and encryption,
+    /// `ring_pk` and `dk_pub` must match the keys used for RNK derivation and detection encryption,
     /// since Policy-in-Leaf binds these into the leaf commitment verified by the circuit.
     pub fn create_imt_membership_proof(
         asset_id: Fq,
@@ -153,8 +153,6 @@ pub mod proof_test_helpers {
         pub counterparty_leaf: shieldd_sdk_compliance::ComplianceLeaf,
         pub ring_pk: shieldd_sdk_crypto::SubgroupPoint,
         pub dk_pub: shieldd_sdk_crypto::SubgroupPoint,
-        pub ack_receiver: shieldd_sdk_crypto::SubgroupPoint,
-        pub ack_sender: shieldd_sdk_crypto::SubgroupPoint,
         pub asset_anchor: tct::StateCommitment,
         pub asset_indexed_leaf: IndexedLeaf,
         pub asset_path: MerklePath,
@@ -284,16 +282,6 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::AssetPolicy::default_unregulated()
         };
 
-        // Receiver ACK
-        let d = shieldd_sdk_compliance::derive_compliance_scalar(&address);
-        let d_fr = d;
-        let ack_receiver = ring_pk * d_fr;
-
-        // Sender ACK used by transfer-side compliance fixtures.
-        let sender_d = shieldd_sdk_compliance::derive_compliance_scalar(&sender_address);
-        let sender_d_fr = sender_d;
-        let ack_sender = ring_pk * sender_d_fr;
-
         let make_leaf = |address: Address, wallet_fvk: &FullViewingKey| {
             if is_regulated {
                 let rnk_dh_pk = address.diversified_generator().clone();
@@ -308,7 +296,6 @@ pub mod proof_test_helpers {
                 shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
                     address,
                     value.asset_id,
-                    ring_pk,
                     rnk_dh_pk,
                     rnk,
                 )
@@ -338,8 +325,6 @@ pub mod proof_test_helpers {
             counterparty_leaf,
             ring_pk,
             dk_pub,
-            ack_receiver,
-            ack_sender,
             asset_anchor,
             asset_indexed_leaf,
             asset_path,
@@ -685,7 +670,6 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
                 recipient_address.clone(),
                 asset_id,
-                base.ring_pk,
                 recipient_address.diversified_generator().clone(),
                 Fq::from(2u64),
             )
@@ -1172,7 +1156,7 @@ pub mod proof_test_helpers {
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
-            base.user_leaf.capk,
+            base.action_witness().asset.payload_key(),
         )
         .expect("create shielded withdrawal change note");
 
@@ -1181,7 +1165,7 @@ pub mod proof_test_helpers {
             first_spend_randomizer: spend_a.randomizer,
             sender_address: base.address.clone(),
             asset_id: base.value.asset_id,
-            capk: base.user_leaf.capk,
+            payload_key: base.action_witness().asset.payload_key(),
             nullifier_domain: shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.shielded_withdrawal.synthetic_dummy.nullifier_seed",
             spend_auth_key_label: b"shieldd.shielded_withdrawal.synthetic_dummy.spend_auth_key",

@@ -7,7 +7,7 @@ use std::fmt::Debug;
 
 use crate::prelude::*;
 
-/// A proof of inclusion for a single [`Commitment`](crate::Commitment) commitment in a tree.
+/// A proof of inclusion for a single [`crate::StateCommitment`] commitment in a tree.
 #[derive(Derivative)]
 #[derivative(
     Debug(bound = "<Tree::Height as path::Path>::Path: Debug"),

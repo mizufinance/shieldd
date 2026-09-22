@@ -18,7 +18,7 @@ impl ::prost::Name for ComplianceViewingKey {
 /// Compliance component chain parameters.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ComplianceParameters {
-    /// Number of recent compliance anchors accepted for proof validation.
+    /// Retention window for recorded user roots; authorization requires current roots.
     #[prost(uint64, tag = "1")]
     pub anchor_validation_window_blocks: u64,
 }
@@ -41,13 +41,10 @@ pub struct ComplianceLeaf {
     /// The asset ID this compliance leaf applies to.
     #[prost(message, optional, tag = "2")]
     pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-    /// Ordinary-Orbis address capability for this asset's ring.
-    #[prost(bytes = "vec", tag = "3")]
-    pub capk: ::prost::alloc::vec::Vec<u8>,
     /// Orbis ring public key evaluated on this address's diversified generator.
     #[prost(bytes = "vec", tag = "4")]
     pub rnk_dh_pk: ::prost::alloc::vec::Vec<u8>,
-    /// Poseidon commitment to the regulated nullifier key derivable by the wallet and daily_volume_limit Orbis.
+    /// Poseidon commitment to the regulated nullifier key derivable by the wallet and the RNK derivation ring.
     #[prost(bytes = "vec", tag = "5")]
     pub rnk_commitment: ::prost::alloc::vec::Vec<u8>,
     /// Current authorization state for this address and asset.
@@ -290,7 +287,7 @@ impl ::prost::Name for UserRegistrationGrant {
         "/shieldd.core.component.compliance.v1.UserRegistrationGrant".into()
     }
 }
-/// Message to register a user's compliance viewing key for a regulated asset.
+/// Message to register a user's RNK derivation and authorization state for a regulated asset.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MsgRegisterUser {
     /// The compliance leaf containing the user's registration information.
@@ -299,7 +296,7 @@ pub struct MsgRegisterUser {
     /// Grant authorizing this registration.
     #[prost(message, optional, tag = "2")]
     pub grant: ::core::option::Option<UserRegistrationGrant>,
-    /// Orbis daily_volume_limit certificate for the address-diversified ring public key.
+    /// Orbis threshold certificate for the address-diversified ring public key.
     #[prost(message, optional, tag = "3")]
     pub capability_certificate: ::core::option::Option<OrbisCapabilityCertificate>,
 }
@@ -313,7 +310,7 @@ impl ::prost::Name for MsgRegisterUser {
         "/shieldd.core.component.compliance.v1.MsgRegisterUser".into()
     }
 }
-/// DailyVolumeLimit-Orbis attestation for an address-diversified ring public key.
+/// Orbis threshold attestation for an address-diversified ring public key.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OrbisCapabilityCertificate {
     /// Chain on which this certificate may be used.
@@ -682,7 +679,8 @@ impl ::prost::Name for IndexedLeafData {
         "/shieldd.core.component.compliance.v1.IndexedLeafData".into()
     }
 }
-/// Full asset compliance policy (state-only, not in Merkle commitment).
+/// Issuer parameters and ring data are projected into the indexed leaf commitment.
+/// Registration and seizure authority keys remain host-validated state.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AssetPolicy {
     /// AssetParams

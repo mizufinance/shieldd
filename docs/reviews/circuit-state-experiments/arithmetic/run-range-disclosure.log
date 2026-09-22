@@ -1,0 +1,74 @@
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/range.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/range.patch
+EXIT=0
+$ git apply --check /tmp/shieldd-experiments/arithmetic/variants/disclosure.patch
+EXIT=0
+$ git apply /tmp/shieldd-experiments/arithmetic/variants/disclosure.patch
+EXIT=0
+$ cargo test -p shieldd-sdk-circuits --profile ci range::tests -- --test-threads=2
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Finished `ci` profile [optimized] target(s) in 18.91s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_circuits-a2137c0189338891)
+
+running 2 tests
+test range::tests::full_u128_and_u129_sum_are_preserved ... ok
+test range::tests::limit_boundary_is_inclusive ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.00s
+
+     Running tests/pari.rs (target/ci/deps/pari-ad6925e579f9541c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+EXIT=0
+$ cargo test -p shieldd-sdk-circuits --profile ci disclosure::tests -- --test-threads=2
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+    Finished `ci` profile [optimized] target(s) in 0.16s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_circuits-a2137c0189338891)
+
+running 3 tests
+test disclosure::tests::predicates_constrain_both_true_and_false_results_and_canonical_bounds ... ok
+test disclosure::tests::prefix_padding_reveals_and_optional_total_preserve_full_u128_amounts ... ok
+test disclosure::tests::disclosure_proof_binds_full_statement_and_context ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 38.13s
+
+     Running tests/pari.rs (target/ci/deps/pari-ad6925e579f9541c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+EXIT=0
+$ cargo run -p shieldd-sdk-circuits --example catalogue_shapes --profile ci --
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+    Finished `ci` profile [optimized] target(s) in 0.88s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running `target/ci/examples/catalogue_shapes`
+EXPERIMENT_METRICS rows=212174 columns=212126 squared_nnz=2217505 linear_nnz=269074 domain=262144
+transfer domain=262144 public=1 blocks=[1] relation=282c7d4f4f60a53fecebf1c5fe72b8aaad55f505acb2449e2a84173f3853713f
+EXPERIMENT_METRICS rows=157049 columns=156987 squared_nnz=1586363 linear_nnz=198771 domain=262144
+reshape1x8 domain=262144 public=1 blocks=[1] relation=fbafc2eab61514bab70e751e2f3d4bd0340c97625456918504033f66dbb49622
+EXPERIMENT_METRICS rows=185925 columns=186308 squared_nnz=2704476 linear_nnz=236752 domain=262144
+reshape8x1 domain=262144 public=1 blocks=[1] relation=3be17c650c95e1bf0475be76420926caf27ef59dde9dca08b81351437c8160bc
+EXPERIMENT_METRICS rows=119090 columns=119143 squared_nnz=1557588 linear_nnz=151601 domain=131072
+withdrawal domain=131072 public=1 blocks=[1] relation=1f6a584d9a539f09a5c0027dc05c217e241da32b1f28619798f6f288134e7d8e
+EXPERIMENT_METRICS rows=16604 columns=16686 squared_nnz=311780 linear_nnz=20845 domain=32768
+seizure domain=32768 public=1 blocks=[1] relation=116a1686021dd3f2fdcb8e15f902ffe97bdf5d41e7e2a63ab99921f294bcebc2
+EXPERIMENT_METRICS rows=109066 columns=107930 squared_nnz=1478824 linear_nnz=126020 domain=131072
+disclosure domain=131072 public=1 blocks=[1] relation=b1cb8cff24ec836b26800109f72ecdd2d148d097ae03c4f6880ef46e97b7233d
+EXPERIMENT_METRICS rows=15123 columns=15166 squared_nnz=216294 linear_nnz=19664 domain=16384
+history_generation domain=16384 public=1 blocks=[1] relation=75080fcbc99effe7079a901ccc24d99ef208fbf6acf00c3771e67ef8dad2b710
+EXPERIMENT_METRICS rows=143357 columns=143740 squared_nnz=2005662 linear_nnz=186774 domain=262144
+history_chunk10 domain=262144 public=1 blocks=[1] relation=f45eb011a7319e0b9691f4485387e8e97d41bf7254d5c177daf106330290e4b1
+EXIT=0

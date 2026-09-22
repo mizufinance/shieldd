@@ -31,7 +31,7 @@ impl Distribution<StateCommitment> for UniformFq {
 }
 
 impl StateCommitment {
-    /// Generate a random [`Commitment`].
+    /// Generate a random [`crate::StateCommitment`].
     pub fn random(mut rng: impl Rng) -> Self {
         rng.sample(UniformFq)
     }

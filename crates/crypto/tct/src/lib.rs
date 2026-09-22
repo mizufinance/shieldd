@@ -130,7 +130,7 @@ mod prelude {
 }
 
 #[cfg(feature = "arbitrary")]
-/// Generation of random [`Commitment`]s for testing.
+/// Generation of random [`crate::StateCommitment`]s for testing.
 pub mod proptest {
     #[doc(inline)]
     pub use super::commitment::FqStrategy;

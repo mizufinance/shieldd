@@ -137,7 +137,11 @@ impl App {
     }
 
     /// Persists host execution state and resets snapshots for the next host call.
-    pub async fn commit(&mut self, storage: Storage) -> Result<RootHash> {
+    pub async fn commit(
+        &mut self,
+        storage: Storage,
+        generation_packs: Option<&shieldd_sdk_sct::generation_pack::GenerationPackRepository>,
+    ) -> Result<RootHash> {
         self.state
             .ensure_nullifier_block_materialized()
             .context("cannot commit an open nullifier block")?;
@@ -148,10 +152,14 @@ impl App {
             .context("flushing deferred block transactions before commit")?;
         let flush_ms = flush_start.elapsed().as_secs_f64() * 1000.0;
         let dummy_state = StateDelta::new(storage.latest_snapshot());
-        let state = Arc::try_unwrap(std::mem::replace(&mut self.state, Arc::new(dummy_state)))
-            .map_err(|_| {
-                anyhow::anyhow!("commit requires exclusive ownership of application state")
-            })?;
+        let previous = std::mem::replace(&mut self.state, Arc::new(dummy_state));
+        let mut state = match Arc::try_unwrap(previous) {
+            Ok(state) => state,
+            Err(previous) => {
+                self.state = previous;
+                anyhow::bail!("commit requires exclusive ownership of application state");
+            }
+        };
 
         #[cfg(test)]
         if let Some(extracted) = self.commit_extracted.take() {
@@ -159,11 +167,35 @@ impl App {
             std::future::pending::<()>().await;
         }
 
+        let maintenance = if let Some(repository) = generation_packs {
+            match crate::nullifier_generation_packs::maintain_one_page(&mut state, repository).await
+            {
+                Ok(maintenance) => maintenance,
+                Err(error) => {
+                    self.state = Arc::new(state);
+                    return Err(error).context("maintaining retired nullifier generation");
+                }
+            }
+        } else {
+            Default::default()
+        };
+
         let storage_commit_start = Instant::now();
         let jmt_root = storage
             .commit(state)
             .await
             .context("committing application state to storage")?;
+        if let (Some(repository), Some(generation)) =
+            (generation_packs, maintenance.completed_generation)
+        {
+            if let Err(error) = repository.forget_ready_receipt(generation) {
+                tracing::warn!(%error, generation, "could not clear committed pack readiness cache");
+            }
+        }
+        if maintenance.deleted > 0 {
+            ::metrics::counter!(crate::nullifier_generation_packs::PACK_PRUNED_RECORDS_TOTAL)
+                .increment(maintenance.deleted);
+        }
         let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
 
         tracing::debug!(?jmt_root, "finished committing host state");

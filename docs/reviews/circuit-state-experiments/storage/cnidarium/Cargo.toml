@@ -1,0 +1,32 @@
+[package]
+name = "shieldd-cnidarium-retention-experiment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "lifecycle"
+path = "src/lifecycle.rs"
+
+[[bin]]
+name = "retention"
+path = "src/main.rs"
+
+[[bin]]
+name = "pack_only"
+path = "src/pack_only.rs"
+
+[dependencies]
+cnidarium = { version = "0.83", features = ["migration", "rpc"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+anyhow = "1"
+shieldd-sdk-sct = { path = "/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/sct" }
+shieldd-sdk-crypto = { path = "/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/primitives" }
+rand = "0.8"
+rand_chacha = "0.3"
+ff = "0.13"
+futures = "0.3"
+
+[profile.ci]
+inherits = "release"
+debug-assertions = true
+codegen-units = 16

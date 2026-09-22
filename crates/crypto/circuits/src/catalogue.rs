@@ -20,6 +20,7 @@ pub enum Witness {
     Withdrawal(Box<withdrawal::Witness>),
     Seizure(Box<seizure::Witness>),
     Disclosure(Box<disclosure::Witness>),
+    DisclosureOne(Box<disclosure::Witness<1>>),
     HistoryGeneration(Box<history::GenerationWitness>),
     HistoryChunk(Box<history::ChunkWitness>),
 }
@@ -34,6 +35,7 @@ impl Witness {
             Self::Withdrawal(_) => Family::Withdrawal,
             Self::Seizure(_) => Family::Seizure,
             Self::Disclosure(_) => Family::Disclosure,
+            Self::DisclosureOne(_) => Family::DisclosureOne,
             Self::HistoryGeneration(_) => Family::HistoryGeneration,
             Self::HistoryChunk(_) => Family::HistoryChunk,
         }
@@ -48,6 +50,7 @@ impl Witness {
             Self::Withdrawal(w) => w.statement(g).digest(p),
             Self::Seizure(w) => w.statement.digest(p),
             Self::Disclosure(w) => w.statement.digest(p),
+            Self::DisclosureOne(w) => w.statement.digest(p),
             Self::HistoryGeneration(w) => w.statement.digest(p),
             Self::HistoryChunk(w) => w.statement.digest(p),
         })
@@ -65,6 +68,7 @@ impl Witness {
             Self::Withdrawal(w) => withdrawal::constrain(ctx, p, g, w, digest),
             Self::Seizure(w) => seizure::constrain(ctx, p, w, digest),
             Self::Disclosure(w) => disclosure::constrain(ctx, p, w, digest),
+            Self::DisclosureOne(w) => disclosure::constrain(ctx, p, w, digest),
             Self::HistoryGeneration(w) => history::constrain_generation(ctx, p, w, digest),
             Self::HistoryChunk(w) => history::constrain_chunk(ctx, p, w, digest),
         }
@@ -172,9 +176,7 @@ fn auth() -> authorization::Witness {
 fn audit() -> audit::Keys<Scalar> {
     audit::Keys {
         epoch: zero(),
-        amount: point(),
-        sender: point(),
-        receiver: point(),
+        payload: point(),
         checking: point(),
     }
 }
@@ -202,7 +204,6 @@ fn owner() -> compliance::Witness {
         path: path(),
         leaf: compliance::Leaf {
             address: address(),
-            capk: point(),
             rnk_dh: point(),
             rnk_commitment: zero(),
             lifecycle: zero(),
@@ -280,6 +281,36 @@ fn predicate() -> disclosure::Predicate<Scalar> {
         result: zero(),
     }
 }
+fn disclosure_template<const N: usize>() -> disclosure::Witness<N> {
+    disclosure::Witness {
+        statement: disclosure::Statement {
+            context: [zero(), zero()],
+            context_hash: zero(),
+            slots: std::array::from_fn(|_| disclosure::Slot {
+                active: zero(),
+                commitment: zero(),
+                reveal_amount: zero(),
+                reveal_asset: zero(),
+                reveal_recipient: zero(),
+                amount: zero(),
+                asset: zero(),
+                address: address(),
+                predicate: predicate(),
+            }),
+            total_enabled: zero(),
+            total_reveal: zero(),
+            total_amount: zero(),
+            total_asset: zero(),
+            total_predicate: predicate(),
+        },
+        notes: std::array::from_fn(|_| disclosure::Opening {
+            note: note(),
+            asset: zero(),
+            address: address(),
+        }),
+    }
+}
+
 fn template(family: Family) -> Witness {
     match family {
         Family::Transfer => {
@@ -404,33 +435,8 @@ fn template(family: Family) -> Witness {
             rnk: zero(),
             path: path(),
         })),
-        Family::Disclosure => Witness::Disclosure(Box::new(disclosure::Witness {
-            statement: disclosure::Statement {
-                context: [zero(), zero()],
-                context_hash: zero(),
-                slots: std::array::from_fn(|_| disclosure::Slot {
-                    active: zero(),
-                    commitment: zero(),
-                    reveal_amount: zero(),
-                    reveal_asset: zero(),
-                    reveal_recipient: zero(),
-                    amount: zero(),
-                    asset: zero(),
-                    address: address(),
-                    predicate: predicate(),
-                }),
-                total_enabled: zero(),
-                total_reveal: zero(),
-                total_amount: zero(),
-                total_asset: zero(),
-                total_predicate: predicate(),
-            },
-            notes: std::array::from_fn(|_| disclosure::Opening {
-                note: note(),
-                asset: zero(),
-                address: address(),
-            }),
-        })),
+        Family::Disclosure => Witness::Disclosure(Box::new(disclosure_template::<32>())),
+        Family::DisclosureOne => Witness::DisclosureOne(Box::new(disclosure_template::<1>())),
         Family::HistoryGeneration => Witness::HistoryGeneration(Box::new(generation())),
         Family::HistoryChunk => Witness::HistoryChunk(Box::new(history::ChunkWitness {
             statement: history::ChunkStatement {
@@ -451,7 +457,7 @@ mod tests {
     use crate::fixtures;
     use commonware_math::algebra::Ring;
     #[test]
-    fn catalogue_relations_match_all_eight_real_witness_shapes() {
+    fn catalogue_relations_match_all_nine_real_witness_shapes() {
         let p = Parameters::load().unwrap();
         let g = Generators::derive(&p);
         let witnesses = [
@@ -462,7 +468,12 @@ mod tests {
             Witness::Reshape(Box::new(fixtures::reshape(&p, &g, true, Some(2)).unwrap())),
             Witness::Withdrawal(Box::new(fixtures::withdrawal(&p, &g, 0).unwrap())),
             Witness::Seizure(Box::new(seizure::tests::fixture(&p))),
-            Witness::Disclosure(Box::new(disclosure::tests::fixture(&p, 1, Scalar::one()))),
+            Witness::Disclosure(Box::new(disclosure::tests::fixture(&p, 2, Scalar::one()))),
+            Witness::DisclosureOne(Box::new(disclosure::tests::fixture_for_capacity::<1>(
+                &p,
+                1,
+                Scalar::one(),
+            ))),
             Witness::HistoryGeneration(Box::new(
                 history::tests::chunk(&p, 0).generations[0].clone(),
             )),

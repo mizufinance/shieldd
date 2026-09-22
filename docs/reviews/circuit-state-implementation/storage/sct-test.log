@@ -1,0 +1,52 @@
+warning: commonware-macros-impl@2026.7.0: stability cfg not set; set RUSTFLAGS="--cfg commonware_stability_X" (ALPHA/BETA/GAMMA/DELTA/EPSILON) to enforce stability gating
+   Compiling shieldd-sdk-tct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/tct)
+   Compiling commonware-cryptography v2026.7.0 (/Users/antoinecyr/Documents/Source/shieldd/third_party/commonware/cryptography)
+   Compiling shieldd-sdk-keys v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/keys)
+   Compiling shieldd-sdk-circuits v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/crypto/circuits)
+   Compiling shieldd-sdk-txhash v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/txhash)
+   Compiling shieldd-sdk-sct v2.1.0 (/Users/antoinecyr/Documents/Source/shieldd/crates/core/component/sct)
+    Finished `ci` profile [optimized] target(s) in 33.50s
+warning: the following packages contain code that will be rejected by a future version of Rust: document-features v0.2.8
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/ci/deps/shieldd_sdk_sct-4b9e8737743bb3d1)
+
+running 36 tests
+test component::tree::tests::claimed_anchor_liveness_matches_retention_boundary ... ok
+test component::tree::tests::finalized_forget_block_matches_sequential_tree_and_reload ... ok
+test component::tree::tests::sct_capacity_is_checked_before_block_mutation ... ok
+test component::tree::tests::nullifiers_are_visible_before_one_shot_materialization ... ok
+test component::tree::tests::sct_committed_root_check_fails_on_missing_nv_state ... ok
+test component::tree::tests::sct_delete_range_deletes_only_materialized_rows ... ok
+test component::tree::tests::sct_incremental_nv_persistence_roundtrips_without_full_blob ... ok
+test generation_pack::tests::codec_is_canonical_and_rejects_corruption ... ok
+test component::tree::tests::sct_nv_storage_skips_recalculable_hashes ... ok
+test generation_pack::tests::inspection_is_cheap_but_full_verification_still_checks_the_root ... ok
+test generation_pack::tests::concurrent_cold_loads_wake_after_failure_and_stay_within_budget ... ok
+test generation_pack::tests::pack_metadata_rejects_positions_above_sct_height ... ok
+test generation_pack::tests::overlapping_publications_do_not_share_temporary_files ... ok
+test generation_pack::tests::publication_rejects_wrong_root_and_preserves_existing_pack ... ok
+test generation_pack::tests::reconstruction_proves_every_gap_and_rejects_membership ... ok
+test generation_pack::tests::reconstruction_cache_respects_byte_budget ... ok
+test indexed_nullifier_tree::tests::sentinel_gap_includes_field_boundaries ... ok
+test nullifier::tests::malformed_field_encoding_is_rejected_without_panicking ... ok
+test nullifier_generation::tests::activation_and_rollover_preserve_generation_arithmetic ... ok
+test nullifier_generation::tests::bundle_shape_depends_only_on_global_history_count ... ok
+test generation_pack::tests::repository_reloads_verified_pack_and_quarantines_damage ... ok
+test nullifier_generation::tests::historical_bundle_structure_rejects_omission_reordering_and_bad_encoding ... ok
+test nullifier_generation::tests::history_binds_index_root_and_end_position ... ok
+test nullifier_generation::tests::old_boundary_is_strict ... ok
+test nullifier_generation::tests::protobuf_round_trip_is_exact ... ok
+test nullifier_generation::tests::public_history_records_reject_noncanonical_field_encodings ... ok
+test nullifier_tree::tests::already_spent_nullifier_is_rejected_before_mutation ... ok
+test nullifier_generation::tests::canonical_historical_bundles_cover_the_complete_prefix ... ok
+test nullifier_tree::tests::committed_root_verification_accepts_only_empty_pregenesis_state ... ok
+test nullifier_tree::tests::duplicate_batch_insert_is_rejected_before_mutation ... ok
+test nullifier_tree::tests::field_boundaries_are_ordinary_nullifiers ... ok
+test nullifier_tree::tests::indexed_tree_handles_membership_and_boundary_gaps ... ok
+test nullifier_tree::tests::dirty_batch_matches_sequential_storage_for_proposal_order ... ok
+test nullifier_tree::tests::packed_generation_is_provable_until_pruned ... ok
+test nullifier_tree::tests::rollover_archives_poseidon_generation ... ok
+test nullifier_tree::tests::reconstructed_pack_matches_live_witnesses ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+

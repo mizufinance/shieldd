@@ -16,9 +16,7 @@ fn keys() -> native::AuditKeys {
     let point = |n| *SPEND_AUTH * Fr::from(n);
     native::AuditKeys {
         epoch: 17,
-        amount: point(19),
-        sender: point(23),
-        receiver: point(29),
+        payload: point(19),
         checking: point(31),
     }
 }
@@ -27,15 +25,14 @@ fn keys() -> native::AuditKeys {
 fn commitments_and_registration_rules_match_runtime() {
     let p = Parameters::load().unwrap();
     let original = keys();
-    for mutation in 0..7 {
+    for mutation in 0..6 {
         let mut native = original.clone();
         match mutation {
             1 => native.epoch = 0,
-            2 => native.sender = native.amount,
-            3 => native.receiver = native.sender,
-            4 => native.checking = native.receiver,
-            5 => native.amount = *native::UNREGULATED_RING,
-            6 => native = native::AuditKeys::unregulated(),
+            2 => native.checking = native.payload,
+            3 => native.payload = *native::UNREGULATED_RING,
+            4 => native.checking = *native::UNREGULATED_RING,
+            5 => native = native::AuditKeys::unregulated(),
             _ => (),
         }
         let keys = Keys::from_native(&native);

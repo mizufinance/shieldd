@@ -1,0 +1,62 @@
+[
+  {
+    "cwd": ".",
+    "skills": [
+      {
+        "name": "shieldd-investigate",
+        "path": ".agents/skills/shieldd-investigate/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      },
+      {
+        "name": "shieldd-plan",
+        "path": ".agents/skills/shieldd-plan/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      },
+      {
+        "name": "shieldd-review",
+        "path": ".agents/skills/shieldd-review/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      },
+      {
+        "name": "shieldd-test",
+        "path": ".agents/skills/shieldd-test/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "cwd": "crates/view",
+    "skills": [
+      {
+        "name": "shieldd-investigate",
+        "path": ".agents/skills/shieldd-investigate/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      },
+      {
+        "name": "shieldd-plan",
+        "path": ".agents/skills/shieldd-plan/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      },
+      {
+        "name": "shieldd-review",
+        "path": ".agents/skills/shieldd-review/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      },
+      {
+        "name": "shieldd-test",
+        "path": ".agents/skills/shieldd-test/SKILL.md",
+        "enabled": true,
+        "scope": "repo"
+      }
+    ],
+    "errors": []
+  }
+]

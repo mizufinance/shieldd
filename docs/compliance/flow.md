@@ -12,26 +12,18 @@ capsule-specific recovered point and DLEQ proof. See
 [`enforcement-and-seizure.md`](enforcement-and-seizure.md) for the release
 relation and the unimplemented ACP, Orbis, and Bankd boundaries.
 
-For exact encodings and statement order, see `reference.md`.
+For exact encodings and statement order, see [the reference](reference.md).
 
 ## Registration
 
 An issuer creates its policy and ring configuration, then registers an
 `AssetPolicy` on Shieldd:
 
-```text
-AssetPolicy {
-  dk_pub,
-  ring_pk,
-  daily_volume_limit,
-  allowed_ibc_routes,
-  ibc_origin,
-  ring_id,
-  policy_id,
-  permission,
-  resource
-}
-```
+The policy contains issuer parameters, the RNK derivation ring, shared payload and
+ownership-checking audit keys, policy identifiers, and registration/seizure
+authority keys. See the [policy reference](reference.md) for their representations.
+Issuer and ring projections enter the indexed leaf; authority keys remain
+host-validated state.
 
 Regulated assets are members of the indexed asset tree. An unregistered asset
 is proved unregulated with a valid non-membership gap. The asset proof must use
@@ -43,27 +35,25 @@ registration can mutate durable state. This prevents a regulated asset from
 selecting a degenerate detection or audit key even if its membership witness is
 otherwise valid.
 
-The asset policy authenticates four independent encryption keys (amount, sender,
-receiver and ownership checking) with one epoch. The checking ciphertexts bind
-the actual address components in the Transfer proof. Field authorization remains
-separate from ownership. See [disclosure](../disclosure.md) for the exact mapping
-and the upstream capability register. Current upstream cannot provision or use
-these protected keys through the proposed distributed PET protocol.
-
-Address-derived capsule capabilities and regulated nullifier keys remain separate
-from these encryption families. Registration grants and ordinary capability
-certificates continue to authenticate their own scope. Development encryption
+The asset policy authenticates one shared payload key and a separate ownership
+checking key with one epoch. The checking ciphertexts bind the actual address
+components in the Transfer proof. Field authorization remains separate from
+ownership. See [disclosure](../disclosure.md) for the exact mapping and external
+capability register. Distributed PET and threshold release remain unavailable.
+Capsules use the payload key; RNK derivation uses its independent ring key.
+Registration grants and certificates authenticate their own scope. Development
 key bundles are explicitly synthetic fixtures.
 
-For regulated participation, ACP permits exactly one live shielded address per
-KYC identity. Shieldd's generic diversified-address capability does not admit
-additional regulated addresses; only the ACP-approved address may appear in a
-regulated user leaf.
+Regulated enrollment requires the external ACP integration to enforce exactly
+one live shielded address per KYC identity. Shieldd validates address-specific
+registration grants and certificates; its registry does not contain KYC identity
+records that could enforce that uniqueness. Additional diversified addresses
+need their own regulated admission. Live ACP integration remains an external
+prerequisite, not a guarantee established by a local registration fixture.
 
-The leaf commits to the address encodings, asset ID, capsule capability,
-compliance-nullifier-key commitment and lifecycle. Registration checks the
-canonical address, capability derivation, and authorization. A derived `d = 0`
-is rejected. The same address may register independently for multiple assets.
+The leaf commits to the address points, asset ID, RNK DH point, RNK commitment
+and lifecycle. Registration validates canonical keys and authorization. The same
+address may register independently for multiple assets.
 
 Asset id zero is reserved for the indexed-tree sentinel. Registration and both
 Transfer and Withdrawal circuits reject it as an action asset, so the sentinel
@@ -79,7 +69,7 @@ identity sender DTK derivation would make the transmission key independent of
 the IVK and let one note commitment/path be reopened under distinct nullifier
 keys, while an identity receiver generator would let a malicious proof create
 such a note. An identity tier EPK would make its shared point independent of
-the audit capability and cause every candidate address to pass the same key
+the encryption key and make its shared point public
 confirmation, so it is rejected by the accepted relation.
 
 The transfer planner selects one policy shape:
@@ -107,10 +97,10 @@ only the current transaction and leaves the accumulator head unchanged.
 | Tier | Plaintext | Unflagged regulated key | Flagged regulated key |
 | --- | --- | --- | --- |
 | Detection | asset id; salt; flag; reserved zero | issuer `dk_pub` | issuer `dk_pub` |
-| Sender core | amount | sender ACK | issuer `dk_pub` |
-| Sender extension | receiver address | sender ACK | issuer `dk_pub` |
-| Output core | amount | receiver ACK | issuer `dk_pub` |
-| Output extension | sender address | receiver ACK | issuer `dk_pub` |
+| Sender core | amount | shared payload key | issuer `dk_pub` |
+| Sender extension | receiver address | shared payload key | issuer `dk_pub` |
+| Output core | amount | shared payload key | issuer `dk_pub` |
+| Output extension | sender address | shared payload key | issuer `dk_pub` |
 
 Unregulated transfers use the selected sink policy. Its ciphertexts remain
 well-formed, but no issuer decryptability or capability release is claimed.
@@ -195,7 +185,7 @@ output_ext_salt
 
 The two core key confirmations are carried with the ciphertext. The circuit
 binds them to the recovered tier seeds, compressed EPKs, and role-specific
-salts. Metadata carries no subject derivation, ACK, or per-ciphertext address
+salts. Metadata carries no subject derivation, CAPK, or per-ciphertext address
 index. The circuit binds every metadata value to its selected policy fact.
 Tier identity is structural: the four EPK/c2/ciphertext groups and four salts
 always occur in sender-core, sender-extension, output-core, output-extension
@@ -227,10 +217,10 @@ The transfer circuit proves:
 - canonical address plaintext packing from the two 32-byte Fq encodings into
   31-byte stream words;
 - the single 10-field metadata binding; and
-- the exact 58-field statement preimage committed under the canonical transfer
+- the exact 69-field statement preimage committed under the canonical transfer
   statement-hash domain.
 
-The Rust verifier reconstructs the same 58 fields from typed public data.
+The Rust verifier reconstructs the same 69 fields from typed public data.
 Consensus separately checks proof verification, the current asset-policy and
 user-status roots, timestamp freshness, spend signatures, transaction-wide
 spend-nullifier uniqueness, scoped daily-volume-nullifier uniqueness, and the
@@ -290,7 +280,8 @@ Flagged regulated transfers encrypt every audit tier to the issuer DK. After
 evidence validation, the issuer can decrypt them locally and complete the
 audit.
 
-Unflagged regulated tiers encrypt to the sender or receiver ACK. The scanner has
-no release import workflow, so those rows cannot currently complete. Scanner
+Unflagged regulated tiers encrypt to the registered shared payload
+audit key. Distributed PET and authorized audit-release integration are
+unavailable, so those rows cannot currently complete. Scanner
 evidence must not publish seed-opening material. `SeizeNote` is a separate
 privileged host path.

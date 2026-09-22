@@ -227,8 +227,10 @@ pub fn withdrawal_encryption_key(
     );
     let key = if is_flagged {
         asset_leaf.params.dk_pub
+    } else if is_regulated {
+        asset_leaf.ring.audit_keys.payload
     } else {
-        sender_leaf.capk
+        *crate::UNREGULATED_RING
     };
     ensure!(
         !bool::from(key.is_identity()),

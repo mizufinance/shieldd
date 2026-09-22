@@ -158,8 +158,8 @@ pub fn pending_asset_registrations() -> &'static str {
 
 /// State keys for historical anchor storage (following SCT pattern).
 ///
-/// Append-only user roots are stored bidirectionally for historical proofs.
-/// Mutable asset-policy roots are accepted only when they equal current state.
+/// User roots are retained bidirectionally for historical lookup.
+/// Authorization requires both mutable user and asset roots to equal current state.
 pub mod anchor {
     use shieldd_sdk_tct::StateCommitment;
 

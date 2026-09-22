@@ -26,6 +26,11 @@ The wallet retains witnesses for owned notes. Compliance projection uses separat
 user and indexed asset trees; their pair is validated against advertised anchors.
 Asset-registration events must match their leaf identity and committed policy
 fields before any side policy is persisted.
+The SQLite SCT hash cache is keyed by position and height. Repeated writes of the
+same hash are idempotent; a conflicting hash is rejected. Forgetting deletes the
+selected range, and block writes remain atomic. Compliance trees reconstruct
+internal hashes from their persisted positions and leaves. The schema hash rejects
+older wallet databases; reset and resynchronize them before use.
 See [tree persistence](state.md) for mutation and atomicity rules.
 
 `SyncWorker` owns a `HistoricalProofWorker`, an explicit configured Pari registry

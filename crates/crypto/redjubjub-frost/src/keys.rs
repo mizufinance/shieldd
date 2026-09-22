@@ -70,7 +70,7 @@ pub type SigningShare = frost::keys::SigningShare<E>;
 /// A public group element that represents a single signer's public verification share.
 pub type VerifyingShare = frost::keys::VerifyingShare<E>;
 
-/// A valid verifying key for Schnorr signatures over a FROST [`Ciphersuite::Group`].
+/// A verifying key for FROST Schnorr signatures in the RedJubjub group.
 pub type VerifyingKey = frost_core::VerifyingKey<E>;
 
 /// A FROST keypair, which can be generated either by a trusted dealer or using a DKG.

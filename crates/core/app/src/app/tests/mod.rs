@@ -83,6 +83,48 @@ fn test_nullifier_window() -> NullifierWindow {
 }
 
 #[tokio::test]
+async fn maintenance_error_keeps_pending_app_state_for_retry() -> Result<()> {
+    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let mut app = App::from_snapshot(storage.latest_snapshot(), registry());
+    app.init_chain(&AppState::Content(
+        Content::default().with_chain_id(TEST_CHAIN_ID.to_owned()),
+    ))
+    .await;
+    let cursor = shieldd_sdk_sct::state_key::nullifier_generations::prune_cursor();
+    let state = Arc::get_mut(&mut app.state).context("app state is shared")?;
+    state.put_raw(
+        "test/pending_maintenance_retry".to_owned(),
+        b"kept".to_vec(),
+    );
+    state.nonverifiable_put_raw(cursor.to_vec(), b"invalid cursor".to_vec());
+    let directory = tempfile::tempdir()?;
+    let repository = shieldd_sdk_sct::generation_pack::GenerationPackRepository::new(
+        directory.path().to_path_buf(),
+        0,
+    )?;
+    assert!(app
+        .commit(storage.as_ref().clone(), Some(&repository))
+        .await
+        .is_err());
+    let state = Arc::get_mut(&mut app.state).context("pending state was lost")?;
+    assert_eq!(
+        state.get_raw("test/pending_maintenance_retry").await?,
+        Some(b"kept".to_vec())
+    );
+    state.nonverifiable_delete(cursor.to_vec());
+    app.commit(storage.as_ref().clone(), Some(&repository))
+        .await?;
+    assert_eq!(
+        storage
+            .latest_snapshot()
+            .get_raw("test/pending_maintenance_retry")
+            .await?,
+        Some(b"kept".to_vec())
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
     let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
     let mut base_state = StateDelta::new(storage.latest_snapshot());
@@ -492,13 +534,7 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
             *shieldd_sdk_crypto::generators::SPEND_AUTH,
             rnk_dh_pk,
         )?;
-        ComplianceLeaf::registered_from_rnk(
-            address,
-            regulated_asset_id,
-            *shieldd_sdk_crypto::generators::SPEND_AUTH,
-            rnk_dh_pk,
-            rnk,
-        )
+        ComplianceLeaf::registered_from_rnk(address, regulated_asset_id, rnk_dh_pk, rnk)
     };
     let genesis_leaf = make_leaf(test_keys::ADDRESS_0.deref().clone())?;
     let runtime_leaf = make_leaf(test_keys::ADDRESS_1.deref().clone())?;
@@ -790,27 +826,6 @@ async fn candidate_envelope_from_fixture_txs(
     txs: &[Vec<u8>],
 ) -> Result<CandidateEnvelope> {
     CandidateEnvelope::new(txs.to_vec(), "app_test".into())
-}
-
-#[tokio::test]
-async fn latest_snapshot_supports_parallel_reads() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let snapshot = storage.latest_snapshot();
-    let mut tasks = tokio::task::JoinSet::new();
-
-    for _ in 0..4 {
-        let snapshot = snapshot.clone();
-        tasks.spawn(async move {
-            let _ = snapshot.get_raw("parallel.snapshot.read").await?;
-            Ok::<(), anyhow::Error>(())
-        });
-    }
-
-    while let Some(result) = tasks.join_next().await {
-        result??;
-    }
-
-    Ok(())
 }
 
 #[tokio::test]

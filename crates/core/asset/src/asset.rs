@@ -19,6 +19,14 @@ mod tests {
 
     #[test]
     fn test_registry_native_token() {
+        assert_eq!(
+            Cache::with_known_assets()
+                .get_unit("cube")
+                .unwrap()
+                .to_string(),
+            "cube"
+        );
+
         // We should be able to use `parse_base` with the valid base denomination.
         let base_denom = Cache::with_known_assets()
             .get_unit("ushieldd")
@@ -136,13 +144,6 @@ mod tests {
             ushieldd_sdk_display_denom.parse_value("1782000").unwrap(),
             1782000u64.into()
         );
-    }
-
-    #[test]
-    fn test_get_unit() {
-        let unit = Cache::with_known_assets().get_unit("cube").unwrap();
-
-        assert_eq!(format!("{unit}"), "cube".to_string());
     }
 
     proptest! {
