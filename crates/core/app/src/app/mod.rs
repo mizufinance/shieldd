@@ -5,14 +5,16 @@ mod candidate;
 mod delivery;
 mod host;
 mod lifecycle;
+mod staged;
 pub use batch_input::{BatchCandidate, BatchPreparation, BatchVerdict, PreparedBatch};
 mod preconsensus;
 
 pub use self::host::{
     HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostExecution,
     HostExecutionPhase, HostExecutionResponse, HostNoteSeizureResult, HostTxResponse,
-    HostWithdrawal,
+    HostStagedBlock, HostWithdrawal,
 };
+pub use self::staged::BlockChanges;
 #[cfg(any(test, feature = "fuzzing"))]
 pub use self::preconsensus::decode_batch_item_for_fuzz;
 pub use self::preconsensus::{
@@ -2860,6 +2862,21 @@ impl App {
             aggregate_retry_cache: None,
             proposal_segment_tx_count: Some(200),
         }
+    }
+
+    /// Like [`App::new`], but on top of `pending` changes from unfinalized
+    /// ancestor blocks.
+    pub fn new_on_pending(snapshot: Snapshot, pending: &BlockChanges) -> Self {
+        let mut app = Self::new(snapshot);
+        if !pending.is_empty() {
+            let mut state = StateDelta::new(app.committed_snapshot.clone());
+            pending.apply_to(&mut state);
+            app.state = Arc::new(state);
+            // Historical validation stamps are keyed by snapshot version, which
+            // no longer describes this state, so never let one skip checks.
+            app.snapshot_version = u64::MAX;
+        }
+        app
     }
 
     pub fn set_block_tx_indexing_mode(&mut self, mode: BlockTxIndexingMode) {
