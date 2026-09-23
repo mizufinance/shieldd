@@ -23,8 +23,5 @@ jobs:
 
       - uses: ./.github/actions/setup-nix-rust
 
-      - name: Test rustdoc package selection
-        run: python3 deployments/scripts/tests/test_rust_doc_packages.py
-
       - name: Check first-party API documentation with all features
         run: nix develop .#ci --command just rustdocs-check

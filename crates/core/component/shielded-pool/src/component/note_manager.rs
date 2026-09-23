@@ -7,7 +7,6 @@ use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::component::tree::SctManager;
 use shieldd_sdk_sct::CommitmentSource;
 use shieldd_sdk_tct as tct;
-use tct::StateCommitment;
 use tracing::instrument;
 
 use super::StateReadExt;
@@ -117,11 +116,6 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
         &self,
     ) -> imbl::Vector<(tct::Position, NotePayload, CommitmentSource)> {
         self.object_get(state_key::pending_notes())
-            .unwrap_or_default()
-    }
-
-    fn pending_rolled_up_payloads(&self) -> imbl::Vector<(tct::Position, StateCommitment)> {
-        self.object_get(state_key::pending_rolled_up_payloads())
             .unwrap_or_default()
     }
 

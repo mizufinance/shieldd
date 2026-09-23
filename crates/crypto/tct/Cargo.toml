@@ -17,7 +17,6 @@ shieldd-sdk-crypto.workspace = true
 ff.workspace = true
 anyhow.workspace = true
 async-trait = {workspace = true}
-blake2b_simd = {workspace = true}
 derivative = {workspace = true}
 futures = {workspace = true}
 getrandom = {workspace = true, features = ["js"]}

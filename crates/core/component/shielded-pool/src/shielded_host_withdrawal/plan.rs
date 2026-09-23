@@ -637,8 +637,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        HostTransfer, HostWithdrawalDestination, Note, ShieldedWithdrawalProof,
-        ShieldedWithdrawalProofPrivate, ShieldedWithdrawalProofPublic,
+        HostTransfer, HostWithdrawalDestination, Note, ShieldedWithdrawalProofPrivate,
+        ShieldedWithdrawalProofPublic,
     };
 
     fn padded_proof_inputs() -> (
@@ -744,6 +744,10 @@ mod tests {
     #[test]
     fn host_withdrawal_binds_routing_parameters() {
         let (public, private) = padded_proof_inputs();
+        let witness = crate::pari::withdrawal(&public, &private).expect("map padded withdrawal");
+        assert!(shieldd_sdk_circuits::catalogue::evaluate(&witness)
+            .expect("evaluate padded withdrawal")
+            .is_satisfied());
 
         assert_eq!(
             public.routing_parameter_set_id,
@@ -758,20 +762,6 @@ mod tests {
                 private.routing_nonce,
             )
         );
-    }
-
-    #[cfg(all(feature = "prover", any(unix, windows)))]
-    #[test]
-    #[ignore = "expensive: real Pari proof generation"]
-    fn pari_proof_padded_host_withdrawal_proof_roundtrip() {
-        let registry = crate::test_proof_helpers::proof_test_helpers::registry();
-
-        let (public, private) = padded_proof_inputs();
-        let proof = ShieldedWithdrawalProof::prove(public.clone(), private, registry)
-            .expect("padded host withdrawal proof should generate");
-        proof
-            .verify(&public, registry)
-            .expect("padded host withdrawal proof should verify");
     }
 }
 

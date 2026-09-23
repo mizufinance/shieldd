@@ -1,14 +1,7 @@
 use super::*;
-use crate::{
-    group::Point,
-    proof::{Envelope, Family},
-};
-use commonware_cryptography::zk::{
-    circuit::{build, build_with_values},
-    pari::{self, InputLayout, Relation},
-};
+use crate::group::Point;
+use commonware_cryptography::zk::circuit::build_with_values;
 use commonware_math::algebra::{Additive, Ring};
-use commonware_parallel::Sequential;
 
 pub(crate) fn fixture(p: &Parameters) -> Witness {
     let address = Address {
@@ -115,31 +108,4 @@ fn released_seed_note_membership_and_every_public_fact_are_bound() {
         boundary.statement.history_required = Scalar::from(u64::from(old));
         assert!(satisfied(&p, &boundary, &boundary.statement.digest(&p)));
     }
-}
-#[test]
-fn seizure_proof_uses_only_released_plaintext_not_encryption_secret() {
-    let p = Parameters::load().unwrap();
-    let w = fixture(&p);
-    let digest = w.statement.digest(&p);
-    let (c, selected) = build(|ctx| constrain(ctx, &p, &w, &digest));
-    let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-    let relation = Relation::compile(&c, &layout).unwrap();
-    let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let prover = pk;
-    let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &w, &digest));
-    let envelope = Envelope::prove(
-        Family::Seizure,
-        &prover,
-        &relation,
-        &layout,
-        values,
-        &Sequential,
-    )
-    .unwrap();
-    envelope.verify(Family::Seizure, &vk, &digest).unwrap();
-    assert!(
-        envelope
-            .verify(Family::Seizure, &vk, &(digest + &Scalar::one()))
-            .is_err()
-    );
 }

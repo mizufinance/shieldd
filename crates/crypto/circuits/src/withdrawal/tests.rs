@@ -1,13 +1,6 @@
 use super::*;
-use crate::{
-    fixtures,
-    proof::{Envelope, Family},
-};
-use commonware_cryptography::zk::{
-    circuit::{build, build_with_values},
-    pari::{self, InputLayout, Relation},
-};
-use commonware_parallel::Sequential;
+use crate::fixtures;
+use commonware_cryptography::zk::circuit::build_with_values;
 fn satisfied(p: &Parameters, g: &Generators, w: &Witness) -> bool {
     build_with_values(|ctx| constrain(ctx, p, g, w, &w.statement(g).digest(p)))
         .0
@@ -75,37 +68,9 @@ fn withdrawal_preserves_volume_encryption_and_exact_conservation() {
         assert!(!satisfied(&p, &g, &bad));
     }
 }
-#[test]
-fn withdrawal_proof_binds_external_effects() {
-    let p = Parameters::load().unwrap();
-    let g = Generators::derive(&p);
-    let w = fixtures::withdrawal(&p, &g, 0).unwrap();
-    let digest = w.statement(&g).digest(&p);
-    let (c, selected) = build(|ctx| constrain(ctx, &p, &g, &w, &digest));
-    let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-    let relation = Relation::compile(&c, &layout).unwrap();
-    let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let prover = pk;
-    let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &g, &w, &digest));
-    let proof = Envelope::prove(
-        Family::Withdrawal,
-        &prover,
-        &relation,
-        &layout,
-        values,
-        &Sequential,
-    )
-    .unwrap();
-    proof.verify(Family::Withdrawal, &vk, &digest).unwrap();
-    assert!(
-        proof
-            .verify(Family::Withdrawal, &vk, &(digest + &Scalar::one()))
-            .is_err()
-    );
-}
 
 #[test]
-fn withdrawal_binds_all_512_effect_hash_bits() {
+fn withdrawal_binds_each_effect_hash_limb_and_rejects_overflow() {
     let p = Parameters::load().unwrap();
     let g = Generators::derive(&p);
     let mut w = fixtures::withdrawal(&p, &g, 0).unwrap();

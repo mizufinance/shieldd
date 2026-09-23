@@ -1,13 +1,7 @@
 use super::*;
-use crate::{
-    group,
-    proof::{Envelope, Family},
-};
-use commonware_cryptography::zk::{
-    circuit::{build, build_with_values},
-    pari::{self, InputLayout, Relation},
-};
-use commonware_parallel::Sequential;
+use crate::group;
+use crate::proof::Family;
+use commonware_cryptography::zk::circuit::build_with_values;
 fn zero_predicate() -> Predicate<Scalar> {
     Predicate {
         op: Scalar::zero(),
@@ -188,13 +182,20 @@ fn prefix_padding_reveals_and_optional_total_preserve_full_u128_amounts() {
     for mutation in 0..9 {
         let mut bad = w.clone();
         match mutation {
-            0 => bad.statement.slots[0].active = Scalar::zero(),
+            0 => {
+                bad.statement.slots.swap(1, 2);
+                bad.notes.swap(1, 2);
+            }
             1 => bad.statement.slots[1].active = Scalar::zero(),
             2 => bad.notes[2].note.blinding = Scalar::one(),
             3 => bad.statement.slots[2].predicate.lower = Scalar::one(),
             4 => bad.statement.slots[0].amount = Scalar::from(5),
             5 => bad.statement.slots[0].address.transmission.x = Scalar::one(),
-            6 => bad.statement.context[0] = Scalar::from_limbs([0, 0, 1, 0]),
+            6 => {
+                bad.statement.context[0] = Scalar::from_limbs([0, 0, 1, 0]);
+                bad.statement.context_hash =
+                    p.native(domains::DISCLOSURE_CONTEXT, &bad.statement.context);
+            }
             7 => bad.statement.total_reveal = Scalar::one(),
             _ => bad.statement.slots[0].commitment += &Scalar::one(),
         }
@@ -219,58 +220,4 @@ fn prefix_padding_reveals_and_optional_total_preserve_full_u128_amounts() {
             .note
             .commitment(&p, &revealed.notes[1].asset, &revealed.notes[1].address);
     assert!(!satisfied(&p, &revealed));
-}
-#[test]
-fn disclosure_proof_binds_full_statement_and_context() {
-    let p = Parameters::load().unwrap();
-    let w = fixture(&p, 1, Scalar::from(5));
-    let digest = w.statement.digest(&p);
-    let (c, selected) = build(|ctx| constrain(ctx, &p, &w, &digest));
-    let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-    let relation = Relation::compile(&c, &layout).unwrap();
-    let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let prover = pk;
-    let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &w, &digest));
-    let proof = Envelope::prove(
-        Family::Disclosure,
-        &prover,
-        &relation,
-        &layout,
-        values,
-        &Sequential,
-    )
-    .unwrap();
-    proof.verify(Family::Disclosure, &vk, &digest).unwrap();
-    assert!(
-        proof
-            .verify(Family::Disclosure, &vk, &(digest + &Scalar::one()))
-            .is_err()
-    );
-}
-#[test]
-fn one_note_proof_is_bound_to_its_family() {
-    let p = Parameters::load().unwrap();
-    let w = fixture_for_capacity::<1>(&p, 1, Scalar::from(5));
-    let digest = w.statement.digest(&p);
-    let (c, selected) = build(|ctx| constrain(ctx, &p, &w, &digest));
-    let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-    let relation = Relation::compile(&c, &layout).unwrap();
-    let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &w, &digest));
-    let proof = Envelope::prove(
-        Family::DisclosureOne,
-        &pk,
-        &relation,
-        &layout,
-        values,
-        &Sequential,
-    )
-    .unwrap();
-    proof.verify(Family::DisclosureOne, &vk, &digest).unwrap();
-    assert!(proof.verify(Family::Disclosure, &vk, &digest).is_err());
-    assert!(
-        proof
-            .verify(Family::DisclosureOne, &vk, &(digest + &Scalar::one()))
-            .is_err()
-    );
 }

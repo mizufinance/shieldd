@@ -44,8 +44,7 @@ commonware-test:
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-cryptography --lib --no-default-features --features std,bls12381 zk::circuit -- --test-threads=1
 
 pari-proof-tests:
-    cargo build --locked --profile ci -p pcli --features disclosure-prover
-    SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci -p shieldd-sdk-shielded-pool -p shieldd-sdk-app -p shieldd-sdk-app-tests -p shieldd-sdk-disclosure -p shieldd-sdk-view -p shieldd-sdk-proof-params --all-features -- --ignored --test-threads=1
+    SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci --workspace --all-features -- --ignored --skip generate_transaction_signing_test_vectors --test-threads=1
 
 ci-preflight: check rustdocs-check features-check commonware-test ci-test pari-proof-tests
 

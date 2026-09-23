@@ -228,7 +228,6 @@ mod tests {
     use super::{withdrawal_effect_hash_limbs, ShieldedWithdrawalProof};
     use crate::test_proof_helpers::proof_test_helpers::registry;
     use crate::{test_proof_helpers::proof_test_helpers, ShieldedWithdrawalFamilyId};
-    use rand::SeedableRng;
     use shieldd_sdk_crypto::Fq;
 
     #[test]
@@ -269,7 +268,7 @@ mod tests {
     #[cfg(all(feature = "prover", any(unix, windows)))]
     #[test]
     #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn pari_proof_shielded_withdrawal_proof_roundtrip() {
+    fn withdrawal_proof_rejects_substituted_public_effects() {
         let _ = registry();
 
         let (public, private) = proof_test_helpers::build_shielded_withdrawal_roundtrip_inputs(
@@ -330,41 +329,6 @@ mod tests {
                 + Fq::from(1u64);
             word.copy_from_slice(&value.to_bytes());
             reject("sender ciphertext", changed);
-        }
-    }
-
-    #[cfg(all(feature = "prover", any(unix, windows)))]
-    #[test]
-    #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn pari_proof_shielded_withdrawal_accumulator_branches_roundtrip() {
-        let _ = registry();
-
-        for (seed, mode) in [
-            (
-                0x4f52_4947_494e_1001,
-                proof_test_helpers::WithdrawalAccumulatorTestMode::Origin,
-            ),
-            (
-                0x434f_4e54_1000_0001,
-                proof_test_helpers::WithdrawalAccumulatorTestMode::Continuation {
-                    prior_volume: 25,
-                },
-            ),
-        ] {
-            let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
-            let (public, private) =
-                proof_test_helpers::build_shielded_withdrawal_roundtrip_inputs_with_rng_and_mode(
-                    &mut rng,
-                    ShieldedWithdrawalFamilyId::Canonical,
-                    true,
-                    2,
-                    mode,
-                );
-            let proof = ShieldedWithdrawalProof::prove(public.clone(), private, registry())
-                .expect("withdrawal accumulator branch should prove");
-            proof
-                .verify(&public, registry())
-                .expect("withdrawal accumulator branch should verify");
         }
     }
 }

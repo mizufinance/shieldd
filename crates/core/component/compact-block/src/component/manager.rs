@@ -88,10 +88,6 @@ trait Inner: StateWrite {
             .into_iter()
             // Strip the sources of transaction IDs
             .map(|(pos, note, source)| (pos, (note, source.stripped()).into()));
-        let rolled_up_payloads = self
-            .pending_rolled_up_payloads()
-            .into_iter()
-            .map(|(pos, commitment)| (pos, commitment.into()));
         let volume_accumulator_payloads = self
             .pending_volume_accumulator_payloads()
             .into_iter()
@@ -107,7 +103,6 @@ trait Inner: StateWrite {
 
         // Sort the payloads by position and put them in the compact block
         let mut state_payloads = note_payloads
-            .chain(rolled_up_payloads)
             .chain(volume_accumulator_payloads)
             .collect::<Vec<_>>();
         state_payloads.sort_by_key(|(pos, _)| *pos);

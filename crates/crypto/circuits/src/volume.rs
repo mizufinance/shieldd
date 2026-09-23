@@ -309,60 +309,6 @@ mod tests {
         circuit.is_satisfied()
     }
     #[test]
-    fn real_pari_proof_covers_full_depth_accumulator_relation() {
-        use commonware_cryptography::{
-            transcript::{Transcript, Version},
-            zk::{circuit::build, pari},
-        };
-        use commonware_parallel::Sequential;
-        let params = Parameters::load().unwrap();
-        let (w, c) = fixture(&params, true, false);
-        let (circuit, selected) = build(|ctx| build_case(ctx, &params, &w, &c, false));
-        let layout = pari::InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-        let relation = pari::Relation::compile(&circuit, &layout).unwrap();
-        let mut rng = rand10::rng();
-        let (pk, vk) = pari::setup(&relation, &mut rng, &Sequential).unwrap();
-        let transcript = || Transcript::new(b"shieldd-native-volume-component-test", Version::V1);
-        let (values, _) = build_with_values(|ctx| build_case(ctx, &params, &w, &c, false));
-        let witness = relation
-            .witness(&values, &layout, vec![pari::Opening::random(&mut rng)])
-            .unwrap();
-        let claim = witness.claim(pk.commitment_keys(), &Sequential).unwrap();
-        let proof = pari::prove(
-            &mut rng,
-            &mut transcript(),
-            &pk,
-            &relation,
-            &claim,
-            &witness,
-            &Sequential,
-        )
-        .unwrap();
-        assert!(pari::verify(&mut transcript(), &vk, &claim, &proof));
-        let mut altered = claim.clone();
-        altered.public_inputs[0] += &Scalar::one();
-        assert!(!pari::verify(&mut transcript(), &vk, &altered, &proof));
-        let mut wrong = w.clone();
-        wrong.successor_volume += 1;
-        let (invalid, _) = build_with_values(|ctx| build_case(ctx, &params, &wrong, &c, false));
-        let witness = relation
-            .witness(&invalid, &layout, vec![pari::Opening::random(&mut rng)])
-            .unwrap();
-        let claim = witness.claim(pk.commitment_keys(), &Sequential).unwrap();
-        assert!(matches!(
-            pari::prove(
-                &mut rng,
-                &mut transcript(),
-                &pk,
-                &relation,
-                &claim,
-                &witness,
-                &Sequential
-            ),
-            Err(pari::Error::Unsatisfied)
-        ));
-    }
-    #[test]
     fn origin_continuation_disclosure_and_fee_constraints_are_preserved() {
         let p = Parameters::load().unwrap();
         for continuation in [false, true] {

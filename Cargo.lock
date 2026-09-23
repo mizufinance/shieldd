@@ -4635,7 +4635,6 @@ name = "pcli"
 version = "2.1.0"
 dependencies = [
  "anyhow",
- "ark-ec 0.4.2",
  "ark-std 0.4.0",
  "assert_cmd",
  "async-trait",
@@ -6414,13 +6413,10 @@ dependencies = [
  "anyhow",
  "cnidarium",
  "cnidarium-component",
- "ff 0.13.0",
  "futures",
- "group 0.13.0",
  "ibc-proto",
  "ibc-types",
  "prost 0.13.4",
- "reddsa",
  "shieldd-sdk-app",
  "shieldd-sdk-asset",
  "shieldd-sdk-compact-block",
@@ -7056,7 +7052,6 @@ version = "2.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "blake2b_simd",
  "derivative",
  "ff 0.13.0",
  "futures",

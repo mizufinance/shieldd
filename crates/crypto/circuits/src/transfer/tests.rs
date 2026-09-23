@@ -1,14 +1,12 @@
 use super::*;
 use crate::{
     fixtures,
-    proof::{Envelope, Family},
     tree::{self, Tree},
 };
 use commonware_cryptography::zk::{
     circuit::{build, build_with_values},
     pari,
 };
-use commonware_parallel::Sequential;
 
 fn digest(p: &Parameters, g: &Generators, w: &Witness) -> Scalar {
     p.native(STATEMENT_DOMAIN, &statement(p, g, w).unwrap().fields())
@@ -97,47 +95,4 @@ fn all_branches_compile_to_one_relation_and_bind_current_audit_keys() {
             "cross-component mutation {mutation}"
         );
     }
-}
-
-#[test]
-fn complete_transfer_proves_and_verifies_with_current_compliance() {
-    let p = Parameters::load().unwrap();
-    let g = Generators::derive(&p);
-    let fact = fixtures::load().unwrap().remove(2);
-    let w = fixtures::build(&p, &g, &fact).unwrap();
-    let (circuit, indices) = build(|ctx| constrain(ctx, &p, &g, &w, &digest(&p, &g, &w)));
-    let layout = pari::InputLayout::new(vec![indices[0]], vec![vec![indices[1]]]).unwrap();
-    let relation = pari::Relation::compile(&circuit, &layout).unwrap();
-    let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-    let proving_key_bytes = pk.encode().len();
-    let prover = pk;
-    let (valued, _) = build_with_values(|ctx| constrain(ctx, &p, &g, &w, &digest(&p, &g, &w)));
-    let proof = Envelope::prove(
-        Family::Transfer,
-        &prover,
-        &relation,
-        &layout,
-        valued,
-        &Sequential,
-    )
-    .unwrap();
-    Envelope::from_bytes(&proof.to_bytes())
-        .unwrap()
-        .verify(Family::Transfer, &vk, &digest(&p, &g, &w))
-        .unwrap();
-    assert!(
-        proof
-            .verify(
-                Family::Transfer,
-                &vk,
-                &(digest(&p, &g, &w) + &Scalar::one())
-            )
-            .is_err()
-    );
-    eprintln!(
-        "Transfer: domain={}, proving_key_bytes={}, proof_bytes={}",
-        relation.domain_size(),
-        proving_key_bytes,
-        proof.to_bytes().len()
-    );
 }

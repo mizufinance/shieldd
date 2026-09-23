@@ -129,18 +129,6 @@ async fn cli(binary: &str, home: &Utf8Path, arguments: &[&str]) -> Result<Vec<u8
     Ok(output.stdout)
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "builds an accepted payment and generates a real local Pari disclosure"]
-async fn export_import_between_wallet_directories() -> Result<()> {
-    run_disclosure(true).await
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "builds an accepted payment and verifies its commitment opening without proving"]
-async fn accepted_disclosure_opening() -> Result<()> {
-    run_disclosure(false).await
-}
-
 async fn machine(
     binary: &str,
     home: &Utf8Path,
@@ -178,7 +166,9 @@ async fn machine(
     Ok(serde_json::from_slice(&output.stdout)?)
 }
 
-async fn run_disclosure(prove: bool) -> Result<()> {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "builds an accepted payment and checks opening and real Pari disclosure through the CLI"]
+async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()> {
     let _ = shieldd_sdk_app_tests::registry();
     let directory = tempfile::tempdir()?;
     let root = Utf8PathBuf::from_path_buf(directory.path().to_owned())
@@ -342,7 +332,7 @@ async fn run_disclosure(prove: bool) -> Result<()> {
         disclosure::confirm_acceptance(&changed_reference, TEST_CHAIN_ID, &[block]).is_err(),
         "altered output reference accepted"
     );
-    if !prove {
+    {
         let mut full = witness.clone();
         let claim = &mut full.request.outputs[0];
         claim.amount = true;
@@ -359,7 +349,7 @@ async fn run_disclosure(prove: bool) -> Result<()> {
                     parameters: pb::AppParametersResponse {
                         app_parameters: Some(snapshot.get_app_params().await?.into()),
                     },
-                    block: accepted,
+                    block: accepted.clone(),
                 })
                 .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener)),
         );
@@ -392,7 +382,6 @@ async fn run_disclosure(prove: bool) -> Result<()> {
             result["status"] == "unresolved",
             "node outage not unresolved: {result}"
         );
-        return Ok(());
     }
     let binary = std::env::var("SHIELDD_PCLI_BIN")
         .context("set SHIELDD_PCLI_BIN to pcli built with disclosure-prover")?;

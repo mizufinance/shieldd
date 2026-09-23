@@ -4,8 +4,6 @@
 pub mod proof_test_helpers {
     use ff::Field;
 
-    use std::time::Instant;
-
     /// Test asset ID for regulated assets
     pub const REGULATED_ASSET_ID: u64 = 1;
     /// Test asset ID for unregulated assets
@@ -132,12 +130,6 @@ pub mod proof_test_helpers {
         let merkle_path = MerklePath::from_auth_path(auth_path);
         let anchor = tct::StateCommitment(tree.root().0);
         (anchor, low_leaf, merkle_path, low_pos)
-    }
-
-    /// Circuit type for unified testing
-    #[derive(Debug, Clone, Copy)]
-    pub enum CircuitType {
-        Transfer,
     }
 
     /// Shared fixture layer used by all proof-family test builders.
@@ -790,29 +782,8 @@ pub mod proof_test_helpers {
             .expect("derive hidden-arity transfer public/private inputs")
     }
 
-    pub(crate) fn build_transfer_action_and_public(
-        is_regulated: bool,
-    ) -> (
-        crate::Transfer,
-        crate::TransferProofPublic,
-        TransactionContext,
-    ) {
-        build_transfer_action_and_public_inner(is_regulated, true)
-    }
-
     pub fn build_transfer_action_and_public_without_proof(
         is_regulated: bool,
-    ) -> (
-        crate::Transfer,
-        crate::TransferProofPublic,
-        TransactionContext,
-    ) {
-        build_transfer_action_and_public_inner(is_regulated, false)
-    }
-
-    fn build_transfer_action_and_public_inner(
-        is_regulated: bool,
-        generate_proof: bool,
     ) -> (
         crate::Transfer,
         crate::TransferProofPublic,
@@ -917,30 +888,16 @@ pub mod proof_test_helpers {
             })
             .collect();
         let memo_key = PayloadKey::random_key(&mut rng);
-        let transfer = if generate_proof {
-            transfer_plan
-                .build_unauth_transfer(
-                    &base.fvk,
-                    auth_sigs,
-                    state_commitment_proofs,
-                    anchor,
-                    &memo_key,
-                    0,
-                    registry(),
-                )
-                .expect("build transfer action")
-        } else {
-            transfer_plan
-                .build_unauth_transfer_with_proof(
-                    &base.fvk,
-                    auth_sigs,
-                    anchor,
-                    &memo_key,
-                    crate::TransferProof::default(),
-                    0,
-                )
-                .expect("build transfer action without proof")
-        };
+        let transfer = transfer_plan
+            .build_unauth_transfer_with_proof(
+                &base.fvk,
+                auth_sigs,
+                anchor,
+                &memo_key,
+                crate::TransferProof::default(),
+                0,
+            )
+            .expect("build transfer action without proof");
 
         (
             transfer,
@@ -1424,67 +1381,5 @@ pub mod proof_test_helpers {
             )
             .expect("valid local Pari keys")
         })
-    }
-
-    fn test_transfer_proof_roundtrip(is_regulated: bool) {
-        let mode = if is_regulated {
-            "regulated"
-        } else {
-            "unregulated"
-        };
-        let started = Instant::now();
-        eprintln!("[transfer roundtrip] start mode={mode}");
-
-        let phase_started = Instant::now();
-        let registry = registry();
-        let (public, private) = build_transfer_roundtrip_inputs(is_regulated);
-        eprintln!(
-            "[transfer roundtrip] mode={mode} built inputs in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-
-        let phase_started = Instant::now();
-        let proof = crate::TransferProof::prove(public.clone(), private, registry).unwrap_or_else(
-            |error| {
-                panic!("can generate transfer proof: {error}");
-            },
-        );
-        eprintln!(
-            "[transfer roundtrip] mode={mode} proved in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-
-        let phase_started = Instant::now();
-        let item = proof.to_batch_item(&public).unwrap_or_else(|error| {
-            panic!("can build transfer batch item: {error}");
-        });
-        assert_eq!(item.family, shieldd_sdk_circuits::proof::Family::Transfer);
-        eprintln!(
-            "[transfer roundtrip] mode={mode} built batch item in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-
-        let phase_started = Instant::now();
-        proof
-            .verify(&public, registry)
-            .expect("proof should verify");
-        registry
-            .verify_item(&item)
-            .expect("single-item batch verification should succeed");
-        eprintln!(
-            "[transfer roundtrip] mode={mode} verified in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-        eprintln!(
-            "[transfer roundtrip] done mode={mode} total {:.2}s",
-            started.elapsed().as_secs_f64()
-        );
-    }
-
-    /// Unified proof roundtrip test function for the surviving shielded families.
-    pub fn full_proof_roundtrip(circuit_type: CircuitType, is_regulated: bool) {
-        match circuit_type {
-            CircuitType::Transfer => test_transfer_proof_roundtrip(is_regulated),
-        }
     }
 }

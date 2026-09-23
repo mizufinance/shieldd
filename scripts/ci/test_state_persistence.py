@@ -23,7 +23,13 @@ class StatePersistenceTests(unittest.TestCase):
 with open(os.environ["REGISTRY_CALLS"], "a") as calls:
     calls.write(json.dumps({"cwd": os.getcwd(), "registry": os.environ["SHIELDD_PARI_KEYS"],
                            "target": os.environ["CARGO_TARGET_DIR"], "args": sys.argv[1:]}) + "\\n")
-pathlib.Path(sys.argv[-1]).write_text("committed state")
+if pathlib.Path(sys.argv[0]).name == "cargo":
+    binary = pathlib.Path(os.environ["CARGO_TARGET_DIR"]) / "ci/examples/state_persistence"
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    binary.write_text(pathlib.Path(__file__).read_text())
+    binary.chmod(0o755)
+else:
+    pathlib.Path(sys.argv[2]).write_text("committed state")
 ''')
             cargo.chmod(0o755)
             calls = work / "calls"
@@ -32,14 +38,18 @@ pathlib.Path(sys.argv[-1]).write_text("committed state")
             subprocess.run(["bash", str(scripts / "check_state_persistence.sh")], cwd=root,
                            env=env, check=True, capture_output=True, text=True)
             invocations = [json.loads(line) for line in calls.read_text().splitlines()]
-            self.assertEqual(len(invocations), 1)
+            self.assertEqual(len(invocations), 2)
             invocation = invocations[0]
             self.assertEqual(Path(invocation["cwd"]), root.resolve())
             self.assertEqual(invocation["registry"], str((root / "target/dev-pari-keys").resolve()))
             self.assertEqual(Path(invocation["target"]).resolve(), root.resolve() / "target")
-            self.assertEqual(invocation["args"][:-2],
-                             ["run", "--locked", "--profile", "ci", "-p", "shieldd", "--example", "state_persistence", "--"])
-            self.assertFalse(Path(invocation["args"][-1]).exists(), "temporary fixture output is cleaned up")
+            self.assertEqual(invocation["args"],
+                             ["test", "--locked", "--profile", "ci", "--workspace", "--all-features", "--no-run"])
+            database, output = map(Path, invocations[1]["args"])
+            self.assertEqual(database.name, "db")
+            self.assertEqual(output.name, "result")
+            self.assertEqual(database.parent, output.parent)
+            self.assertFalse(output.parent.exists(), "temporary fixture directory is cleaned up")
 
 
 if __name__ == "__main__":

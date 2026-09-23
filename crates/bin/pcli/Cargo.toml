@@ -18,7 +18,6 @@ orbis = ["disclosure", "shieldd-sdk-disclosure/orbis", "dep:shieldd-orbis-client
 [dependencies]
 shieldd-sdk-proof-params.workspace = true
 ark-std-04 = { package = "ark-std", version = "0.4" }
-ark-ec-04 = { package = "ark-ec", version = "0.4" }
 shieldd-orbis-client = { workspace = true, optional = true }
 orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df", optional = true }
 orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df", optional = true }

@@ -8,5 +8,6 @@ export SHIELDD_PARI_KEYS="${SHIELDD_PARI_KEYS:-$root/target/dev-pari-keys}"
 SHIELDD_PARI_KEYS="$(python3 -c 'import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())' "$SHIELDD_PARI_KEYS")"
 export CARGO_TARGET_DIR="$root/target"
 cd "$root"
-cargo run --locked --profile ci -p shieldd --example state_persistence -- "$work/db" "$work/result"
+cargo test --locked --profile ci --workspace --all-features --no-run
+"$CARGO_TARGET_DIR/ci/examples/state_persistence" "$work/db" "$work/result"
 echo 'Current-version reopen, checkpoint, history, replay and next-root persistence passed.'

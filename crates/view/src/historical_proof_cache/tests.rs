@@ -376,7 +376,7 @@ async fn runtime_history_closes_raw_chunk_after_failed_proof_and_restart() -> Re
 
 #[test]
 #[ignore = "real native generation proofs with concurrent blocking callers"]
-fn concurrent_provers_share_bounded_workers() -> Result<()> {
+fn concurrent_callers_produce_valid_history_proofs() -> Result<()> {
     let registry = Arc::new(Registry::load(std::env::var("SHIELDD_PARI_KEYS")?)?);
     let witness = Arc::new(Witness::HistoryGeneration(Box::new(generation_witness(
         Nullifier(Fq::from(9)),

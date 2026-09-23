@@ -11,7 +11,7 @@ Rust/Commonware. Run commands from the repository root.
 | `just docs-check` | Local Markdown links and exact filename casing, including repository skills |
 | `just ci-test` | Workspace tests with an explicitly selected registry |
 | `just commonware-test` | Pinned Commonware Pari and circuit compiler tests |
-| `just pari-proof-tests` | Serial ignored proof gates, including Disclosure app/CLI tests; builds pcli with `disclosure-prover` |
+| `just pari-proof-tests` | Serial ignored proof gates, including Disclosure app/CLI tests; workspace all features |
 | `just features-check` | Independent crate feature boundaries |
 | `just proto-check` | Reproduce Rust and Go protobufs |
 | `just wasm-check` | Web-facing crates without native component features |
@@ -20,7 +20,9 @@ Rust/Commonware. Run commands from the repository root.
 | `just artifacts-native` | Stage the C header and native static library |
 
 Set `SHIELDD_PARI_KEYS` to share an existing registry. Its default in `just` is
-`target/dev-pari-keys`. Setup refuses to overwrite existing keys. See
+`target/dev-pari-keys`. Setup refuses to overwrite existing keys. CI caches
+development keys outside Cargo targets with an exact source/toolchain cache key and no fallback; normal
+registry loading still checks the keys against the compiled relations. See
 [Proof system](proof-system.md) for registry and state identity rules.
 
 ## Select verification by impact
@@ -44,9 +46,11 @@ run under `ci` does not establish a separate `--release` test run. Follow the sh
 | Vendor patch | Source reproduction, vendor regressions and downstream proof gates under the pinned-source policy |
 | Orbis | Local adapter/contract tests separately from live external tests; the incompatible locked runtime must still be rejected |
 
-PR CI runs ordinary workspace tests and `just pari-proof-tests`. The latter selects
-ignored tests in shielded-pool, app, app-tests, disclosure, view and proof-params;
-all features are enabled for that test invocation. Ordinary `cargo test` skips ignored tests, and neither command proves
+PR CI runs ordinary workspace tests and `just pari-proof-tests`. Both use the same
+workspace/all-features build graph, including the pcli binary.
+The proof gate selects ignored tests and skips the transaction signing-vector
+generator, which writes fixtures rather than asserting behavior. Ordinary
+`cargo test` skips ignored tests, and neither command proves
 live Bankd/Orbis compatibility. The locked Orbis image is currently unsupported;
 see the [external contract](jubjub-external-contract.md).
 

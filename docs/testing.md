@@ -12,6 +12,13 @@ adds a distinct failure or clearer diagnosis. Similar fixtures do not establish
 duplication across different boundaries, such as circuit verification and host
 admission.
 
+Inspect expensive setup and proof generation across crates and CI phases, not
+just assertions within each file. Prefer relation evaluation for constraint cases;
+reuse proofs already required by application tests for verification-only cases.
+Before adding full proving, identify the distinct failure that existing native
+proof and application gates cannot detect. Check actual CI selection and separate
+compilation, key setup, fixture generation and test execution costs.
+
 When removing or correcting a feature, delete tests for discarded behavior,
 unused fixtures and helpers, and production APIs whose only remaining purpose is
 supporting those tests. A regression has no special exemption. Retain its useful

@@ -1,13 +1,6 @@
 use super::*;
-use commonware_cryptography::{
-    transcript::{Transcript, Version},
-    zk::{
-        circuit::{build, build_with_values},
-        pari,
-    },
-};
+use commonware_cryptography::zk::circuit::build_with_values;
 use commonware_math::algebra::Ring;
-use commonware_parallel::Sequential;
 
 fn fixture(params: &Parameters, flagged: bool) -> (Shared<Scalar, bool>, Witness) {
     let point = |n| group::generator().multiply(&Scalar::from(n));
@@ -247,68 +240,6 @@ fn ciphertexts_bind_amount_asset_flag_and_ordered_addresses() {
             assert!(!satisfied(&params, &bad, &w));
         }
     }
-}
-
-#[test]
-fn native_pari_proves_all_four_tiers_and_binds_claim_and_commitment() {
-    let params = Parameters::load().unwrap();
-    let (shared, witness) = fixture(&params, true);
-    let (circuit, selected) = build(|ctx| build_case(ctx, &params, &shared, &witness));
-    let layout = pari::InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-    let relation = pari::Relation::compile(&circuit, &layout).unwrap();
-    let mut rng = rand10::rng();
-    let (pk, vk) = pari::setup(&relation, &mut rng, &Sequential).unwrap();
-    let (valued, _) = build_with_values(|ctx| build_case(ctx, &params, &shared, &witness));
-    let w = relation
-        .witness(&valued, &layout, vec![pari::Opening::random(&mut rng)])
-        .unwrap();
-    let claim = w.claim(pk.commitment_keys(), &Sequential).unwrap();
-    assert_eq!(
-        claim.public_inputs,
-        vec![params.native(255, &witness.published.fields())]
-    );
-    let transcript =
-        || Transcript::new(b"shieldd-jubjub-pari-v1/encryption-component", Version::V1);
-    let proof = pari::prove(
-        &mut rng,
-        &mut transcript(),
-        &pk,
-        &relation,
-        &claim,
-        &w,
-        &Sequential,
-    )
-    .unwrap();
-    assert!(pari::verify(&mut transcript(), &vk, &claim, &proof));
-    let mut bad_claim = claim.clone();
-    bad_claim.public_inputs[0] += &Scalar::one();
-    assert!(!pari::verify(&mut transcript(), &vk, &bad_claim, &proof));
-    let other_witness = relation
-        .witness(&valued, &layout, vec![pari::Opening::random(&mut rng)])
-        .unwrap();
-    let other_claim = other_witness
-        .claim(pk.commitment_keys(), &Sequential)
-        .unwrap();
-    assert!(!pari::verify(&mut transcript(), &vk, &other_claim, &proof));
-    let mut invalid = witness.clone();
-    invalid.published.detection[3] += &Scalar::one();
-    let (invalid, _) = build_with_values(|ctx| build_case(ctx, &params, &shared, &invalid));
-    let w = relation
-        .witness(&invalid, &layout, vec![pari::Opening::random(&mut rng)])
-        .unwrap();
-    let claim = w.claim(pk.commitment_keys(), &Sequential).unwrap();
-    assert!(matches!(
-        pari::prove(
-            &mut rng,
-            &mut transcript(),
-            &pk,
-            &relation,
-            &claim,
-            &w,
-            &Sequential
-        ),
-        Err(pari::Error::Unsatisfied)
-    ));
 }
 
 #[test]

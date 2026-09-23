@@ -520,10 +520,30 @@ async fn historical_attestation_stays_off_the_async_worker_in_both_verification_
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn artifact_build_rejects_decodable_invalid_pari() -> Result<()> {
+async fn artifact_verification_rejects_invalid_proofs_and_wrong_families() -> Result<()> {
     let family_set = family_fixtures().await?;
 
     for fixture in &family_set.fixtures {
+        let tx = Arc::new(Transaction::decode(fixture.tx_bytes.as_slice())?);
+        let artifacts = App::build_tx_artifacts_extracted(&[tx]).await?;
+        let items = &artifacts[0].proof_items;
+        assert_eq!(items.len(), 1);
+        let item = &items.values().next().expect("one proof family")[0];
+        registry().verify_item(item)?;
+        if let DeployedProofFamily::NoteReshape(family) = fixture.family {
+            for other in NoteReshapeFamilyId::ALL {
+                if other != family {
+                    assert!(
+                        registry()
+                            .verify(other.proof_family(), &item.statement, &item.envelope)
+                            .is_err(),
+                        "{} proof accepted with {} key",
+                        family.label(),
+                        other.label()
+                    );
+                }
+            }
+        }
         let (invalid_tx, _) = mutate_to_decodable_invalid_proof(fixture)?;
         let error = App::build_tx_artifacts(registry(), &[Arc::new(invalid_tx)])
             .await

@@ -2275,7 +2275,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sweep_does_not_return_conflicting_fee_funded_plans() {
+    async fn sweep_does_not_reuse_a_note_between_body_and_fee_funding() {
         let source = AddressIndex::new(0);
         let sender = test_address(0);
         let mut rng = OsRng;

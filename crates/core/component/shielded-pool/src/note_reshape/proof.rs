@@ -259,8 +259,6 @@ impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
 
 #[cfg(test)]
 mod tests {
-    use super::NoteReshapeProof;
-    use crate::test_proof_helpers::proof_test_helpers::registry;
     use crate::{note_reshape::NoteReshapeFamilyId, test_proof_helpers::proof_test_helpers};
 
     #[test]
@@ -295,50 +293,6 @@ mod tests {
                 "{} must reject an output shape mutation",
                 family_id.label()
             );
-        }
-    }
-
-    #[cfg(all(feature = "prover", any(unix, windows)))]
-    #[test]
-    #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn pari_proof_note_reshape_1x8_roundtrip() {
-        assert_roundtrip(NoteReshapeFamilyId::ALL[0]);
-    }
-
-    #[cfg(all(feature = "prover", any(unix, windows)))]
-    #[test]
-    #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn pari_proof_note_reshape_8x1_roundtrip() {
-        assert_roundtrip(NoteReshapeFamilyId::ALL[1]);
-    }
-
-    #[cfg(all(feature = "prover", any(unix, windows)))]
-    fn assert_roundtrip(family_id: NoteReshapeFamilyId) {
-        let _ = registry();
-        let (public, private) = proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
-        let proof = NoteReshapeProof::prove(public.clone(), private, registry())
-            .unwrap_or_else(|error| panic!("prove {} fixture: {error}", family_id.label()));
-        proof
-            .verify(&public, registry())
-            .unwrap_or_else(|error| panic!("verify {} fixture: {error}", family_id.label()));
-        for other_family in NoteReshapeFamilyId::ALL {
-            if other_family != family_id {
-                assert!(
-                    registry()
-                        .verify(
-                            other_family.proof_family(),
-                            &shieldd_sdk_circuits::encoding::field(
-                                &public.statement_hash().unwrap()
-                            ),
-                            &shieldd_sdk_circuits::proof::Envelope::from_bytes(&proof.inner)
-                                .unwrap()
-                        )
-                        .is_err(),
-                    "{} proof must not verify with {} VK",
-                    family_id.label(),
-                    other_family.label()
-                );
-            }
         }
     }
 }

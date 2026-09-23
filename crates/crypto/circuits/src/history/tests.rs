@@ -1,11 +1,6 @@
 use super::*;
-use crate::proof::{Envelope, Family};
-use commonware_cryptography::zk::{
-    circuit::{build, build_with_values},
-    pari::{self, InputLayout, Relation},
-};
+use commonware_cryptography::zk::circuit::build_with_values;
 use commonware_math::algebra::Ring;
-use commonware_parallel::Sequential;
 
 fn fixture(p: &Parameters, index: u64, head: Scalar) -> GenerationWitness {
     let leaf = Leaf {
@@ -117,6 +112,9 @@ fn canonical_gap_sentinels_paths_and_position_ranges_are_bound() {
             6 => w.leaf.next_index = 1,
             _ => w.leaf.next_value = Scalar::one(),
         }
+        if matches!(mutation, 1 | 2) {
+            w.statement.end_head = w.statement.history_head(&p);
+        }
         assert!(!generation_satisfied(&p, &w), "history mutation {mutation}");
     }
 }
@@ -145,45 +143,4 @@ fn chunk_requires_ten_ordered_complete_witnesses_with_checked_u64_indices() {
         }
         assert!(!chunk_satisfied(&p, &w), "chunk mutation {mutation}");
     }
-}
-
-#[test]
-fn generation_and_direct_chunk_proofs_verify_with_zero_committed_predecessors() {
-    let p = Parameters::load().unwrap();
-    let w = chunk(&p, 0);
-    let prove = |family, is_chunk| {
-        let digest = if is_chunk {
-            w.statement.digest(&p)
-        } else {
-            w.generations[0].statement.digest(&p)
-        };
-        let (circuit, selected) = build(|ctx| {
-            if is_chunk {
-                constrain_chunk(ctx, &p, &w, &digest)
-            } else {
-                constrain_generation(ctx, &p, &w.generations[0], &digest)
-            }
-        });
-        let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-        let relation = Relation::compile(&circuit, &layout).unwrap();
-        let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-        let prover = pk;
-        let (valued, _) = build_with_values(|ctx| {
-            if is_chunk {
-                constrain_chunk(ctx, &p, &w, &digest)
-            } else {
-                constrain_generation(ctx, &p, &w.generations[0], &digest)
-            }
-        });
-        let proof =
-            Envelope::prove(family, &prover, &relation, &layout, valued, &Sequential).unwrap();
-        proof.verify(family, &vk, &digest).unwrap();
-        assert!(
-            proof
-                .verify(family, &vk, &(digest + &Scalar::one()))
-                .is_err()
-        );
-    };
-    prove(Family::HistoryGeneration, false);
-    prove(Family::HistoryChunk, true);
 }

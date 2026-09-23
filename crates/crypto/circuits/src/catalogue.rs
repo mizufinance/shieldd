@@ -495,6 +495,10 @@ mod tests {
             );
             assert!(digests.insert(*actual.digest()));
             assert!(evaluate(&w).unwrap().is_satisfied());
+            let wrong_digest = digest + &Scalar::one();
+            let (invalid, _) =
+                circuit::build_with_values(|ctx| w.constrain(ctx, &p, &g, &wrong_digest));
+            assert!(!invalid.is_satisfied(), "{} digest binding", family.label());
         }
     }
 }

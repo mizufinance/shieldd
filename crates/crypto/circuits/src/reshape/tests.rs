@@ -1,15 +1,7 @@
 use super::*;
-use crate::{
-    fixtures,
-    proof::{Envelope, Family},
-    scalar,
-};
-use commonware_cryptography::zk::{
-    circuit::{build, build_with_values},
-    pari::{self, InputLayout, Relation},
-};
+use crate::{fixtures, scalar};
+use commonware_cryptography::zk::circuit::build_with_values;
 use commonware_math::algebra::Ring;
-use commonware_parallel::Sequential;
 fn satisfied(p: &Parameters, g: &Generators, w: &Witness) -> bool {
     build_with_values(|ctx| constrain(ctx, p, g, w, &w.statement(g).digest(p)))
         .0
@@ -69,30 +61,4 @@ fn both_shapes_conserve_and_authenticate_with_canonical_padding() {
         *output = fixtures::self_output(&p, &bad.owner, 21, 101);
     }
     assert!(!satisfied(&p, &g, &bad));
-}
-#[test]
-fn split_and_merge_prove_with_distinct_fixed_relations() {
-    let p = Parameters::load().unwrap();
-    let g = Generators::derive(&p);
-    for (count, family) in [
-        (None, Family::ReshapeOneToEight),
-        (Some(2), Family::ReshapeEightToOne),
-    ] {
-        let w = fixtures::reshape(&p, &g, true, count).unwrap();
-        let digest = w.statement(&g).digest(&p);
-        let (c, selected) = build(|ctx| constrain(ctx, &p, &g, &w, &digest));
-        let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-        let relation = Relation::compile(&c, &layout).unwrap();
-        let (pk, vk) = pari::setup(&relation, &mut rand10::rng(), &Sequential).unwrap();
-        let prover = pk;
-        let (values, _) = build_with_values(|ctx| constrain(ctx, &p, &g, &w, &digest));
-        let proof =
-            Envelope::prove(family, &prover, &relation, &layout, values, &Sequential).unwrap();
-        proof.verify(family, &vk, &digest).unwrap();
-        assert!(
-            proof
-                .verify(family, &vk, &(digest + &Scalar::one()))
-                .is_err()
-        );
-    }
 }

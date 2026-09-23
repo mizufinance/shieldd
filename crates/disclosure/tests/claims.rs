@@ -193,9 +193,9 @@ fn full_openings_and_payload_exports() {
 #[cfg(feature = "prover")]
 #[test]
 #[ignore = "requires local Pari keys and actual proof generation"]
-fn real_proofs() {
+fn native_proofs_bind_claims_context_and_family_at_both_capacities() {
     let mut w = fixture();
-    for count in [1, 8, 32] {
+    for count in [1, 32] {
         while w.outputs.len() < count {
             let mut c = w.request.outputs[0].clone();
             c.reference.transaction_id = format!("{:064x}", w.outputs.len());
@@ -248,6 +248,29 @@ fn real_proofs() {
             *verification_key_digest = "00".repeat(32);
         }
         assert!(verify(&bad, Some(&registry)).is_err());
+        let mut bad = p.clone();
+        bad.statement.request.challenge = Some("different context".into());
+        assert!(verify(&bad, Some(&registry)).is_err());
+        let mut bad = p.clone();
+        bad.statement.outputs.clear();
+        assert!(verify(&bad, Some(&registry)).is_err());
+        if count == 1 {
+            let mut bad = p.clone();
+            if let Evidence::Pari { circuit, .. } = &mut bad.evidence {
+                *circuit = CIRCUIT_ID_MANY.into();
+            }
+            assert!(verify(&bad, Some(&registry)).is_err());
+            let mut bad = p.clone();
+            if let Evidence::Pari { proof, .. } = &mut bad.evidence {
+                proof[1] = shieldd_sdk_circuits::proof::Family::Disclosure as u8;
+            }
+            assert!(verify(&bad, Some(&registry)).is_err());
+            let mut bad = p.clone();
+            let mut extra = bad.statement.request.outputs[0].clone();
+            extra.reference.transaction_id = "ff".repeat(32);
+            bad.statement.request.outputs.push(extra);
+            assert!(verify(&bad, Some(&registry)).is_err());
+        }
         let mut bad = p.clone();
         bad.statement.request.chain_id.push('x');
         assert!(verify(&bad, Some(&registry)).is_err());

@@ -241,16 +241,10 @@ mod tests {
     use crate::test_proof_helpers::proof_test_helpers::registry;
     use ff::Field;
     use rand::SeedableRng;
-    use std::sync::{LazyLock, Mutex};
 
     #[cfg(feature = "component")]
     use crate::component::transfer_extract_public;
-    #[cfg(feature = "component")]
-    use crate::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public;
-    use crate::test_proof_helpers::proof_test_helpers::{
-        build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng, full_proof_roundtrip,
-        CircuitType,
-    };
+    use crate::test_proof_helpers::proof_test_helpers::build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng;
     use crate::{
         Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
@@ -261,42 +255,25 @@ mod tests {
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_tct as tct;
 
-    static TRANSFER_PROOF_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
-
-    fn proof_runtime() -> std::sync::MutexGuard<'static, ()> {
-        let guard = TRANSFER_PROOF_TEST_MUTEX
-            .lock()
-            .expect("lock transfer test mutex");
-        let _ = registry();
-        guard
-    }
-
     #[test]
     #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn native_registry_proves_distinct_witnesses_and_batches_with_existing_keys(
-    ) -> anyhow::Result<()> {
-        use rand::SeedableRng;
-        use shieldd_sdk_proof_params::pari::{proving_strategy, Registry, Verification};
-        let _guard = proof_runtime();
-        let registry = Registry::load(std::env::var("SHIELDD_PARI_KEYS")?)?;
+    fn regulated_and_unregulated_proofs_verify_individually_and_in_a_batch() -> anyhow::Result<()> {
+        use shieldd_sdk_proof_params::pari::proving_strategy;
+        let registry = registry();
         let strategy = proving_strategy()?;
         let mut items = Vec::new();
-        for seed in [42, 43] {
+        for (seed, regulated) in [(42, true), (43, false)] {
             let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
                 &mut rand::rngs::StdRng::seed_from_u64(seed),
                 *BASE_ASSET_ID,
-                true,
+                regulated,
                 false,
             );
-            let witness = crate::pari::transfer(&public, &private)?;
-            let statement = shieldd_sdk_circuits::encoding::field(&public.statement_hash()?);
-            let envelope = registry.prove(&witness, strategy)?;
-            registry.verify(witness.family(), &statement, &envelope)?;
-            items.push(Verification {
-                family: witness.family(),
-                statement,
-                envelope,
-            });
+            let proof = super::TransferProof::prove(public.clone(), private, registry)?;
+            proof.verify(&public, registry)?;
+            let item = proof.to_batch_item(&public)?;
+            assert_eq!(item.family, shieldd_sdk_circuits::proof::Family::Transfer);
+            items.push(item);
         }
         assert_ne!(items[0].statement, items[1].statement);
         assert_ne!(items[0].envelope.to_bytes(), items[1].envelope.to_bytes());
@@ -381,20 +358,6 @@ mod tests {
                 expected.statement_hash().unwrap()
             );
         }
-    }
-
-    #[test]
-    #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn pari_proof_transfer_proof_roundtrip_regulated() {
-        let _guard = proof_runtime();
-        full_proof_roundtrip(CircuitType::Transfer, true);
-    }
-
-    #[test]
-    #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn pari_proof_transfer_proof_roundtrip_unregulated() {
-        let _guard = proof_runtime();
-        full_proof_roundtrip(CircuitType::Transfer, false);
     }
 
     #[test]
@@ -528,34 +491,5 @@ mod tests {
 
             assert_transfer_witness(public, private);
         }
-    }
-
-    #[cfg(feature = "component")]
-    #[test]
-    #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn pari_proof_transfer_action_public_matches_proving_public_regulated() {
-        let _guard = proof_runtime();
-
-        let (transfer, proving_public, context) = build_transfer_action_and_public(true);
-        let extracted_public =
-            transfer_extract_public(&transfer, &context).expect("extract transfer public");
-
-        assert_eq!(
-            proving_public
-                .statement_hash()
-                .expect("proving statement hash"),
-            extracted_public
-                .statement_hash()
-                .expect("extracted statement hash"),
-            "extracted transfer public must match proving public",
-        );
-
-        let item = transfer
-            .proof
-            .to_batch_item(&extracted_public)
-            .expect("build batch item from extracted transfer public");
-        registry()
-            .verify_item(&item)
-            .expect("single-item batch verification should succeed with extracted public");
     }
 }

@@ -101,10 +101,10 @@ fn real_proofs_bind_statement_family_key_and_complete_envelope() {
         .is_err()
     );
     assert!(verify_batch(family, &verifier, &[], &Sequential).is_err());
-    let mut wrong_key_proof = second.to_bytes();
+    let mut mismatched_claim_proof = second.to_bytes();
     let other_claim = make(7, 3, 22).unwrap().to_bytes();
-    wrong_key_proof[34..116].copy_from_slice(&other_claim[34..116]);
-    if let Ok(bad) = Envelope::from_bytes(&wrong_key_proof) {
+    mismatched_claim_proof[34..116].copy_from_slice(&other_claim[34..116]);
+    if let Ok(bad) = Envelope::from_bytes(&mismatched_claim_proof) {
         assert!(
             verify_batch(
                 family,

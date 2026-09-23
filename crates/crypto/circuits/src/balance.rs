@@ -176,6 +176,7 @@ mod tests {
             ([10, 20], [0, 1]),
             ([0, 1], [10, 20]),
             ([u128::MAX, u128::MAX], [0, 0]),
+            ([u128::MAX, u128::MAX], [0, 1]),
             ([0, 0], [u128::MAX, u128::MAX]),
         ] {
             let expected = native(&p, &g, &asset, input, output, &blinding).unwrap();
@@ -231,73 +232,6 @@ mod tests {
             &blinding,
             &expected
         ));
-    }
-
-    #[test]
-    fn real_pari_proof_binds_native_generator_map_and_committed_balance_blinding() {
-        use commonware_cryptography::{
-            transcript::{Transcript, Version},
-            zk::{circuit::build, pari},
-        };
-        use commonware_parallel::Sequential;
-        let p = Parameters::load().unwrap();
-        let g = Generators::derive(&p);
-        let asset = Scalar::from(7);
-        let blinding = Scalar::from(11);
-        let expected = native(&p, &g, &asset, [u128::MAX, u128::MAX], [0, 1], &blinding).unwrap();
-        let statement = p.native(255, &[expected.x, expected.y]);
-        fn build_body<'a>(
-            ctx: Context<'a, Scalar>,
-            p: &Parameters,
-            g: &Generators,
-            asset: &Scalar,
-            blinding: &Scalar,
-        ) -> Vec<Var<'a, Scalar>> {
-            let var = |s: &Scalar| Var::witness(ctx, |_| s.clone());
-            let blinding = var(&blinding);
-            let point = constrain(
-                ctx,
-                p,
-                g,
-                &var(asset),
-                &[var(&amount(u128::MAX)), var(&amount(u128::MAX))],
-                &[var(&Scalar::zero()), var(&Scalar::one())],
-                &blinding,
-            );
-            vec![p.circuit(255, &[point.x, point.y]), blinding]
-        }
-        let (c, selected) = build(|ctx| build_body(ctx, &p, &g, &asset, &blinding));
-        let layout = pari::InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
-        let relation = pari::Relation::compile(&c, &layout).unwrap();
-        let mut rng = rand10::rng();
-        let (pk, vk) = pari::setup(&relation, &mut rng, &Sequential).unwrap();
-        let (valued, _) = build_with_values(|ctx| build_body(ctx, &p, &g, &asset, &blinding));
-        let witness = relation
-            .witness(&valued, &layout, vec![pari::Opening::random(&mut rng)])
-            .unwrap();
-        let claim = witness.claim(pk.commitment_keys(), &Sequential).unwrap();
-        assert_eq!(claim.public_inputs, vec![statement]);
-        let transcript =
-            || Transcript::new(b"shieldd-jubjub-pari-v1/balance-component", Version::V1);
-        let proof = pari::prove(
-            &mut rng,
-            &mut transcript(),
-            &pk,
-            &relation,
-            &claim,
-            &witness,
-            &Sequential,
-        )
-        .unwrap();
-        assert!(pari::verify(&mut transcript(), &vk, &claim, &proof));
-        let mut bad = claim.clone();
-        bad.public_inputs[0] += &Scalar::one();
-        assert!(!pari::verify(&mut transcript(), &vk, &bad, &proof));
-        let other = relation
-            .witness(&valued, &layout, vec![pari::Opening::random(&mut rng)])
-            .unwrap();
-        let other_claim = other.claim(pk.commitment_keys(), &Sequential).unwrap();
-        assert!(!pari::verify(&mut transcript(), &vk, &other_claim, &proof));
     }
 }
 
