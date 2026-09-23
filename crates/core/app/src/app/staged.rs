@@ -33,8 +33,12 @@ impl BlockChanges {
     pub fn merge(&mut self, newer: &Self) {
         self.verifiable
             .extend(newer.verifiable.iter().map(|(k, v)| (k.clone(), v.clone())));
-        self.nonverifiable
-            .extend(newer.nonverifiable.iter().map(|(k, v)| (k.clone(), v.clone())));
+        self.nonverifiable.extend(
+            newer
+                .nonverifiable
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone())),
+        );
     }
 
     /// Entries of `self` that `base` doesn't already hold with the same value.

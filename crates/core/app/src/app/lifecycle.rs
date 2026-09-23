@@ -141,7 +141,10 @@ impl App {
 
     /// Finishes the block like [`App::commit`] but hands back the flattened
     /// changes instead of writing them, so the host can commit on finalization.
-    pub(crate) async fn take_block_changes(&mut self, storage: &Storage) -> Result<(Snapshot, cnidarium::Cache)> {
+    pub(crate) async fn take_block_changes(
+        &mut self,
+        storage: &Storage,
+    ) -> Result<(Snapshot, cnidarium::Cache)> {
         self.state.ensure_nullifier_block_materialized()?;
         self.flush_deferred_block_transactions().await?;
         let dummy_state = StateDelta::new(storage.latest_snapshot());
