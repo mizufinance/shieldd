@@ -21,7 +21,7 @@ cargo hack check --workspace --all-targets --all-features --profile ci
 cargo check --profile ci -p shieldd --lib
 cargo check --profile ci -p shieldd-sdk-view --no-default-features
 cargo check --profile ci -p shieldd-sdk-view --no-default-features --features rpc
-cargo check --profile ci -p shieldd-sdk-compliance --no-default-features --features scanner
+cargo check --profile ci -p shieldd-sdk-compliance --no-default-features
 cargo check --profile ci -p shieldd-sdk-transaction --no-default-features --features prover
 cargo check --profile ci -p shieldd-sdk-disclosure --no-default-features
 dependency_tree="$(cargo tree -p shieldd --edges normal --prefix none)"

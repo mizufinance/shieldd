@@ -158,13 +158,6 @@ impl QuadTree {
         Ok(Self { depth, nodes })
     }
 
-    /// Reconstruct a tree from sparse stored nodes.
-    ///
-    /// Panics if stored keys are outside the tree depth/position bounds.
-    pub fn from_sparse_nodes(depth: u8, nodes: BTreeMap<u64, StateCommitment>) -> Self {
-        Self::try_from_sparse_nodes(depth, nodes).expect("valid sparse QuadTree nodes")
-    }
-
     /// Return the packed storage key for a node.
     pub fn packed_node_key(level: u8, position: u64) -> u64 {
         Self::node_key(level, position)

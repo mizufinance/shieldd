@@ -7,7 +7,6 @@ use aes::Aes128;
 
 use anyhow::Context;
 use derivative::Derivative;
-use rand::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 
@@ -166,17 +165,6 @@ impl AddressIndex {
 
     pub fn new(account: u32) -> Self {
         AddressIndex::from(account)
-    }
-
-    pub fn new_ephemeral<R: RngCore + CryptoRng>(account: u32, mut rng: R) -> Self {
-        let mut bytes = [0u8; 12];
-
-        rng.fill_bytes(&mut bytes);
-
-        Self {
-            account,
-            randomizer: bytes,
-        }
     }
 }
 

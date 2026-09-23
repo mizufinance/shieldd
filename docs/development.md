@@ -45,16 +45,13 @@ It exercises Transfer, both NoteReshape families, the shared withdrawal proof an
 daemon-backed NoteSeizure. Missing artifacts or transports fail the command.
 Fixture-blessing tests remain separate and are never selected by this command.
 
-## Scanner
+## Compliance
 
-`cargo test -p shieldd-sdk-compliance --lib` covers atomic block persistence,
-restart/replay, reorg rollback, bounded invalid outcomes, and audit validation.
+`cargo test -p shieldd-sdk-compliance --lib` covers registry state, tree
+invariants, ciphertext detection/decryption, and evidence validation.
 The transaction crate's
 `compliance_scanner_transaction_id_matches_canonical_transaction_id` test checks
-scanner output identities against `Transaction::id()`.
-
-Scanner databases use a schema guard. Recreate incompatible development state;
-there is no migration or version-adoption path.
+protobuf transaction identities against `Transaction::id()`.
 
 ## Orbis
 
@@ -71,7 +68,6 @@ The generator checks the pinned protoc version and compiles its generated Go out
 
 Native proof construction is opt-in with `prover` on shielded-pool and transaction.
 `bundled-proving-keys` includes proving; external artifacts need `prover` alone.
-Compliance `scanner` enables SQLite and worker dependencies without `component`.
 View `rpc` enables its historical-witness RPC adapter. Isolated builds matter:
 workspace feature unification can conceal missing feature declarations.
 

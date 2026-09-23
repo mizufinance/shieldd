@@ -407,11 +407,6 @@ pub fn load_proof_tx_pool(pool_dir: &Path) -> Result<(ProofTxPool, ProofTxPoolMe
     Ok((ProofTxPool { txs }, metadata))
 }
 
-pub fn verify_proof_tx_pool(pool_dir: &Path) -> Result<ProofTxPoolMetadata> {
-    let (_pool, metadata) = load_proof_tx_pool(pool_dir)?;
-    Ok(metadata)
-}
-
 fn read_metadata(pool_dir: &Path) -> Result<ProofTxPoolMetadata> {
     let metadata_path = pool_dir.join("metadata.json");
     serde_json::from_slice(

@@ -80,10 +80,9 @@ ignore = [
     # Our own usage is on 0.3.23 (patched). Exit: arkworks upgrades to 0.3.x.
     "RUSTSEC-2025-0055",
 
-    # rustls-webpki 0.102.8 is pinned by the rustls 0.23 chain (via
-    # rustls-acme, hyper-rustls, axum-server, futures-rustls). Fixes require
-    # majoring up rustls-webpki to 0.103+. Exit: bump the rustls ecosystem.
-    "RUSTSEC-2026-0049",
+    # rustls-webpki 0.101.7 is pinned by rustls 0.21 via reqwest 0.11.
+    # Exit: upgrade that client to rustls 0.23 with
+    # rustls-webpki >= 0.103.13.
     "RUSTSEC-2026-0098",
     "RUSTSEC-2026-0099",
     "RUSTSEC-2026-0104",

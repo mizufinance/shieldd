@@ -127,24 +127,6 @@ impl TxArtifact {
             .ok_or_else(|| anyhow::anyhow!("extracted proof item is missing"))
     }
 
-    pub fn with_historical_validation(
-        &self,
-        historical_validation: HistoricalValidationStamp,
-    ) -> Arc<Self> {
-        if self.historical_validation == Some(historical_validation) {
-            return Arc::new(self.clone());
-        }
-
-        Arc::new(Self {
-            tx: self.tx.clone(),
-            proof_items: self.proof_items.clone(),
-            spend_nullifiers: self.spend_nullifiers.clone(),
-            anchor_pairs: self.anchor_pairs.clone(),
-            total_proof_count: self.total_proof_count,
-            historical_validation: Some(historical_validation),
-        })
-    }
-
     pub fn with_historical_validation_owned(
         mut self: Arc<Self>,
         historical_validation: HistoricalValidationStamp,

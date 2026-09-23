@@ -997,11 +997,6 @@ impl IndexedMerkleTree {
         })
     }
 
-    /// Iterate over stored leaves.
-    pub fn stored_leaves(&self) -> impl Iterator<Item = (u64, &IndexedLeaf)> + '_ {
-        self.leaves.iter().map(|(&position, leaf)| (position, leaf))
-    }
-
     #[inline]
     fn node_key(level: u8, position: u64) -> u64 {
         ((level as u64) << 48) | position

@@ -2,7 +2,7 @@
 //!
 //! The `refs` module maps chain data into stable block, transaction, action,
 //! and output references. `TxRef` carries the canonical `TransactionId` so
-//! scanner, evidence, and audit rows use the same transaction identity as the
+//! evidence and audit records use the same transaction identity as the
 //! rest of Shieldd.
 
 use shieldd_sdk_txhash::TransactionId;

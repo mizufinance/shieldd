@@ -243,51 +243,6 @@ impl From<EventAssetRegistered> for pb::EventAssetRegistered {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct EventComplianceAnchor {
-    pub height: u64,
-    pub user_anchor: StateCommitment,
-    pub asset_anchor: StateCommitment,
-}
-
-impl DomainType for EventComplianceAnchor {
-    type Proto = pb::EventComplianceAnchor;
-}
-
-impl TryFrom<pb::EventComplianceAnchor> for EventComplianceAnchor {
-    type Error = anyhow::Error;
-
-    fn try_from(value: pb::EventComplianceAnchor) -> Result<Self, Self::Error> {
-        fn inner(value: pb::EventComplianceAnchor) -> anyhow::Result<EventComplianceAnchor> {
-            let user_bytes: [u8; 32] = value
-                .user_anchor
-                .try_into()
-                .map_err(|_| anyhow!("user_anchor must be 32 bytes"))?;
-            let asset_bytes: [u8; 32] = value
-                .asset_anchor
-                .try_into()
-                .map_err(|_| anyhow!("asset_anchor must be 32 bytes"))?;
-
-            Ok(EventComplianceAnchor {
-                height: value.height,
-                user_anchor: StateCommitment::try_from(user_bytes)?,
-                asset_anchor: StateCommitment::try_from(asset_bytes)?,
-            })
-        }
-        inner(value).context(format!("parsing {}", pb::EventComplianceAnchor::NAME))
-    }
-}
-
-impl From<EventComplianceAnchor> for pb::EventComplianceAnchor {
-    fn from(value: EventComplianceAnchor) -> Self {
-        Self {
-            height: value.height,
-            user_anchor: <[u8; 32]>::from(value.user_anchor).to_vec(),
-            asset_anchor: <[u8; 32]>::from(value.asset_anchor).to_vec(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

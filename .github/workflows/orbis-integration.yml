@@ -37,8 +37,7 @@ jobs:
             -p shieldd-orbis-client \
             -p orbis-integration
           nix develop --command cargo test --locked \
-            -p shieldd-sdk-compliance \
-          --features scanner
+            -p shieldd-sdk-compliance
 
       - name: Validate pinned Orbis/Vera runtime
         working-directory: shieldd

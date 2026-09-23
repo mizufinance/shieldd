@@ -13,11 +13,8 @@ component = [
     "cnidarium-component",
     "shieldd-sdk-proto/cnidarium",
     "shieldd-sdk-sct/component",
-    "dep:tokio",
 ]
 default = ["component"]
-scanner = ["dep:rusqlite", "dep:tokio", "tokio/sync", "tokio/time"]
-sqlite-bundled = ["scanner", "rusqlite/bundled"]
 test-helpers = ["decaf377-ka"]
 
 [[example]]
@@ -51,17 +48,13 @@ blake2b_simd = {workspace = true}
 hex = {workspace = true}
 futures = {workspace = true}
 rand_core = {workspace = true}
-rusqlite = {version = "0.32", optional = true}
 tendermint = {workspace = true}
-tokio = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
-shieldd-sdk-compliance = { path = ".", features = ["scanner"] }
 ark-serialize = {workspace = true}
 decaf377-ka = {workspace = true}
 shieldd-sdk-keys = {workspace = true, features = ["demo"]}
 rand = {workspace = true}
 serde_json = {workspace = true}
-tempfile = {workspace = true}
 tokio = {workspace = true, features = ["full"]}

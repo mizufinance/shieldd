@@ -4,7 +4,7 @@ use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{Balance, Value};
 use shieldd_sdk_keys::keys::NullifierKey;
-use shieldd_sdk_keys::{keys::IncomingViewingKey, Address, FullViewingKey};
+use shieldd_sdk_keys::{Address, FullViewingKey};
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
@@ -105,10 +105,6 @@ impl ShieldedOutputPlan {
 
     pub fn output_note(&self, capk: decaf377::Element) -> Note {
         self.output_note_and_capsule(capk).0
-    }
-
-    pub fn is_viewed_by(&self, ivk: &IncomingViewingKey) -> bool {
-        ivk.views_address(&self.dest_address)
     }
 
     pub fn balance(&self) -> Balance {

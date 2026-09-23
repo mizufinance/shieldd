@@ -251,10 +251,6 @@ impl SyncWorker {
         let (compliance_plan, next_compliance_snapshot) =
             self.prepare_compliance_block(&block).await?;
         let mut next_sct = self.sct.clone();
-        let epoch = block.epoch_root.map(|root| crate::storage::CompletedEpoch {
-            index: block.epoch_index,
-            root,
-        });
         let mut counterparties = BTreeSet::new();
         let mut filtered_block = scan_block(
             &self.fvk,
@@ -334,7 +330,6 @@ impl SyncWorker {
                 crate::storage::WalletBlockMetadata {
                     timestamp,
                     assets,
-                    epoch,
                     counterparties,
                 },
             )

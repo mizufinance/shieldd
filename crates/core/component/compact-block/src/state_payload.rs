@@ -26,20 +26,6 @@ pub enum StatePayload {
     },
 }
 
-pub struct StatePayloadDebugKind<'a>(pub &'a StatePayload);
-
-impl<'a> std::fmt::Debug for StatePayloadDebugKind<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            StatePayload::RolledUp { .. } => f.debug_struct("RolledUp").finish_non_exhaustive(),
-            StatePayload::Note { .. } => f.debug_struct("Note").finish_non_exhaustive(),
-            StatePayload::VolumeAccumulator { .. } => {
-                f.debug_struct("VolumeAccumulator").finish_non_exhaustive()
-            }
-        }
-    }
-}
-
 impl StatePayload {
     pub fn commitment(&self) -> &note::StateCommitment {
         match self {

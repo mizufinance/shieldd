@@ -238,51 +238,16 @@ binding signature. Transfer's effect hash includes the exact receiver
 ciphertext, metadata, accumulator payload, and proof context, so a delegated
 builder cannot replace them after the spends are authorized.
 
-## Scanner And Evidence
+## Evidence
 
-The scanner extracts only typed public facts:
+`ComplianceEvidenceObject` contains the output reference, asset/flag/detection
+facts, the 832-byte ciphertext, the 272-byte metadata record, and a payload hash.
+It excludes capsule-release evidence, shared points, and standalone DLEQ proofs.
+`validate_audit_evidence` checks the canonical payload hash and metadata; the
+caller binds that evidence to the accepted output and owns storage.
 
-```text
-ExtractedComplianceCiphertext {
-  output_ref,
-  routing_tags: [u32; 2],
-  raw_bytes,
-  metadata_bytes
-}
-```
-
-The scanner DB is the durable spine:
-
-```text
-chain output
-  -> canonical ciphertext/metadata decode
-  -> detection-tier DK screening
-  -> persisted detection or bounded invalid row
-  -> canonical evidence validation
-  -> flagged issuer-DK tier decryption
-  -> audit ledger projection
-```
-
-`ComplianceScreener` is pure parsing plus detection-key screening. It performs
-no persistence, chain fetches, ACP decisions, or release calls. Scanner blocks are
-keyed by height/hash/parent hash; a reorg rolls state back to the common
-ancestor before replay.
-
-The evidence object contains the output reference, asset/flag/detection facts,
-the 832-byte ciphertext, the 272-byte metadata record, and a payload hash. It
-contains no capsule-release evidence, shared point, or standalone DLEQ proof. Evidence
-validation compares both ciphertext and metadata to the accepted output and
-the persisted detection row before an audit can complete.
-
-Valid audit transitions are:
-
-```text
-pending -> evidence_valid | evidence_invalid
-evidence_valid -> evidence_invalid | decrypt_failed | audit_complete
-evidence_invalid -> evidence_valid
-decrypt_failed -> audit_complete
-audit_complete -> audit_complete
-```
+`AuditStatus` defines the legal evidence-validation, decryption, and completion
+transitions. Evidence validation and issuer-DK decryption are separate operations.
 
 ## Audit Availability
 
@@ -290,7 +255,7 @@ Flagged regulated transfers encrypt every audit tier to the issuer DK. After
 evidence validation, the issuer can decrypt them locally and complete the
 audit.
 
-Unflagged regulated tiers encrypt to the sender or receiver ACK. The scanner has
-no release import workflow, so those rows cannot currently complete. Scanner
-evidence must not publish seed-opening material. `SeizeNote` is a separate
-privileged host path.
+Unflagged regulated tiers encrypt to the sender or receiver ACK. The Orbis
+prototype is separate from the evidence-validation boundary. Evidence objects
+must not publish seed-opening material. `SeizeNote` is a separate privileged
+host path.

@@ -107,24 +107,6 @@ impl ValueView {
 }
 
 impl Value {
-    /// Convert this `Value` into a `ValueView` with the given `Denom`.
-    pub fn view_with_denom(&self, denom: Metadata) -> anyhow::Result<ValueView> {
-        if self.asset_id == denom.id() {
-            Ok(ValueView::KnownAssetId {
-                amount: self.amount,
-                metadata: denom,
-                equivalent_values: Vec::new(),
-                extended_metadata: None,
-            })
-        } else {
-            Err(anyhow::anyhow!(
-                "asset ID {} does not match denom {}",
-                self.asset_id,
-                denom
-            ))
-        }
-    }
-
     /// Convert this `Value` into a `ValueView` using the given `Cache`
     pub fn view_with_cache(&self, cache: &Cache) -> ValueView {
         match cache.get(&self.asset_id) {
