@@ -89,6 +89,15 @@ pub struct HostCommit {
     pub root_hash: Vec<u8>,
 }
 
+/// A finished candidate block that is not written to storage yet.
+#[derive(Clone, Debug)]
+pub struct HostStagedBlock {
+    /// Root the state would have if this block and its pending ancestors commit.
+    pub root_hash: Vec<u8>,
+    /// This block's own changes, to pass to children and to `commit_staged`.
+    pub changes: Arc<BlockChanges>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostCommittedState {
     pub height: u64,
@@ -103,6 +112,9 @@ pub struct HostExecution {
     app: App,
     stateless_cache: Arc<StatelessCache>,
     phase: HostExecutionPhase,
+    /// Merged changes of the pending ancestors the open block runs on, set by
+    /// `begin_block_on_pending` and consumed by `stage`.
+    pending_base: Option<BlockChanges>,
 }
 
 #[derive(Debug)]
@@ -238,6 +250,7 @@ impl HostExecution {
             app,
             stateless_cache,
             phase: HostExecutionPhase::Idle,
+            pending_base: None,
         }
     }
 
@@ -487,6 +500,85 @@ impl HostExecution {
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         self.app = app;
         self.phase = HostExecutionPhase::Idle;
+        self.pending_base = None;
+    }
+
+    /// Starts a candidate block on the committed state plus `ancestors`, the
+    /// staged changes of its unfinalized parents, oldest first. Finish it with
+    /// [`HostExecution::stage`], which writes nothing.
+    pub async fn begin_block_on_pending(
+        &mut self,
+        block: HostBlock,
+        ancestors: &[Arc<BlockChanges>],
+    ) -> Result<HostExecutionResponse> {
+        ensure!(
+            self.phase == HostExecutionPhase::Idle,
+            "begin_block_on_pending called while host execution phase is {:?}",
+            self.phase
+        );
+        let mut base = BlockChanges::default();
+        for changes in ancestors {
+            base.merge(changes);
+        }
+        let mut app = App::new_on_pending(self.storage.latest_snapshot(), &base);
+        app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        self.app = app;
+        self.pending_base = Some(base);
+        let response = self.begin_block(block).await;
+        if response.is_err() {
+            self.rollback();
+        }
+        response
+    }
+
+    /// Ends a candidate block without touching storage. Returns the root it
+    /// would commit to and its own changes.
+    pub async fn stage(&mut self) -> Result<HostStagedBlock> {
+        ensure!(
+            self.phase == HostExecutionPhase::EndedBlock,
+            "stage called while host execution phase is {:?}",
+            self.phase
+        );
+        let base = self
+            .pending_base
+            .take()
+            .context("stage requires begin_block_on_pending")?;
+        let result = self.stage_inner(&base).await;
+        // The app state was consumed either way, start clean from storage.
+        self.rollback();
+        result
+    }
+
+    async fn stage_inner(&mut self, base: &BlockChanges) -> Result<HostStagedBlock> {
+        let (snapshot, cache) = self.app.take_block_changes(&self.storage).await?;
+        let merged = BlockChanges::from_cache(&cache);
+        let mut delta = StateDelta::new(snapshot);
+        merged.apply_to(&mut delta);
+        // The batch is only used for its root and is dropped unwritten. JMT
+        // roots depend on content only, so committing the ancestors and then
+        // this block one version at a time lands on the same root.
+        let batch = self.storage.prepare_commit(delta).await?;
+        Ok(HostStagedBlock {
+            root_hash: batch.root_hash().0.to_vec(),
+            changes: Arc::new(merged.without(base)),
+        })
+    }
+
+    /// Writes one finalized block's staged changes as the next version. Blocks
+    /// must be committed in order, parents first.
+    pub async fn commit_staged(&mut self, changes: &BlockChanges) -> Result<HostCommit> {
+        ensure!(
+            self.phase == HostExecutionPhase::Idle,
+            "commit_staged called while host execution phase is {:?}",
+            self.phase
+        );
+        let mut delta = StateDelta::new(self.storage.latest_snapshot());
+        changes.apply_to(&mut delta);
+        let root_hash = self.storage.commit(delta).await?;
+        self.rollback();
+        Ok(HostCommit {
+            root_hash: root_hash.0.to_vec(),
+        })
     }
 
     /// Drops application snapshots before shutting down Cnidarium and RocksDB.
@@ -496,6 +588,7 @@ impl HostExecution {
             app,
             stateless_cache,
             phase: _,
+            pending_base: _,
         } = self;
         drop(app);
         drop(stateless_cache);

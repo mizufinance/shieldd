@@ -139,6 +139,19 @@ impl App {
         }
     }
 
+    /// Finishes the block like [`App::commit`] but hands back the flattened
+    /// changes instead of writing them, so the host can commit on finalization.
+    pub(crate) async fn take_block_changes(&mut self, storage: &Storage) -> Result<(Snapshot, cnidarium::Cache)> {
+        self.state.ensure_nullifier_block_materialized()?;
+        self.flush_deferred_block_transactions().await?;
+        let dummy_state = StateDelta::new(storage.latest_snapshot());
+        let state = Arc::try_unwrap(std::mem::replace(&mut self.state, Arc::new(dummy_state)))
+            .map_err(|_| anyhow::anyhow!("block state is still shared at stage time"))?;
+        let flattened = state.flatten();
+        self.pending_sct_append_log.clear();
+        Ok(flattened)
+    }
+
     /// Persists host execution state and resets snapshots for the next host call.
     pub async fn commit(&mut self, storage: Storage) -> RootHash {
         self.state
