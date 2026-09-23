@@ -318,18 +318,42 @@ mod tests {
     #[test]
     fn withdrawal_ciphertext_rejects_noncanonical_fields_and_identity_epk() {
         let sender = make_address(74);
-        let encrypted = encrypt_withdrawal(
-            &mut OsRng,
+        let encrypted = encrypt_withdrawal_with_material(
             *shieldd_sdk_crypto::generators::SPEND_AUTH,
             &sender,
+            Fq::from(23u64),
+            Fr::from(17u64),
         )
         .unwrap();
-        let mut identity = encrypted.ciphertext.to_bytes();
-        identity[..32].copy_from_slice(&SubgroupPoint::identity().to_bytes());
-        assert!(WithdrawalComplianceCiphertext::from_bytes(&identity).is_err());
+        let encoded = encrypted.ciphertext.to_bytes();
+        assert_eq!(
+            WithdrawalComplianceCiphertext::from_bytes(&encoded).unwrap(),
+            encrypted.ciphertext
+        );
+        let mut identity = encoded;
+        identity[1..33].copy_from_slice(&SubgroupPoint::identity().to_bytes());
+        assert_eq!(
+            WithdrawalComplianceCiphertext::from_bytes(&identity)
+                .unwrap_err()
+                .to_string(),
+            "invalid withdrawal compliance EPK"
+        );
 
-        let mut noncanonical = encrypted.ciphertext.to_bytes();
-        noncanonical[32..64].fill(0xff);
-        assert!(WithdrawalComplianceCiphertext::from_bytes(&noncanonical).is_err());
+        for (offset, label) in [
+            (33, "c2"),
+            (65, "key_confirmation"),
+            (97, "sender address word 0"),
+            (129, "sender address word 1"),
+            (161, "sender address word 2"),
+        ] {
+            let mut noncanonical = encoded;
+            noncanonical[offset..offset + FQ_BYTES].fill(0xff);
+            assert_eq!(
+                WithdrawalComplianceCiphertext::from_bytes(&noncanonical)
+                    .unwrap_err()
+                    .to_string(),
+                format!("withdrawal compliance {label} is not canonical")
+            );
+        }
     }
 }
