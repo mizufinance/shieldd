@@ -201,6 +201,16 @@ def workspace_package_specs(metadata: dict[str, object]) -> list[str]:
     return sorted(set(selected))
 
 
+def git_package_spec(package: dict[str, str]) -> str | None:
+    source = package.get("source", "")
+    if not source.startswith("git+"):
+        return None
+    # The private Orbis dependency would overwrite Shieldd's decaf377 rustdoc output.
+    if source.startswith("git+https://github.com/penumbra-zone/decaf377?"):
+        return None
+    return f"{source.split('#')[0]}#{package['name']}@{package['version']}"
+
+
 def git_packages_from_lock(lock_text: str) -> Iterator[str]:
     """Yield package specs for git dependencies in a Cargo lockfile."""
     try:
@@ -211,18 +221,16 @@ def git_packages_from_lock(lock_text: str) -> Iterator[str]:
     if tomllib is not None:
         lock = tomllib.loads(lock_text)
         for package in lock.get("package", []):
-            source = package.get("source")
-            if source and source.startswith("git+"):
-                yield f"{package['name']}@{package['version']}"
+            if spec := git_package_spec(package):
+                yield spec
         return
 
     current: dict[str, str] = {}
     for line in [*lock_text.splitlines(), "[[package]]"]:
         line = line.strip()
         if line == "[[package]]":
-            source = current.get("source")
-            if source and source.startswith("git+"):
-                yield f"{current['name']}@{current['version']}"
+            if spec := git_package_spec(current):
+                yield spec
             current = {}
             continue
         if "=" not in line:

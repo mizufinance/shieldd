@@ -16,7 +16,6 @@ component = [
 ]
 default = ["component"]
 test-helpers = ["decaf377-ka"]
-poc-orbis = ["dep:aes-gcm", "dep:hkdf"]
 
 [[example]]
 name = "dev_orbis_registration"
@@ -24,7 +23,6 @@ required-features = ["test-helpers"]
 
 [dependencies]
 anyhow = {workspace = true}
-aes-gcm = {version = "0.10", optional = true}
 ark-ff = {workspace = true}
 base64 = {workspace = true}
 async-trait = {workspace = true}
@@ -48,7 +46,6 @@ serde_json = {workspace = true}
 sha2 = {workspace = true}
 blake2b_simd = {workspace = true}
 hex = {workspace = true}
-hkdf = {version = "0.12", optional = true}
 futures = {workspace = true}
 rand_core = {workspace = true}
 tendermint = {workspace = true}

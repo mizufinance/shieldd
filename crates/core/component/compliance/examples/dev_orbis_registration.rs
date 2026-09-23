@@ -24,6 +24,7 @@ fn bundle(address_index: u32) -> anyhow::Result<(String, String, String, String)
         "shieldd-dev-policy".to_owned(),
         "read".to_owned(),
         "document".to_owned(),
+        shieldd_sdk_compliance::AuditKeys::test_keys(),
     );
     let rnk =
         derive_regulated_nullifier_key(fvk.incoming(), &address, asset_id, ring_pk, rnk_dh_pk)?;

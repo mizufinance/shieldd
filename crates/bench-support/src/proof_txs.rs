@@ -87,6 +87,7 @@ pub async fn setup_proof_storage(
 
     let authority_vk = VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
     let native_asset = NativeAssetRegistration {
+        audit_keys: Some(shieldd_sdk_compliance::AuditKeys::test_keys()),
         asset_id: *BASE_ASSET_ID,
         is_regulated: true,
         dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),

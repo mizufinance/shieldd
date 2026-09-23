@@ -7,7 +7,7 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
 
-const transferWitnessMagic = "PTWG"
+const transferWitnessMagic = "PTW3"
 
 type TransferComplianceCiphertextWitnessBinary struct {
 	C2         [32]byte
@@ -16,6 +16,7 @@ type TransferComplianceCiphertextWitnessBinary struct {
 }
 
 type TransferComplianceMetadataWitnessBinary struct {
+	AuditEpoch      [32]byte
 	RingIDHash      [32]byte
 	PolicyIDHash    [32]byte
 	ResourceHash    [32]byte
@@ -128,6 +129,7 @@ type TransferWitnessBinary struct {
 	DetectionCiphertext       [][32]byte
 	SenderCoreKeyConfirmation [32]byte
 	OutputCoreKeyConfirmation [32]byte
+	Ownership                 [4]PointAffineBinary
 	Metadata                  TransferComplianceMetadataWitnessBinary
 	SenderCore                TransferComplianceCiphertextWitnessBinary
 	SenderExt                 TransferComplianceCiphertextWitnessBinary
@@ -135,8 +137,10 @@ type TransferWitnessBinary struct {
 	OutputExt                 TransferComplianceCiphertextWitnessBinary
 	SenderRCore               [32]byte
 	SenderRExt                [32]byte
+	SenderChecking            [32]byte
 	OutputRCore               [32]byte
 	OutputRExt                [32]byte
+	OutputChecking            [32]byte
 
 	RequiredSpend  TransferRequiredSpendWitnessBinary
 	OptionalSpend  TransferOptionalSpendWitnessBinary
@@ -260,6 +264,7 @@ func decodeTransferWitness(
 	if witness.SenderStatus, err = read32(reader); err != nil {
 		return nil, err
 	}
+
 	if witness.TransferNonceRoot, err = read32(reader); err != nil {
 		return nil, err
 	}
@@ -271,6 +276,11 @@ func decodeTransferWitness(
 	}
 	if witness.OutputCoreKeyConfirmation, err = read32(reader); err != nil {
 		return nil, err
+	}
+	for i := range witness.Ownership {
+		if witness.Ownership[i], err = readPointAffine(reader); err != nil {
+			return nil, err
+		}
 	}
 	if witness.Metadata, err = readTransferComplianceMetadata(reader); err != nil {
 		return nil, err
@@ -293,10 +303,16 @@ func decodeTransferWitness(
 	if witness.SenderRExt, err = readFr32(reader); err != nil {
 		return nil, err
 	}
+	if witness.SenderChecking, err = readFr32(reader); err != nil {
+		return nil, err
+	}
 	if witness.OutputRCore, err = readFr32(reader); err != nil {
 		return nil, err
 	}
 	if witness.OutputRExt, err = readFr32(reader); err != nil {
+		return nil, err
+	}
+	if witness.OutputChecking, err = readFr32(reader); err != nil {
 		return nil, err
 	}
 
@@ -505,6 +521,7 @@ func readTransferReceiverOutput(
 	if output.RecipientStatus, err = read32(reader); err != nil {
 		return output, err
 	}
+
 	if output.RecipientDiversifiedGenerator, err = readPointAffine(reader); err != nil {
 		return output, err
 	}
@@ -572,6 +589,9 @@ func readTransferComplianceMetadata(
 		return metadata, err
 	}
 	if metadata.TargetTimestamp, err = read32(reader); err != nil {
+		return metadata, err
+	}
+	if metadata.AuditEpoch, err = read32(reader); err != nil {
 		return metadata, err
 	}
 	if metadata.SenderCoreSalt, err = read32(reader); err != nil {

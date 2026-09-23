@@ -40,6 +40,8 @@ const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
 const METHOD_QUERY_COMPACT_BLOCK_RANGE: u32 = 1_000_006;
 const METHOD_QUERY_NULLIFIER_WINDOW: u32 = 1_000_007;
+const METHOD_QUERY_COMMITTED_TRANSACTION: u32 = 1_000_008;
+const METHOD_QUERY_TRANSACTIONS_BY_HEIGHT: u32 = 1_000_009;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Method {
@@ -63,6 +65,8 @@ enum Method {
     QueryKeyValue,
     QueryCompactBlockRange,
     QueryNullifierWindow,
+    QueryCommittedTransaction,
+    QueryTransactionsByHeight,
 }
 
 #[repr(C)]
@@ -190,6 +194,8 @@ impl TryFrom<u32> for Method {
             METHOD_QUERY_KEY_VALUE => Ok(Self::QueryKeyValue),
             METHOD_QUERY_COMPACT_BLOCK_RANGE => Ok(Self::QueryCompactBlockRange),
             METHOD_QUERY_NULLIFIER_WINDOW => Ok(Self::QueryNullifierWindow),
+            METHOD_QUERY_COMMITTED_TRANSACTION => Ok(Self::QueryCommittedTransaction),
+            METHOD_QUERY_TRANSACTIONS_BY_HEIGHT => Ok(Self::QueryTransactionsByHeight),
             _ => Err(FfiError::invalid_argument(format!(
                 "unknown Shieldd method {method}"
             ))),
@@ -428,6 +434,16 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        Method::QueryTransactionsByHeight => service
+            .transactions_by_height(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::QueryCommittedTransaction => service
+            .committed_transaction(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         Method::QueryAppParameters => service
             .app_parameters(decode(request)?)
             .await
@@ -612,6 +628,14 @@ mod tests {
                 Method::QueryCompactBlockRange,
             ),
             (METHOD_QUERY_NULLIFIER_WINDOW, Method::QueryNullifierWindow),
+            (
+                METHOD_QUERY_COMMITTED_TRANSACTION,
+                Method::QueryCommittedTransaction,
+            ),
+            (
+                METHOD_QUERY_TRANSACTIONS_BY_HEIGHT,
+                Method::QueryTransactionsByHeight,
+            ),
         ];
 
         for (id, method) in cases {

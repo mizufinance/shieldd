@@ -7,8 +7,8 @@ asset accounting, escrow settlement, IBC execution, public queries, and transact
 Both are active prototypes.
 
 Bankd calls `HostExecution` through the `shieldd` static library’s C ABI. Shieldd
-also provides wallet planning and synchronization libraries, an issuer scanner,
-native proof builders, and offline `pcli` custody/key tools. Shielded withdrawals
+also provides wallet planning and synchronization libraries, native proof builders,
+and offline `pcli` custody/key tools. Shielded withdrawals
 return value to Bankd through a host transfer or host execution.
 
 Regulated participation uses asset policy and per-address/per-asset lifecycle

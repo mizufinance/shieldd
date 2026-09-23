@@ -18,7 +18,7 @@ use crate::{
     transfer::TRANSFER_PROOF_LABEL,
 };
 
-const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
+const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTW3";
 
 impl TransferWitness {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -55,11 +55,15 @@ impl TransferWitness {
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
         put_bytes(&mut buf, &self.sender_core_key_confirmation);
         put_bytes(&mut buf, &self.output_core_key_confirmation);
+        for point in &self.ownership {
+            encode_point_affine(&mut buf, point);
+        }
         put_bytes(&mut buf, &self.ring_id_hash);
         put_bytes(&mut buf, &self.policy_id_hash);
         put_bytes(&mut buf, &self.resource_hash);
         put_bytes(&mut buf, &self.permission_hash);
         put_bytes(&mut buf, &self.metadata_target_timestamp);
+        put_bytes(&mut buf, &self.audit_epoch);
         put_bytes(&mut buf, &self.sender_core_salt);
         put_bytes(&mut buf, &self.sender_ext_salt);
         put_bytes(&mut buf, &self.output_core_salt);
@@ -131,11 +135,18 @@ impl TransferWitness {
             detection_ciphertext: cursor.read_vec_32()?,
             sender_core_key_confirmation: cursor.read_fixed::<32>()?,
             output_core_key_confirmation: cursor.read_fixed::<32>()?,
+            ownership: [
+                cursor.read_point_affine()?,
+                cursor.read_point_affine()?,
+                cursor.read_point_affine()?,
+                cursor.read_point_affine()?,
+            ],
             ring_id_hash: cursor.read_fixed::<32>()?,
             policy_id_hash: cursor.read_fixed::<32>()?,
             resource_hash: cursor.read_fixed::<32>()?,
             permission_hash: cursor.read_fixed::<32>()?,
             metadata_target_timestamp: cursor.read_fixed::<32>()?,
+            audit_epoch: cursor.read_fixed::<32>()?,
             sender_core_salt: cursor.read_fixed::<32>()?,
             sender_ext_salt: cursor.read_fixed::<32>()?,
             output_core_salt: cursor.read_fixed::<32>()?,
@@ -227,12 +238,14 @@ fn decode_compliance_tier(
 fn encode_randomizers(buf: &mut Vec<u8>, randomizers: &TransferTierRandomizersWitness) {
     put_bytes(buf, &randomizers.core);
     put_bytes(buf, &randomizers.ext);
+    put_bytes(buf, &randomizers.checking);
 }
 
 fn decode_randomizers(cursor: &mut BinaryCursor<'_>) -> Result<TransferTierRandomizersWitness> {
     Ok(TransferTierRandomizersWitness {
         core: cursor.read_fr()?,
         ext: cursor.read_fr()?,
+        checking: cursor.read_fr()?,
     })
 }
 

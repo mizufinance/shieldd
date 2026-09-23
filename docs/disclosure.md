@@ -1,0 +1,316 @@
+# Voluntary transaction disclosure
+
+Disclosure is an off-chain wallet operation. It never reserves notes or modifies
+payment proofs, commitments, consensus, or spendable balances. PET-gated compliance collection is unavailable; local evidence review is separate.
+
+| Evidence | What the recipient obtains |
+| --- | --- |
+| Payload keys | Selected note plaintext, including its seed, and transaction-wide memo decryption capability |
+| Full openings | Amount, asset, recipient and commitment blinding/recovery values, without note seeds or payload keys |
+| Groth16 | Selected public fields and explicit true/false predicate results |
+
+Full openings require all three field selectors. Memo revelation uses payload-key
+exports. There is no structured metadata framework. An asset identifier and a
+recipient address do not themselves establish legal identity; KYC linkage belongs
+to the recipient's trusted records.
+
+## Requests and claims
+
+`DisclosureRequest` selects canonical transaction ID, accepted height, action,
+and output index, with a chain ID and optional audience (`recipient`) and
+challenge. Action references are `{"Body": 0}` or `"FeeFunding"`.
+Each selection specifies `amount`, `asset`, `recipient`, `memo`,
+`spending_control`, and optional `predicate`.
+
+Predicates are `GreaterThan`, `LessThan`, `AtLeast`, `AtMost`, and
+`InclusiveRange`. Thresholds and amounts are canonical unsigned decimal strings
+in asset base units. Predicate outputs always include their asset and a boolean
+result. Invalid proofs or unavailable inputs never mean false.
+
+An optional `total: {"reveal": false, "predicate": {"AtLeast": "500"}}`
+operates over every explicitly selected output, including selections from multiple
+transactions. All selected outputs must have one asset. These are **selected-output
+totals**, not complete wallet or account activity. Duplicate references and u128
+overflow are rejected. A single proof supports at most 32 outputs; larger hidden
+totals are rejected, never silently split.
+
+## SDK and acceptance
+
+The SDK provides `prepare`, `inspect`, `verify`, `prove`, `export_openings`, and
+`export_payload_keys`. Wallet storage, custody, node access and processes stay
+outside commitment evaluation. `inspect` describes unverified claims.
+
+`verify` checks cryptography only. `confirm_acceptance` additionally compares
+selected public data with the chosen node's committed `CommittedTransaction`
+records and chain identity. A cryptographically valid disclosure without that
+check is not fully verified. `verify_candidates` checks encrypted transaction
+bytes obtained from Shinzo without treating indexer records as execution evidence.
+
+`pcli disclosure verify-machine --node URL` accepts one bounded JSON request on
+private stdin: `version: 2`, `package`, optional expected `request`, and optional
+base64 canonical `transactions` retrieved through Shinzo. It returns the verified
+statement, method, circuit identity and acceptance result in one response.
+`rejected` means invalid evidence or a definitive accepted-data mismatch;
+`unresolved` means acceptance data could not be obtained; `unavailable` means the
+local verifier could not run reliably. Only `verified` establishes both checks.
+The SDK exposes `VerificationUnavailable` for local artifact/backend failures.
+
+The query selects one canonical transaction ID at its accepted height. Responses are bounded to 96 KiB of transaction data plus 16 bytes of framing, independently of the block size. An absent transaction differs from an unavailable query.
+
+Bankd exposes `mizufinance.shieldd.v1.Query/CommittedTransaction` through the
+embedded Shieldd adapter. An indexed success code, database CID, or indexer
+signature alone does not authenticate successful Shieldd execution.
+
+## CLI
+
+```sh
+pcli disclosure capabilities
+pcli disclosure audit-ciphertext selection.json --node http://localhost:9090
+pcli disclosure export --wallet wallet.sqlite --request request.json --output disclosure.json --openings
+pcli disclosure export --wallet wallet.sqlite --request request.json --output disclosure.json --payload-keys
+pcli disclosure export --wallet wallet.sqlite --request request.json --output disclosure.json
+pcli disclosure inspect disclosure.json
+pcli disclosure verify disclosure.json --node http://localhost:9090
+pcli disclosure import disclosure.json --node http://localhost:9090 --output receipt.json
+```
+
+Inspection, verification and capabilities require no wallet configuration.
+Verification accepts `-` to read a bounded package from stdin. `--request` checks
+an expected request and is required when spending control is claimed.
+`--transactions` takes a JSON array of base64 canonical transaction bytes for
+candidate-content checks, before the chosen-node acceptance check.
+
+Export previews fields and capabilities. The prover runs in a separate local
+process with private stdin and a restrictive temporary result file. Cancellation
+kills its process group. A package is published atomically only after verification;
+existing files are never overwritten. Import stores the original verified receipt
+without adding spendable notes.
+
+## Target Orbis/Defra flow
+
+This is the target named-person audit flow. Live PET and direct share delivery
+are not implemented; the Orbis demo below remains separate.
+
+- Register KYC, approved address, and public keys in Defra.
+- Register the approved address and keys in Shieldd.
+- Encrypt transaction tiers and PET-ready ownership ciphertexts, with a ZK proof binding them to the transaction.
+- Store ciphertexts on-chain; Defra can keep pointers to Shinzo/Mizu.
+- Auditor requests access through ACP.
+- Auditor sends ciphertexts or references and authorization to Orbis.
+- Orbis checks authorization and performs PET for the requested person.
+- After a match, Orbis nodes produce verifiable PRE shares for the authorized fields.
+- Orbis nodes send the shares to the approved Defra nodes.
+- Auditor retrieves and verifies the shares, combines them, and decrypts.
+- Auditor optionally attests that the evidence was retrieved and verified.
+
+Before sending the Orbis request, create a result document referencing the
+transaction and request, without a decrypted result. Each share is a separate
+document linked to it and bound to the same request. The auditor needs enough
+valid shares from distinct Orbis participants, then may store the decrypted result
+under its own access policy. An attestation is not proof of durable replication.
+
+Use regular Defra collections with explicit read permissions and replication.
+Gather shares through collection replication or fetch known share document IDs;
+[filtered P2P discovery](https://github.com/sourcenetwork/defradb/issues/4032)
+would simplify finding them. Branchable collection history is not required.
+
+## PET-ready audit selection
+
+`audit-ciphertext` resolves an ordinary Transfer from the chosen node using
+selection version 3. General scope selects `amount`, `sender` or `receiver`.
+Named-person scope selects an explicit tier and canonical address. The result
+contains accepted ciphertext bytes, policy metadata, the selected payload EPK/C2,
+the ring key reference, the selected ownership ciphertext and the requested
+fingerprint. It does not claim an ownership match, authorization or PET success.
+Indexed candidate bytes, when supplied, must exactly match accepted node bytes.
+
+`audit-decode` decodes a locally supplied shared point. It does not verify PRE,
+PET or authorization. Voluntary and issuer verification remain separate supported
+local operations. Issuer evidence retains its additional amount/detection
+capability; flagged payload fields remain issuer-only.
+
+The asset ring authenticates independent amount, sender-address,
+receiver-address and ownership-checking keys plus an epoch. User leaves contain
+ordinary capability/nullifier registration, not per-person encryption keys.
+The fingerprint is `EncodeToCurve(Poseidon377_hash_2(domain, generator,
+transmission_key))`, with domain `shieldd.audit.ownership.v1` hashed using the
+existing Blake2b-to-Fq convention. Each party gets full ElGamal R/C points with
+independent fresh nonzero randomness. Role is bound by proof position and audit
+selection. Unregulated proofs select sink keys.
+
+| Tier | Owner checked | Payload key |
+| --- | --- | --- |
+| sender_core | Sender | Amount |
+| sender_ext | Sender | Receiver address |
+| output_core | Receiver | Amount |
+| output_ext | Receiver | Sender address |
+
+Live distributed PET, authenticated multi-family provisioning and direct
+participant deposits are unavailable in the inspected upstream baseline. No
+ordinary command simulates collection or falls back to generic PRE. Development
+keys are synthetic. Bankd's local client stores exact evidence bytes and separate
+reader-signed manual endorsements directly in Defra; endorsements are explicitly
+shared and bound to an exact version. The complete upstream capability and
+trusted-tester restrictions register is maintained in
+[Bankd GAPS.md](https://github.com/mizufinance/bankd/blob/codex/disclosure-integration/infra/disclosure-audit/GAPS.md).
+
+The integrated development Transfer circuit has 185,155 constraints. Its compliance
+ciphertext is 832 bytes: the two checking ciphertexts add 128 bytes, with a net
+32-byte increase after deleting the replaced fields. These are integrated
+measurements, not the earlier isolated-probe estimates. The proved regulated
+2×2 Transfer action protobuf measured 3,200 bytes; the complete host test
+transaction measured 7,105 bytes. Transaction size varies with its contents.
+
+Prototype state must be reset after the format change: start a new development
+chain/scanner, and run `pcli view reset` for the wallet. There is no migration or
+legacy audit-selection path. Production proof setup approval is still required.
+
+## Spending-authority control
+
+Software and encrypted custody sign a domain-separated request under the ordinary
+Transfer's mandatory real first input authorization key. The wallet retains its
+randomizer before returning a built outgoing transaction for submission. The
+spending key remains in custody. External signatures can be supplied through the
+SDK. Historical payments without retained randomizers report an unavailable witness.
+
+Verification checks this signature separately from ZK and compares the key with
+the accepted transaction. It proves current control of that spending authority,
+not legal identity or who initiated the historical payment. Requesters must issue
+fresh challenges; replaying a stored proof does not demonstrate fresh control.
+
+## Local proving artifacts
+
+The fixed circuit uses gnark Groth16 over BLS12-377 and the existing Poseidon377
+note-commitment gadget. It constrains selectors, inactive padding, field revelation,
+128-bit amounts, totals, predicates and a statement-context hash. The verifier
+reconstructs all public inputs and rejects unknown circuit or key identities.
+
+For a development build:
+
+```sh
+cd tools/gnark
+GOMAXPROCS=1 go build -p 1 -o /tmp/shieldd-disclosure-backend ./cmd/disclosure
+/tmp/shieldd-disclosure-backend setup-development /tmp/disclosure-artifacts
+cd ../..
+CARGO_BUILD_JOBS=1 RAYON_NUM_THREADS=1 cargo build -p pcli --features disclosure-prover,development-disclosure-artifacts
+export SHIELDD_DISCLOSURE_BACKEND=/tmp/shieldd-disclosure-backend
+export SHIELDD_DISCLOSURE_ARTIFACTS=/tmp/disclosure-artifacts
+```
+
+Artifacts come from local configuration, never submitted packages. Development
+setup is explicitly labelled. Release builds reject it even if the development
+feature is enabled. Production ZK acceptance remains disabled until an approved
+ceremony and its keys are pinned. Full openings and payload-key verification do
+not depend on proving artifacts.
+
+The backend caps Go concurrency at two and respects a lower GOMAXPROCS setting. Run only one heavy verification job at
+a time, with the resource checks in [development.md](development.md).
+
+## Verification fixtures
+
+The real proof test is `cargo test -p shieldd-sdk-disclosure --features
+prover,development-artifacts --test claims real_proofs -- --ignored --nocapture
+--test-threads=1`, using the configured development backend/artifacts. It covers
+one, eight and 32 selected outputs, revealed fields, true/false predicates and
+public-statement mutations. Run it with `GOMAXPROCS=1 RAYON_NUM_THREADS=1` when
+using the one-worker resource bound.
+
+The app tests `accepted_disclosure_opening` and
+`export_import_between_wallet_directories` require a payment proving runtime.
+Set `SHIELDD_GNARK_TRANSFER_LIB` to the library built from `tools/gnark/cmd/transferlib`
+and `SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR` to `tools/gnark/artifacts/transfer`.
+The latter test uses `SHIELDD_PCLI_BIN` pointing to an explicitly enabled debug
+prover: release builds correctly reject development disclosure keys.
+
+For the direct evidence and endorsement workflow, use Bankd's isolated fixture:
+`DISCLOSURE_DEFRA_BIN=/absolute/path/to/pinned/defradb GOMAXPROCS=2 go test -p 2
+./supervisor/disclosure ./cmd/disclosure-audit -count=1 -v` from the Bankd repository.
+See [the fixture instructions](https://github.com/mizufinance/bankd/blob/codex/disclosure-integration/infra/disclosure-audit/README.md).
+It uses synthetic evidence, native document access control and disabled node access
+control. Connected clients retain administrative API access; this is trusted-tester
+storage verification, not live PET or protected collection verification.
+
+Measured on native macOS ARM64 with one worker and development setup artifacts:
+
+| Selected outputs | Proving and local verification | Package bytes |
+| --- | --- | --- |
+| 1, including amount/recipient revelation | 81.90 s | 4,535 |
+| 8, hidden amounts with a selected-output total predicate | 81.94 s | 29,246 |
+| 32, hidden amounts with a selected-output total predicate | 83.02 s | 114,397 |
+
+The separate wallet workflow produced a 244-byte Groth16 receipt. Package sizes
+also include public transaction material and requests. The three-proof suite
+reached 1,052,360,704 bytes maximum RSS with zero swaps. The fixed circuit has
+approximately constant proving cost across these batch sizes; these measurements
+do not establish production setup approval or query completeness.
+
+## Issuer submissions
+
+`pcli disclosure issuer-create --node URL --output issuer.json` reads private JSON
+from stdin: `{"request": ISSUER_REQUEST, "issuer_secret": [32 bytes]}`. The key
+must match the independently fetched registered asset policy. The output is
+published atomically after checking both decryption proofs. The secret stays on
+the issuer's computer.
+
+An issuer request has `kind: "issuer"`, `version: 1`, optional `recipient` and
+`challenge`, canonical `asset`, and the same `selection` used by general audits.
+Its selection chooses amount, sender components, or receiver components. Both
+DLEQ proofs bind the complete typed request, including its audience and challenge.
+The issuer request can fulfill a Bankd request or accompany an allowed unsolicited
+submission. It proves control of the issuer decryption key, not legal identity.
+
+`pcli disclosure issuer-verify issuer.json --node URL` checks the accepted
+transaction, registered issuer key, detection proof, flagged bit, and selected
+field proof before returning facts. Current-policy key lookup fails closed after
+a key change; historical issuer-key lookup remains required for those records.
+
+Evidence also grants asset/flag/salt detection access and amount decryption access,
+because detection reuses sender CORE's ephemeral key. This capability is reported
+in the preview and verified result. Address output contains components, never an
+asserted canonical address. Issuer predicate proofs are not supported.
+
+## Browser primitives
+
+The `shieldd-sdk-disclosure` default feature set provides request preparation,
+openings/payload-key export, inspection and local verification. `proof` enables
+the native Groth16 verifier; `prover` additionally enables proving. Without that
+backend, Groth16 verification returns `VerificationUnavailable`.
+
+The WASM API keeps witnesses local and does not change wallet balances or note
+reservations. Payload-key previews report transaction-wide memo access. Node
+acceptance must be checked using independently fetched committed transactions.
+Browser spending-control signatures and browser ZK proving are not implemented.
+
+Issuer verification currently relies on immutable registered asset policies.
+Historical key epochs and execution-order lookup are required before adding
+issuer-key rotation.
+## Cross-client fixtures
+
+`crates/disclosure/tests/handoff.rs` generates the canonical handoff vectors in
+`tools/gnark/internal/compliance/handoff_vectors.json`; Rust and Go check the same
+sender/receiver, self-transfer, alternate-owner, field and epoch bindings. The
+fixture uses synthetic acceptance and local checking keys, not distributed PET.
+Changed policy, chain, height, output and unregulated selections are rejected.
+`accepted_fixture` exports openings, payload keys and true/false development
+proofs for independently fetched live transactions; acceptance still requires
+verification against the chosen node.
+
+## Orbis demo delivery
+
+With the `orbis` feature, `orbis::prepare_packages` reconstructs the completed
+transfer's compliance ciphertext and seals three field openings with pinned
+upstream Orbis crypto. Amount uses `output_core`, sender uses `output_ext`, and
+receiver uses `sender_ext`. Only encrypted packages leave the wallet.
+
+`pcli disclosure orbis-register` and `orbis-audit` accept sealed packages and
+accepted heights on stdin. They validate the chosen node's transaction and asset
+policy, the actual delivery DKG key, and canonical Orbis document IDs. Audit
+requests use authenticated PRE with a reader-key proof of possession. Decryption
+checks the sealed binding and accepted ephemeral key before decoding a field.
+
+The delivery DKG ring is independent of the synthetic registration fixture's
+ring and distinct field keys. This demo does not implement PET or Orbis issuance
+of registration capabilities. Restricted subject filtering happens on the demo
+server; it does not provide cryptographic subject isolation. No fixture secret
+substitutes for PRE. The [build adapter](../third_party/orbis-crypto/README.md)
+keeps upstream Rust source unchanged and bridges the two Decaf versions by bytes.

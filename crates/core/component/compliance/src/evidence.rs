@@ -432,30 +432,22 @@ impl<'a> EvidenceReader<'a> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use decaf377::{Element, Fr};
     use rand_core::OsRng;
     use shieldd_sdk_asset::Value;
     use shieldd_sdk_num::Amount;
 
-    use crate::{crypto::derive_compliance_scalar, test_helpers::make_address};
-
-    fn derive_ack(ring_pk: &Element, address: &shieldd_sdk_keys::Address) -> Element {
-        let d = derive_compliance_scalar(address);
-        *ring_pk * Fr::from_le_bytes_mod_order(&d.to_bytes())
-    }
+    use crate::test_helpers::make_address;
 
     pub(crate) fn valid_evidence_fixture() -> (ComplianceEvidenceObject, TransferComplianceMetadata)
     {
         let dk_pub = crate::DetectionKey::demo().public_key();
-        let ring_pk = Element::GENERATOR * Fr::rand(&mut OsRng);
         let sender = make_address(9);
         let receiver = make_address(10);
         let asset_id = asset::Id(Fq::from(444u64));
         let detection_salt = Fq::from(77u64);
         let encrypted = crate::encrypt_transfer(
             &mut OsRng,
-            &derive_ack(&ring_pk, &sender),
-            &derive_ack(&ring_pk, &receiver),
+            &crate::AuditKeys::test_keys(),
             &dk_pub,
             &receiver,
             &sender,
@@ -476,6 +468,7 @@ pub(crate) mod tests {
             "document",
             "read",
             1_700_000_000,
+            1,
             Fq::from(11u64),
             Fq::from(12u64),
             Fq::from(13u64),

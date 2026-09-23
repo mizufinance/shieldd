@@ -34,6 +34,9 @@ pub enum ComplianceCmd {
         /// Orbis ring public key (hex, 64 chars = 32 bytes compressed).
         #[clap(long)]
         ring_pk_hex: Option<String>,
+        /// Registered general audit key bundle, hex encoded.
+        #[clap(long)]
+        audit_keys_hex: Option<String>,
         /// Orbis ring identifier.
         #[clap(long, default_value = "")]
         ring_id: String,
@@ -147,6 +150,7 @@ impl ComplianceCmd {
                 dk_pub_hex,
                 daily_volume_limit,
                 ring_pk_hex,
+                audit_keys_hex,
                 ring_id,
                 policy_id,
                 permission,
@@ -212,6 +216,12 @@ impl ComplianceCmd {
                 let body = AssetRegistrationGrantBody {
                     asset_id,
                     is_regulated,
+                    audit_keys: audit_keys_hex
+                        .as_ref()
+                        .map(|encoded| {
+                            shieldd_sdk_compliance::AuditKeys::from_bytes(&hex::decode(encoded)?)
+                        })
+                        .transpose()?,
                     dk_pub,
                     daily_volume_limit: *daily_volume_limit,
                     allowed_ibc_routes,

@@ -334,6 +334,245 @@ impl<'de> serde::Deserialize<'de> for AppParametersResponse {
         deserializer.deserialize_struct("shieldd.core.app.v1.AppParametersResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for CommittedTransactionRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.block_height != 0 {
+            len += 1;
+        }
+        if !self.transaction_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.app.v1.CommittedTransactionRequest", len)?;
+        if self.block_height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("blockHeight", ToString::to_string(&self.block_height).as_str())?;
+        }
+        if !self.transaction_id.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("transactionId", pbjson::private::base64::encode(&self.transaction_id).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CommittedTransactionRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "block_height",
+            "blockHeight",
+            "transaction_id",
+            "transactionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            BlockHeight,
+            TransactionId,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "blockHeight" | "block_height" => Ok(GeneratedField::BlockHeight),
+                            "transactionId" | "transaction_id" => Ok(GeneratedField::TransactionId),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CommittedTransactionRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.app.v1.CommittedTransactionRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CommittedTransactionRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut block_height__ = None;
+                let mut transaction_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::BlockHeight => {
+                            if block_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("blockHeight"));
+                            }
+                            block_height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::TransactionId => {
+                            if transaction_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("transactionId"));
+                            }
+                            transaction_id__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(CommittedTransactionRequest {
+                    block_height: block_height__.unwrap_or_default(),
+                    transaction_id: transaction_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.app.v1.CommittedTransactionRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CommittedTransactionResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.transaction.is_some() {
+            len += 1;
+        }
+        if self.block_height != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.app.v1.CommittedTransactionResponse", len)?;
+        if let Some(v) = self.transaction.as_ref() {
+            struct_ser.serialize_field("transaction", v)?;
+        }
+        if self.block_height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("blockHeight", ToString::to_string(&self.block_height).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CommittedTransactionResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "transaction",
+            "block_height",
+            "blockHeight",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Transaction,
+            BlockHeight,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "transaction" => Ok(GeneratedField::Transaction),
+                            "blockHeight" | "block_height" => Ok(GeneratedField::BlockHeight),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CommittedTransactionResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.app.v1.CommittedTransactionResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CommittedTransactionResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut transaction__ = None;
+                let mut block_height__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Transaction => {
+                            if transaction__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("transaction"));
+                            }
+                            transaction__ = map_.next_value()?;
+                        }
+                        GeneratedField::BlockHeight => {
+                            if block_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("blockHeight"));
+                            }
+                            block_height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(CommittedTransactionResponse {
+                    transaction: transaction__,
+                    block_height: block_height__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.app.v1.CommittedTransactionResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for GenesisAppState {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

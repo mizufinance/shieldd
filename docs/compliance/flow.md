@@ -43,12 +43,17 @@ registration can mutate durable state. This prevents a regulated asset from
 selecting a degenerate detection or audit key even if its membership witness is
 otherwise valid.
 
-A user registers a `(shielded address, asset)` compliance leaf:
+The asset policy authenticates four independent encryption keys (amount, sender,
+receiver and ownership checking) with one epoch. The checking ciphertexts bind
+the actual address components in the Transfer proof. Field authorization remains
+separate from ownership. See [disclosure](../disclosure.md) for the exact mapping
+and the upstream capability register. Current upstream cannot provision or use
+these protected keys through the proposed distributed PET protocol.
 
-```text
-d   = SHA512("elgamal-derivation-v1\0\0" || canonical_address_bytes) reduced mod Fr
-ACK = d * ring_pk
-```
+Address-derived capsule capabilities and regulated nullifier keys remain separate
+from these encryption families. Registration grants and ordinary capability
+certificates continue to authenticate their own scope. Development encryption
+key bundles are explicitly synthetic fixtures.
 
 For regulated participation, ACP permits exactly one live shielded address per
 KYC identity. Shieldd's generic diversified-address capability does not admit
@@ -56,7 +61,7 @@ additional regulated addresses; only the ACP-approved address may appear in a
 regulated user leaf.
 
 The leaf commits to the address encodings, asset ID, capsule capability,
-compliance-nullifier-key commitment, and lifecycle. Registration checks the
+compliance-nullifier-key commitment and lifecycle. Registration checks the
 canonical address, capability derivation, and authorization. A derived `d = 0`
 is rejected. The same address may register independently for multiple assets.
 
@@ -167,8 +172,8 @@ Only the receiver output carries compliance data:
 
 ```text
 TransferOutputBody {
-  compliance_ciphertext: 704 bytes
-  compliance_metadata:   264 bytes
+  compliance_ciphertext: 832 bytes
+  compliance_metadata:   272 bytes
 }
 ```
 
@@ -181,6 +186,7 @@ policy_id_hash
 resource_hash
 permission_hash
 target_timestamp
+audit_epoch
 sender_core_salt
 sender_ext_salt
 output_core_salt
@@ -210,6 +216,7 @@ The transfer circuit proves:
 - daily-volume origin or predecessor validity, checked addition, limit, UTC
   day selection, proof context, and disclosure flag correctness;
 - four independent EPK/shared-secret/c2/payload encryption relations;
+- proof-bound full ownership ciphertexts for both roles under the checking key;
 - detection encryption;
 - exact `(asset_id, detection_salt, is_flagged, reserved_zero)` detection
   packing;
@@ -219,11 +226,11 @@ The transfer circuit proves:
   classification `!is_dummy && position < recent_position_floor`;
 - canonical address plaintext packing from the two 32-byte Fq encodings into
   31-byte stream words;
-- the single 9-field metadata binding; and
-- the exact 53-field statement preimage committed under the canonical transfer
+- the single 10-field metadata binding; and
+- the exact 58-field statement preimage committed under the canonical transfer
   statement-hash domain.
 
-The Rust verifier reconstructs the same 53 fields from typed public data.
+The Rust verifier reconstructs the same 58 fields from typed public data.
 Consensus separately checks proof verification, the current asset-policy and
 user-status roots, timestamp freshness, spend signatures, transaction-wide
 spend-nullifier uniqueness, scoped daily-volume-nullifier uniqueness, and the
@@ -234,7 +241,7 @@ builder cannot replace them after the spends are authorized.
 ## Evidence
 
 `ComplianceEvidenceObject` contains the output reference, asset/flag/detection
-facts, the 704-byte ciphertext, the 264-byte metadata record, and a payload hash.
+facts, the 832-byte ciphertext, the 272-byte metadata record, and a payload hash.
 It excludes capsule-release evidence, shared points, and standalone DLEQ proofs.
 `validate_audit_evidence` checks the canonical payload hash and metadata; the
 caller binds that evidence to the accepted output and owns storage.
