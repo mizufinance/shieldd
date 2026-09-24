@@ -17,6 +17,7 @@ build:
 check:
     cargo fmt --all -- --check
     just docs-check
+    just proto-lint
     python3 scripts/commonware.py check
     python3 scripts/cnidarium.py check
     just tooling-test
@@ -87,6 +88,9 @@ proto:
 
 proto-check:
     ./deployments/scripts/protobuf-codegen --check
+
+proto-lint:
+    buf lint proto
 
 features-check:
     ./deployments/scripts/check-crate-feature-sets

@@ -80,7 +80,7 @@ async fn snapshot(service: &ExecutionService) -> Result<Vec<u8>> {
                 .compact_block_page(CompactBlockPageRequest { height, cursor })
                 .await?;
             page.encode_length_delimited(&mut bytes)?;
-            cursor = page.next_cursor;
+            cursor = page.page.context("missing compact page")?.next_cursor;
             if cursor.is_empty() {
                 break;
             }

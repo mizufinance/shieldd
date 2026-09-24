@@ -68,14 +68,9 @@ pub struct HostBlock {
 pub trait SyncProvider: Send + Sync {
     fn id(&self) -> &str;
     fn limits(&self) -> SyncLimits;
-    async fn compact_page(
-        &self,
-        request: cb::CompactBlockPageRequest,
-    ) -> Result<cb::CompactBlockPageResponse>;
-    async fn filtered_page(
-        &self,
-        request: cb::FilteredBlockPageRequest,
-    ) -> Result<cb::CompactBlockPageResponse>;
+    async fn compact_page(&self, request: cb::CompactBlockPageRequest) -> Result<cb::CompactPage>;
+    async fn filtered_page(&self, request: cb::FilteredBlockPageRequest)
+        -> Result<cb::CompactPage>;
     async fn spend_page(
         &self,
         request: sct::SpendStatusPageRequest,
@@ -117,7 +112,7 @@ pub(crate) async fn full(
     }
 }
 
-fn check_page(page: &cb::CompactBlockPageResponse, cursor: &[u8]) -> Result<()> {
+fn check_page(page: &cb::CompactPage, cursor: &[u8]) -> Result<()> {
     ensure!(
         page.encoded_len() <= 4 * 1024 * 1024
             && page.next_cursor.len() <= 1024
@@ -370,16 +365,10 @@ mod tests {
                 ..Default::default()
             })
         }
-        async fn compact_page(
-            &self,
-            _: cb::CompactBlockPageRequest,
-        ) -> Result<cb::CompactBlockPageResponse> {
+        async fn compact_page(&self, _: cb::CompactBlockPageRequest) -> Result<cb::CompactPage> {
             anyhow::bail!("unexpected full query")
         }
-        async fn filtered_page(
-            &self,
-            _: cb::FilteredBlockPageRequest,
-        ) -> Result<cb::CompactBlockPageResponse> {
+        async fn filtered_page(&self, _: cb::FilteredBlockPageRequest) -> Result<cb::CompactPage> {
             anyhow::bail!("unexpected filtered query")
         }
         async fn transaction_page(

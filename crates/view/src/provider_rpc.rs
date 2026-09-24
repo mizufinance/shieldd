@@ -1,4 +1,5 @@
 use super::provider::{SyncLimits, SyncProvider};
+use anyhow::Context;
 use async_trait::async_trait;
 use shieldd_sdk_proto::core::{
     app::v1 as app,
@@ -65,16 +66,20 @@ impl SyncProvider for RpcSyncProvider {
     async fn compact_page(
         &self,
         request: cb::CompactBlockPageRequest,
-    ) -> anyhow::Result<cb::CompactBlockPageResponse> {
-        self.query("/mizufinance.shieldd.v1.Query/CompactBlockPage", request)
-            .await
+    ) -> anyhow::Result<cb::CompactPage> {
+        let response: cb::CompactBlockPageResponse = self
+            .query("/mizufinance.shieldd.v1.Query/CompactBlockPage", request)
+            .await?;
+        response.page.context("missing compact page")
     }
     async fn filtered_page(
         &self,
         request: cb::FilteredBlockPageRequest,
-    ) -> anyhow::Result<cb::CompactBlockPageResponse> {
-        self.query("/mizufinance.shieldd.v1.Query/FilteredBlockPage", request)
-            .await
+    ) -> anyhow::Result<cb::CompactPage> {
+        let response: cb::FilteredBlockPageResponse = self
+            .query("/mizufinance.shieldd.v1.Query/FilteredBlockPage", request)
+            .await?;
+        response.page.context("missing filtered page")
     }
     async fn spend_page(
         &self,

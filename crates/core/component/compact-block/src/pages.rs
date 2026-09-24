@@ -85,11 +85,7 @@ impl PageAssembler {
             complete: false,
         }
     }
-    pub fn push(
-        &mut self,
-        page: pb::CompactBlockPageResponse,
-        budget: &mut AssemblyBudget,
-    ) -> Result<()> {
+    pub fn push(&mut self, page: pb::CompactPage, budget: &mut AssemblyBudget) -> Result<()> {
         ensure!(
             !self.complete
                 && page.height == self.height
@@ -149,7 +145,7 @@ impl PageAssembler {
         Ok(())
     }
     fn record(&mut self, record: pb::CompactRecordFragment, budget: &AssemblyBudget) -> Result<()> {
-        if record.kind == 0 {
+        if record.kind == pb::CompactRecordKind::Header as i32 {
             ensure!(
                 self.header.is_none() && record.index == 0,
                 "duplicate or misplaced compact header"

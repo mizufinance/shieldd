@@ -227,9 +227,14 @@ async fn execution_reads_bounded_compact_pages() -> Result<()> {
                 height,
                 cursor: Vec::new(),
             })
-            .await?;
+            .await?
+            .page
+            .unwrap();
         assert_eq!(page.height, height);
-        assert_eq!(page.fragments[0].kind, 0);
+        assert_eq!(
+            page.fragments[0].kind,
+            shieldd_sdk_proto::core::component::compact_block::v1::CompactRecordKind::Header as i32
+        );
         assert!(page.next_cursor.is_empty());
     }
     Ok(())
@@ -401,6 +406,8 @@ async fn committed_queries_advance_only_after_joint_publication() -> Result<()> 
                 cursor: vec![]
             })
             .await?
+            .page
+            .unwrap()
             .height,
         1
     );
@@ -501,8 +508,15 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
             height: 1,
             cursor: vec![],
         })
-        .await?;
+        .await?
+        .page
+        .unwrap();
     use shieldd_sdk_compact_block::pages::{AssemblyBudget, AssemblyLimits};
+    let mut unspecified = full.clone();
+    unspecified.fragments[0].kind = pb::CompactRecordKind::Unspecified as i32;
+    assert!(PageAssembler::new(1, "shieldd-service-test".into(), false)
+        .push(unspecified, &mut AssemblyBudget::new(Default::default())?)
+        .is_err());
     let length = full
         .fragments
         .iter()
@@ -542,7 +556,9 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
             selectors: vec![selector.clone(), selector],
             cursor: vec![],
         })
-        .await?;
+        .await?
+        .page
+        .unwrap();
     assert!(page.next_cursor.is_empty());
     let mut assembler = PageAssembler::new(1, "shieldd-service-test".into(), true);
     assembler.push(

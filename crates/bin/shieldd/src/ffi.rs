@@ -10,7 +10,7 @@ use tokio::runtime::{Builder, Runtime};
 
 use crate::{ErrorKind, ExecutionService, ServiceError};
 
-const ABI_VERSION: u32 = 2;
+const ABI_VERSION: u32 = 3;
 const STATUS_OVERLOADED: i32 = 6;
 const STATUS_SNAPSHOT_EXPIRED: i32 = 7;
 const STATUS_UNAVAILABLE: i32 = 8;
@@ -1246,8 +1246,13 @@ mod tests {
                     cursor: Vec::new(),
                 },
             );
+            let page = page.page.expect("compact page");
             assert_eq!(page.height, height);
-            assert_eq!(page.fragments[0].kind, 0);
+            assert_eq!(
+                page.fragments[0].kind,
+                shieldd_sdk_proto::core::component::compact_block::v1::CompactRecordKind::Header
+                    as i32
+            );
             assert_eq!(page.fragments[0].offset, 0);
             assert!(!page.block_identity.is_empty());
         }

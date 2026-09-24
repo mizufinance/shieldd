@@ -9,7 +9,8 @@ use shieldd_sdk_app::{
 };
 use shieldd_sdk_proof_params::pari::Registry;
 use shieldd_sdk_proto::core::component::compact_block::v1::{
-    CompactBlockPageRequest, CompactBlockPageResponse, CompactRecordFragment, StoredCompactBlock,
+    CompactBlockPageRequest, CompactBlockPageResponse, CompactPage, CompactRecordFragment,
+    CompactRecordKind, StoredCompactBlock,
 };
 use shieldd_sdk_proto::{
     cnidarium::v1::{
@@ -197,7 +198,10 @@ impl QueryService {
     pub async fn filtered_block_page(
         &self,
         request: shieldd_sdk_proto::core::component::compact_block::v1::FilteredBlockPageRequest,
-    ) -> Result<CompactBlockPageResponse, ServiceError> {
+    ) -> Result<
+        shieldd_sdk_proto::core::component::compact_block::v1::FilteredBlockPageResponse,
+        ServiceError,
+    > {
         crate::filtered_query::page(self, request).await
     }
     pub async fn compact_block_page(
@@ -277,7 +281,7 @@ impl QueryService {
                 )));
             }
         }
-        let mut response = CompactBlockPageResponse {
+        let mut response = CompactPage {
             height: request.height,
             chain_id,
             block_identity: identity.to_vec(),
@@ -338,7 +342,11 @@ impl QueryService {
             used += data.len();
             let next_offset = cursor.offset + data.len() as u32;
             response.fragments.push(CompactRecordFragment {
-                kind: cursor.kind,
+                kind: if cursor.kind == 0 {
+                    CompactRecordKind::Header as i32
+                } else {
+                    cursor.kind
+                },
                 index: cursor.index,
                 offset: cursor.offset,
                 total_length: length,
@@ -362,7 +370,9 @@ impl QueryService {
             response.next_cursor =
                 serde_json::to_vec(&cursor).map_err(|e| ServiceError::internal(e.into()))?;
         }
-        Ok(response)
+        Ok(CompactBlockPageResponse {
+            page: Some(response),
+        })
     }
 
     /// Reads a bounded page directly from ordinal records, without loading the block log.

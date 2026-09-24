@@ -13,6 +13,7 @@ Rust/Commonware. Run commands from the repository root.
 | `just commonware-test` | Pinned Commonware Pari and circuit compiler tests |
 | `just pari-proof-tests` | Serial ignored proof gates, including Disclosure app/CLI tests; workspace all features |
 | `just features-check` | Independent crate feature boundaries |
+| `just proto-lint` | Protobuf API naming, enum defaults and schema conventions |
 | `just proto-check` | Reproduce Rust and Go protobufs |
 | `just wasm-check` | Web-facing crates without native component features |
 | `just rustdocs` | Nightly API docs for selected workspace/git packages, using default features |
@@ -42,7 +43,7 @@ run under `ci` does not establish a separate `--release` test run. Follow the sh
 | Circuits/registry | Constraint and negative tests, complete family census, fresh keys for changed relations, `just pari-proof-tests` and application acceptance/identity checks |
 | Native/Wasm boundary | `just features-check` and relevant `just wasm-check`; workspace all-features compilation does not verify isolated features |
 | Persistence/concurrency | Legal/stale transitions, relevant restart/cancellation behavior and bounded growth |
-| Protobuf/C ABI | `just proto-check`, consumer/artifact tests and identified Bankd follow-up |
+| Protobuf/C ABI | `just proto-lint`, `just proto-check`, consumer/artifact tests and identified Bankd follow-up |
 | Vendor patch | Source reproduction, vendor regressions and downstream proof gates under the pinned-source policy |
 | Orbis | Local adapter/contract tests separately from live external tests; the incompatible locked runtime must still be rejected |
 

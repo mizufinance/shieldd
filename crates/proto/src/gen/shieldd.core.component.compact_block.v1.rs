@@ -287,6 +287,37 @@ impl ::prost::Name for CompactRecordFragment {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CompactBlockPageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub page: ::core::option::Option<CompactPage>,
+}
+impl ::prost::Name for CompactBlockPageResponse {
+    const NAME: &'static str = "CompactBlockPageResponse";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.CompactBlockPageResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.CompactBlockPageResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FilteredBlockPageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub page: ::core::option::Option<CompactPage>,
+}
+impl ::prost::Name for FilteredBlockPageResponse {
+    const NAME: &'static str = "FilteredBlockPageResponse";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.FilteredBlockPageResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.FilteredBlockPageResponse".into()
+    }
+}
+/// Common authenticated page contents for full and filtered synchronization.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CompactPage {
     #[prost(uint64, tag = "1")]
     pub height: u64,
     #[prost(string, tag = "2")]
@@ -298,14 +329,14 @@ pub struct CompactBlockPageResponse {
     #[prost(bytes = "vec", tag = "5")]
     pub next_cursor: ::prost::alloc::vec::Vec<u8>,
 }
-impl ::prost::Name for CompactBlockPageResponse {
-    const NAME: &'static str = "CompactBlockPageResponse";
+impl ::prost::Name for CompactPage {
+    const NAME: &'static str = "CompactPage";
     const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.compact_block.v1.CompactBlockPageResponse".into()
+        "shieldd.core.component.compact_block.v1.CompactPage".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.compact_block.v1.CompactBlockPageResponse".into()
+        "/shieldd.core.component.compact_block.v1.CompactPage".into()
     }
 }
 /// Opt-in trusted-provider query. Selectors reveal wallet routing interests.
@@ -380,7 +411,7 @@ impl ::prost::Name for UnroutedPayload {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum CompactRecordKind {
-    Header = 0,
+    Unspecified = 0,
     Payload = 1,
     Nullifier = 2,
     RoutingRecord = 3,
@@ -389,6 +420,7 @@ pub enum CompactRecordKind {
     UserStatus = 6,
     AssetRegistration = 7,
     ProvenPayload = 8,
+    Header = 9,
 }
 impl CompactRecordKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -397,7 +429,7 @@ impl CompactRecordKind {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Header => "COMPACT_RECORD_KIND_HEADER",
+            Self::Unspecified => "COMPACT_RECORD_KIND_UNSPECIFIED",
             Self::Payload => "COMPACT_RECORD_KIND_PAYLOAD",
             Self::Nullifier => "COMPACT_RECORD_KIND_NULLIFIER",
             Self::RoutingRecord => "COMPACT_RECORD_KIND_ROUTING_RECORD",
@@ -406,12 +438,13 @@ impl CompactRecordKind {
             Self::UserStatus => "COMPACT_RECORD_KIND_USER_STATUS",
             Self::AssetRegistration => "COMPACT_RECORD_KIND_ASSET_REGISTRATION",
             Self::ProvenPayload => "COMPACT_RECORD_KIND_PROVEN_PAYLOAD",
+            Self::Header => "COMPACT_RECORD_KIND_HEADER",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "COMPACT_RECORD_KIND_HEADER" => Some(Self::Header),
+            "COMPACT_RECORD_KIND_UNSPECIFIED" => Some(Self::Unspecified),
             "COMPACT_RECORD_KIND_PAYLOAD" => Some(Self::Payload),
             "COMPACT_RECORD_KIND_NULLIFIER" => Some(Self::Nullifier),
             "COMPACT_RECORD_KIND_ROUTING_RECORD" => Some(Self::RoutingRecord),
@@ -420,6 +453,7 @@ impl CompactRecordKind {
             "COMPACT_RECORD_KIND_USER_STATUS" => Some(Self::UserStatus),
             "COMPACT_RECORD_KIND_ASSET_REGISTRATION" => Some(Self::AssetRegistration),
             "COMPACT_RECORD_KIND_PROVEN_PAYLOAD" => Some(Self::ProvenPayload),
+            "COMPACT_RECORD_KIND_HEADER" => Some(Self::Header),
             _ => None,
         }
     }

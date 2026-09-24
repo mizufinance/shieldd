@@ -69,7 +69,7 @@ message StatePayload {
 
 // Query operations for the compact block component.
 service QueryService {
-  rpc FilteredBlockPage(FilteredBlockPageRequest) returns (CompactBlockPageResponse);
+  rpc FilteredBlockPage(FilteredBlockPageRequest) returns (FilteredBlockPageResponse);
   rpc CompactBlockPage(CompactBlockPageRequest) returns (CompactBlockPageResponse);
 }
 
@@ -97,7 +97,7 @@ message StoredCompactBlock {
 
 // Fixed sections preserve each repeated field's canonical order.
 enum CompactRecordKind {
-  COMPACT_RECORD_KIND_HEADER = 0;
+  COMPACT_RECORD_KIND_UNSPECIFIED = 0;
   COMPACT_RECORD_KIND_PAYLOAD = 1;
   COMPACT_RECORD_KIND_NULLIFIER = 2;
   COMPACT_RECORD_KIND_ROUTING_RECORD = 3;
@@ -106,6 +106,7 @@ enum CompactRecordKind {
   COMPACT_RECORD_KIND_USER_STATUS = 6;
   COMPACT_RECORD_KIND_ASSET_REGISTRATION = 7;
   COMPACT_RECORD_KIND_PROVEN_PAYLOAD = 8;
+  COMPACT_RECORD_KIND_HEADER = 9;
 }
 message StoredSection {
   CompactRecordKind kind = 1;
@@ -123,6 +124,13 @@ message CompactRecordFragment {
   bytes data = 5;
 }
 message CompactBlockPageResponse {
+  CompactPage page = 1;
+}
+message FilteredBlockPageResponse {
+  CompactPage page = 1;
+}
+// Common authenticated page contents for full and filtered synchronization.
+message CompactPage {
   uint64 height = 1;
   string chain_id = 2;
   bytes block_identity = 3;

@@ -26,7 +26,7 @@ struct Cursor {
 pub async fn page(
     service: &QueryService,
     request: pb::FilteredBlockPageRequest,
-) -> Result<pb::CompactBlockPageResponse, ServiceError> {
+) -> Result<pb::FilteredBlockPageResponse, ServiceError> {
     if request.selectors.len() > service.limits.items_per_request || request.cursor.len() > 1024 {
         return Err(ServiceError::invalid_argument(anyhow::anyhow!(
             "filtered request exceeds local budget"
@@ -118,7 +118,7 @@ pub async fn page(
             )));
         }
     }
-    let mut response = pb::CompactBlockPageResponse {
+    let mut response = pb::CompactPage {
         height: request.height,
         chain_id: chain.clone(),
         block_identity: identity.to_vec(),
@@ -138,7 +138,7 @@ pub async fn page(
                 )));
             }
             response.fragments.push(CompactRecordFragment {
-                kind: 0,
+                kind: pb::CompactRecordKind::Header as i32,
                 index: 0,
                 offset: 0,
                 total_length: header_bytes.len() as u32,
@@ -356,5 +356,7 @@ pub async fn page(
         response.next_cursor =
             serde_json::to_vec(&cursor).map_err(|e| ServiceError::internal(e.into()))?;
     }
-    Ok(response)
+    Ok(pb::FilteredBlockPageResponse {
+        page: Some(response),
+    })
 }

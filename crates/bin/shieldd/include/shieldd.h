@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define SHIELDD_ABI_VERSION 2u
+#define SHIELDD_ABI_VERSION 3u
 
 typedef struct shieldd_handle shieldd_handle_t;
 

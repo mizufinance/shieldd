@@ -546,6 +546,101 @@ impl serde::Serialize for CompactBlockPageResponse {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if self.page.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageResponse", len)?;
+        if let Some(v) = self.page.as_ref() {
+            struct_ser.serialize_field("page", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CompactBlockPageResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "page",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Page,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "page" => Ok(GeneratedField::Page),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CompactBlockPageResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockPageResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockPageResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut page__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Page => {
+                            if page__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("page"));
+                            }
+                            page__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(CompactBlockPageResponse {
+                    page: page__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CompactPage {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
         if self.height != 0 {
             len += 1;
         }
@@ -561,7 +656,7 @@ impl serde::Serialize for CompactBlockPageResponse {
         if !self.next_cursor.is_empty() {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageResponse", len)?;
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactPage", len)?;
         if self.height != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -586,7 +681,7 @@ impl serde::Serialize for CompactBlockPageResponse {
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for CompactBlockPageResponse {
+impl<'de> serde::Deserialize<'de> for CompactPage {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -646,13 +741,13 @@ impl<'de> serde::Deserialize<'de> for CompactBlockPageResponse {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CompactBlockPageResponse;
+            type Value = CompactPage;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockPageResponse")
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactPage")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockPageResponse, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactPage, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
@@ -704,7 +799,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlockPageResponse {
                         }
                     }
                 }
-                Ok(CompactBlockPageResponse {
+                Ok(CompactPage {
                     height: height__.unwrap_or_default(),
                     chain_id: chain_id__.unwrap_or_default(),
                     block_identity: block_identity__.unwrap_or_default(),
@@ -713,7 +808,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlockPageResponse {
                 })
             }
         }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageResponse", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactPage", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for CompactRecordFragment {
@@ -899,7 +994,7 @@ impl serde::Serialize for CompactRecordKind {
         S: serde::Serializer,
     {
         let variant = match self {
-            Self::Header => "COMPACT_RECORD_KIND_HEADER",
+            Self::Unspecified => "COMPACT_RECORD_KIND_UNSPECIFIED",
             Self::Payload => "COMPACT_RECORD_KIND_PAYLOAD",
             Self::Nullifier => "COMPACT_RECORD_KIND_NULLIFIER",
             Self::RoutingRecord => "COMPACT_RECORD_KIND_ROUTING_RECORD",
@@ -908,6 +1003,7 @@ impl serde::Serialize for CompactRecordKind {
             Self::UserStatus => "COMPACT_RECORD_KIND_USER_STATUS",
             Self::AssetRegistration => "COMPACT_RECORD_KIND_ASSET_REGISTRATION",
             Self::ProvenPayload => "COMPACT_RECORD_KIND_PROVEN_PAYLOAD",
+            Self::Header => "COMPACT_RECORD_KIND_HEADER",
         };
         serializer.serialize_str(variant)
     }
@@ -919,7 +1015,7 @@ impl<'de> serde::Deserialize<'de> for CompactRecordKind {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "COMPACT_RECORD_KIND_HEADER",
+            "COMPACT_RECORD_KIND_UNSPECIFIED",
             "COMPACT_RECORD_KIND_PAYLOAD",
             "COMPACT_RECORD_KIND_NULLIFIER",
             "COMPACT_RECORD_KIND_ROUTING_RECORD",
@@ -928,6 +1024,7 @@ impl<'de> serde::Deserialize<'de> for CompactRecordKind {
             "COMPACT_RECORD_KIND_USER_STATUS",
             "COMPACT_RECORD_KIND_ASSET_REGISTRATION",
             "COMPACT_RECORD_KIND_PROVEN_PAYLOAD",
+            "COMPACT_RECORD_KIND_HEADER",
         ];
 
         struct GeneratedVisitor;
@@ -968,7 +1065,7 @@ impl<'de> serde::Deserialize<'de> for CompactRecordKind {
                 E: serde::de::Error,
             {
                 match value {
-                    "COMPACT_RECORD_KIND_HEADER" => Ok(CompactRecordKind::Header),
+                    "COMPACT_RECORD_KIND_UNSPECIFIED" => Ok(CompactRecordKind::Unspecified),
                     "COMPACT_RECORD_KIND_PAYLOAD" => Ok(CompactRecordKind::Payload),
                     "COMPACT_RECORD_KIND_NULLIFIER" => Ok(CompactRecordKind::Nullifier),
                     "COMPACT_RECORD_KIND_ROUTING_RECORD" => Ok(CompactRecordKind::RoutingRecord),
@@ -977,6 +1074,7 @@ impl<'de> serde::Deserialize<'de> for CompactRecordKind {
                     "COMPACT_RECORD_KIND_USER_STATUS" => Ok(CompactRecordKind::UserStatus),
                     "COMPACT_RECORD_KIND_ASSET_REGISTRATION" => Ok(CompactRecordKind::AssetRegistration),
                     "COMPACT_RECORD_KIND_PROVEN_PAYLOAD" => Ok(CompactRecordKind::ProvenPayload),
+                    "COMPACT_RECORD_KIND_HEADER" => Ok(CompactRecordKind::Header),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -1119,6 +1217,101 @@ impl<'de> serde::Deserialize<'de> for FilteredBlockPageRequest {
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.FilteredBlockPageRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FilteredBlockPageResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.page.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.FilteredBlockPageResponse", len)?;
+        if let Some(v) = self.page.as_ref() {
+            struct_ser.serialize_field("page", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FilteredBlockPageResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "page",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Page,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "page" => Ok(GeneratedField::Page),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FilteredBlockPageResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.FilteredBlockPageResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FilteredBlockPageResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut page__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Page => {
+                            if page__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("page"));
+                            }
+                            page__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(FilteredBlockPageResponse {
+                    page: page__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.FilteredBlockPageResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ProvenPayload {

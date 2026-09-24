@@ -8,9 +8,13 @@ directly. Bankd serves public queries and executes IBC; Shieldd reads committed
 snapshots. Host withdrawals use the shared `shielded_withdrawal` proof family
 and return value to Bankd for transfer or execution.
 
-ABI 2 requires an archive directory at open; Bankd uses `data/shieldd-archives`
+ABI 3 requires an archive directory at open; Bankd uses `data/shieldd-archives`
 and fails startup if it is unusable or another owner has locked it. Compact/local storage and archive formats are
 incompatible with older data: reset and resynchronize, without migration paths.
+
+Compact-page RPCs return distinct full/filtered response envelopes containing a
+shared page. Fragment kind zero is invalid; headers have an explicit kind. Native
+hosts and browser protobuf consumers must use the matching protocol build.
 
 Public reads use committed snapshots independently of the execution mutex. Block
 and transaction pages bind cursors to chain, query parameters and immutable block
