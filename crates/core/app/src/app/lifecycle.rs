@@ -168,7 +168,8 @@ impl App {
         }
 
         let maintenance = if let Some(repository) = generation_packs {
-            match crate::nullifier_generation_packs::maintain_one_page(&mut state, repository).await
+            match crate::nullifier_generation_packs::maintain_one_generation(&mut state, repository)
+                .await
             {
                 Ok(maintenance) => maintenance,
                 Err(error) => {
@@ -181,9 +182,14 @@ impl App {
         };
 
         let storage_commit_start = Instant::now();
-        let jmt_root = storage
-            .commit(state)
+        let batch = storage
+            .prepare_commit(state)
             .await
+            .context("freezing application commit")?;
+        let batch = maintenance.attach(&storage, batch)?;
+        // Keep the validated file handle alive until the atomic batch is durable.
+        let jmt_root = storage
+            .commit_batch(batch)
             .context("committing application state to storage")?;
         if let (Some(repository), Some(generation)) =
             (generation_packs, maintenance.completed_generation)
@@ -192,9 +198,9 @@ impl App {
                 tracing::warn!(%error, generation, "could not clear committed pack readiness cache");
             }
         }
-        if maintenance.deleted > 0 {
-            ::metrics::counter!(crate::nullifier_generation_packs::PACK_PRUNED_RECORDS_TOTAL)
-                .increment(maintenance.deleted);
+        if maintenance.completed_generation.is_some() {
+            ::metrics::counter!(crate::nullifier_generation_packs::PACK_PRUNED_GENERATIONS_TOTAL)
+                .increment(1);
         }
         let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
 

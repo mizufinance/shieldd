@@ -15,14 +15,16 @@ service QueryService {
   rpc TransactionsByHeight(TransactionsByHeightRequest) returns (TransactionsByHeightResponse);
 }
 
-// Requests the list of all transactions that occurred within a given block.
+// Requests a bounded page of committed transactions.
 message TransactionsByHeightRequest {
   // The block height to retrieve.
   uint64 block_height = 2;
+  bytes cursor = 3;
 }
 
 // A transaction that appeared within a given block.
 message TransactionsByHeightResponse {
+  bytes next_cursor = 3;
   // The transactions.
   repeated core.transaction.v1.Transaction transactions = 1;
   // The block height.

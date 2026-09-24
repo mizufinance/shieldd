@@ -12,6 +12,9 @@ publish = false
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
 shieldd-sdk-crypto.workspace = true
 shieldd-sdk-proof-params.workspace = true
 ibc-proto = { workspace = true }
@@ -24,6 +27,7 @@ shieldd-sdk-app = { workspace = true, features = ["parallel"], default-features 
 shieldd-sdk-compact-block = { workspace = true, features = ["component"] }
 shieldd-sdk-compliance = { workspace = true, features = ["component"] }
 shieldd-sdk-proto = { workspace = true, default-features = true }
+shieldd-sdk-tct = { workspace = true }
 shieldd-sdk-sct = { workspace = true, default-features = true }
 shieldd-sdk-shielded-pool = { workspace = true, default-features = false }
 tendermint = { workspace = true }

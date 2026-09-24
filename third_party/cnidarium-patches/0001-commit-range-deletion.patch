@@ -1,0 +1,137 @@
+--- a/src/cache.rs
++++ b/src/cache.rs
+@@ -12,6 +12,8 @@
+ /// A [`StateDelta`](crate::StateDelta) is `Cache` above a `StateRead`.
+ #[derive(Default, Debug)]
+ pub struct Cache {
++    /// Commit-only maintenance invalidations, never attached to readable deltas.
++    pub(crate) nonverifiable_ranges: Vec<std::ops::Range<Vec<u8>>>,
+     /// Unwritten changes to the consensus-critical state (stored in the JMT).
+     pub(crate) unwritten_changes: BTreeMap<String, Option<Vec<u8>>>,
+     /// Unwritten changes to non-consensus-critical state (stored in the nonverifiable storage).
+@@ -23,6 +25,9 @@
+ }
+ 
+ impl Cache {
++    /// Non-verifiable ranges deleted by this commit. Subscribers must invalidate these ranges.
++    pub fn nonverifiable_range_deletions(&self) -> &[std::ops::Range<Vec<u8>>] { &self.nonverifiable_ranges }
++
+     /// Inspect the cache of unwritten changes to the verifiable state.
+     pub fn unwritten_changes(&self) -> &BTreeMap<String, Option<Vec<u8>>> {
+         &self.unwritten_changes
+@@ -35,6 +40,7 @@
+ 
+     /// Merge the given cache with this one, taking its writes in place of ours.
+     pub fn merge(&mut self, other: Cache) {
++        assert!(self.nonverifiable_ranges.is_empty() && other.nonverifiable_ranges.is_empty(), "maintenance cache is not a readable delta");
+         // One might ask, why does this exist separately from `apply_to`?  The
+         // answer is that `apply_to` takes a `StateWrite`, so we'd have to have
+         // `Cache: StateWrite`, and that implies `Cache: StateRead`, but the
+@@ -49,6 +55,7 @@
+ 
+     /// Consume this cache, applying its writes to the given state.
+     pub fn apply_to<S: StateWrite>(self, mut state: S) {
++        assert!(self.nonverifiable_ranges.is_empty(), "maintenance cache cannot be applied to a delta");
+         for (key, value) in self.unwritten_changes {
+             if let Some(value) = value {
+                 state.put_raw(key, value);
+@@ -76,7 +83,8 @@
+ 
+     /// Returns `true` if there are cached writes on top of the snapshot, and `false` otherwise.
+     pub fn is_dirty(&self) -> bool {
+-        !(self.unwritten_changes.is_empty()
++        !(self.nonverifiable_ranges.is_empty()
++            && self.unwritten_changes.is_empty()
+             && self.nonverifiable_changes.is_empty()
+             && self.ephemeral_objects.is_empty())
+     }
+@@ -116,6 +124,7 @@
+ 
+     pub(crate) fn clone_changes(&self) -> Self {
+         Self {
++            nonverifiable_ranges: self.nonverifiable_ranges.clone(),
+             unwritten_changes: self.unwritten_changes.clone(),
+             nonverifiable_changes: self.nonverifiable_changes.clone(),
+             ephemeral_objects: Default::default(),
+--- a/src/rpc.rs
++++ b/src/rpc.rs
+@@ -221,6 +221,11 @@
+         }
+ 
+         if nv_key_regex.is_some() || key_regex.is_none() {
++            if !changes.nonverifiable_range_deletions().is_empty() {
++                tx.send(Err(tonic::Status::aborted("non-verifiable ranges deleted; restart from a fresh snapshot"))).await?;
++                return Ok(());
++            }
++
+             for (key, value) in changes.nonverifiable_changes().iter() {
+                 if nv_key_regex
+                     .as_ref()
+--- a/src/storage.rs
++++ b/src/storage.rs
+@@ -446,6 +446,65 @@
+         })
+     }
+ 
++    /// Attach non-verifiable prefix tombstones only after consuming/freezing the delta.
++    /// Point writes in these ranges and prefixes crossing substores are rejected.
++    /// The ordinary commit publishes a new snapshot and range invalidations atomically.
++    pub fn attach_nonverifiable_prefix_deletions(
++        &self, mut batch: StagedWriteBatch, prefixes: Vec<Vec<u8>>,
++    ) -> Result<StagedWriteBatch> {
++        ensure!(!batch.perform_migration, "range deletion is not a migration operation");
++        ensure!(batch.changes.nonverifiable_ranges.is_empty(), "maintenance already attached");
++        let mut changes = batch.changes.clone_changes();
++        let mut routed = Vec::new();
++        for prefix in prefixes {
++            ensure!(prefix.last() == Some(&b'/'), "maintenance prefix must end at a namespace delimiter");
++            let mut end = prefix.clone(); *end.last_mut().expect("nonempty prefix") = b'0';
++            let (start_key, config) = self.0.multistore_config.route_key_bytes(&prefix);
++            let (end_key, end_config) = self.0.multistore_config.route_key_bytes(&end);
++            ensure!(config == end_config && !start_key.is_empty(), "range crosses a substore boundary");
++            let mut probe = prefix.clone(); probe.push(0);
++            let (_, interior_config) = self.0.multistore_config.route_key_bytes(&probe);
++            ensure!(config == interior_config, "range starts at a substore boundary");
++            ensure!(!self.0.multistore_config.iter().any(|s| {
++                let p = s.prefix.as_bytes(); p >= prefix.as_slice() && p < end.as_slice()
++            }), "range contains a substore boundary");
++            ensure!(batch.changes.nonverifiable_changes.range(prefix.clone()..end.clone()).next().is_none(), "range overlaps a point write or deletion");
++            ensure!(!changes.nonverifiable_ranges.iter().any(|r| r.start < end && prefix < r.end), "overlapping maintenance ranges");
++            routed.push((config, start_key.to_vec(), end_key.to_vec()));
++            changes.nonverifiable_ranges.push(prefix..end);
++        }
++        for (config, start, end) in routed {
++            batch.write_batch.delete_range_cf(config.cf_nonverifiable(&self.0.db), start, end);
++        }
++        batch.changes = Arc::new(changes);
++        Ok(batch)
++    }
++
++    /// Capture a conservative sequence boundary after retirement committed.
++    pub fn compaction_checkpoint(&self) -> u64 {
++        self.0.db.latest_sequence_number()
++    }
++
++    /// Old snapshots must no longer require records hidden by the retirement.
++    /// A snapshot acquired after this check cannot precede this checkpoint.
++    pub fn compaction_checkpoint_released(&self, sequence: u64) -> Result<bool> {
++        let oldest = self.0.db.property_int_value("rocksdb.oldest-snapshot-sequence")?
++            .ok_or_else(|| anyhow::anyhow!("oldest snapshot sequence unavailable"))?;
++        Ok(oldest >= sequence || self.0.db.property_int_value("rocksdb.num-snapshots")? == Some(0))
++    }
++
++    /// Compact one already retired local namespace through the existing database owner.
++    /// The host schedules this blocking work under its maintenance concurrency/rate budget.
++    pub fn compact_nonverifiable_prefix(&self, prefix: &[u8]) -> Result<()> {
++        ensure!(prefix.last() == Some(&b'/'), "compaction prefix must end at namespace delimiter");
++        let mut end = prefix.to_vec(); *end.last_mut().expect("nonempty prefix") = b'0';
++        let (start, config) = self.0.multistore_config.route_key_bytes(prefix);
++        let (end, end_config) = self.0.multistore_config.route_key_bytes(&end);
++        ensure!(config == end_config, "compaction crosses substore boundary");
++        self.0.db.compact_range_cf(config.cf_nonverifiable(&self.0.db), Some(start), Some(end));
++        Ok(())
++    }
++
+     /// Commits the provided [`StateDelta`] to persistent storage as the latest
+     /// version of the chain state.
+     pub async fn commit(&self, delta: StateDelta<Snapshot>) -> Result<crate::RootHash> {

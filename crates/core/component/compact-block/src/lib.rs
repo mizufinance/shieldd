@@ -13,5 +13,7 @@ mod discovery;
 mod state_payload;
 
 pub use compact_block::CompactBlock;
-pub use discovery::{PendingRoutingAction, RoutingActionPayloads, RoutingBlock, RoutingRecord};
+pub use discovery::{PendingRoutingAction, RoutingAction, RoutingRecord};
 pub use state_payload::{StatePayload, StatePayloadDebugKind};
+
+pub mod pages;

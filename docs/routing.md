@@ -49,10 +49,13 @@ metadata is unavailable.
 
 - **Local full node:** selector matching is local and discloses no search to an
   external provider.
-- **Remote full compact blocks:** the client downloads the whole range. This has
-  the highest bandwidth cost but reveals no selector or matched position.
-- **Remote filtered query:** the provider learns the selectors, height ranges,
-  timing, grouping, network identity, and the action positions returned.
+- **FullScan (default):** the client downloads complete blocks through bounded
+  pages and trial-decrypts every payload. This reveals no selector or matched
+  position and works without an issued-address manifest.
+- **RemoteFiltered (provider-specific opt-in):** the provider learns selectors,
+  owned nullifiers, height ranges, timing, grouping, network identity and the
+  action positions returned. [Wallet synchronization](wallet.md) defines its
+  authentication and provider-completeness trust boundaries.
 
 Downloading tags and subsequently requesting only matching actions is still a
 filtered query: the provider can map the requested positions back to tags. The

@@ -18,7 +18,9 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 pub static malloc_conf: &[u8] = b"dirty_decay_ms:0,muzzy_decay_ms:0\0";
 
 mod ffi;
+mod query;
 mod service;
+pub use query::QueryService;
 
 pub use service::{ErrorKind, ExecutionService, ServiceError};
 
@@ -39,3 +41,10 @@ fn test_registry() -> std::sync::Arc<shieldd_sdk_proof_params::pari::Registry> {
     })
     .clone()
 }
+
+mod historical_sct;
+
+mod filtered_query;
+mod limits;
+mod spend_query;
+pub use limits::ServiceLimits;

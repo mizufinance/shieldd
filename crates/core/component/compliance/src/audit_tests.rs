@@ -409,7 +409,7 @@ async fn persistence_failure_rolls_back_results_evidence_and_cursor() {
         let reopened = SqliteScannerStore::new(file.path()).unwrap();
         assert!(reopened.last_scanned_block().await.unwrap().is_none());
         reopened.commit_scanned_block(&scanned).await.unwrap();
-        reopened.commit_scanned_block(&scanned).await.unwrap();
+        assert!(reopened.commit_scanned_block(&scanned).await.is_err());
         assert_eq!(reopened.detection_count().await.unwrap(), 1);
         assert_eq!(
             audit_status(&reopened, &evidence),

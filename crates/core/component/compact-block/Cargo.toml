@@ -25,6 +25,7 @@ std = []
 docsrs = []
 
 [dependencies]
+sha2.workspace = true
 anyhow = {workspace = true}
 async-trait = {workspace = true}
 blake2b_simd = {workspace = true}

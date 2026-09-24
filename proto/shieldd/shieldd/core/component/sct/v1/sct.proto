@@ -261,8 +261,30 @@ message ArchivedNullifierProofResponse {
   IndexedNullifierWitness witness = 6;
 }
 
+// Trusted-provider spend discovery; absence is not a completeness proof.
+message SpendStatusPageRequest {
+  repeated Nullifier nullifiers = 1;
+  uint64 start_height = 2;
+  uint64 end_height = 3;
+  bytes cursor = 4;
+}
+message SpentNullifier {
+  Nullifier nullifier = 1;
+  uint64 height = 2;
+  uint64 generation = 3;
+  bytes generation_root = 4;
+  IndexedNullifierWitness witness = 5;
+}
+message SpendStatusPageResponse {
+  string chain_id = 1;
+  uint64 anchor_height = 2;
+  repeated SpentNullifier spends = 3;
+  bytes next_cursor = 4;
+}
+
 // Query operations for the SCT component.
 service QueryService {
+  rpc SpendStatusPage(SpendStatusPageRequest) returns (SpendStatusPageResponse);
   rpc AnchorByHeight(AnchorByHeightRequest) returns (AnchorByHeightResponse);
   rpc EpochByHeight(EpochByHeightRequest) returns (EpochByHeightResponse);
   rpc TimestampByHeight(TimestampByHeightRequest) returns (TimestampByHeightResponse);

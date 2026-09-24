@@ -13,7 +13,7 @@ use shieldd_sdk_proto::{
     cnidarium::v1::KeyValueRequest,
     core::{
         app::v1::AppParametersRequest,
-        component::{compact_block::v1::CompactBlockRangeRequest, sct::v1::NullifierWindowRequest},
+        component::{compact_block::v1::CompactBlockPageRequest, sct::v1::NullifierWindowRequest},
     },
     execution_client::v1::*,
 };
@@ -45,16 +45,21 @@ async fn begin(service: &mut ExecutionService, height: i64) -> Result<()> {
 }
 
 async fn snapshot(service: &ExecutionService) -> Result<Vec<u8>> {
+    let committed = service
+        .get_committed_state(GetCommittedStateRequest {})
+        .await?;
+    service.queries().publish_committed(committed).await?;
+    let queries = service.queries();
     let mut bytes = Vec::new();
     service
         .get_committed_state(GetCommittedStateRequest {})
         .await?
         .encode_length_delimited(&mut bytes)?;
-    service
+    queries
         .app_parameters(AppParametersRequest {})
         .await?
         .encode_length_delimited(&mut bytes)?;
-    service
+    queries
         .nullifier_window(NullifierWindowRequest {})
         .await?
         .encode_length_delimited(&mut bytes)?;
@@ -62,7 +67,7 @@ async fn snapshot(service: &ExecutionService) -> Result<Vec<u8>> {
         "application/data/chain_id",
         "application/data/absent-compatibility-key",
     ] {
-        service
+        queries
             .key_value(KeyValueRequest {
                 key: key.into(),
                 proof: true,
@@ -70,15 +75,18 @@ async fn snapshot(service: &ExecutionService) -> Result<Vec<u8>> {
             .await?
             .encode_length_delimited(&mut bytes)?;
     }
-    for block in service
-        .compact_block_range(CompactBlockRangeRequest {
-            start_height: 0,
-            end_height: 1,
-            keep_alive: false,
-        })
-        .await?
-    {
-        block.encode_length_delimited(&mut bytes)?;
+    for height in 0..=1 {
+        let mut cursor = Vec::new();
+        loop {
+            let page = queries
+                .compact_block_page(CompactBlockPageRequest { height, cursor })
+                .await?;
+            page.encode_length_delimited(&mut bytes)?;
+            cursor = page.next_cursor;
+            if cursor.is_empty() {
+                break;
+            }
+        }
     }
     Ok(bytes)
 }

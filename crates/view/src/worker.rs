@@ -272,12 +272,72 @@ impl SyncWorker {
         Ok((Some(plan), snapshot))
     }
 
+    /// Fetch every required page before committing one block. A failed/expired query leaves the
+    /// previous wallet height intact; callers restart this operation from the host anchor.
+    pub async fn sync_from_provider(
+        &mut self,
+        provider: &dyn crate::SyncProvider,
+        anchors: &dyn crate::GenerationAnchors,
+        mode: &crate::SyncMode,
+        host: crate::HostBlock,
+    ) -> anyhow::Result<()> {
+        let (block, sparse, transactions) = match mode {
+            crate::SyncMode::FullScan => (
+                crate::provider::full(provider, &host).await?,
+                None,
+                crate::provider::transactions(provider, host.height).await?,
+            ),
+            crate::SyncMode::RemoteFiltered { provider_id } => {
+                anyhow::ensure!(
+                    !provider_id.is_empty() && provider_id == provider.id(),
+                    "filtered synchronization is not authorized for this provider"
+                );
+                let sparse = crate::provider::sparse(
+                    provider,
+                    &host,
+                    self.storage.issued_addresses().await?,
+                )
+                .await?;
+                (sparse.block.clone(), Some(sparse), Vec::new())
+            }
+        };
+        let remote = sparse
+            .as_ref()
+            .map(|_| (provider, anchors, host.chain_id.as_str()));
+        self.scan_inner(
+            WalletBlock {
+                block,
+                expected_sct_root: host.expected_sct_root,
+                timestamp: host.timestamp,
+                transactions,
+                assets: host.assets,
+                updated_app_parameters: host.updated_app_parameters,
+            },
+            sparse,
+            remote,
+        )
+        .await
+    }
+
     pub async fn scan(&mut self, input: WalletBlock) -> anyhow::Result<()> {
+        self.scan_inner(input, None, None).await
+    }
+
+    async fn scan_inner(
+        &mut self,
+        input: WalletBlock,
+        sparse: Option<shieldd_sdk_compact_block::pages::SparseCompactBlock>,
+        remote: Option<(
+            &dyn crate::SyncProvider,
+            &dyn crate::GenerationAnchors,
+            &str,
+        )>,
+    ) -> anyhow::Result<()> {
         let WalletBlock {
             block,
             expected_sct_root,
             timestamp,
-            transactions,
+            mut transactions,
             assets,
             updated_app_parameters,
         } = input;
@@ -307,18 +367,63 @@ impl SyncWorker {
             root,
         });
         let mut counterparties = BTreeSet::new();
-        let mut filtered_block = scan_block(
-            &self.fvk,
-            &mut next_sct,
-            block,
-            &self.storage,
-            compliance_plan.as_ref(),
-        )
-        .await?;
+        let owners = sparse
+            .as_ref()
+            .map(|s| s.owners.clone())
+            .unwrap_or_default();
+        let mut filtered_block = if let Some(sparse) = sparse {
+            crate::sync::scan_sparse_block(
+                &self.fvk,
+                &mut next_sct,
+                sparse,
+                &self.storage,
+                compliance_plan.as_ref(),
+            )
+            .await?
+        } else {
+            scan_block(
+                &self.fvk,
+                &mut next_sct,
+                block,
+                &self.storage,
+                compliance_plan.as_ref(),
+            )
+            .await?
+        };
         anyhow::ensure!(
             next_sct.root() == expected_sct_root,
             "wallet SCT root does not match committed host anchor"
         );
+        if let Some((provider, anchors, chain)) = remote {
+            let mut nullifiers = self
+                .storage
+                .notes(false, None, None, None)
+                .await?
+                .into_iter()
+                .map(|n| n.nullifier)
+                .collect::<BTreeSet<_>>();
+            nullifiers.extend(filtered_block.new_notes.values().map(|n| n.nullifier));
+            // Include notes discovered in this block before advancing its catch-up interval.
+            filtered_block.spent_nullifiers =
+                crate::provider::spends(provider, anchors, chain, height, nullifiers).await?;
+            if !filtered_block.spent_nullifiers.is_empty() {
+                transactions = crate::provider::transactions(provider, height).await?;
+            } else {
+                let ids = filtered_block
+                    .new_notes
+                    .values()
+                    .filter_map(|n| owners.get(&u64::from(n.position)).copied())
+                    .collect::<BTreeSet<_>>();
+                for id in ids {
+                    let transaction = provider.transaction(height, id).await?;
+                    anyhow::ensure!(
+                        transaction.id() == id,
+                        "provider returned the wrong canonical transaction"
+                    );
+                    transactions.push(transaction);
+                }
+            }
+        }
         let transactions = relevant_transactions(&mut filtered_block, transactions);
         for transaction in &transactions {
             // Extract counterparties from outputs using OVK decryption

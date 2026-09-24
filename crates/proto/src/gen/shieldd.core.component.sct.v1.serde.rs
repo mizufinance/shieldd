@@ -4658,6 +4658,499 @@ impl<'de> serde::Deserialize<'de> for SctParameters {
         deserializer.deserialize_struct("shieldd.core.component.sct.v1.SctParameters", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for SpendStatusPageRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.nullifiers.is_empty() {
+            len += 1;
+        }
+        if self.start_height != 0 {
+            len += 1;
+        }
+        if self.end_height != 0 {
+            len += 1;
+        }
+        if !self.cursor.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.SpendStatusPageRequest", len)?;
+        if !self.nullifiers.is_empty() {
+            struct_ser.serialize_field("nullifiers", &self.nullifiers)?;
+        }
+        if self.start_height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("startHeight", ToString::to_string(&self.start_height).as_str())?;
+        }
+        if self.end_height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("endHeight", ToString::to_string(&self.end_height).as_str())?;
+        }
+        if !self.cursor.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("cursor", pbjson::private::base64::encode(&self.cursor).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for SpendStatusPageRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "nullifiers",
+            "start_height",
+            "startHeight",
+            "end_height",
+            "endHeight",
+            "cursor",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Nullifiers,
+            StartHeight,
+            EndHeight,
+            Cursor,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "nullifiers" => Ok(GeneratedField::Nullifiers),
+                            "startHeight" | "start_height" => Ok(GeneratedField::StartHeight),
+                            "endHeight" | "end_height" => Ok(GeneratedField::EndHeight),
+                            "cursor" => Ok(GeneratedField::Cursor),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = SpendStatusPageRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.sct.v1.SpendStatusPageRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SpendStatusPageRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut nullifiers__ = None;
+                let mut start_height__ = None;
+                let mut end_height__ = None;
+                let mut cursor__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Nullifiers => {
+                            if nullifiers__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullifiers"));
+                            }
+                            nullifiers__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::StartHeight => {
+                            if start_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("startHeight"));
+                            }
+                            start_height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::EndHeight => {
+                            if end_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("endHeight"));
+                            }
+                            end_height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Cursor => {
+                            if cursor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("cursor"));
+                            }
+                            cursor__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(SpendStatusPageRequest {
+                    nullifiers: nullifiers__.unwrap_or_default(),
+                    start_height: start_height__.unwrap_or_default(),
+                    end_height: end_height__.unwrap_or_default(),
+                    cursor: cursor__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.sct.v1.SpendStatusPageRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for SpendStatusPageResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.chain_id.is_empty() {
+            len += 1;
+        }
+        if self.anchor_height != 0 {
+            len += 1;
+        }
+        if !self.spends.is_empty() {
+            len += 1;
+        }
+        if !self.next_cursor.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.SpendStatusPageResponse", len)?;
+        if !self.chain_id.is_empty() {
+            struct_ser.serialize_field("chainId", &self.chain_id)?;
+        }
+        if self.anchor_height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("anchorHeight", ToString::to_string(&self.anchor_height).as_str())?;
+        }
+        if !self.spends.is_empty() {
+            struct_ser.serialize_field("spends", &self.spends)?;
+        }
+        if !self.next_cursor.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("nextCursor", pbjson::private::base64::encode(&self.next_cursor).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for SpendStatusPageResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "chain_id",
+            "chainId",
+            "anchor_height",
+            "anchorHeight",
+            "spends",
+            "next_cursor",
+            "nextCursor",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ChainId,
+            AnchorHeight,
+            Spends,
+            NextCursor,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "chainId" | "chain_id" => Ok(GeneratedField::ChainId),
+                            "anchorHeight" | "anchor_height" => Ok(GeneratedField::AnchorHeight),
+                            "spends" => Ok(GeneratedField::Spends),
+                            "nextCursor" | "next_cursor" => Ok(GeneratedField::NextCursor),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = SpendStatusPageResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.sct.v1.SpendStatusPageResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SpendStatusPageResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut chain_id__ = None;
+                let mut anchor_height__ = None;
+                let mut spends__ = None;
+                let mut next_cursor__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ChainId => {
+                            if chain_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("chainId"));
+                            }
+                            chain_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AnchorHeight => {
+                            if anchor_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("anchorHeight"));
+                            }
+                            anchor_height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Spends => {
+                            if spends__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("spends"));
+                            }
+                            spends__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextCursor => {
+                            if next_cursor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextCursor"));
+                            }
+                            next_cursor__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(SpendStatusPageResponse {
+                    chain_id: chain_id__.unwrap_or_default(),
+                    anchor_height: anchor_height__.unwrap_or_default(),
+                    spends: spends__.unwrap_or_default(),
+                    next_cursor: next_cursor__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.sct.v1.SpendStatusPageResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for SpentNullifier {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.nullifier.is_some() {
+            len += 1;
+        }
+        if self.height != 0 {
+            len += 1;
+        }
+        if self.generation != 0 {
+            len += 1;
+        }
+        if !self.generation_root.is_empty() {
+            len += 1;
+        }
+        if self.witness.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.SpentNullifier", len)?;
+        if let Some(v) = self.nullifier.as_ref() {
+            struct_ser.serialize_field("nullifier", v)?;
+        }
+        if self.height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("height", ToString::to_string(&self.height).as_str())?;
+        }
+        if self.generation != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("generation", ToString::to_string(&self.generation).as_str())?;
+        }
+        if !self.generation_root.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("generationRoot", pbjson::private::base64::encode(&self.generation_root).as_str())?;
+        }
+        if let Some(v) = self.witness.as_ref() {
+            struct_ser.serialize_field("witness", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for SpentNullifier {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "nullifier",
+            "height",
+            "generation",
+            "generation_root",
+            "generationRoot",
+            "witness",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Nullifier,
+            Height,
+            Generation,
+            GenerationRoot,
+            Witness,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "nullifier" => Ok(GeneratedField::Nullifier),
+                            "height" => Ok(GeneratedField::Height),
+                            "generation" => Ok(GeneratedField::Generation),
+                            "generationRoot" | "generation_root" => Ok(GeneratedField::GenerationRoot),
+                            "witness" => Ok(GeneratedField::Witness),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = SpentNullifier;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.sct.v1.SpentNullifier")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SpentNullifier, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut nullifier__ = None;
+                let mut height__ = None;
+                let mut generation__ = None;
+                let mut generation_root__ = None;
+                let mut witness__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Nullifier => {
+                            if nullifier__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nullifier"));
+                            }
+                            nullifier__ = map_.next_value()?;
+                        }
+                        GeneratedField::Height => {
+                            if height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("height"));
+                            }
+                            height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Generation => {
+                            if generation__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("generation"));
+                            }
+                            generation__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::GenerationRoot => {
+                            if generation_root__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("generationRoot"));
+                            }
+                            generation_root__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Witness => {
+                            if witness__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("witness"));
+                            }
+                            witness__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(SpentNullifier {
+                    nullifier: nullifier__,
+                    height: height__.unwrap_or_default(),
+                    generation: generation__.unwrap_or_default(),
+                    generation_root: generation_root__.unwrap_or_default(),
+                    witness: witness__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.sct.v1.SpentNullifier", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for TimestampByHeightRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

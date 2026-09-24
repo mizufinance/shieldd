@@ -12,7 +12,10 @@ pub use storage::{
 pub use sync::extract_compliance_ciphertexts;
 pub use types::{
     ActionRef, AuditLedgerRow, AuditRowKey, BlockRef, CandidateEvidence, DetectionEvent,
-    ExtractedComplianceCiphertext, InvalidCiphertext, OutputOutcome, OutputRef, ScannedBlock,
-    ScannedOutput, TxRef,
+    ExtractedComplianceCiphertext, InvalidCiphertext, OutputOutcome, OutputRef, ScannedOutput,
+    TxRef,
 };
+pub mod spool;
+#[cfg(test)]
+pub use types::ScannedBlock;
 pub use worker::{BlockIdentityProvider, IssuerComplianceWorker, ScannerSource, WorkerHandle};

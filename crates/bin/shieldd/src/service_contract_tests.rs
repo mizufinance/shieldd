@@ -11,7 +11,7 @@ use shieldd_sdk_proto::cnidarium::v1::KeyValueRequest as ComponentKeyValueReques
 use shieldd_sdk_proto::core::app::v1 as proto_app;
 use shieldd_sdk_proto::core::app::v1::AppParametersRequest as ComponentAppParametersRequest;
 use shieldd_sdk_proto::core::component::{
-    compact_block::v1::CompactBlockRangeRequest as ComponentCompactBlockRangeRequest,
+    compact_block::v1::CompactBlockPageRequest,
     compliance::v1::{
         ComplianceAssetStatusRequest as ComponentComplianceAssetStatusRequest,
         ComplianceBatchMerkleProofsRequest as ComponentComplianceBatchMerkleProofsRequest,
@@ -20,6 +20,7 @@ use shieldd_sdk_proto::core::component::{
     sct::v1::NullifierWindowRequest as ComponentNullifierWindowRequest,
     shielded_pool::v1::AssetMetadataByIdRequest as ComponentAssetMetadataByIdRequest,
 };
+use shieldd_sdk_proto::execution_client::v1::GetCommittedStateRequest;
 use shieldd_sdk_proto::execution_client::v1::{
     BeginBlockRequest, CheckTxRequest, CommitRequest, DeliverTxRequest, EndBlockRequest,
     InitGenesisRequest,
@@ -40,6 +41,14 @@ async fn initialized_client() -> Result<(TempStorage, ExecutionService)> {
         })
         .await?;
     client.commit(CommitRequest {}).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
     Ok((storage, client))
 }
 
@@ -48,6 +57,7 @@ async fn execution_check_tx_rejects_invalid_transaction() -> Result<()> {
     let (_storage, client) = initialized_client().await?;
 
     let response = client
+        .queries()
         .check_tx(CheckTxRequest {
             tx: b"not a shieldd transaction".to_vec(),
         })
@@ -82,7 +92,16 @@ async fn execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
     assert!(response.log.contains("decoding transaction"));
     client.end_block(EndBlockRequest { height: 1 }).await?;
     client.commit(CommitRequest {}).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
     let accepted = client
+        .queries()
         .committed_transaction(
             shieldd_sdk_proto::core::app::v1::CommittedTransactionRequest {
                 block_height: 1,
@@ -106,6 +125,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
     let address: shieldd_sdk_proto::core::keys::v1::Address = ADDRESS_0.clone().into();
 
     let parameters = client
+        .queries()
         .app_parameters(ComponentAppParametersRequest {})
         .await?
         .app_parameters
@@ -113,6 +133,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
     assert_eq!(parameters.chain_id, "shieldd-service-test");
 
     let nullifier_window = client
+        .queries()
         .nullifier_window(ComponentNullifierWindowRequest {})
         .await?
         .window
@@ -124,6 +145,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
     assert_eq!(nullifier_window.current_generation, 0);
 
     let metadata = client
+        .queries()
         .asset_metadata_by_id(ComponentAssetMetadataByIdRequest {
             asset_id: Some(asset_id_proto.clone()),
         })
@@ -133,6 +155,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
     assert_eq!(metadata.base, "ushieldd");
 
     let status = client
+        .queries()
         .compliance_asset_status(ComponentComplianceAssetStatusRequest {
             asset_id: Some(asset_id_proto.clone()),
         })
@@ -141,6 +164,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
     assert!(!status.is_regulated);
 
     let user = client
+        .queries()
         .compliance_user_leaf(ComponentComplianceUserLeafRequest {
             address: Some(address.clone()),
             asset_id: Some(asset_id_proto.clone()),
@@ -150,6 +174,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
     assert!(user.leaf.is_none());
 
     let batch = client
+        .queries()
         .compliance_batch_merkle_proofs(ComponentComplianceBatchMerkleProofsRequest {
             queries: vec![ComplianceBatchQuery {
                 address: Some(address),
@@ -162,6 +187,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
     assert!(!batch.results[0].user_registered);
 
     let key = client
+        .queries()
         .key_value(ComponentKeyValueRequest {
             key: shieldd_sdk_sct::state_key::tree::anchor_by_height(0),
             proof: false,
@@ -173,7 +199,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
 }
 
 #[tokio::test]
-async fn execution_reads_bounded_compact_block_ranges() -> Result<()> {
+async fn execution_reads_bounded_compact_pages() -> Result<()> {
     let (_storage, mut client) = initialized_client().await?;
     for height in 1..=2 {
         let mut begin = BeginBlockRequest {
@@ -184,25 +210,28 @@ async fn execution_reads_bounded_compact_block_ranges() -> Result<()> {
         client.begin_block(begin).await?;
         client.end_block(EndBlockRequest { height }).await?;
         client.commit(CommitRequest {}).await?;
+        client
+            .queries()
+            .publish_committed(
+                client
+                    .get_committed_state(GetCommittedStateRequest {})
+                    .await?,
+            )
+            .await?;
     }
 
-    let responses = client
-        .compact_block_range(ComponentCompactBlockRangeRequest {
-            start_height: 0,
-            end_height: 2,
-            keep_alive: false,
-        })
-        .await?;
-    let heights = responses
-        .into_iter()
-        .map(|response| {
-            response
-                .compact_block
-                .expect("range response contains a compact block")
-                .height
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(heights, vec![0, 1, 2]);
+    for height in [0, 1, 2] {
+        let page = client
+            .queries()
+            .compact_block_page(CompactBlockPageRequest {
+                height,
+                cursor: Vec::new(),
+            })
+            .await?;
+        assert_eq!(page.height, height);
+        assert_eq!(page.fragments[0].kind, 0);
+        assert!(page.next_cursor.is_empty());
+    }
     Ok(())
 }
 #[tokio::test]
@@ -211,8 +240,7 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
     use cnidarium::{StateDelta, StateWrite as _};
     use ibc_types::core::commitment::{MerklePath, MerkleProof, MerkleRoot};
     // ICS23 requires nonempty leaf values, including absence-proof neighbors.
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let client = ExecutionService::new(storage.deref().clone(), crate::test_registry()).await?;
+    let (storage, client) = initialized_client().await?;
     let mut delta = StateDelta::new(storage.latest_snapshot());
     delta.put_raw("query-proof-present".into(), b"main-store value".to_vec());
     delta.put_raw(
@@ -220,6 +248,14 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
         b"committed value".to_vec(),
     );
     storage.commit(delta).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
     let snapshot = storage.latest_snapshot();
     let root = MerkleRoot {
         hash: snapshot.root_hash().await?.0.to_vec(),
@@ -239,6 +275,7 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
         ),
     ] {
         let response = client
+            .queries()
             .key_value(ComponentKeyValueRequest {
                 key: key.into(),
                 proof: true,
@@ -274,6 +311,7 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
 async fn transactions_query_rejects_uncommitted_height() -> Result<()> {
     let (_storage, client) = initialized_client().await?;
     let error = client
+        .queries()
         .committed_transaction(
             shieldd_sdk_proto::core::app::v1::CommittedTransactionRequest {
                 block_height: u64::MAX,
@@ -291,6 +329,7 @@ async fn committed_transaction_query_rejects_invalid_ids() -> Result<()> {
     let (_storage, client) = initialized_client().await?;
     for length in [0, 31, 33] {
         let error = client
+            .queries()
             .committed_transaction(proto_app::CommittedTransactionRequest {
                 block_height: 0,
                 transaction_id: vec![0; length],
@@ -306,16 +345,267 @@ async fn committed_transaction_query_rejects_invalid_ids() -> Result<()> {
 async fn transactions_by_height_reads_committed_blocks_only() -> Result<()> {
     let (_storage, client) = initialized_client().await?;
     let response = client
-        .transactions_by_height(proto_app::TransactionsByHeightRequest { block_height: 0 })
+        .queries()
+        .transactions_by_height(proto_app::TransactionsByHeightRequest {
+            block_height: 0,
+            cursor: Vec::new(),
+        })
         .await?;
     assert_eq!(response.block_height, 0);
     assert!(response.transactions.is_empty());
     let error = client
+        .queries()
         .transactions_by_height(proto_app::TransactionsByHeightRequest {
             block_height: u64::MAX,
+            cursor: Vec::new(),
         })
         .await
         .expect_err("uncommitted block must not be returned");
     assert_eq!(error.kind(), ErrorKind::FailedPrecondition);
+    Ok(())
+}
+
+#[tokio::test]
+async fn committed_queries_advance_only_after_joint_publication() -> Result<()> {
+    let (_storage, mut client) = initialized_client().await?;
+    let queries = client.queries().clone();
+    let old = queries.snapshot()?;
+    let mut begin = BeginBlockRequest {
+        height: 1,
+        time: Some(Default::default()),
+    };
+    begin.time.as_mut().unwrap().seconds = 1_700_000_000;
+    client.begin_block(begin).await?;
+    client.end_block(EndBlockRequest { height: 1 }).await?;
+    client.commit(CommitRequest {}).await?;
+    let durable = client
+        .get_committed_state(GetCommittedStateRequest {})
+        .await?;
+    assert_eq!(durable.height, 1);
+    assert!(queries
+        .compact_block_page(CompactBlockPageRequest {
+            height: 1,
+            cursor: vec![]
+        })
+        .await
+        .is_err());
+    let mut wrong = durable.clone();
+    wrong.root_hash[0] ^= 1;
+    assert!(queries.publish_committed(wrong).await.is_err());
+    assert_eq!(queries.snapshot()?.version(), old.version());
+    queries.publish_committed(durable).await?;
+    assert_eq!(
+        queries
+            .compact_block_page(CompactBlockPageRequest {
+                height: 1,
+                cursor: vec![]
+            })
+            .await?
+            .height,
+        1
+    );
+    assert!(queries.snapshot()?.version() > old.version());
+    // A reader pinned before publication still observes the preceding commit.
+    use shieldd_sdk_sct::component::clock::EpochRead as _;
+    assert_eq!(old.get_block_height().await?, 0);
+    Ok(())
+}
+
+#[tokio::test]
+async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_proofs() -> Result<()>
+{
+    use shieldd_sdk_compact_block::{
+        component::CompactBlockManager, pages::PageAssembler, CompactBlock, RoutingAction,
+        RoutingRecord, StatePayload,
+    };
+    use shieldd_sdk_proto::{core::component::compact_block::v1 as pb, DomainType, Message};
+    use shieldd_sdk_shielded_pool::discovery::{Precision, RoutingSelector, RoutingTag};
+    use shieldd_sdk_tct::{builder::block::finalized_forget_root, StateCommitment};
+    let (storage, client) = initialized_client().await?;
+    let commitments = [1u64, 2, 3].map(|i| StateCommitment(shieldd_sdk_crypto::Fq::from(i)));
+    let id =
+        shieldd_sdk_proto::core::txhash::v1::TransactionId { inner: vec![9; 32] }.try_into()?;
+    let block = CompactBlock {
+        height: 1,
+        block_root: finalized_forget_root(&commitments)?,
+        state_payloads: commitments
+            .into_iter()
+            .map(|commitment| StatePayload::RolledUp {
+                source: shieldd_sdk_sct::CommitmentSource::Genesis,
+                commitment,
+            })
+            .collect(),
+        routing_actions: (0..2)
+            .map(|i| RoutingAction {
+                transaction_id: id,
+                action_index: i,
+                payload_positions: vec![i as u64],
+            })
+            .collect(),
+        routing_records: (0..2)
+            .map(|i| RoutingRecord {
+                transaction_id: id,
+                action_index: i,
+                tag_slot: 0,
+                height: 1,
+                tag: RoutingTag {
+                    value: if i == 0 { 0x1234567b } else { 0x1234567a },
+                },
+            })
+            .collect(),
+        ..Default::default()
+    };
+    let expected = block.encode_to_vec();
+    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    use shieldd_sdk_sct::component::clock::EpochManager as _;
+    state.put_block_height(1);
+    state.put_compact_block(block)?;
+    storage.commit(state).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
+    let full = client
+        .queries()
+        .compact_block_page(CompactBlockPageRequest {
+            height: 1,
+            cursor: vec![],
+        })
+        .await?;
+    let mut assembler = PageAssembler::new(1, "shieldd-service-test".into(), false);
+    assembler.push(full)?;
+    assert_eq!(assembler.full()?.encode_to_vec(), expected);
+    let selector: shieldd_sdk_proto::core::component::shielded_pool::v1::RoutingSelector =
+        RoutingSelector {
+            precision: Precision::new(2)?,
+            prefix: 3,
+        }
+        .into();
+    let page = client
+        .queries()
+        .filtered_block_page(pb::FilteredBlockPageRequest {
+            height: 1,
+            selectors: vec![selector.clone(), selector],
+            cursor: vec![],
+        })
+        .await?;
+    assert!(page.next_cursor.is_empty());
+    let mut assembler = PageAssembler::new(1, "shieldd-service-test".into(), true);
+    assembler.push(page.clone())?;
+    let sparse = assembler.sparse()?;
+    assert_eq!(
+        sparse.proofs.iter().map(|p| p.position).collect::<Vec<_>>(),
+        vec![0, 2]
+    );
+    assert_eq!(sparse.owners.get(&0), Some(&id));
+    assert!(!sparse.owners.contains_key(&2));
+    let mut tampered = page;
+    let fragment = tampered.fragments.iter_mut().find(|f| f.kind == 8).unwrap();
+    let mut payload = pb::ProvenPayload::decode(fragment.data.as_slice())?;
+    payload.auth_path[0].sibling_1 = shieldd_sdk_crypto::Fq::from(99u64).to_bytes().to_vec();
+    fragment.data = payload.encode_to_vec();
+    fragment.total_length = fragment.data.len() as u32;
+    let mut assembler = PageAssembler::new(1, "shieldd-service-test".into(), true);
+    // A conflicting repeated candidate or a forged path must fail before wallet state is touched.
+    assert!(assembler
+        .push(tampered)
+        .and_then(|_| assembler.sparse())
+        .is_err());
+    Ok(())
+}
+
+#[tokio::test]
+async fn spend_pages_bind_snapshot_and_report_verified_insertion_heights() -> Result<()> {
+    use shieldd_sdk_proto::core::component::sct::v1 as pb;
+    use shieldd_sdk_sct::{component::clock::EpochManager, nullifier_tree, Nullifier};
+    let (storage, client) = initialized_client().await?;
+    let nullifiers = (1u64..=130)
+        .map(|i| Nullifier(shieldd_sdk_crypto::Fq::from(i)))
+        .collect::<Vec<_>>();
+    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    nullifier_tree::insert_batch(&mut state, nullifiers.iter().copied()).await?;
+    nullifier_tree::record_block_insertions(
+        &mut state,
+        nullifier_tree::InsertionInterval {
+            height: 1,
+            generation: 0,
+            first_position: 1,
+            count: nullifiers.len() as u64,
+        },
+    )
+    .await?;
+    state.put_block_height(1);
+    storage.commit(state).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
+    let request = pb::SpendStatusPageRequest {
+        nullifiers: nullifiers.iter().copied().map(Into::into).collect(),
+        start_height: 0,
+        end_height: 1,
+        cursor: vec![],
+    };
+    let page = client.queries().spend_status_page(request.clone()).await?;
+    assert_eq!(page.spends.len(), 64);
+    assert!(!page.next_cursor.is_empty());
+    for spend in page.spends {
+        assert_eq!(spend.height, 1);
+        let witness: shieldd_sdk_sct::indexed_nullifier_tree::IndexedNullifierWitness =
+            spend.witness.unwrap().try_into()?;
+        witness.verify_membership(
+            spend.nullifier.unwrap().try_into()?,
+            spend.generation_root.try_into().unwrap(),
+        )?;
+    }
+    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    state.put_block_height(2);
+    storage.commit(state).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
+    let error = client
+        .queries()
+        .spend_status_page(pb::SpendStatusPageRequest {
+            cursor: page.next_cursor,
+            ..request.clone()
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(error.kind(), ErrorKind::SnapshotExpired);
+    let mut cursor = vec![];
+    let mut found = vec![];
+    loop {
+        let page = client
+            .queries()
+            .spend_status_page(pb::SpendStatusPageRequest {
+                cursor,
+                ..request.clone()
+            })
+            .await?;
+        found.extend(
+            page.spends
+                .into_iter()
+                .map(|s| Nullifier::try_from(s.nullifier.unwrap()).unwrap()),
+        );
+        cursor = page.next_cursor;
+        if cursor.is_empty() {
+            break;
+        }
+    }
+    assert_eq!(found, nullifiers);
     Ok(())
 }

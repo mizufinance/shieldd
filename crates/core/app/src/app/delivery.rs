@@ -186,7 +186,11 @@ impl App {
                 )
             })?;
 
-        // Index the transaction:
+        check_and_execute(Arc::as_ref(&artifact), &mut state_tx)
+            .await
+            .context("executing transaction")?;
+
+        // Index only after current-state admission succeeds; both effects share this delta.
 
         let mut deferred_transaction = None;
         match self.block_tx_indexing_mode {
@@ -212,10 +216,6 @@ impl App {
                 deferred_transaction = Some(proto_transaction);
             }
         }
-
-        check_and_execute(Arc::as_ref(&artifact), &mut state_tx)
-            .await
-            .context("executing transaction")?;
 
         // At this point, we've completed execution successfully with no errors,
         // so we can apply the transaction to the State. Otherwise, we'd have

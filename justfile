@@ -18,6 +18,7 @@ check:
     cargo fmt --all -- --check
     just docs-check
     python3 scripts/commonware.py check
+    python3 scripts/cnidarium.py check
     just tooling-test
     cargo check --profile ci --workspace --all-targets --all-features
 

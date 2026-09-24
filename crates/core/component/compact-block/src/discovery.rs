@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::core::component::compact_block::v1 as pb, DomainType};
-use shieldd_sdk_shielded_pool::{discovery, NotePayload};
-use shieldd_sdk_tct::builder::{block, epoch};
+use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_txhash::TransactionId;
 
+#[cfg(test)]
 use crate::CompactBlock;
 
 /// One public tag attached to an action. Slot roles are deliberately absent.
@@ -57,47 +57,40 @@ impl TryFrom<pb::RoutingRecord> for RoutingRecord {
     }
 }
 
-/// Encrypted note payloads grouped by their producing action.
+/// Canonical SCT positions produced by an action, including volume state.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(
-    try_from = "pb::RoutingActionPayloads",
-    into = "pb::RoutingActionPayloads"
-)]
-pub struct RoutingActionPayloads {
+#[serde(try_from = "pb::RoutingAction", into = "pb::RoutingAction")]
+pub struct RoutingAction {
     pub transaction_id: TransactionId,
     pub action_index: u32,
-    pub note_payloads: Vec<NotePayload>,
+    pub payload_positions: Vec<u64>,
 }
 
-impl DomainType for RoutingActionPayloads {
-    type Proto = pb::RoutingActionPayloads;
+impl DomainType for RoutingAction {
+    type Proto = pb::RoutingAction;
 }
 
-impl From<RoutingActionPayloads> for pb::RoutingActionPayloads {
-    fn from(action: RoutingActionPayloads) -> Self {
+impl From<RoutingAction> for pb::RoutingAction {
+    fn from(action: RoutingAction) -> Self {
         Self {
             transaction_id: Some(action.transaction_id.into()),
             action_index: action.action_index,
-            note_payloads: action.note_payloads.into_iter().map(Into::into).collect(),
+            payload_positions: action.payload_positions,
         }
     }
 }
 
-impl TryFrom<pb::RoutingActionPayloads> for RoutingActionPayloads {
+impl TryFrom<pb::RoutingAction> for RoutingAction {
     type Error = anyhow::Error;
 
-    fn try_from(action: pb::RoutingActionPayloads) -> Result<Self> {
+    fn try_from(action: pb::RoutingAction) -> Result<Self> {
         Ok(Self {
             transaction_id: action
                 .transaction_id
                 .context("routing action is missing its transaction ID")?
                 .try_into()?,
             action_index: action.action_index,
-            note_payloads: action
-                .note_payloads
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<_>>()?,
+            payload_positions: action.payload_positions,
         })
     }
 }
@@ -108,76 +101,37 @@ pub struct PendingRoutingAction {
     pub transaction_id: TransactionId,
     pub action_index: u32,
     pub tags: Vec<discovery::RoutingTag>,
-    pub note_payloads: Vec<NotePayload>,
-}
-
-/// Public routing records and roots for one block.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(try_from = "pb::RoutingBlock", into = "pb::RoutingBlock")]
-pub struct RoutingBlock {
-    pub height: u64,
-    pub block_root: block::Root,
-    pub epoch_root: Option<epoch::Root>,
-    pub records: Vec<RoutingRecord>,
-    pub parameters: Option<discovery::Parameters>,
-}
-
-impl From<CompactBlock> for RoutingBlock {
-    fn from(block: CompactBlock) -> Self {
-        Self {
-            height: block.height,
-            block_root: block.block_root,
-            epoch_root: block.epoch_root,
-            records: block.routing_records,
-            parameters: block.discovery_parameters,
-        }
-    }
-}
-
-impl DomainType for RoutingBlock {
-    type Proto = pb::RoutingBlock;
-}
-
-impl From<RoutingBlock> for pb::RoutingBlock {
-    fn from(block: RoutingBlock) -> Self {
-        Self {
-            height: block.height,
-            block_root: (!block.block_root.is_empty_finalized()).then(|| block.block_root.into()),
-            epoch_root: block.epoch_root.map(Into::into),
-            records: block.records.into_iter().map(Into::into).collect(),
-            discovery_parameters: block.parameters.map(Into::into),
-        }
-    }
-}
-
-impl TryFrom<pb::RoutingBlock> for RoutingBlock {
-    type Error = anyhow::Error;
-
-    fn try_from(block: pb::RoutingBlock) -> Result<Self> {
-        Ok(Self {
-            height: block.height,
-            block_root: block
-                .block_root
-                .map(TryInto::try_into)
-                .transpose()?
-                .unwrap_or_else(|| block::Finalized::default().root()),
-            epoch_root: block.epoch_root.map(TryInto::try_into).transpose()?,
-            records: block
-                .records
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<_>>()?,
-            parameters: block
-                .discovery_parameters
-                .map(TryInto::try_into)
-                .transpose()?,
-        })
-    }
+    pub payload_positions: Vec<u64>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compact_payload_has_one_canonical_encoding() {
+        use shieldd_sdk_sct::CommitmentSource;
+        let note = shieldd_sdk_shielded_pool::NotePayload::dummy();
+        let encoded_note = note.encode_to_vec();
+        let block = CompactBlock {
+            state_payloads: vec![(note.clone(), CommitmentSource::Genesis).into()],
+            routing_actions: vec![RoutingAction {
+                transaction_id: TransactionId([1; 32]),
+                action_index: 0,
+                payload_positions: vec![0],
+            }],
+            ..Default::default()
+        };
+        let encoded = block.encode_to_vec();
+        assert_eq!(
+            encoded
+                .windows(encoded_note.len())
+                .filter(|part| *part == encoded_note)
+                .count(),
+            1,
+            "routing must reference the canonical payload instead of repeating it"
+        );
+    }
 
     #[test]
     fn tag_slot_is_narrowed_at_the_domain_boundary() {

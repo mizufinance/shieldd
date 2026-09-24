@@ -1230,48 +1230,41 @@ async fn prepare_proposal_rechecks_spends_after_snapshot_changes() -> Result<()>
 
 #[tokio::test]
 async fn committed_transaction_query_is_bounded_for_large_logs() -> Result<()> {
+    use crate::app::StateWriteExt as _;
     use prost::Message as _;
-    use shieldd_sdk_proto::core::app::v1::{
-        TransactionsByHeightResponse, MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES,
-    };
-    // Synthetic stored log exercises selection/framing, not proof or host admission.
+    use shieldd_sdk_proto::core::app::v1::MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES;
     let storage = TempStorage::new().await?;
     let mut state = StateDelta::new(storage.latest_snapshot());
-    let mut tx = Transaction::default();
-    tx.transaction_body.transaction_parameters.chain_id =
-        "x".repeat(super::MAX_TRANSACTION_SIZE_BYTES - 1024);
-    let padding = super::MAX_TRANSACTION_SIZE_BYTES - tx.encode_to_vec().len();
-    tx.transaction_body
-        .transaction_parameters
-        .chain_id
-        .push_str(&"x".repeat(padding));
-    assert_eq!(tx.encode_to_vec().len(), super::MAX_TRANSACTION_SIZE_BYTES);
-    let id: [u8; 32] = tx.id().as_ref().try_into()?;
-    let encoded: shieldd_sdk_proto::core::transaction::v1::Transaction = tx.into();
-    for target in [4 * 1024 * 1024, 22_020_096] {
-        let log = TransactionsByHeightResponse {
-            block_height: 7,
-            transactions: vec![encoded.clone(); target / encoded.encoded_len() + 1],
-        };
-        assert!(log.encoded_len() > target);
-        state.nonverifiable_put_raw(
-            super::state_key::block_data::transactions_by_height(7).into(),
-            log.encode_to_vec(),
+    let mut selected = None;
+    for ordinal in 0..256 {
+        let mut tx = Transaction::default();
+        tx.transaction_body.transaction_parameters.chain_id = format!(
+            "{ordinal:08}{}",
+            "x".repeat(super::MAX_TRANSACTION_SIZE_BYTES - 1024)
         );
-        let response = state.committed_transaction(7, id).await?;
-        assert_eq!(response.transaction.as_ref(), Some(&encoded));
-        assert!(response.encoded_len() <= MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES);
-        assert!(state
-            .committed_transaction(7, [0; 32])
-            .await?
-            .transaction
-            .is_none());
-        assert!(state
-            .committed_transaction(8, id)
-            .await?
-            .transaction
-            .is_none());
+        let id = tx.id().0;
+        let encoded: shieldd_sdk_proto::core::transaction::v1::Transaction = tx.into();
+        state.put_block_transaction(7, encoded.clone()).await?;
+        selected = Some((id, encoded));
     }
+    let (id, encoded) = selected.unwrap();
+    assert_eq!(state.block_transaction_count(7).await?, 256);
+    assert!(state.transactions_by_height(7).await?.encoded_len() > 22_020_096);
+    let response = state.committed_transaction(7, id).await?;
+    assert_eq!(response.transaction.as_ref(), Some(&encoded));
+    assert!(response.encoded_len() <= MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES);
+    assert!(state
+        .committed_transaction(7, [0; 32])
+        .await?
+        .transaction
+        .is_none());
+    assert!(state
+        .committed_transaction(8, id)
+        .await?
+        .transaction
+        .is_none());
+    assert!(state.put_block_transaction(7, encoded).await.is_err());
+    assert_eq!(state.block_transaction_count(7).await?, 256);
     Ok(())
 }
 

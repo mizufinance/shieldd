@@ -100,7 +100,9 @@ jobs:
         run: nix develop .#ci --command just pari-setup
 
       - name: Reproduce pinned Commonware sources and patches
-        run: nix develop .#ci --command python3 scripts/commonware.py reproduce
+        run: |
+          nix develop .#ci --command python3 scripts/commonware.py reproduce
+          nix develop .#ci --command python3 scripts/cnidarium.py reproduce
 
       - name: Run pinned Commonware Pari and compiler tests
         run: nix develop .#ci --command just commonware-test

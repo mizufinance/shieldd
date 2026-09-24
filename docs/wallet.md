@@ -10,6 +10,29 @@ Each worker binds its in-memory trees to a durable height and rejects scans afte
 writer advances storage. Recreate a stale worker, including after cancelling a scan
 whose database commit may have completed.
 
+`sync_from_provider` accepts `FullScan` by default, or an explicit
+`RemoteFiltered { provider_id }` matching the selected provider. FullScan decrypts
+every note with bounded concurrency and does not depend on an issued-address
+manifest. Filtered mode queries all issued selectors for both asset precisions,
+including the applicable previous-parameter grace period, in batches of 256.
+Retired addresses remain eligible. An incomplete manifest requires FullScan recovery.
+
+Filtered responses contain matched and unrouted payloads, positional block proofs,
+metadata and every compliance event. The checked sparse constructor validates
+positions, canonical padding, paths and shared nodes. The resulting SCT must match
+the independently supplied host root before commit. Spend pages cover each scanned
+block, including newly discovered notes, seizures and other-device spends. Positive
+membership must match an independently supplied generation root and the requested
+height. Omission completeness and exact spend-time mapping remain trusted-provider
+facts; this is not a light client. Selectors and owned nullifiers are disclosed to
+that provider. See [routing privacy](routing.md#remote-privacy-modes).
+
+All page fragments and required transactions complete before the existing atomic
+wallet write. Expired mutable cursors or failed queries discard unfinished work;
+restart at a fresh host anchor. Historical block-proof trees are disposable node
+caches, bounded separately to 64 MiB with one reconstruction worker. Wallet
+compliance synchronization remains global.
+
 `StoragePlanningIo` fixes its read height when created and rejects reads after
 the wallet advances. `PlanningIo` supplies the external reads needed to complete
 an intent. Issued addresses are durable records: planning and discovery reuse

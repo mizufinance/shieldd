@@ -9,6 +9,8 @@ pub mod event;
 #[cfg(feature = "component")]
 pub mod generation_pack;
 pub mod genesis;
+#[cfg(feature = "component")]
+mod indexed_archive;
 pub mod indexed_nullifier_tree;
 pub mod nullifier_generation;
 #[cfg(feature = "component")]

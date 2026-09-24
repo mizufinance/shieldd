@@ -16,7 +16,7 @@ component = [
     "dep:tokio",
 ]
 default = ["component"]
-scanner = ["dep:rusqlite", "dep:tokio", "tokio/sync", "tokio/time"]
+scanner = ["dep:tempfile", "dep:rusqlite", "dep:tokio", "tokio/sync", "tokio/time"]
 sqlite-bundled = ["scanner", "rusqlite/bundled"]
 test-helpers = []
 
@@ -51,6 +51,7 @@ blake2b_simd = {workspace = true}
 hex = {workspace = true}
 futures = {workspace = true}
 rand_core = {workspace = true}
+tempfile = {workspace = true, optional = true}
 rusqlite = {version = "0.32", optional = true}
 tendermint = {workspace = true}
 tokio = {workspace = true, optional = true}

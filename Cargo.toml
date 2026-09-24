@@ -172,6 +172,7 @@ tracing-subscriber               = { version = "0.3.20", features = ["env-filter
 getrandom                        = { version = "0.2", default-features = false }
 
 [patch.crates-io]
+cnidarium = { path = "third_party/cnidarium-0.83.0" }
 # Tendermint RPC and Orbis still require reqwest 0.11, whose h2 0.3 line has
 # no upstream release for RUSTSEC-2026-0258. This carries the upstream fix;
 # remove it once those clients migrate to reqwest 0.12.

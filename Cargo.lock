@@ -1349,8 +1349,6 @@ checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
 [[package]]
 name = "cnidarium"
 version = "0.83.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2caa1090700cdec4305df871194280f800f8c74e1fed4031697d436a31811af5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1389,6 +1387,7 @@ dependencies = [
  "async-trait",
  "cnidarium",
  "tendermint",
+ "tokio",
 ]
 
 [[package]]
@@ -6417,6 +6416,9 @@ dependencies = [
  "ibc-proto",
  "ibc-types",
  "prost 0.13.4",
+ "serde",
+ "serde_json",
+ "sha2 0.10.8",
  "shieldd-sdk-app",
  "shieldd-sdk-asset",
  "shieldd-sdk-compact-block",
@@ -6427,6 +6429,7 @@ dependencies = [
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-tct",
  "tempfile",
  "tendermint",
  "tendermint-proto",
@@ -6677,6 +6680,7 @@ dependencies = [
  "rand 0.8.6",
  "rand_core 0.6.4",
  "serde",
+ "sha2 0.10.8",
  "shieldd-sdk-compliance",
  "shieldd-sdk-fee",
  "shieldd-sdk-proof-params",
@@ -7157,6 +7161,7 @@ dependencies = [
  "commonware-parallel",
  "digest 0.9.0",
  "ff 0.13.0",
+ "futures",
  "genawaiter",
  "group 0.13.0",
  "hex",

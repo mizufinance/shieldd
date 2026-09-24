@@ -409,14 +409,26 @@ impl HostExecution {
             "check_tx requires initialized storage"
         );
 
-        let mut app = App::new(self.storage.latest_snapshot(), self.app.registry.clone()).await?;
-        app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
+        Self::check_tx_at(
+            self.storage.latest_snapshot(),
+            self.app.registry.clone(),
+            self.stateless_cache.clone(),
+            tx_bytes,
+        )
+        .await
+    }
 
+    /// Validate against a caller-selected committed snapshot, never execution's pending delta.
+    pub async fn check_tx_at(
+        snapshot: cnidarium::Snapshot,
+        registry: Arc<Registry>,
+        cache: Arc<StatelessCache>,
+        tx_bytes: &[u8],
+    ) -> Result<HostTxResponse> {
+        let mut app = App::new(snapshot, registry).await?;
+        app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         Ok(
-            match app
-                .deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))
-                .await
-            {
+            match app.deliver_tx_bytes(tx_bytes, Some(cache.as_ref())).await {
                 Ok(events) => HostTxResponse::accepted(events, Vec::new()),
                 Err(error) => HostTxResponse::rejected(error),
             },
@@ -1766,7 +1778,10 @@ mod tests {
             .commit()
             .await
             .expect_err("stale application snapshot must fail");
-        assert!(format!("{error:#}").contains("committing application state to storage"));
+        assert!(
+            format!("{error:#}").contains("delta forked from version"),
+            "{error:#}"
+        );
         assert_eq!(host.phase(), HostExecutionPhase::CommitInterrupted);
         assert!(host.commit().await.is_err());
         assert_eq!(host.committed_state().await?, committed);

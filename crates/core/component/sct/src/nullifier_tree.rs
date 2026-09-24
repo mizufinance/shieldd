@@ -8,7 +8,7 @@ use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    generation_pack::NullifierGenerationPack,
+    generation_pack::GenerationPackRepository,
     indexed_nullifier_tree::{
         hash_children, FqOrdKey, IndexedNullifierLeaf, IndexedNullifierWitness, CAPACITY, DEPTH,
         ZERO_HASHES,
@@ -86,6 +86,170 @@ async fn leaf_count<S: StateRead + ?Sized>(state: &S, tree: NullifierTreeId) -> 
         .get_proto(&state_key::nullifier_generations::leaf_count(tree))
         .await?
         .context("nullifier IMT leaf count is missing")
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct InsertionInterval {
+    pub height: u64,
+    pub generation: u64,
+    pub first_position: u64,
+    pub count: u64,
+}
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct GenerationBlockRange {
+    pub start_height: u64,
+    pub end_height: u64,
+}
+pub async fn record_block_insertions<S: StateWrite + ?Sized>(
+    state: &mut S,
+    interval: InsertionInterval,
+) -> Result<()> {
+    ensure!(
+        interval.first_position >= 1
+            && interval
+                .first_position
+                .checked_add(interval.count)
+                .is_some_and(|end| end <= 1u64 << 40),
+        "invalid insertion interval"
+    );
+    let key = state_key::nullifier_generations::insertion(interval.generation, interval.height);
+    ensure!(
+        state.nonverifiable_get_raw(&key).await?.is_none(),
+        "insertion interval already recorded"
+    );
+    let range_key = state_key::nullifier_generations::block_range(interval.generation);
+    let mut range = match state.nonverifiable_get_raw(&range_key).await? {
+        Some(bytes) => {
+            let old: GenerationBlockRange = serde_json::from_slice(&bytes)?;
+            ensure!(
+                old.end_height.checked_add(1) == Some(interval.height),
+                "generation block interval has a gap or overlap"
+            );
+            let prior = insertion_interval(state, interval.generation, old.end_height).await?;
+            ensure!(
+                prior.first_position + prior.count == interval.first_position,
+                "insertion intervals disagree on leaf order"
+            );
+            old
+        }
+        None => {
+            ensure!(
+                interval.first_position == 1,
+                "generation omits its initial insertion interval"
+            );
+            GenerationBlockRange {
+                start_height: interval.height,
+                end_height: interval.height,
+            }
+        }
+    };
+    range.end_height = interval.height;
+    let bytes = serde_json::to_vec(&interval)?;
+    if interval.count > 0 {
+        state.nonverifiable_put_raw(
+            state_key::nullifier_generations::spend_interval(
+                interval.generation,
+                interval.first_position,
+            ),
+            bytes.clone(),
+        );
+    }
+    state.nonverifiable_put_raw(key, bytes);
+    state.nonverifiable_put_raw(range_key, serde_json::to_vec(&range)?);
+    Ok(())
+}
+pub async fn insertion_interval<S: StateRead + ?Sized>(
+    state: &S,
+    generation: u64,
+    height: u64,
+) -> Result<InsertionInterval> {
+    let bytes = state
+        .nonverifiable_get_raw(&state_key::nullifier_generations::insertion(
+            generation, height,
+        ))
+        .await?
+        .context("missing insertion interval")?;
+    let interval: InsertionInterval = serde_json::from_slice(&bytes)?;
+    ensure!(
+        interval.height == height
+            && interval.generation == generation
+            && interval.first_position >= 1
+            && interval
+                .first_position
+                .checked_add(interval.count)
+                .is_some_and(|end| end <= 1u64 << 40),
+        "inconsistent insertion interval"
+    );
+    Ok(interval)
+}
+pub async fn generation_block_range<S: StateRead + ?Sized>(
+    state: &S,
+    generation: u64,
+) -> Result<GenerationBlockRange> {
+    let bytes = state
+        .nonverifiable_get_raw(&state_key::nullifier_generations::block_range(generation))
+        .await?
+        .context("generation block range unavailable")?;
+    let range: GenerationBlockRange = serde_json::from_slice(&bytes)?;
+    ensure!(
+        range.start_height <= range.end_height,
+        "invalid generation block range"
+    );
+    Ok(range)
+}
+pub async fn spend_height<S: StateRead + ?Sized>(
+    state: &S,
+    generation: u64,
+    position: u64,
+) -> Result<u64> {
+    ensure!(
+        position >= 1 && position < 1u64 << 40,
+        "sentinel or invalid spend position"
+    );
+    let prefix = state_key::nullifier_generations::spend_prefix(generation);
+    let stream = state.nonverifiable_range_raw(
+        Some(&prefix),
+        (u64::MAX - position).to_be_bytes().to_vec()..,
+    )?;
+    futures::pin_mut!(stream);
+    let (_, bytes) = stream
+        .next()
+        .await
+        .context("spend interval unavailable")??;
+    let interval: InsertionInterval = serde_json::from_slice(&bytes)?;
+    let canonical = insertion_interval(state, generation, interval.height).await?;
+    ensure!(
+        canonical.first_position == interval.first_position
+            && canonical.count == interval.count
+            && position >= interval.first_position
+            && position < interval.first_position + interval.count,
+        "spend interval is inconsistent"
+    );
+    let range = generation_block_range(state, generation).await?;
+    ensure!(
+        (range.start_height..=range.end_height).contains(&interval.height),
+        "spend interval outside generation range"
+    );
+    if interval.height > range.start_height {
+        let previous = insertion_interval(state, generation, interval.height - 1).await?;
+        ensure!(
+            previous.first_position + previous.count == canonical.first_position,
+            "overlapping or missing preceding insertion interval"
+        );
+    } else {
+        ensure!(
+            canonical.first_position == 1,
+            "first insertion interval omits leaves"
+        );
+    }
+    if interval.height < range.end_height {
+        let next = insertion_interval(state, generation, interval.height + 1).await?;
+        ensure!(
+            canonical.first_position + canonical.count == next.first_position,
+            "overlapping or missing following insertion interval"
+        );
+    }
+    Ok(interval.height)
 }
 
 pub async fn current_leaf_count<S: StateRead + ?Sized>(state: &S) -> Result<u64> {
@@ -1032,15 +1196,14 @@ pub async fn archived_generation<S: StateRead + ?Sized>(
         .with_context(|| format!("nullifier generation {generation_index} is not archived"))
 }
 
-pub async fn build_generation_pack<S: StateRead + ?Sized>(
+pub async fn build_generation_archive<S: StateRead + ?Sized>(
     state: &S,
+    repository: &GenerationPackRepository,
     generation_index: u64,
-) -> Result<NullifierGenerationPack> {
+    maintenance: crate::generation_pack::ArchiveMaintenanceLease,
+) -> Result<NullifierGenerationPackReceipt> {
     let tree = NullifierTreeId::Generation(generation_index);
-    let archived: NullifierGenerationArchived = state
-        .nonverifiable_get(&state_key::nullifier_generations::retired_record(tree))
-        .await?
-        .context("nullifier generation is not archived")?;
+    let archived = archived_generation(state, generation_index).await?;
     ensure!(
         read_node(state, tree, DEPTH, 0).await?.to_bytes() == archived.generation_root,
         "durable archived nullifier IMT root mismatch"
@@ -1048,48 +1211,78 @@ pub async fn build_generation_pack<S: StateRead + ?Sized>(
     let stream =
         state.nonverifiable_prefix_raw(&state_key::nullifier_generations::leaf_prefix(tree));
     futures::pin_mut!(stream);
-    let mut expected_position = 0u64;
-    let mut nullifiers = Vec::new();
-    while let Some(item) = stream.next().await {
-        let (key, bytes) = item?;
-        let position_bytes = key
-            .get(key.len().saturating_sub(8)..)
-            .context("generation leaf key omits its position")?;
-        let position = u64::from_be_bytes(
-            position_bytes
-                .try_into()
-                .map_err(|_| anyhow::anyhow!("generation leaf position is malformed"))?,
-        );
-        let leaf: IndexedNullifierLeaf =
-            bincode::deserialize(&bytes).context("decode packed generation leaf")?;
-        ensure!(
-            position == expected_position,
-            "retired generation leaf positions are not contiguous"
-        );
-        if position == 0 {
-            ensure!(
-                leaf.is_lower_sentinel,
-                "generation sentinel leaf is invalid"
+    let (sender, receiver) = tokio::sync::mpsc::channel(1024);
+    let repository = repository.clone();
+    let job = tokio::task::spawn_blocking(move || {
+        let _maintenance = maintenance;
+        repository.write_stream(archived, ArchiveInput::new(receiver))
+    });
+    let mut expected = 0u64;
+    let produce = async {
+        while let Some(item) = stream.next().await {
+            let (key, bytes) = item?;
+            let position = u64::from_be_bytes(
+                key.get(key.len().saturating_sub(8)..)
+                    .context("missing position")?
+                    .try_into()?,
             );
-        } else {
-            ensure!(!leaf.is_lower_sentinel, "ordinary pack leaf is a sentinel");
-            nullifiers.push(Nullifier(leaf.value_fq()?));
+            let leaf: IndexedNullifierLeaf = bincode::deserialize(&bytes)?;
+            ensure!(
+                position == expected && leaf.is_lower_sentinel == (position == 0),
+                "retired generation leaf positions or sentinel are invalid"
+            );
+            leaf.validate()?;
+            if position > 0 {
+                sender
+                    .send(Some(Nullifier(leaf.value_fq()?)))
+                    .await
+                    .context("archive builder stopped")?;
+            }
+            expected += 1;
         }
-        expected_position = expected_position
-            .checked_add(1)
-            .context("retired generation leaf count overflow")?;
+        ensure!(expected > 0, "retired generation has no leaves to pack");
+        sender.send(None).await.context("archive builder stopped")?;
+        Ok::<_, anyhow::Error>(())
     }
-    ensure!(
-        expected_position > 0,
-        "retired generation has no leaves to pack"
-    );
-    tokio::task::spawn_blocking(move || {
-        let pack = NullifierGenerationPack::new(archived, nullifiers)?;
-        pack.reconstruct()?;
-        Ok(pack)
-    })
-    .await
-    .context("generation pack validation task panicked")?
+    .await;
+    drop(sender);
+    let result = job.await.context("archive builder task failed")?;
+    produce?;
+    result
+}
+
+/// A dropped asynchronous producer is cancellation, not a valid end of input.
+/// The explicit terminator prevents partially streamed data from being published.
+pub struct ArchiveInput {
+    receiver: tokio::sync::mpsc::Receiver<Option<Nullifier>>,
+    done: bool,
+}
+impl ArchiveInput {
+    pub fn new(receiver: tokio::sync::mpsc::Receiver<Option<Nullifier>>) -> Self {
+        Self {
+            receiver,
+            done: false,
+        }
+    }
+}
+impl Iterator for ArchiveInput {
+    type Item = Result<Nullifier>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        }
+        match self.receiver.blocking_recv() {
+            Some(Some(value)) => Some(Ok(value)),
+            Some(None) => {
+                self.done = true;
+                None
+            }
+            None => {
+                self.done = true;
+                Some(Err(anyhow::anyhow!("archive producer cancelled")))
+            }
+        }
+    }
 }
 
 pub async fn record_generation_pack_completion<S: StateWrite + ?Sized>(
@@ -1126,66 +1319,6 @@ pub async fn generation_pack_receipt<S: StateRead + ?Sized>(
         .await?
         .map(|bytes| serde_json::from_slice(&bytes).context("decode generation pack receipt"))
         .transpose()
-}
-
-pub async fn prune_packed_generation_page<S: StateWrite + ?Sized>(
-    state: &mut S,
-    receipt: &NullifierGenerationPackReceipt,
-    prefix_index: u8,
-    limit: usize,
-) -> Result<u64> {
-    ensure!(limit > 0, "pruning page limit must be positive");
-    receipt.validate()?;
-    let tree = NullifierTreeId::Generation(receipt.generation_index);
-    let stored = state
-        .nonverifiable_get_raw(&state_key::nullifier_generations::local_pack_receipt(tree))
-        .await?
-        .context("local generation pack receipt is missing")?;
-    ensure!(
-        serde_json::from_slice::<NullifierGenerationPackReceipt>(&stored)? == *receipt,
-        "pruning receipt does not match local generation pack"
-    );
-    let generation = generation_state(state).await?;
-    ensure!(
-        generation.current_tree != tree && generation.previous_tree != Some(tree),
-        "cannot prune a consensus-active nullifier generation"
-    );
-    let archived: NullifierGenerationArchived = state
-        .nonverifiable_get(&state_key::nullifier_generations::retired_record(tree))
-        .await?
-        .context("nullifier generation is not archived")?;
-    ensure!(
-        archived.generation_root == receipt.generation_root
-            && archived.generation_start_position == receipt.generation_start_position
-            && archived.generation_end_position == receipt.generation_end_position,
-        "pruning receipt does not match the retired generation"
-    );
-    let prefixes = [
-        state_key::nullifier_generations::tree_node_prefix(tree),
-        state_key::nullifier_generations::leaf_prefix(tree),
-        state_key::nullifier_generations::value_prefix(tree),
-        state_key::nullifier_generations::value_desc_prefix(tree),
-    ];
-    let prefix = prefixes
-        .get(usize::from(prefix_index))
-        .context("invalid nullifier pruning prefix")?;
-    let keys = {
-        let mut keys = Vec::with_capacity(limit);
-        let stream = state.nonverifiable_prefix_raw(prefix);
-        futures::pin_mut!(stream);
-        while let Some(item) = stream.next().await {
-            keys.push(item?.0);
-            if keys.len() == limit {
-                break;
-            }
-        }
-        keys
-    };
-    let deleted = keys.len() as u64;
-    for key in keys {
-        state.nonverifiable_delete(key);
-    }
-    Ok(deleted)
 }
 
 #[cfg(test)]
@@ -1391,48 +1524,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn packed_generation_is_provable_until_pruned() -> Result<()> {
-        let storage = TempStorage::new().await?;
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
-        initialize(&mut state).await?;
-        insert_batch(&mut state, [nullifier(7)]).await?;
-        rollover(&mut state, 30, 1 << 32)
-            .await?
-            .context("rollover")?;
-        rollover(&mut state, 60, 2 << 32)
-            .await?
-            .context("second rollover")?;
-
-        let pack = build_generation_pack(&state, 0).await?;
-        let bytes = pack.encode()?;
-        let receipt = pack.receipt(&bytes)?;
-        record_generation_pack_completion(&mut state, &receipt).await?;
-        archived_nonmembership_proof(&state, 0, nullifier(9))
-            .await?
-            .verify_for(nullifier(9))?;
-
-        let mut deleted = 0;
-        for prefix_index in 0..4 {
-            loop {
-                let page =
-                    prune_packed_generation_page(&mut state, &receipt, prefix_index, 2).await?;
-                deleted += page;
-                if page < 2 {
-                    break;
-                }
-            }
-        }
-        assert!(deleted > 0);
-        assert!(committed_root_for(&state, NullifierTreeId::Generation(0))
-            .await?
-            .is_none());
-        assert!(archived_nonmembership_proof(&state, 0, nullifier(9))
-            .await
-            .is_err());
-        Ok(())
-    }
-
-    #[tokio::test]
     async fn reconstructed_pack_matches_live_witnesses() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
@@ -1449,12 +1540,19 @@ mod tests {
             .await?
             .context("second rollover")?;
 
-        let pack = build_generation_pack(&state, 0).await?;
-        let reconstructed = pack.reconstruct()?;
-        assert_eq!(reconstructed.root(), pack.metadata.generation_root);
+        let directory = tempfile::tempdir()?;
+        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 4096)?;
+        let archived = archived_generation(&state, 0).await?;
+        build_generation_archive(
+            &state,
+            &repository,
+            0,
+            crate::generation_pack::ArchiveMaintenanceLease::acquire().await,
+        )
+        .await?;
         for value in [0, 2, 6, 8, 13] {
             let live = archived_nonmembership_proof(&state, 0, nullifier(value)).await?;
-            let packed = reconstructed.nonmembership_proof(nullifier(value))?;
+            let packed = repository.nonmembership_proof(archived, nullifier(value))?;
             assert_eq!(*packed, live);
         }
         Ok(())

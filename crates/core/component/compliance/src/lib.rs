@@ -147,8 +147,8 @@ pub mod scanner;
 pub use scanner::{
     extract_compliance_ciphertexts, AuditLedgerRow, AuditRowKey, BlockIdentityProvider,
     CandidateEvidence, ComplianceScreener, DetectionEvent, ExtractedComplianceCiphertext,
-    InvalidCiphertext, IssuerComplianceWorker, OutputOutcome, ScannedBlock, ScannedOutput,
-    ScannerSource, ScannerStore, ScreeningResult, SqliteScannerStore, WorkerHandle,
+    InvalidCiphertext, IssuerComplianceWorker, OutputOutcome, ScannedOutput, ScannerSource,
+    ScannerStore, ScreeningResult, SqliteScannerStore, WorkerHandle,
     MAX_INVALID_CIPHERTEXTS_PER_BLOCK,
 };
 

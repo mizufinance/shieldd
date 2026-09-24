@@ -8,6 +8,28 @@ directly. Bankd serves public queries and executes IBC; Shieldd reads committed
 snapshots. Host withdrawals use the shared `shielded_withdrawal` proof family
 and return value to Bankd for transfer or execution.
 
+ABI 2 requires an archive directory at open; Bankd uses `data/shieldd-archives`
+and fails startup if it is unusable. Compact/local storage and archive formats are
+incompatible with older data: reset and resynchronize, without migration paths.
+
+Public reads use committed snapshots independently of the execution mutex. Block
+and transaction pages bind cursors to chain, query parameters and immutable block
+identity; mutable spend cursors bind the snapshot version and expire after a new
+publication. Clients must discard incomplete expired queries. Oversized records
+are fragmented. Overload, snapshot expiry and unavailable data are distinct errors.
+Native response buffers own their memory reservation until `shieldd_buffer_free`,
+even after service shutdown; callers must free every result/error buffer.
+
+Local defaults are 4 MiB response pages, 256 KiB requests, 256 selectors/nullifiers,
+eight read requests, 64 MiB query workspace/outstanding responses, two CheckTx
+workers and two archive readers. `SHIELDD_SERVICE_LIMITS` accepts a JSON object
+with fields defined by [ServiceLimits](../crates/bin/shieldd/src/limits.rs), applying
+at startup. Transport budgets can be tightened within supported client bounds.
+Excess work fails with retryable overload instead of entering an unbounded queue.
+Archive and historical SCT caches each have a separate 64 MiB budget; archive
+maintenance and historical SCT reconstruction each run one job at a time. These
+are operating budgets, not consensus or transaction validity limits.
+
 Build explicit deliverables from the Shieldd source root:
 
 ```sh

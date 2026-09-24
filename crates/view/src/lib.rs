@@ -11,9 +11,15 @@ mod historical_proof_worker;
 mod issued_address;
 mod note_manager;
 mod note_record;
+mod provider;
+#[cfg(feature = "rpc")]
+mod provider_rpc;
+#[cfg(feature = "rpc")]
+pub use provider_rpc::RpcSyncProvider;
 mod storage;
 mod sync;
 mod worker;
+pub use provider::{GenerationAnchors, HostBlock, SyncMode, SyncProvider};
 
 pub use crate::client_compliance::{
     complete_plan_with_compliance, CompletionData, VolumeRecoveryRecord,

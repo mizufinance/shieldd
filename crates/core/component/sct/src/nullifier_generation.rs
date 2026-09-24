@@ -789,6 +789,16 @@ pub struct NullifierGenerationPackReceipt {
 }
 
 impl NullifierGenerationPackReceipt {
+    pub fn archive_byte_length(count: u64) -> u64 {
+        let mut length = count * 74 + (count - 1) * 40;
+        let mut nodes = count;
+        for _ in 0..=crate::indexed_nullifier_tree::DEPTH {
+            length += nodes * 32;
+            nodes = nodes.div_ceil(4);
+        }
+        length
+    }
+
     pub fn validate(&self) -> anyhow::Result<()> {
         ensure!(
             self.protocol_version == PROTOCOL_VERSION,
@@ -804,16 +814,7 @@ impl NullifierGenerationPackReceipt {
             "packed generation leaf count is invalid"
         );
         ensure!(
-            self.byte_length
-                == 108u64
-                    .checked_add(
-                        self.leaf_count
-                            .checked_sub(1)
-                            .context("generation pack omits its sentinel")?
-                            .checked_mul(32)
-                            .context("generation pack byte length overflow")?,
-                    )
-                    .context("generation pack byte length overflow")?,
+            self.byte_length == Self::archive_byte_length(self.leaf_count),
             "generation pack byte length does not match its leaf count"
         );
         Ok(())

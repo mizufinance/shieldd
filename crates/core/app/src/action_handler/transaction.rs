@@ -17,7 +17,7 @@ use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::component::{
     note_reshape_execute_verified, shielded_host_withdrawal_execute_verified,
     transfer_execute_validated, transfer_execute_verified, transfer_validate_verified,
-    AssetRegistryRead as _, StateReadExt as _,
+    AssetRegistryRead as _, NoteManager as _, StateReadExt as _,
 };
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_shielded_pool::TransferProofContext;
@@ -84,62 +84,39 @@ impl<K: Eq + std::hash::Hash> ValidationCache<K> {
 
 type ClaimedAnchorValidationCache = ValidationCache<ClaimedAnchorKey>;
 
-fn transaction_routing_actions(tx: &Transaction) -> Result<Vec<PendingRoutingAction>> {
-    let transaction_id = tx.id();
-    let mut routing_actions = Vec::new();
-    for (action_index, action) in tx.actions().enumerate() {
-        let action_index = u32::try_from(action_index).context("action index exceeds u32")?;
-        let action = match action {
-            Action::Transfer(transfer) => Some(PendingRoutingAction {
-                transaction_id,
-                action_index,
-                tags: transfer.body.routing.tags.to_vec(),
-                note_payloads: transfer
-                    .body
-                    .outputs
-                    .iter()
-                    .map(|output| output.note_payload.clone())
-                    .collect(),
-            }),
-            Action::NoteReshape(note_reshape) => Some(PendingRoutingAction {
-                transaction_id,
-                action_index,
-                tags: vec![note_reshape.body.routing_tag],
-                note_payloads: note_reshape
-                    .body
-                    .outputs
-                    .iter()
-                    .map(|output| output.note_payload.clone())
-                    .collect(),
-            }),
-
-            Action::ShieldedHostWithdrawal(withdrawal) => Some(PendingRoutingAction {
-                transaction_id,
-                action_index,
-                tags: vec![withdrawal.body.routing_tag],
-                note_payloads: vec![withdrawal.body.change_output.note_payload.clone()],
-            }),
-            _ => None,
-        };
-        routing_actions.extend(action);
-    }
-    if let Some(fee_funding) = &tx.transaction_body.fee_funding {
-        let action_index =
-            u32::try_from(tx.transaction_body.actions.len()).context("action index exceeds u32")?;
-        routing_actions.push(PendingRoutingAction {
-            transaction_id,
-            action_index,
-            tags: fee_funding.transfer.body.routing.tags.to_vec(),
-            note_payloads: fee_funding
-                .transfer
-                .body
-                .outputs
+/// Capture only the payloads appended by this action. Persistent-vector slicing
+/// avoids walking or cloning payloads staged by earlier transactions.
+fn stage_action_routing<S: StateWrite>(
+    state: &mut S,
+    transaction_id: shieldd_sdk_txhash::TransactionId,
+    action_index: usize,
+    tags: Vec<discovery::RoutingTag>,
+    note_start: usize,
+    volume_start: usize,
+) -> Result<()> {
+    let mut notes = state.pending_note_payloads();
+    let mut volumes = state.pending_volume_accumulator_payloads();
+    let mut payload_positions = notes
+        .slice(note_start..)
+        .iter()
+        .map(|(pos, _, _)| u64::from(*pos))
+        .chain(
+            volumes
+                .slice(volume_start..)
                 .iter()
-                .map(|output| output.note_payload.clone())
-                .collect(),
-        });
-    }
-    Ok(routing_actions)
+                .map(|(pos, _, _)| u64::from(*pos)),
+        )
+        .collect::<Vec<_>>();
+    payload_positions.sort_unstable();
+    state.stage_routing_actions([PendingRoutingAction {
+        transaction_id,
+        action_index: action_index
+            .try_into()
+            .context("action index exceeds u32")?,
+        tags,
+        payload_positions,
+    }]);
+    Ok(())
 }
 
 fn push_transaction_audit_effect(
@@ -545,6 +522,8 @@ where
         None
     };
     for (i, action) in tx.actions().enumerate() {
+        let note_start = state.pending_note_payloads().len();
+        let volume_start = state.pending_volume_accumulator_payloads().len();
         match action {
             Action::Transfer(action) => {
                 transfer_execute_verified(
@@ -608,8 +587,19 @@ where
                 }
             }
         }
+        let tags = match action {
+            Action::Transfer(action) => Some(action.body.routing.tags.to_vec()),
+            Action::NoteReshape(action) => Some(vec![action.body.routing_tag]),
+            Action::ShieldedHostWithdrawal(action) => Some(vec![action.body.routing_tag]),
+            _ => None,
+        };
+        if let Some(tags) = tags {
+            stage_action_routing(&mut state, tx_id, i, tags, note_start, volume_start)?;
+        }
     }
     if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        let note_start = state.pending_note_payloads().len();
+        let volume_start = state.pending_volume_accumulator_payloads().len();
         transfer_execute_validated(
             &fee_funding.transfer,
             &tx_context,
@@ -617,8 +607,15 @@ where
             &mut state,
         )
         .await?;
+        stage_action_routing(
+            &mut state,
+            tx_id,
+            tx.transaction_body.actions.len(),
+            fee_funding.transfer.body.routing.tags.to_vec(),
+            note_start,
+            volume_start,
+        )?;
     }
-    state.stage_routing_actions(transaction_routing_actions(tx)?);
 
     Ok(())
 }

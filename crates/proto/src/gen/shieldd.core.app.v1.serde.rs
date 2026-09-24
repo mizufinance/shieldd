@@ -868,11 +868,19 @@ impl serde::Serialize for TransactionsByHeightRequest {
         if self.block_height != 0 {
             len += 1;
         }
+        if !self.cursor.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.app.v1.TransactionsByHeightRequest", len)?;
         if self.block_height != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("blockHeight", ToString::to_string(&self.block_height).as_str())?;
+        }
+        if !self.cursor.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("cursor", pbjson::private::base64::encode(&self.cursor).as_str())?;
         }
         struct_ser.end()
     }
@@ -886,11 +894,13 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightRequest {
         const FIELDS: &[&str] = &[
             "block_height",
             "blockHeight",
+            "cursor",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             BlockHeight,
+            Cursor,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -914,6 +924,7 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightRequest {
                     {
                         match value {
                             "blockHeight" | "block_height" => Ok(GeneratedField::BlockHeight),
+                            "cursor" => Ok(GeneratedField::Cursor),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -934,6 +945,7 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightRequest {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut block_height__ = None;
+                let mut cursor__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::BlockHeight => {
@@ -944,6 +956,14 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightRequest {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::Cursor => {
+                            if cursor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("cursor"));
+                            }
+                            cursor__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -951,6 +971,7 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightRequest {
                 }
                 Ok(TransactionsByHeightRequest {
                     block_height: block_height__.unwrap_or_default(),
+                    cursor: cursor__.unwrap_or_default(),
                 })
             }
         }
@@ -965,6 +986,9 @@ impl serde::Serialize for TransactionsByHeightResponse {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if !self.next_cursor.is_empty() {
+            len += 1;
+        }
         if !self.transactions.is_empty() {
             len += 1;
         }
@@ -972,6 +996,11 @@ impl serde::Serialize for TransactionsByHeightResponse {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.app.v1.TransactionsByHeightResponse", len)?;
+        if !self.next_cursor.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("nextCursor", pbjson::private::base64::encode(&self.next_cursor).as_str())?;
+        }
         if !self.transactions.is_empty() {
             struct_ser.serialize_field("transactions", &self.transactions)?;
         }
@@ -990,6 +1019,8 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightResponse {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "next_cursor",
+            "nextCursor",
             "transactions",
             "block_height",
             "blockHeight",
@@ -997,6 +1028,7 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightResponse {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            NextCursor,
             Transactions,
             BlockHeight,
             __SkipField__,
@@ -1021,6 +1053,7 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightResponse {
                         E: serde::de::Error,
                     {
                         match value {
+                            "nextCursor" | "next_cursor" => Ok(GeneratedField::NextCursor),
                             "transactions" => Ok(GeneratedField::Transactions),
                             "blockHeight" | "block_height" => Ok(GeneratedField::BlockHeight),
                             _ => Ok(GeneratedField::__SkipField__),
@@ -1042,10 +1075,19 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightResponse {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut next_cursor__ = None;
                 let mut transactions__ = None;
                 let mut block_height__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::NextCursor => {
+                            if next_cursor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextCursor"));
+                            }
+                            next_cursor__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::Transactions => {
                             if transactions__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("transactions"));
@@ -1066,6 +1108,7 @@ impl<'de> serde::Deserialize<'de> for TransactionsByHeightResponse {
                     }
                 }
                 Ok(TransactionsByHeightResponse {
+                    next_cursor: next_cursor__.unwrap_or_default(),
                     transactions: transactions__.unwrap_or_default(),
                     block_height: block_height__.unwrap_or_default(),
                 })

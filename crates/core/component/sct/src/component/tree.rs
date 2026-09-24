@@ -836,7 +836,19 @@ pub trait SctManager: StateWrite {
                         "nullifier generation changed before block materialization"
                     );
                 }
+                let height = self.get_block_height().await?;
+                let first_position = nullifier_tree::current_leaf_count(self).await?;
                 nullifier_tree::insert_batch(self, ordered.iter().copied()).await?;
+                nullifier_tree::record_block_insertions(
+                    self,
+                    nullifier_tree::InsertionInterval {
+                        height,
+                        generation: before.current_generation,
+                        first_position,
+                        count: ordered.len() as u64,
+                    },
+                )
+                .await?;
                 self.object_put(
                     state_key::nullifier_generations::pending_block(),
                     PendingNullifierBlock::Materialized { ordered },
@@ -1161,6 +1173,10 @@ mod tests {
     async fn nullifiers_are_visible_before_one_shot_materialization() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_proto(
+            crate::state_key::block_manager::block_height().to_owned(),
+            1u64,
+        );
         nullifier_tree::initialize(&mut state).await?;
         let starting = nullifier_tree::generation_state(&state).await?;
         let nullifiers = [

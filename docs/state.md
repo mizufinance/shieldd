@@ -43,6 +43,22 @@ temporary proposal application state is discarded. `ProcessProposal` and block
 delivery retain transaction-delivery validation semantics; canonical state is
 materialized only on the delivery path.
 
+## Compact history and committed reads
+
+Routing staging uses persistent collections. A compact payload is stored once at
+its actual SCT position; action records reference positions assigned during
+execution, including fee and volume outputs. Dummy outputs have no invented
+position. Metadata, payload fragments, other compact collections and canonical
+signed transactions are separate records. Signed transaction bytes remain intact.
+Tag indexes store reversed bits, permitting range scans for low-bit selectors.
+
+Cnidarium has one database owner and one ordered application writer. Queries use
+independent snapshots explicitly published by Bankd only after its commit,
+Shieldd's commit and the durable recovery record succeed. Recovery inspection is
+separate from public reads. CheckTx uses disposable deltas with bounded admission;
+delivery still validates current state. Local query budgets and buffer ownership
+are defined in [Embedded artifacts](embedded-artifacts.md).
+
 ## Validator compliance trees
 
 User and asset mutations operate on sparse durable nodes. Before changing a

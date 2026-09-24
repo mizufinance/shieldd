@@ -51,10 +51,13 @@ impl serde::Serialize for CompactBlock {
         if !self.compliance_asset_registrations.is_empty() {
             len += 1;
         }
-        if !self.routing_action_payloads.is_empty() {
+        if !self.routing_actions.is_empty() {
             len += 1;
         }
         if self.nullifier_window.is_some() {
+            len += 1;
+        }
+        if self.state_payload_start_position != 0 {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlock", len)?;
@@ -111,11 +114,16 @@ impl serde::Serialize for CompactBlock {
         if !self.compliance_asset_registrations.is_empty() {
             struct_ser.serialize_field("complianceAssetRegistrations", &self.compliance_asset_registrations)?;
         }
-        if !self.routing_action_payloads.is_empty() {
-            struct_ser.serialize_field("routingActionPayloads", &self.routing_action_payloads)?;
+        if !self.routing_actions.is_empty() {
+            struct_ser.serialize_field("routingActions", &self.routing_actions)?;
         }
         if let Some(v) = self.nullifier_window.as_ref() {
             struct_ser.serialize_field("nullifierWindow", v)?;
+        }
+        if self.state_payload_start_position != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("statePayloadStartPosition", ToString::to_string(&self.state_payload_start_position).as_str())?;
         }
         struct_ser.end()
     }
@@ -155,10 +163,12 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             "complianceUserStatusChanges",
             "compliance_asset_registrations",
             "complianceAssetRegistrations",
-            "routing_action_payloads",
-            "routingActionPayloads",
+            "routing_actions",
+            "routingActions",
             "nullifier_window",
             "nullifierWindow",
+            "state_payload_start_position",
+            "statePayloadStartPosition",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -178,8 +188,9 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             ComplianceUserRegistrations,
             ComplianceUserStatusChanges,
             ComplianceAssetRegistrations,
-            RoutingActionPayloads,
+            RoutingActions,
             NullifierWindow,
+            StatePayloadStartPosition,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -217,8 +228,9 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             "complianceUserRegistrations" | "compliance_user_registrations" => Ok(GeneratedField::ComplianceUserRegistrations),
                             "complianceUserStatusChanges" | "compliance_user_status_changes" => Ok(GeneratedField::ComplianceUserStatusChanges),
                             "complianceAssetRegistrations" | "compliance_asset_registrations" => Ok(GeneratedField::ComplianceAssetRegistrations),
-                            "routingActionPayloads" | "routing_action_payloads" => Ok(GeneratedField::RoutingActionPayloads),
+                            "routingActions" | "routing_actions" => Ok(GeneratedField::RoutingActions),
                             "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
+                            "statePayloadStartPosition" | "state_payload_start_position" => Ok(GeneratedField::StatePayloadStartPosition),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -253,8 +265,9 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                 let mut compliance_user_registrations__ = None;
                 let mut compliance_user_status_changes__ = None;
                 let mut compliance_asset_registrations__ = None;
-                let mut routing_action_payloads__ = None;
+                let mut routing_actions__ = None;
                 let mut nullifier_window__ = None;
+                let mut state_payload_start_position__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Height => {
@@ -355,17 +368,25 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             }
                             compliance_asset_registrations__ = Some(map_.next_value()?);
                         }
-                        GeneratedField::RoutingActionPayloads => {
-                            if routing_action_payloads__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("routingActionPayloads"));
+                        GeneratedField::RoutingActions => {
+                            if routing_actions__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("routingActions"));
                             }
-                            routing_action_payloads__ = Some(map_.next_value()?);
+                            routing_actions__ = Some(map_.next_value()?);
                         }
                         GeneratedField::NullifierWindow => {
                             if nullifier_window__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("nullifierWindow"));
                             }
                             nullifier_window__ = map_.next_value()?;
+                        }
+                        GeneratedField::StatePayloadStartPosition => {
+                            if state_payload_start_position__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("statePayloadStartPosition"));
+                            }
+                            state_payload_start_position__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -388,251 +409,16 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                     compliance_user_registrations: compliance_user_registrations__.unwrap_or_default(),
                     compliance_user_status_changes: compliance_user_status_changes__.unwrap_or_default(),
                     compliance_asset_registrations: compliance_asset_registrations__.unwrap_or_default(),
-                    routing_action_payloads: routing_action_payloads__.unwrap_or_default(),
+                    routing_actions: routing_actions__.unwrap_or_default(),
                     nullifier_window: nullifier_window__,
+                    state_payload_start_position: state_payload_start_position__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlock", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for CompactBlockRangeRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.start_height != 0 {
-            len += 1;
-        }
-        if self.end_height != 0 {
-            len += 1;
-        }
-        if self.keep_alive {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockRangeRequest", len)?;
-        if self.start_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("startHeight", ToString::to_string(&self.start_height).as_str())?;
-        }
-        if self.end_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("endHeight", ToString::to_string(&self.end_height).as_str())?;
-        }
-        if self.keep_alive {
-            struct_ser.serialize_field("keepAlive", &self.keep_alive)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for CompactBlockRangeRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "start_height",
-            "startHeight",
-            "end_height",
-            "endHeight",
-            "keep_alive",
-            "keepAlive",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            StartHeight,
-            EndHeight,
-            KeepAlive,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "startHeight" | "start_height" => Ok(GeneratedField::StartHeight),
-                            "endHeight" | "end_height" => Ok(GeneratedField::EndHeight),
-                            "keepAlive" | "keep_alive" => Ok(GeneratedField::KeepAlive),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CompactBlockRangeRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockRangeRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockRangeRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut start_height__ = None;
-                let mut end_height__ = None;
-                let mut keep_alive__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::StartHeight => {
-                            if start_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("startHeight"));
-                            }
-                            start_height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::EndHeight => {
-                            if end_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("endHeight"));
-                            }
-                            end_height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::KeepAlive => {
-                            if keep_alive__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("keepAlive"));
-                            }
-                            keep_alive__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(CompactBlockRangeRequest {
-                    start_height: start_height__.unwrap_or_default(),
-                    end_height: end_height__.unwrap_or_default(),
-                    keep_alive: keep_alive__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockRangeRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for CompactBlockRangeResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.compact_block.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockRangeResponse", len)?;
-        if let Some(v) = self.compact_block.as_ref() {
-            struct_ser.serialize_field("compactBlock", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for CompactBlockRangeResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "compact_block",
-            "compactBlock",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            CompactBlock,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "compactBlock" | "compact_block" => Ok(GeneratedField::CompactBlock),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CompactBlockRangeResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockRangeResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockRangeResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut compact_block__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::CompactBlock => {
-                            if compact_block__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("compactBlock"));
-                            }
-                            compact_block__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(CompactBlockRangeResponse {
-                    compact_block: compact_block__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockRangeResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for CompactBlockRequest {
+impl serde::Serialize for CompactBlockPageRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -643,16 +429,24 @@ impl serde::Serialize for CompactBlockRequest {
         if self.height != 0 {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockRequest", len)?;
+        if !self.cursor.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageRequest", len)?;
         if self.height != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("height", ToString::to_string(&self.height).as_str())?;
         }
+        if !self.cursor.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("cursor", pbjson::private::base64::encode(&self.cursor).as_str())?;
+        }
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for CompactBlockRequest {
+impl<'de> serde::Deserialize<'de> for CompactBlockPageRequest {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -660,11 +454,13 @@ impl<'de> serde::Deserialize<'de> for CompactBlockRequest {
     {
         const FIELDS: &[&str] = &[
             "height",
+            "cursor",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Height,
+            Cursor,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -688,6 +484,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlockRequest {
                     {
                         match value {
                             "height" => Ok(GeneratedField::Height),
+                            "cursor" => Ok(GeneratedField::Cursor),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -697,17 +494,18 @@ impl<'de> serde::Deserialize<'de> for CompactBlockRequest {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CompactBlockRequest;
+            type Value = CompactBlockPageRequest;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockRequest")
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockPageRequest")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockRequest, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockPageRequest, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
                 let mut height__ = None;
+                let mut cursor__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Height => {
@@ -718,20 +516,29 @@ impl<'de> serde::Deserialize<'de> for CompactBlockRequest {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::Cursor => {
+                            if cursor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("cursor"));
+                            }
+                            cursor__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
                     }
                 }
-                Ok(CompactBlockRequest {
+                Ok(CompactBlockPageRequest {
                     height: height__.unwrap_or_default(),
+                    cursor: cursor__.unwrap_or_default(),
                 })
             }
         }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockRequest", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageRequest", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for CompactBlockResponse {
+impl serde::Serialize for CompactBlockPageResponse {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -739,30 +546,70 @@ impl serde::Serialize for CompactBlockResponse {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
-        if self.compact_block.is_some() {
+        if self.height != 0 {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockResponse", len)?;
-        if let Some(v) = self.compact_block.as_ref() {
-            struct_ser.serialize_field("compactBlock", v)?;
+        if !self.chain_id.is_empty() {
+            len += 1;
+        }
+        if !self.block_identity.is_empty() {
+            len += 1;
+        }
+        if !self.fragments.is_empty() {
+            len += 1;
+        }
+        if !self.next_cursor.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageResponse", len)?;
+        if self.height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("height", ToString::to_string(&self.height).as_str())?;
+        }
+        if !self.chain_id.is_empty() {
+            struct_ser.serialize_field("chainId", &self.chain_id)?;
+        }
+        if !self.block_identity.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("blockIdentity", pbjson::private::base64::encode(&self.block_identity).as_str())?;
+        }
+        if !self.fragments.is_empty() {
+            struct_ser.serialize_field("fragments", &self.fragments)?;
+        }
+        if !self.next_cursor.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("nextCursor", pbjson::private::base64::encode(&self.next_cursor).as_str())?;
         }
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for CompactBlockResponse {
+impl<'de> serde::Deserialize<'de> for CompactBlockPageResponse {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "compact_block",
-            "compactBlock",
+            "height",
+            "chain_id",
+            "chainId",
+            "block_identity",
+            "blockIdentity",
+            "fragments",
+            "next_cursor",
+            "nextCursor",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            CompactBlock,
+            Height,
+            ChainId,
+            BlockIdentity,
+            Fragments,
+            NextCursor,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -785,7 +632,11 @@ impl<'de> serde::Deserialize<'de> for CompactBlockResponse {
                         E: serde::de::Error,
                     {
                         match value {
-                            "compactBlock" | "compact_block" => Ok(GeneratedField::CompactBlock),
+                            "height" => Ok(GeneratedField::Height),
+                            "chainId" | "chain_id" => Ok(GeneratedField::ChainId),
+                            "blockIdentity" | "block_identity" => Ok(GeneratedField::BlockIdentity),
+                            "fragments" => Ok(GeneratedField::Fragments),
+                            "nextCursor" | "next_cursor" => Ok(GeneratedField::NextCursor),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -795,39 +646,634 @@ impl<'de> serde::Deserialize<'de> for CompactBlockResponse {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CompactBlockResponse;
+            type Value = CompactBlockPageResponse;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockResponse")
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactBlockPageResponse")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockResponse, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactBlockPageResponse, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                let mut compact_block__ = None;
+                let mut height__ = None;
+                let mut chain_id__ = None;
+                let mut block_identity__ = None;
+                let mut fragments__ = None;
+                let mut next_cursor__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::CompactBlock => {
-                            if compact_block__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("compactBlock"));
+                        GeneratedField::Height => {
+                            if height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            compact_block__ = map_.next_value()?;
+                            height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::ChainId => {
+                            if chain_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("chainId"));
+                            }
+                            chain_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::BlockIdentity => {
+                            if block_identity__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("blockIdentity"));
+                            }
+                            block_identity__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Fragments => {
+                            if fragments__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fragments"));
+                            }
+                            fragments__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextCursor => {
+                            if next_cursor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextCursor"));
+                            }
+                            next_cursor__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
                     }
                 }
-                Ok(CompactBlockResponse {
-                    compact_block: compact_block__,
+                Ok(CompactBlockPageResponse {
+                    height: height__.unwrap_or_default(),
+                    chain_id: chain_id__.unwrap_or_default(),
+                    block_identity: block_identity__.unwrap_or_default(),
+                    fragments: fragments__.unwrap_or_default(),
+                    next_cursor: next_cursor__.unwrap_or_default(),
                 })
             }
         }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockResponse", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactBlockPageResponse", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for RoutingActionPayloads {
+impl serde::Serialize for CompactRecordFragment {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.kind != 0 {
+            len += 1;
+        }
+        if self.index != 0 {
+            len += 1;
+        }
+        if self.offset != 0 {
+            len += 1;
+        }
+        if self.total_length != 0 {
+            len += 1;
+        }
+        if !self.data.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactRecordFragment", len)?;
+        if self.kind != 0 {
+            let v = CompactRecordKind::try_from(self.kind)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.kind)))?;
+            struct_ser.serialize_field("kind", &v)?;
+        }
+        if self.index != 0 {
+            struct_ser.serialize_field("index", &self.index)?;
+        }
+        if self.offset != 0 {
+            struct_ser.serialize_field("offset", &self.offset)?;
+        }
+        if self.total_length != 0 {
+            struct_ser.serialize_field("totalLength", &self.total_length)?;
+        }
+        if !self.data.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("data", pbjson::private::base64::encode(&self.data).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CompactRecordFragment {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "kind",
+            "index",
+            "offset",
+            "total_length",
+            "totalLength",
+            "data",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Kind,
+            Index,
+            Offset,
+            TotalLength,
+            Data,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "kind" => Ok(GeneratedField::Kind),
+                            "index" => Ok(GeneratedField::Index),
+                            "offset" => Ok(GeneratedField::Offset),
+                            "totalLength" | "total_length" => Ok(GeneratedField::TotalLength),
+                            "data" => Ok(GeneratedField::Data),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CompactRecordFragment;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.CompactRecordFragment")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CompactRecordFragment, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut kind__ = None;
+                let mut index__ = None;
+                let mut offset__ = None;
+                let mut total_length__ = None;
+                let mut data__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Kind => {
+                            if kind__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("kind"));
+                            }
+                            kind__ = Some(map_.next_value::<CompactRecordKind>()? as i32);
+                        }
+                        GeneratedField::Index => {
+                            if index__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("index"));
+                            }
+                            index__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Offset => {
+                            if offset__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("offset"));
+                            }
+                            offset__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::TotalLength => {
+                            if total_length__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("totalLength"));
+                            }
+                            total_length__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Data => {
+                            if data__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("data"));
+                            }
+                            data__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(CompactRecordFragment {
+                    kind: kind__.unwrap_or_default(),
+                    index: index__.unwrap_or_default(),
+                    offset: offset__.unwrap_or_default(),
+                    total_length: total_length__.unwrap_or_default(),
+                    data: data__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.CompactRecordFragment", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CompactRecordKind {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Header => "COMPACT_RECORD_KIND_HEADER",
+            Self::Payload => "COMPACT_RECORD_KIND_PAYLOAD",
+            Self::Nullifier => "COMPACT_RECORD_KIND_NULLIFIER",
+            Self::RoutingRecord => "COMPACT_RECORD_KIND_ROUTING_RECORD",
+            Self::RoutingAction => "COMPACT_RECORD_KIND_ROUTING_ACTION",
+            Self::UserRegistration => "COMPACT_RECORD_KIND_USER_REGISTRATION",
+            Self::UserStatus => "COMPACT_RECORD_KIND_USER_STATUS",
+            Self::AssetRegistration => "COMPACT_RECORD_KIND_ASSET_REGISTRATION",
+            Self::ProvenPayload => "COMPACT_RECORD_KIND_PROVEN_PAYLOAD",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for CompactRecordKind {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "COMPACT_RECORD_KIND_HEADER",
+            "COMPACT_RECORD_KIND_PAYLOAD",
+            "COMPACT_RECORD_KIND_NULLIFIER",
+            "COMPACT_RECORD_KIND_ROUTING_RECORD",
+            "COMPACT_RECORD_KIND_ROUTING_ACTION",
+            "COMPACT_RECORD_KIND_USER_REGISTRATION",
+            "COMPACT_RECORD_KIND_USER_STATUS",
+            "COMPACT_RECORD_KIND_ASSET_REGISTRATION",
+            "COMPACT_RECORD_KIND_PROVEN_PAYLOAD",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CompactRecordKind;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "COMPACT_RECORD_KIND_HEADER" => Ok(CompactRecordKind::Header),
+                    "COMPACT_RECORD_KIND_PAYLOAD" => Ok(CompactRecordKind::Payload),
+                    "COMPACT_RECORD_KIND_NULLIFIER" => Ok(CompactRecordKind::Nullifier),
+                    "COMPACT_RECORD_KIND_ROUTING_RECORD" => Ok(CompactRecordKind::RoutingRecord),
+                    "COMPACT_RECORD_KIND_ROUTING_ACTION" => Ok(CompactRecordKind::RoutingAction),
+                    "COMPACT_RECORD_KIND_USER_REGISTRATION" => Ok(CompactRecordKind::UserRegistration),
+                    "COMPACT_RECORD_KIND_USER_STATUS" => Ok(CompactRecordKind::UserStatus),
+                    "COMPACT_RECORD_KIND_ASSET_REGISTRATION" => Ok(CompactRecordKind::AssetRegistration),
+                    "COMPACT_RECORD_KIND_PROVEN_PAYLOAD" => Ok(CompactRecordKind::ProvenPayload),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FilteredBlockPageRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.height != 0 {
+            len += 1;
+        }
+        if !self.selectors.is_empty() {
+            len += 1;
+        }
+        if !self.cursor.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.FilteredBlockPageRequest", len)?;
+        if self.height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("height", ToString::to_string(&self.height).as_str())?;
+        }
+        if !self.selectors.is_empty() {
+            struct_ser.serialize_field("selectors", &self.selectors)?;
+        }
+        if !self.cursor.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("cursor", pbjson::private::base64::encode(&self.cursor).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FilteredBlockPageRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "height",
+            "selectors",
+            "cursor",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Height,
+            Selectors,
+            Cursor,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "height" => Ok(GeneratedField::Height),
+                            "selectors" => Ok(GeneratedField::Selectors),
+                            "cursor" => Ok(GeneratedField::Cursor),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FilteredBlockPageRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.FilteredBlockPageRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FilteredBlockPageRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut height__ = None;
+                let mut selectors__ = None;
+                let mut cursor__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Height => {
+                            if height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("height"));
+                            }
+                            height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Selectors => {
+                            if selectors__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("selectors"));
+                            }
+                            selectors__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Cursor => {
+                            if cursor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("cursor"));
+                            }
+                            cursor__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(FilteredBlockPageRequest {
+                    height: height__.unwrap_or_default(),
+                    selectors: selectors__.unwrap_or_default(),
+                    cursor: cursor__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.FilteredBlockPageRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ProvenPayload {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.position != 0 {
+            len += 1;
+        }
+        if self.payload.is_some() {
+            len += 1;
+        }
+        if !self.auth_path.is_empty() {
+            len += 1;
+        }
+        if self.transaction_id.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.ProvenPayload", len)?;
+        if self.position != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("position", ToString::to_string(&self.position).as_str())?;
+        }
+        if let Some(v) = self.payload.as_ref() {
+            struct_ser.serialize_field("payload", v)?;
+        }
+        if !self.auth_path.is_empty() {
+            struct_ser.serialize_field("authPath", &self.auth_path)?;
+        }
+        if let Some(v) = self.transaction_id.as_ref() {
+            struct_ser.serialize_field("transactionId", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ProvenPayload {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "position",
+            "payload",
+            "auth_path",
+            "authPath",
+            "transaction_id",
+            "transactionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Position,
+            Payload,
+            AuthPath,
+            TransactionId,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "position" => Ok(GeneratedField::Position),
+                            "payload" => Ok(GeneratedField::Payload),
+                            "authPath" | "auth_path" => Ok(GeneratedField::AuthPath),
+                            "transactionId" | "transaction_id" => Ok(GeneratedField::TransactionId),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ProvenPayload;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.ProvenPayload")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ProvenPayload, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut position__ = None;
+                let mut payload__ = None;
+                let mut auth_path__ = None;
+                let mut transaction_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Position => {
+                            if position__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("position"));
+                            }
+                            position__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Payload => {
+                            if payload__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("payload"));
+                            }
+                            payload__ = map_.next_value()?;
+                        }
+                        GeneratedField::AuthPath => {
+                            if auth_path__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authPath"));
+                            }
+                            auth_path__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::TransactionId => {
+                            if transaction_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("transactionId"));
+                            }
+                            transaction_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(ProvenPayload {
+                    position: position__.unwrap_or_default(),
+                    payload: payload__,
+                    auth_path: auth_path__.unwrap_or_default(),
+                    transaction_id: transaction_id__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.ProvenPayload", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for RoutingAction {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -841,23 +1287,23 @@ impl serde::Serialize for RoutingActionPayloads {
         if self.action_index != 0 {
             len += 1;
         }
-        if !self.note_payloads.is_empty() {
+        if !self.payload_positions.is_empty() {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.RoutingActionPayloads", len)?;
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.RoutingAction", len)?;
         if let Some(v) = self.transaction_id.as_ref() {
             struct_ser.serialize_field("transactionId", v)?;
         }
         if self.action_index != 0 {
             struct_ser.serialize_field("actionIndex", &self.action_index)?;
         }
-        if !self.note_payloads.is_empty() {
-            struct_ser.serialize_field("notePayloads", &self.note_payloads)?;
+        if !self.payload_positions.is_empty() {
+            struct_ser.serialize_field("payloadPositions", &self.payload_positions.iter().map(ToString::to_string).collect::<Vec<_>>())?;
         }
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for RoutingActionPayloads {
+impl<'de> serde::Deserialize<'de> for RoutingAction {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -868,15 +1314,15 @@ impl<'de> serde::Deserialize<'de> for RoutingActionPayloads {
             "transactionId",
             "action_index",
             "actionIndex",
-            "note_payloads",
-            "notePayloads",
+            "payload_positions",
+            "payloadPositions",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             TransactionId,
             ActionIndex,
-            NotePayloads,
+            PayloadPositions,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -901,7 +1347,7 @@ impl<'de> serde::Deserialize<'de> for RoutingActionPayloads {
                         match value {
                             "transactionId" | "transaction_id" => Ok(GeneratedField::TransactionId),
                             "actionIndex" | "action_index" => Ok(GeneratedField::ActionIndex),
-                            "notePayloads" | "note_payloads" => Ok(GeneratedField::NotePayloads),
+                            "payloadPositions" | "payload_positions" => Ok(GeneratedField::PayloadPositions),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -911,19 +1357,19 @@ impl<'de> serde::Deserialize<'de> for RoutingActionPayloads {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = RoutingActionPayloads;
+            type Value = RoutingAction;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.RoutingActionPayloads")
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.RoutingAction")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingActionPayloads, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingAction, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
                 let mut transaction_id__ = None;
                 let mut action_index__ = None;
-                let mut note_payloads__ = None;
+                let mut payload_positions__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::TransactionId => {
@@ -940,665 +1386,28 @@ impl<'de> serde::Deserialize<'de> for RoutingActionPayloads {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::NotePayloads => {
-                            if note_payloads__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("notePayloads"));
+                        GeneratedField::PayloadPositions => {
+                            if payload_positions__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("payloadPositions"));
                             }
-                            note_payloads__ = Some(map_.next_value()?);
+                            payload_positions__ =
+                                Some(map_.next_value::<Vec<::pbjson::private::NumberDeserialize<_>>>()?
+                                    .into_iter().map(|x| x.0).collect())
+                            ;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
                     }
                 }
-                Ok(RoutingActionPayloads {
+                Ok(RoutingAction {
                     transaction_id: transaction_id__,
                     action_index: action_index__.unwrap_or_default(),
-                    note_payloads: note_payloads__.unwrap_or_default(),
+                    payload_positions: payload_positions__.unwrap_or_default(),
                 })
             }
         }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.RoutingActionPayloads", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for RoutingBlock {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.height != 0 {
-            len += 1;
-        }
-        if self.block_root.is_some() {
-            len += 1;
-        }
-        if self.epoch_root.is_some() {
-            len += 1;
-        }
-        if !self.records.is_empty() {
-            len += 1;
-        }
-        if self.discovery_parameters.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.RoutingBlock", len)?;
-        if self.height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("height", ToString::to_string(&self.height).as_str())?;
-        }
-        if let Some(v) = self.block_root.as_ref() {
-            struct_ser.serialize_field("blockRoot", v)?;
-        }
-        if let Some(v) = self.epoch_root.as_ref() {
-            struct_ser.serialize_field("epochRoot", v)?;
-        }
-        if !self.records.is_empty() {
-            struct_ser.serialize_field("records", &self.records)?;
-        }
-        if let Some(v) = self.discovery_parameters.as_ref() {
-            struct_ser.serialize_field("discoveryParameters", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for RoutingBlock {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "height",
-            "block_root",
-            "blockRoot",
-            "epoch_root",
-            "epochRoot",
-            "records",
-            "discovery_parameters",
-            "discoveryParameters",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Height,
-            BlockRoot,
-            EpochRoot,
-            Records,
-            DiscoveryParameters,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "height" => Ok(GeneratedField::Height),
-                            "blockRoot" | "block_root" => Ok(GeneratedField::BlockRoot),
-                            "epochRoot" | "epoch_root" => Ok(GeneratedField::EpochRoot),
-                            "records" => Ok(GeneratedField::Records),
-                            "discoveryParameters" | "discovery_parameters" => Ok(GeneratedField::DiscoveryParameters),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = RoutingBlock;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.RoutingBlock")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingBlock, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut height__ = None;
-                let mut block_root__ = None;
-                let mut epoch_root__ = None;
-                let mut records__ = None;
-                let mut discovery_parameters__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Height => {
-                            if height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("height"));
-                            }
-                            height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::BlockRoot => {
-                            if block_root__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("blockRoot"));
-                            }
-                            block_root__ = map_.next_value()?;
-                        }
-                        GeneratedField::EpochRoot => {
-                            if epoch_root__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("epochRoot"));
-                            }
-                            epoch_root__ = map_.next_value()?;
-                        }
-                        GeneratedField::Records => {
-                            if records__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("records"));
-                            }
-                            records__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::DiscoveryParameters => {
-                            if discovery_parameters__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("discoveryParameters"));
-                            }
-                            discovery_parameters__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(RoutingBlock {
-                    height: height__.unwrap_or_default(),
-                    block_root: block_root__,
-                    epoch_root: epoch_root__,
-                    records: records__.unwrap_or_default(),
-                    discovery_parameters: discovery_parameters__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.RoutingBlock", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for RoutingBlockRangeRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.start_height != 0 {
-            len += 1;
-        }
-        if self.end_height != 0 {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.RoutingBlockRangeRequest", len)?;
-        if self.start_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("startHeight", ToString::to_string(&self.start_height).as_str())?;
-        }
-        if self.end_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("endHeight", ToString::to_string(&self.end_height).as_str())?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for RoutingBlockRangeRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "start_height",
-            "startHeight",
-            "end_height",
-            "endHeight",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            StartHeight,
-            EndHeight,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "startHeight" | "start_height" => Ok(GeneratedField::StartHeight),
-                            "endHeight" | "end_height" => Ok(GeneratedField::EndHeight),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = RoutingBlockRangeRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.RoutingBlockRangeRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingBlockRangeRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut start_height__ = None;
-                let mut end_height__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::StartHeight => {
-                            if start_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("startHeight"));
-                            }
-                            start_height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::EndHeight => {
-                            if end_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("endHeight"));
-                            }
-                            end_height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(RoutingBlockRangeRequest {
-                    start_height: start_height__.unwrap_or_default(),
-                    end_height: end_height__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.RoutingBlockRangeRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for RoutingBlockRangeResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.routing_block.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.RoutingBlockRangeResponse", len)?;
-        if let Some(v) = self.routing_block.as_ref() {
-            struct_ser.serialize_field("routingBlock", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for RoutingBlockRangeResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "routing_block",
-            "routingBlock",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            RoutingBlock,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "routingBlock" | "routing_block" => Ok(GeneratedField::RoutingBlock),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = RoutingBlockRangeResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.RoutingBlockRangeResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingBlockRangeResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut routing_block__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::RoutingBlock => {
-                            if routing_block__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("routingBlock"));
-                            }
-                            routing_block__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(RoutingBlockRangeResponse {
-                    routing_block: routing_block__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.RoutingBlockRangeResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for RoutingCandidatesRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.start_height != 0 {
-            len += 1;
-        }
-        if self.end_height != 0 {
-            len += 1;
-        }
-        if !self.selectors.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.RoutingCandidatesRequest", len)?;
-        if self.start_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("startHeight", ToString::to_string(&self.start_height).as_str())?;
-        }
-        if self.end_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("endHeight", ToString::to_string(&self.end_height).as_str())?;
-        }
-        if !self.selectors.is_empty() {
-            struct_ser.serialize_field("selectors", &self.selectors)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for RoutingCandidatesRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "start_height",
-            "startHeight",
-            "end_height",
-            "endHeight",
-            "selectors",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            StartHeight,
-            EndHeight,
-            Selectors,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "startHeight" | "start_height" => Ok(GeneratedField::StartHeight),
-                            "endHeight" | "end_height" => Ok(GeneratedField::EndHeight),
-                            "selectors" => Ok(GeneratedField::Selectors),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = RoutingCandidatesRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.RoutingCandidatesRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingCandidatesRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut start_height__ = None;
-                let mut end_height__ = None;
-                let mut selectors__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::StartHeight => {
-                            if start_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("startHeight"));
-                            }
-                            start_height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::EndHeight => {
-                            if end_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("endHeight"));
-                            }
-                            end_height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::Selectors => {
-                            if selectors__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("selectors"));
-                            }
-                            selectors__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(RoutingCandidatesRequest {
-                    start_height: start_height__.unwrap_or_default(),
-                    end_height: end_height__.unwrap_or_default(),
-                    selectors: selectors__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.RoutingCandidatesRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for RoutingCandidatesResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.record.is_some() {
-            len += 1;
-        }
-        if !self.note_payloads.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.RoutingCandidatesResponse", len)?;
-        if let Some(v) = self.record.as_ref() {
-            struct_ser.serialize_field("record", v)?;
-        }
-        if !self.note_payloads.is_empty() {
-            struct_ser.serialize_field("notePayloads", &self.note_payloads)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for RoutingCandidatesResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "record",
-            "note_payloads",
-            "notePayloads",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Record,
-            NotePayloads,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "record" => Ok(GeneratedField::Record),
-                            "notePayloads" | "note_payloads" => Ok(GeneratedField::NotePayloads),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = RoutingCandidatesResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.RoutingCandidatesResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RoutingCandidatesResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut record__ = None;
-                let mut note_payloads__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Record => {
-                            if record__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("record"));
-                            }
-                            record__ = map_.next_value()?;
-                        }
-                        GeneratedField::NotePayloads => {
-                            if note_payloads__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("notePayloads"));
-                            }
-                            note_payloads__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(RoutingCandidatesResponse {
-                    record: record__,
-                    note_payloads: note_payloads__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.RoutingCandidatesResponse", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.RoutingAction", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for RoutingRecord {
@@ -2203,5 +2012,350 @@ impl<'de> serde::Deserialize<'de> for state_payload::VolumeAccumulator {
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.StatePayload.VolumeAccumulator", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for StoredCompactBlock {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.metadata.is_some() {
+            len += 1;
+        }
+        if !self.sections.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.StoredCompactBlock", len)?;
+        if let Some(v) = self.metadata.as_ref() {
+            struct_ser.serialize_field("metadata", v)?;
+        }
+        if !self.sections.is_empty() {
+            struct_ser.serialize_field("sections", &self.sections)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for StoredCompactBlock {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "metadata",
+            "sections",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Metadata,
+            Sections,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "metadata" => Ok(GeneratedField::Metadata),
+                            "sections" => Ok(GeneratedField::Sections),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = StoredCompactBlock;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.StoredCompactBlock")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<StoredCompactBlock, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut metadata__ = None;
+                let mut sections__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = map_.next_value()?;
+                        }
+                        GeneratedField::Sections => {
+                            if sections__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("sections"));
+                            }
+                            sections__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(StoredCompactBlock {
+                    metadata: metadata__,
+                    sections: sections__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.StoredCompactBlock", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for StoredSection {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.kind != 0 {
+            len += 1;
+        }
+        if self.count != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.StoredSection", len)?;
+        if self.kind != 0 {
+            let v = CompactRecordKind::try_from(self.kind)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.kind)))?;
+            struct_ser.serialize_field("kind", &v)?;
+        }
+        if self.count != 0 {
+            struct_ser.serialize_field("count", &self.count)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for StoredSection {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "kind",
+            "count",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Kind,
+            Count,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "kind" => Ok(GeneratedField::Kind),
+                            "count" => Ok(GeneratedField::Count),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = StoredSection;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.StoredSection")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<StoredSection, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut kind__ = None;
+                let mut count__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Kind => {
+                            if kind__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("kind"));
+                            }
+                            kind__ = Some(map_.next_value::<CompactRecordKind>()? as i32);
+                        }
+                        GeneratedField::Count => {
+                            if count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("count"));
+                            }
+                            count__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(StoredSection {
+                    kind: kind__.unwrap_or_default(),
+                    count: count__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.StoredSection", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UnroutedPayload {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.position != 0 {
+            len += 1;
+        }
+        if self.transaction_id.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.UnroutedPayload", len)?;
+        if self.position != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("position", ToString::to_string(&self.position).as_str())?;
+        }
+        if let Some(v) = self.transaction_id.as_ref() {
+            struct_ser.serialize_field("transactionId", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UnroutedPayload {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "position",
+            "transaction_id",
+            "transactionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Position,
+            TransactionId,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "position" => Ok(GeneratedField::Position),
+                            "transactionId" | "transaction_id" => Ok(GeneratedField::TransactionId),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UnroutedPayload;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compact_block.v1.UnroutedPayload")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UnroutedPayload, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut position__ = None;
+                let mut transaction_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Position => {
+                            if position__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("position"));
+                            }
+                            position__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::TransactionId => {
+                            if transaction_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("transactionId"));
+                            }
+                            transaction_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(UnroutedPayload {
+                    position: position__.unwrap_or_default(),
+                    transaction_id: transaction_id__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.UnroutedPayload", FIELDS, GeneratedVisitor)
     }
 }

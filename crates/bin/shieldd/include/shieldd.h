@@ -8,13 +8,14 @@
 extern "C" {
 #endif
 
-#define SHIELDD_ABI_VERSION 1u
+#define SHIELDD_ABI_VERSION 2u
 
 typedef struct shieldd_handle shieldd_handle_t;
 
 typedef struct shieldd_buffer {
   uint8_t *data;
   size_t len;
+  void *owner;
 } shieldd_buffer_t;
 
 typedef struct shieldd_result {
@@ -30,6 +31,9 @@ enum shieldd_status {
   SHIELDD_STATUS_INTERNAL = 3,
   SHIELDD_STATUS_PANIC = 4,
   SHIELDD_STATUS_NOT_FOUND = 5,
+  SHIELDD_STATUS_OVERLOADED = 6,
+  SHIELDD_STATUS_SNAPSHOT_EXPIRED = 7,
+  SHIELDD_STATUS_UNAVAILABLE = 8,
 };
 
 /*
@@ -49,6 +53,8 @@ enum shieldd_method {
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
   SHIELDD_METHOD_ARCHIVED_NULLIFIER_PROOF = 11,
   SHIELDD_METHOD_APPLY_COMPLIANCE_ACTION = 12,
+  /* GetCommittedStateResponse as input; empty output. Host recovery/publication only. */
+  SHIELDD_METHOD_PUBLISH_COMMITTED = 13,
 
   /* Read-only queries use IDs starting at 1000000. */
 
@@ -87,21 +93,17 @@ enum shieldd_method {
   SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,
 
   /*
-   * Accepts shieldd.core.component.compact_block.v1.
-   * CompactBlockRangeRequest with keep_alive=false. Returns zero or more
-   * protobuf-varint-delimited CompactBlockRangeResponse messages.
-   */
-  SHIELDD_METHOD_QUERY_COMPACT_BLOCK_RANGE = 1000006,
-
-  /*
    * shieldd.core.component.sct.v1.
    * NullifierWindowRequest/Response
    */
   SHIELDD_METHOD_QUERY_NULLIFIER_WINDOW = 1000007,
   /* CommittedTransactionRequest/Response (at most 96 KiB + 16 bytes). */
   SHIELDD_METHOD_QUERY_COMMITTED_TRANSACTION = 1000008,
-  /* TransactionsByHeightRequest/Response: all transactions in a committed block. */
+  /* TransactionsByHeightRequest/Response: a bounded page and continuation cursor. */
   SHIELDD_METHOD_QUERY_TRANSACTIONS_BY_HEIGHT = 1000009,
+  SHIELDD_METHOD_QUERY_COMPACT_BLOCK_PAGE = 1000010,
+  SHIELDD_METHOD_QUERY_FILTERED_BLOCK_PAGE = 1000011,
+  SHIELDD_METHOD_QUERY_SPEND_STATUS_PAGE = 1000012,
 };
 
 uint32_t shieldd_abi_version(void);
@@ -114,17 +116,14 @@ uint32_t shieldd_abi_version(void);
  * set to NULL on failure. The caller must eventually pass a successful handle
  * to shieldd_close after all concurrent calls have completed.
  */
-shieldd_result_t shieldd_open(const uint8_t *db_path, size_t db_path_len,
-                              shieldd_handle_t **out_handle);
-
-/* Opens Shieldd with retired-generation witness storage enabled. */
-shieldd_result_t shieldd_open_with_generation_packs(
+shieldd_result_t shieldd_open(
     const uint8_t *db_path, size_t db_path_len,
     const uint8_t *generation_pack_path, size_t generation_pack_path_len,
     shieldd_handle_t **out_handle);
 
 /*
- * Executes one protobuf request. Calls sharing a handle are serialized.
+ * Executes one protobuf request. Execution is ordered; queries use the last
+ * published committed snapshot under bounded admission.
  *
  * request may be NULL only when request_len is zero. On success, response is
  * the protobuf encoding for method. On failure, error is a UTF-8 message.
@@ -141,7 +140,8 @@ shieldd_result_t shieldd_close(shieldd_handle_t *handle);
 
 /*
  * Frees a response or error buffer returned by Shieldd and clears the struct.
- * Passing NULL or an already-cleared buffer is safe.
+ * Passing NULL or an already-cleared buffer is safe. Buffers may outlive the
+ * handle; query admission memory remains reserved until this call.
  */
 void shieldd_buffer_free(shieldd_buffer_t *buffer);
 

@@ -115,9 +115,19 @@ It validates block/parent hashes and rolls back to the common ancestor on a reor
 `ComplianceScreener` performs pure decoding and DK screening; it owns no storage,
 chain access or release calls.
 
-The durable flow is accepted ciphertext and metadata, detection or bounded invalid
-row, evidence validation, flagged-tier decryption, then audit projection.
-`scanner_ciphertexts` retains the exact accepted bytes. Evidence contains the
+The source supplies bounded canonical transaction pages. Screening retains relevant
+records and at most 256 invalid ciphertexts per block; irrelevant traffic increments
+coverage counters without durable ciphertext rows. Structural decoding failures
+are invalid, transfer detection nonmatches are irrelevant, and target-asset
+withdrawals retain their flagged/unflagged classification.
+
+Retained results are spooled into a private anonymous file with a 256 MiB local
+budget. Cancellation/process exit removes scratch data. One synchronous SQLite
+transaction streams evidence, counters and coverage, rechecking the predecessor
+and the public detection-key/target-asset identity. It performs no network calls
+or screening. Identity conflicts roll back the batch; configuration changes require
+reset/replay. Reorg rollback includes evidence and coverage. Relevant ciphertext
+bytes are preserved exactly. Evidence contains the
 output/block identity, detection facts, ciphertext, metadata and payload hash.
 `validate_and_save_evidence_object` checks byte equality and the persisted
 asset/flag/salt/reserved-zero facts before completing downstream work. Failures

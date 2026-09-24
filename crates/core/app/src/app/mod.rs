@@ -1050,18 +1050,7 @@ impl App {
     where
         S: StateWrite + StateReadExt,
     {
-        let mut transactions_response = state_tx.transactions_by_height(height).await?;
-
-        transactions_response.transactions.push(transaction);
-
-        let encoded = transactions_response.encode_to_vec();
-
-        state_tx.nonverifiable_put_raw(
-            state_key::block_data::transactions_by_height(height).into(),
-            encoded,
-        );
-
-        Ok(())
+        state_tx.put_block_transaction(height, transaction).await
     }
 
     async fn flush_deferred_block_transactions(&mut self) -> Result<()> {
@@ -1076,14 +1065,9 @@ impl App {
             .try_begin_transaction()
             .context("flushing block transactions requires exclusive application state")?;
         let height = state_tx.get_block_height().await?;
-        let mut transactions_response = state_tx.transactions_by_height(height).await?;
-        transactions_response
-            .transactions
-            .append(&mut self.deferred_block_transactions);
-        state_tx.nonverifiable_put_raw(
-            state_key::block_data::transactions_by_height(height).into(),
-            transactions_response.encode_to_vec(),
-        );
+        for transaction in std::mem::take(&mut self.deferred_block_transactions) {
+            state_tx.put_block_transaction(height, transaction).await?;
+        }
         state_tx.apply();
         Ok(())
     }
@@ -1145,19 +1129,37 @@ pub trait StateReadExt: StateRead {
         block_height: u64,
         transaction_id: [u8; 32],
     ) -> Result<shieldd_sdk_proto::core::app::v1::CommittedTransactionResponse> {
-        let block = self.transactions_by_height(block_height).await?;
-        let mut selected = None;
-        for transaction in block.transactions {
-            let tx: Transaction = transaction.clone().try_into()?;
-            if tx.id().as_ref() == transaction_id {
-                anyhow::ensure!(
-                    transaction.encoded_len() <= MAX_TRANSACTION_SIZE_BYTES,
-                    "committed transaction exceeds supported query size"
-                );
-                selected = Some(transaction);
-                break;
-            }
-        }
+        let selected = if let Some(ordinal) = self
+            .nonverifiable_get_raw(&state_key::block_data::transaction_id(
+                block_height,
+                transaction_id,
+            ))
+            .await?
+        {
+            let ordinal = u64::from_be_bytes(
+                ordinal
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("invalid transaction ordinal"))?,
+            );
+            let bytes = self
+                .nonverifiable_get_raw(&state_key::block_data::transaction(block_height, ordinal))
+                .await?
+                .context("committed transaction index points to missing data")?;
+            anyhow::ensure!(
+                bytes.len() <= MAX_TRANSACTION_SIZE_BYTES,
+                "committed transaction exceeds supported query size"
+            );
+            let proto =
+                shieldd_sdk_proto::core::transaction::v1::Transaction::decode(bytes.as_slice())?;
+            let tx: Transaction = proto.clone().try_into()?;
+            anyhow::ensure!(
+                tx.id().0 == transaction_id,
+                "committed transaction index identity mismatch"
+            );
+            Some(proto)
+        } else {
+            None
+        };
         Ok(
             shieldd_sdk_proto::core::app::v1::CommittedTransactionResponse {
                 block_height,
@@ -1166,25 +1168,50 @@ pub trait StateReadExt: StateRead {
         )
     }
 
+    async fn block_transaction_count(&self, height: u64) -> Result<u64> {
+        self.nonverifiable_get_raw(&state_key::block_data::transaction_count(height))
+            .await?
+            .map(|bytes| {
+                Ok(u64::from_be_bytes(bytes.try_into().map_err(|_| {
+                    anyhow::anyhow!("invalid transaction count")
+                })?))
+            })
+            .transpose()
+            .map(|count| count.unwrap_or(0))
+    }
+
     async fn transactions_by_height(
         &self,
         block_height: u64,
     ) -> Result<TransactionsByHeightResponse> {
-        let transactions = match self
-            .nonverifiable_get_raw(
-                state_key::block_data::transactions_by_height(block_height).as_bytes(),
-            )
-            .await?
-        {
-            Some(transactions) => transactions,
-            None => TransactionsByHeightResponse {
-                transactions: vec![],
-                block_height,
-            }
-            .encode_to_vec(),
-        };
-
-        Ok(TransactionsByHeightResponse::decode(&transactions[..])?)
+        use futures::TryStreamExt as _;
+        let count = self.block_transaction_count(block_height).await?;
+        let entries =
+            self.nonverifiable_prefix_raw(&state_key::block_data::transaction_prefix(block_height));
+        futures::pin_mut!(entries);
+        let mut transactions = Vec::new();
+        while let Some((key, bytes)) = entries.try_next().await? {
+            anyhow::ensure!(
+                key == state_key::block_data::transaction(block_height, transactions.len() as u64),
+                "committed transaction ordinal gap"
+            );
+            anyhow::ensure!(
+                (transactions.len() as u64) < count,
+                "extra committed transaction"
+            );
+            transactions.push(
+                shieldd_sdk_proto::core::transaction::v1::Transaction::decode(bytes.as_slice())?,
+            );
+        }
+        anyhow::ensure!(
+            transactions.len() as u64 == count,
+            "missing committed transaction"
+        );
+        Ok(TransactionsByHeightResponse {
+            transactions,
+            block_height,
+            next_cursor: Vec::new(),
+        })
     }
 }
 
@@ -1210,17 +1237,24 @@ pub trait StateWriteExt: StateWrite {
         height: u64,
         transaction: shieldd_sdk_proto::core::transaction::v1::Transaction,
     ) -> Result<()> {
-        // Extend the existing transactions with the new one.
-        let mut transactions_response = self.transactions_by_height(height).await?;
-        transactions_response.transactions = transactions_response
-            .transactions
-            .into_iter()
-            .chain(std::iter::once(transaction))
-            .collect();
-
+        let tx: Transaction = transaction.clone().try_into()?;
+        let id_key = state_key::block_data::transaction_id(height, tx.id().0);
+        anyhow::ensure!(
+            self.nonverifiable_get_raw(&id_key).await?.is_none(),
+            "duplicate committed transaction"
+        );
+        let ordinal = self.block_transaction_count(height).await?;
+        let next = ordinal
+            .checked_add(1)
+            .context("transaction ordinal overflow")?;
         self.nonverifiable_put_raw(
-            state_key::block_data::transactions_by_height(height).into(),
-            transactions_response.encode_to_vec(),
+            state_key::block_data::transaction(height, ordinal),
+            transaction.encode_to_vec(),
+        );
+        self.nonverifiable_put_raw(id_key, ordinal.to_be_bytes().to_vec());
+        self.nonverifiable_put_raw(
+            state_key::block_data::transaction_count(height),
+            next.to_be_bytes().to_vec(),
         );
         Ok(())
     }
