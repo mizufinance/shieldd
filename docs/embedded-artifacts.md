@@ -14,8 +14,8 @@ incompatible with older data: reset and resynchronize, without migration paths.
 
 Public reads use committed snapshots independently of the execution mutex. Block
 and transaction pages bind cursors to chain, query parameters and immutable block
-identity; mutable spend cursors bind the snapshot version and expire after a new
-publication. Clients must discard incomplete expired queries. Oversized records
+identity; mutable spend cursors bind the snapshot version and remain resumable while
+Cnidarium retains that published snapshot. They expire after cache eviction. Clients must discard incomplete expired queries. Oversized records
 are fragmented. Overload, snapshot expiry and unavailable data are distinct errors.
 Native response buffers own their memory reservation until `shieldd_buffer_free`,
 even after service shutdown; callers must free every result/error buffer.

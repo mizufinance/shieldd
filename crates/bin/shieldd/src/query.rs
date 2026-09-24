@@ -35,13 +35,21 @@ use shieldd_sdk_sct::{
     component::clock::EpochRead as _, generation_pack::GenerationPackRepository, nullifier_tree,
     Nullifier,
 };
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, RwLock},
+};
+
+struct PublishedState {
+    snapshot: Snapshot,
+    versions: VecDeque<u64>,
+}
 
 /// Published snapshots are shared with readers; no query takes the execution lock.
 pub struct QueryService {
     pub(crate) limits: crate::ServiceLimits,
     storage: RwLock<Option<Storage>>,
-    published: RwLock<Option<Snapshot>>,
+    published: RwLock<Option<PublishedState>>,
     pub(crate) generation_packs: Option<GenerationPackRepository>,
     registry: Arc<Registry>,
     cache: Arc<StatelessCache>,
@@ -79,12 +87,35 @@ impl QueryService {
         self.published
             .read()
             .expect("publication lock poisoned")
-            .clone()
+            .as_ref()
+            .map(|state| state.snapshot.clone())
             .ok_or_else(|| {
                 ServiceError::failed_precondition(anyhow::anyhow!(
                     "no jointly committed state has been published"
                 ))
             })
+    }
+    pub(crate) fn snapshot_version(&self, version: u64) -> Result<Snapshot, ServiceError> {
+        {
+            let published = self.published.read().expect("publication lock poisoned");
+            let state = published
+                .as_ref()
+                .ok_or_else(ServiceError::snapshot_expired)?;
+            if version == state.snapshot.version() {
+                return Ok(state.snapshot.clone());
+            }
+            // Forged cursors cannot select a durable snapshot that was never published.
+            if !state.versions.contains(&version) {
+                return Err(ServiceError::snapshot_expired());
+            }
+        }
+        self.storage
+            .read()
+            .expect("storage lock poisoned")
+            .as_ref()
+            .ok_or_else(ServiceError::closed)?
+            .snapshot(version)
+            .ok_or_else(ServiceError::snapshot_expired)
     }
     /// Bankd calls this only after its own commit and durable recovery record succeed.
     pub async fn publish_committed(
@@ -111,13 +142,23 @@ impl QueryService {
         let mut published = self.published.write().expect("publication lock poisoned");
         if published
             .as_ref()
-            .is_some_and(|previous| previous.version() > snapshot.version())
+            .is_some_and(|previous| previous.snapshot.version() > snapshot.version())
         {
             return Err(ServiceError::failed_precondition(anyhow::anyhow!(
                 "publication moved backwards"
             )));
         }
-        *published = Some(snapshot);
+        let mut versions = published
+            .as_ref()
+            .map(|state| state.versions.clone())
+            .unwrap_or_default();
+        if versions.back() != Some(&snapshot.version()) {
+            versions.push_back(snapshot.version());
+        }
+        while versions.len() > 10 {
+            versions.pop_front();
+        }
+        *published = Some(PublishedState { snapshot, versions });
         Ok(())
     }
     pub async fn check_tx(&self, request: CheckTxRequest) -> Result<CheckTxResponse, ServiceError> {

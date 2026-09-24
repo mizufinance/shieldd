@@ -367,7 +367,7 @@ async fn transactions_by_height_reads_committed_blocks_only() -> Result<()> {
 
 #[tokio::test]
 async fn committed_queries_advance_only_after_joint_publication() -> Result<()> {
-    let (_storage, mut client) = initialized_client().await?;
+    let (storage, mut client) = initialized_client().await?;
     let queries = client.queries().clone();
     let old = queries.snapshot()?;
     let mut begin = BeginBlockRequest {
@@ -408,6 +408,32 @@ async fn committed_queries_advance_only_after_joint_publication() -> Result<()> 
     // A reader pinned before publication still observes the preceding commit.
     use shieldd_sdk_sct::component::clock::EpochRead as _;
     assert_eq!(old.get_block_height().await?, 0);
+    assert_eq!(
+        queries.snapshot_version(old.version())?.version(),
+        old.version()
+    );
+    use shieldd_sdk_sct::component::clock::EpochManager as _;
+    let mut unpublished = 0;
+    for height in 2..=3 {
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_block_height(height);
+        storage.commit(state).await?;
+        if height == 2 {
+            unpublished = storage.latest_snapshot().version();
+        }
+    }
+    queries
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
+    assert!(storage.snapshot(unpublished).is_some());
+    assert_eq!(
+        queries.snapshot_version(unpublished).err().unwrap().kind(),
+        ErrorKind::SnapshotExpired
+    );
     Ok(())
 }
 
@@ -569,6 +595,29 @@ async fn spend_pages_bind_snapshot_and_report_verified_insertion_heights() -> Re
     let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
     state.put_block_height(2);
     storage.commit(state).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
+    let continued = client
+        .queries()
+        .spend_status_page(pb::SpendStatusPageRequest {
+            cursor: page.next_cursor.clone(),
+            ..request.clone()
+        })
+        .await?;
+    assert_eq!(continued.anchor_height, 1);
+    assert_eq!(continued.spends.len(), 64);
+    // Cursor lifetime follows the bounded storage snapshot cache, not network consumers.
+    for height in 3..=12 {
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_block_height(height);
+        storage.commit(state).await?;
+    }
     client
         .queries()
         .publish_committed(

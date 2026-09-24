@@ -31,7 +31,18 @@ pub async fn page(
             "invalid spend query or request budget exceeded"
         )));
     }
-    let state = service.snapshot()?;
+    let resumed: Option<Cursor> = if request.cursor.is_empty() {
+        None
+    } else {
+        Some(
+            serde_json::from_slice(&request.cursor)
+                .map_err(|e| ServiceError::invalid_argument(e.into()))?,
+        )
+    };
+    let state = match &resumed {
+        Some(cursor) => service.snapshot_version(cursor.version)?,
+        None => service.snapshot()?,
+    };
     let height = state
         .get_block_height()
         .await
@@ -42,7 +53,7 @@ pub async fn page(
         )));
     }
     let chain = state.get_chain_id().await.map_err(ServiceError::internal)?;
-    let cursor_bytes = std::mem::take(&mut request.cursor);
+    request.cursor.clear();
     let parameters = Sha256::digest(request.encode_to_vec()).into();
     let nullifiers = request
         .nullifiers
@@ -61,9 +72,8 @@ pub async fn page(
         generation: 0,
         index: 0,
     };
-    if !cursor_bytes.is_empty() {
-        cursor = serde_json::from_slice(&cursor_bytes)
-            .map_err(|e| ServiceError::invalid_argument(e.into()))?;
+    if let Some(resumed) = resumed {
+        cursor = resumed;
         if cursor.chain != chain
             || cursor.parameters != parameters
             || cursor.index >= nullifiers.len()
@@ -72,9 +82,6 @@ pub async fn page(
             return Err(ServiceError::invalid_argument(anyhow::anyhow!(
                 "spend cursor belongs to another query"
             )));
-        }
-        if cursor.version != state.version() {
-            return Err(ServiceError::snapshot_expired());
         }
     }
     let mut response = pb::SpendStatusPageResponse {
