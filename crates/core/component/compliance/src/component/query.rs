@@ -97,6 +97,13 @@ pub async fn compliance_anchors(
     let response = ComplianceAnchorsResponse {
         user_tree_root: user_tree_root.0.to_bytes().to_vec(),
         asset_tree_root: asset_imt_root.0.to_bytes().to_vec(),
+        freeze_epoch: crate::admission::state::epoch(state)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?,
+        snapshot: crate::admission::state::current(state)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
+            .map(Into::into),
     };
 
     Ok(response)

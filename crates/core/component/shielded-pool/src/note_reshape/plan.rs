@@ -1,5 +1,8 @@
 use anyhow::{anyhow, ensure, Context, Error};
-use reddsa::{sapling::SpendAuth, Signature};
+use ff::Field;
+use reddsa::sapling::SpendAuth;
+#[cfg(all(feature = "prover", any(unix, windows)))]
+use reddsa::Signature;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_crypto::{Fq, Fr};
@@ -7,8 +10,6 @@ use shieldd_sdk_keys::symmetric::{PayloadKey, WrappedMemoKey};
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
-#[cfg(all(feature = "prover", any(unix, windows)))]
-use shieldd_sdk_txhash::EffectingData;
 use std::convert::{TryFrom, TryInto};
 
 use crate::discovery::{self, Parameters};
@@ -26,6 +27,7 @@ use crate::{ShieldedInputPlan, ShieldedOutputPlan};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(try_from = "pb::NoteReshapePlan", into = "pb::NoteReshapePlan")]
 pub struct NoteReshapePlan {
+    pub auth_randomizer: Fr,
     pub family_id: NoteReshapeFamilyId,
     pub value_blinding: Fr,
     pub spends: Vec<ShieldedInputPlan>,
@@ -35,6 +37,11 @@ pub struct NoteReshapePlan {
 }
 
 impl NoteReshapePlan {
+    pub fn rk(&self, fvk: &FullViewingKey) -> reddsa::VerificationKey<SpendAuth> {
+        fvk.spend_verification_key()
+            .randomize(&self.auth_randomizer)
+    }
+
     pub fn new(
         family_id: NoteReshapeFamilyId,
         spends: Vec<ShieldedInputPlan>,
@@ -44,6 +51,7 @@ impl NoteReshapePlan {
         routing_parameters: Parameters,
     ) -> anyhow::Result<Self> {
         let plan = Self {
+            auth_randomizer: Fr::random(&mut rand_core::OsRng),
             family_id,
             value_blinding,
             spends,
@@ -62,26 +70,16 @@ impl NoteReshapePlan {
             .expect("note reshape must contain a real spend");
         HiddenArityPadder {
             value_blinding: self.value_blinding,
-            first_spend_randomizer: first_spend.randomizer,
+            auth_randomizer: self.auth_randomizer,
             sender_address: first_spend.note.address(),
             asset_id: first_spend.note.asset_id(),
             payload_key: self.compliance.witness.asset.payload_key(),
             nullifier_domain: shieldd_sdk_crypto::domains::RESHAPE_DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.note_reshape.synthetic_dummy.nullifier_seed",
-            spend_auth_key_label: b"shieldd.note_reshape.synthetic_dummy.spend_auth_key",
-            spend_auth_randomizer_label:
-                b"shieldd.note_reshape.synthetic_dummy.spend_auth_randomizer",
+
             input_note_label: b"shieldd.note_reshape.synthetic_dummy.input_note",
             output_note_label: b"shieldd.note_reshape.synthetic_dummy.output_note",
         }
-    }
-
-    pub fn synthetic_dummy_auth_sig(
-        &self,
-        slot: usize,
-        effect_hash: &[u8],
-    ) -> Signature<SpendAuth> {
-        self.padder().synthetic_dummy_auth_sig(slot, effect_hash)
     }
 
     fn encrypted_output_body(
@@ -203,7 +201,7 @@ impl NoteReshapePlan {
             .map(|spend| {
                 Ok(NoteReshapeInputPublic {
                     nullifier: spend.nullifier(&nullifier_key),
-                    rk: spend.rk(fvk),
+
                     history_required: shieldd_sdk_sct::nullifier_generation::is_old(
                         u64::from(spend.position),
                         recent_position_floor,
@@ -215,7 +213,7 @@ impl NoteReshapePlan {
         pad_to_len(&mut input_publics, self.family_id().input_count(), |slot| {
             NoteReshapeInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
-                rk: padder.synthetic_dummy_verification_key(slot),
+
                 history_required: false,
             }
         });
@@ -250,7 +248,7 @@ impl NoteReshapePlan {
                 Ok(NoteReshapeInputPrivate {
                     state_commitment_proof,
                     spent_note: spend.note.clone(),
-                    spend_auth_randomizer: spend.randomizer,
+
                     is_dummy: false,
                     dummy_nullifier_seed: Fq::from(0u64),
                 })
@@ -264,7 +262,7 @@ impl NoteReshapePlan {
                     padder.synthetic_dummy_input_note(slot).commit(),
                 ),
                 spent_note: padder.synthetic_dummy_input_note(slot),
-                spend_auth_randomizer: padder.synthetic_dummy_spend_auth_randomizer(slot),
+
                 is_dummy: true,
                 dummy_nullifier_seed: padder.synthetic_dummy_nullifier_seed(slot),
             },
@@ -298,6 +296,7 @@ impl NoteReshapePlan {
 
         Ok((
             NoteReshapeProofPublic {
+                rk: self.rk(fvk),
                 family_id: self.family_id,
                 anchor,
                 balance_commitment: self.balance().commit(self.value_blinding),
@@ -310,6 +309,7 @@ impl NoteReshapePlan {
                 outputs: output_publics,
             },
             NoteReshapeProofPrivate {
+                spend_auth_randomizer: self.auth_randomizer,
                 family_id: self.family_id,
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
@@ -348,7 +348,7 @@ impl NoteReshapePlan {
                     spend.action_input_body(fvk, &nullifier_key, recent_position_floor)?;
                 Ok(NoteReshapeInputBody {
                     nullifier: spend_body.nullifier,
-                    rk: spend_body.rk,
+
                     encrypted_backref: spend_body.encrypted_backref,
                     history_required: spend_body.history_required,
                 })
@@ -359,7 +359,7 @@ impl NoteReshapePlan {
             let backref = crate::Backref::new(padder.synthetic_dummy_input_note(slot).commit());
             NoteReshapeInputBody {
                 nullifier,
-                rk: padder.synthetic_dummy_verification_key(slot),
+
                 encrypted_backref: backref.encrypt(&fvk.backref_key(), &nullifier),
                 history_required: false,
             }
@@ -400,6 +400,7 @@ impl NoteReshapePlan {
         );
 
         Ok(NoteReshapeBody {
+            rk: self.rk(fvk),
             family_id: self.family_id,
             anchor,
             balance_commitment: action_balance_commitment,
@@ -412,23 +413,11 @@ impl NoteReshapePlan {
         })
     }
 
-    #[cfg(any(test, feature = "prover"))]
-    fn validate_auth_count(&self, count: usize) -> Result<(), crate::ProofError> {
-        if count != self.spends.len() {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "note_reshape expected {} auth sigs, got {}",
-                self.spends.len(),
-                count
-            )));
-        }
-        Ok(())
-    }
-
     #[cfg(all(feature = "prover", any(unix, windows)))]
     pub fn note_reshape(
         &self,
         fvk: &FullViewingKey,
-        auth_sigs: Vec<Signature<SpendAuth>>,
+        auth_sig: Signature<SpendAuth>,
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
@@ -438,11 +427,7 @@ impl NoteReshapePlan {
         let body = self
             .note_reshape_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        self.validate_auth_count(auth_sigs.len())?;
-        let mut auth_sigs = auth_sigs;
-        pad_to_len(&mut auth_sigs, self.family_id().auth_sig_count(), |slot| {
-            self.synthetic_dummy_auth_sig(slot, body.effect_hash().as_ref())
-        });
+
         let (public, private) = self.note_reshape_public_private(
             fvk,
             &state_commitment_proofs,
@@ -453,7 +438,7 @@ impl NoteReshapePlan {
 
         Ok(NoteReshape {
             body,
-            auth_sigs,
+            auth_sig,
             proof,
         })
     }
@@ -466,6 +451,7 @@ impl DomainType for NoteReshapePlan {
 impl From<NoteReshapePlan> for pb::NoteReshapePlan {
     fn from(msg: NoteReshapePlan) -> Self {
         Self {
+            auth_randomizer: msg.auth_randomizer.to_bytes().to_vec(),
             family_id: msg.family_id.into(),
             value_blinding: msg.value_blinding.to_bytes().to_vec(),
             spends: msg.spends.into_iter().map(Into::into).collect(),
@@ -481,6 +467,9 @@ impl TryFrom<pb::NoteReshapePlan> for NoteReshapePlan {
 
     fn try_from(proto: pb::NoteReshapePlan) -> Result<Self, Self::Error> {
         let plan = Self {
+            auth_randomizer: shieldd_sdk_crypto::encoding::scalar(
+                &proto.auth_randomizer.as_slice().try_into()?,
+            )?,
             family_id: proto.family_id.try_into()?,
             value_blinding: shieldd_sdk_crypto::encoding::scalar(
                 proto
@@ -715,7 +704,7 @@ mod tests {
     }
 
     #[test]
-    fn materializers_reject_proof_and_auth_count_mismatches() {
+    fn materializers_reject_missing_note_proofs() {
         let plan = two_to_one_plan();
         let anchor = tct::Tree::default().root();
 
@@ -725,13 +714,6 @@ mod tests {
         assert!(error
             .to_string()
             .contains("note_reshape expected 2 state commitment proofs, got 0"));
-
-        let error = plan
-            .validate_auth_count(0)
-            .expect_err("action materialization must require one signature per real spend");
-        assert!(error
-            .to_string()
-            .contains("note_reshape expected 2 auth sigs, got 0"));
     }
 
     #[test]

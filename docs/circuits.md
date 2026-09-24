@@ -30,7 +30,9 @@ For each real spend, the relation binds note fields to the commitment, the SCT
 path to its anchor, and the nullifier to the effective nullifier key, commitment
 and position. Transmission keys bind to the IVK decomposition; randomized
 verification keys bind to the spend authorization key and action randomizer.
-Dummy slots use synthetic nullifiers and randomized verification keys. The
+One action key binds the shared owner key used by every real input. Dummy slots
+derive distinct nullifiers from the private seed, action randomizer and existing
+family/slot domains; they carry no keys or signatures. The
 statement binds the recent-position floor and the exact old-note classification
 `!is_dummy && position < recent_position_floor` for every spend.
 
@@ -68,7 +70,7 @@ as described in [compliance](compliance/flow.md#transfer-visibility).
 Detection binds the selected DK shared secret, sender-core EPK, asset, salt,
 boolean flag and reserved zero. Canonical address decomposition precedes packing.
 The selected policy facts, epoch, timestamp, salts and both core confirmations
-enter the statement. The 2×2 statement has 69 fields; their authoritative order
+enter the statement. The 2×2 statement has 67 fields; their authoritative order
 is `Statement::fields` in [transfer.rs](../crates/crypto/circuits/src/transfer.rs).
 
 Sender and receiver ownership ciphertexts bind their actual address components
@@ -93,7 +95,7 @@ DLEQ validation are enforced outside that circuit by the [seizure host path](com
 
 Circuits do not authenticate a root's freshness, sign transactions, check global
 spent state or grant external release authority. Runtime validation supplies
-current roots/windows, checks signatures and uniqueness, and applies atomic state
+admitted compliance snapshots and current nullifier windows, checks signatures and uniqueness, and applies atomic state
 transitions. Issuer registration, scanner evidence and external PET are separate
 boundaries even when the transaction proof is valid.
 

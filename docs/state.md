@@ -100,7 +100,8 @@ snapshot.
   padding, and proof layouts are protocol facts.
 - Nullifier and commitment positions follow proposal order; values are never
   sorted to make batching easier.
-- Compliance transfer proofs use the exact current user and asset roots.
+- Compliance proofs use [paired snapshot admission](compliance/flow.md#snapshot-admission-and-freezes);
+  its epoch and history are application-hash-covered state.
 - Mutable indexed-tree predecessor selection is sequential; only independent
   parent hashing is parallel.
 - A failed block or wallet projection publishes neither partial tree state nor a

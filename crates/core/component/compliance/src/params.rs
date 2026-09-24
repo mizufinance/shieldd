@@ -20,8 +20,8 @@ use crate::state_key;
     into = "pb::ComplianceParameters"
 )]
 pub struct ComplianceParameters {
-    /// Retention window for recorded user roots; authorization requires current roots.
-    pub anchor_validation_window_blocks: u64,
+    /// Maximum age in consensus seconds of a recorded root pair; zero requires current roots.
+    pub compliance_anchor_max_age_seconds: u64,
 }
 
 impl DomainType for ComplianceParameters {
@@ -33,7 +33,7 @@ impl TryFrom<pb::ComplianceParameters> for ComplianceParameters {
 
     fn try_from(msg: pb::ComplianceParameters) -> anyhow::Result<Self> {
         Ok(Self {
-            anchor_validation_window_blocks: msg.anchor_validation_window_blocks,
+            compliance_anchor_max_age_seconds: msg.compliance_anchor_max_age_seconds,
         })
     }
 }
@@ -41,7 +41,7 @@ impl TryFrom<pb::ComplianceParameters> for ComplianceParameters {
 impl From<ComplianceParameters> for pb::ComplianceParameters {
     fn from(params: ComplianceParameters) -> Self {
         Self {
-            anchor_validation_window_blocks: params.anchor_validation_window_blocks,
+            compliance_anchor_max_age_seconds: params.compliance_anchor_max_age_seconds,
         }
     }
 }
@@ -49,8 +49,7 @@ impl From<ComplianceParameters> for pb::ComplianceParameters {
 impl Default for ComplianceParameters {
     fn default() -> Self {
         Self {
-            // 14 days at today's 5s target block time.
-            anchor_validation_window_blocks: (14 * 24 * 3600) / 5,
+            compliance_anchor_max_age_seconds: 1800,
         }
     }
 }

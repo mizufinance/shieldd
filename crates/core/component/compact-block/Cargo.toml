@@ -20,9 +20,7 @@ component = [
     "shieldd-sdk-shielded-pool/component",
 ]
 # proving-keys = ["shieldd-sdk-proof-params/proving-keys"]
-default = ["std", "component"]
-std = []
-docsrs = []
+default = ["component"]
 
 [dependencies]
 sha2.workspace = true

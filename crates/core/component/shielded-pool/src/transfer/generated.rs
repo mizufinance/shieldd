@@ -1,4 +1,4 @@
-// Code generated from transfer_families.json. DO NOT EDIT.
+// Canonical fixed transfer shape.
 pub const PADDED_TRANSFER_INPUTS: usize = 2;
 pub const PADDED_TRANSFER_OUTPUTS: usize = 2;
 pub const TRANSFER_STATEMENT_FIELD_COUNT: usize =
@@ -15,8 +15,4 @@ pub fn transfer_input_count() -> usize {
 
 pub fn transfer_output_count() -> usize {
     PADDED_TRANSFER_OUTPUTS
-}
-
-pub fn transfer_auth_sig_count() -> usize {
-    PADDED_TRANSFER_INPUTS
 }

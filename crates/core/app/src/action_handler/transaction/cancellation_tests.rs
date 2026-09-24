@@ -76,6 +76,7 @@ async fn cancelling_withdrawal_historical_check_releases_state_immediately() -> 
         .actions
         .push(Action::ShieldedHostWithdrawal(ShieldedHostWithdrawal {
             body: ShieldedHostWithdrawalBody {
+                rk: *shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.spend_verification_key(),
                 family_id: ShieldedWithdrawalFamilyId::Canonical,
                 anchor: tx.anchor,
                 balance_commitment: Default::default(),
@@ -108,7 +109,7 @@ async fn cancelling_withdrawal_historical_check_releases_state_immediately() -> 
                     },
                 volume_accumulator: VolumeAccumulatorPayload::canonical_fee_funding(),
             },
-            auth_sigs: Vec::new(),
+            auth_sig: [0; 64].into(),
             proof: ShieldedWithdrawalProof::default(),
         }));
     let context = HistoricalCheckContext {

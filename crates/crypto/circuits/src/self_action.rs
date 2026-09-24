@@ -10,6 +10,7 @@ use commonware_cryptography::{
 
 #[derive(Clone)]
 pub struct Witness {
+    pub spend_auth: note::SpendAuthorization,
     pub anchor: Scalar,
     pub asset_anchor: Scalar,
     pub compliance_anchor: Scalar,
@@ -24,6 +25,7 @@ pub struct Witness {
     pub sender: compliance::Witness,
 }
 pub struct Facts<'a> {
+    pub rk: Point<Var<'a, Scalar>>,
     pub asset_anchor: Var<'a, Scalar>,
     pub compliance_anchor: Var<'a, Scalar>,
     pub regulated: BoolVar<'a, Scalar>,
@@ -72,15 +74,17 @@ pub fn constrain<'a>(
         &sender.address.transmission,
         &var(&w.routing_nonce),
     );
+    let (rk, randomizer) = note::constrain_authorization(ctx, &auth.ak, &w.spend_auth);
     let spend = note::SpendContext {
         address: sender.address.clone(),
         asset,
         nk: auth.effective_nk.clone(),
-        ak: auth.ak.clone(),
+        randomizer,
         anchor: var(&w.anchor),
         recent_floor: var(&w.recent_floor),
     };
     Facts {
+        rk,
         asset_anchor,
         compliance_anchor,
         regulated,

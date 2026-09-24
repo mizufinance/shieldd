@@ -2,7 +2,8 @@
   "actions": [
     {
       "shieldedHostWithdrawal": {
-        "valueBlinding": "yniHc1dp1guoZTyn6jtX5X/EPXXup1KenljKjDJDIgE=",
+        "authRandomizer": "j2JlHfjZs5HbbDyrACPELrCKiWl052Zmy3NHP4K9tQ0=",
+        "valueBlinding": "AwjH5Qf8gsCIIPPb554m15TOfUvOKlVV9pQvE6YX0wk=",
         "spends": [
           {
             "note": {
@@ -14,15 +15,14 @@
                   "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
                 }
               },
-              "rseed": "qTslN4mUVEC8lkcotQtcGmChyPBNm/zmtDhJHLmJkTE=",
+              "rseed": "TkoULghH08KHcDt3hjrTeqmJ72mTQFFvEZj8VEGzMxA=",
               "address": {
                 "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
               },
               "recoveryCommitment": "4cUbqBIiLU3WCkwfOqdO1dPImo03nH5HebGePpGQXVw="
             },
             "position": "19383179511933",
-            "randomizer": "5fSqFrDX7wgtkkaQKj4aRNkU3U5+SZhGIZJ7HN5zXQ4=",
-            "valueBlinding": "v3kINYJpoYxCfimh1Dk2J0PJFm1YwHNBxdC2xxOpNQY="
+            "valueBlinding": "ekZkFaQP5ykvCQTnGi4/SU9vLPA1WC6mN75qDbVSRw4="
           }
         ],
         "withdrawal": {
@@ -316,7 +316,7 @@
             }
           },
           "timestamp": "1700000000",
-          "nonce": "TrJunryo79lK9DmsK+pXMfUjth98ziI+VWcIqnQkFgA="
+          "nonce": "H2BR2wmmbYkA1dWpJshNFUVP/SxGPqozf1mV+IhCrQU="
         },
         "volumeAccumulator": {
           "dayStart": "1699920000",
@@ -333,7 +333,8 @@
     },
     {
       "shieldedHostWithdrawal": {
-        "valueBlinding": "g5RaXF+o2EFAnSHcuA2HytVE7UInRet1ECAZ4CEbIQw=",
+        "authRandomizer": "arxAq/bK0EqKBga9dFFTctALbwT2nPpidq2d3dJasgY=",
+        "valueBlinding": "wU3xmWoRMWggvImFKkJFJEk8YKjsR7xLUh02++LMuAc=",
         "spends": [
           {
             "note": {
@@ -345,15 +346,14 @@
                   "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
                 }
               },
-              "rseed": "heL+cqIDCMP4qEKTN+fyIhVgxKIT35fomlHnioWq8Ck=",
+              "rseed": "FgUGBBfpZ+AwVPA/70zYu7VDes0YPZYWegR0cGF6PE0=",
               "address": {
                 "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
               },
               "recoveryCommitment": "4cUbqBIiLU3WCkwfOqdO1dPImo03nH5HebGePpGQXVw="
             },
             "position": "47579966152041",
-            "randomizer": "0X8Gr8QnZedDa0/FhGgZpDSIS84MiJbUBVTVB/k8dgs=",
-            "valueBlinding": "SXM+90ET6x1SH20CGJFMRrIvpyq4luHXQ33puQtYPgM="
+            "valueBlinding": "IDCMQp1XX+Vu9JflJ7/298+lj9VrgAQPrB0YMroe7AU="
           }
         ],
         "withdrawal": {
@@ -647,7 +647,7 @@
             }
           },
           "timestamp": "1700000000",
-          "nonce": "E85yktAO1VNV8C/8Fs8FASk957C/I8a8DVYQCFMUvgo="
+          "nonce": "pGBrs0sPHgcKRGlfuM0rzXDIWxc7H63Bbc28f/XqEQI="
         },
         "volumeAccumulator": {
           "dayStart": "1699920000",

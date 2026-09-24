@@ -26,7 +26,6 @@ pub struct ShieldedWithdrawalProof {
 #[derive(Clone, Debug)]
 pub struct ShieldedWithdrawalInputPublic {
     pub nullifier: Nullifier,
-    pub rk: VerificationKey<SpendAuth>,
     pub history_required: bool,
 }
 
@@ -38,6 +37,7 @@ pub struct ShieldedWithdrawalChangePublic {
 
 #[derive(Clone, Debug)]
 pub struct ShieldedWithdrawalProofPublic {
+    pub rk: VerificationKey<SpendAuth>,
     pub family_id: ShieldedWithdrawalFamilyId,
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
@@ -95,7 +95,6 @@ impl ShieldedWithdrawalProofPublic {
 pub struct ShieldedWithdrawalRequiredInputPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
-    pub spend_auth_randomizer: Fr,
 }
 
 #[derive(Clone, Debug)]
@@ -112,6 +111,7 @@ pub struct ShieldedWithdrawalChangePrivate {
 
 #[derive(Clone, Debug)]
 pub struct ShieldedWithdrawalProofPrivate {
+    pub spend_auth_randomizer: Fr,
     pub family_id: ShieldedWithdrawalFamilyId,
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,

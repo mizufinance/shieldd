@@ -47,7 +47,7 @@ fn both_shapes_conserve_and_authenticate_with_canonical_padding() {
                     inputs[2].spend.nullifier = note::dummy_nullifier(
                         &p,
                         &inputs[2].padding.seed,
-                        &inputs[2].spend.randomizer,
+                        &bad.owner.spend_auth.randomizer,
                         note::Padding::Reshape(3),
                     )
                 }

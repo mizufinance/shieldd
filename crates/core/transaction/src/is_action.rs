@@ -325,7 +325,7 @@ mod tests {
         proof_bytes.extend(Scalar::zero().encode());
         Envelope::from_bytes(&proof_bytes).expect("canonical encoding fixture");
         let action = ShieldedHostWithdrawal {
-            auth_sigs: vec![[0u8; 64].into(); body.family_id.auth_sig_count()],
+            auth_sig: [0u8; 64].into(),
             body,
             proof: ShieldedWithdrawalProof { inner: proof_bytes },
         };

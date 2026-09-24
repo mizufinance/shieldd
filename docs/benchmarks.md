@@ -32,3 +32,12 @@ different relation or executable. Keep run outputs in local scratch space or CI
 artifacts outside the repository. Record hardware, profile, worker count, source
 revision and registry identity alongside results. [Circuits](circuits.md) owns
 family coverage; [Proof system](proof-system.md) owns registry configuration.
+
+The `compliance_auth` Criterion benchmark compares the former exact-pair check,
+current and historical admission, and the freeze epoch delta against 1, 64 and
+4,096 retained pairs. It also compares signing/verifying 1, 2 and 8 signatures
+under identical keys/messages to isolate action-level authorization savings.
+Run `cargo bench --profile ci -p shieldd-sdk-bench --bench compliance_auth`.
+Synthetic pairs isolate metadata access; the barrier measurement excludes the
+unchanged registry leaf update and commit. These are warm microbenchmarks, not
+end-to-end throughput measurements.

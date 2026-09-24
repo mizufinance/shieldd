@@ -150,9 +150,7 @@ fn spend() -> note::SpendWitness {
     note::SpendWitness {
         note: note(),
         path: path(),
-        randomizer: zero(),
         nullifier: zero(),
-        rk: point(),
         history_required: false,
     }
 }
@@ -231,6 +229,10 @@ fn volume() -> volume::Witness {
 }
 fn self_action() -> self_action::Witness {
     self_action::Witness {
+        spend_auth: note::SpendAuthorization {
+            randomizer: zero(),
+            rk: point(),
+        },
         anchor: zero(),
         asset_anchor: zero(),
         compliance_anchor: zero(),
@@ -326,6 +328,10 @@ fn template(family: Family) -> Witness {
                 ciphertext: std::array::from_fn(|_| zero()),
             };
             Witness::Transfer(Box::new(transfer::Witness {
+                spend_auth: note::SpendAuthorization {
+                    randomizer: zero(),
+                    rk: point(),
+                },
                 anchor: zero(),
                 asset_anchor: zero(),
                 compliance_anchor: zero(),

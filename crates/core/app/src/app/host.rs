@@ -60,6 +60,8 @@ pub struct HostTxResponse {
 }
 
 impl HostTxResponse {
+    pub const STALE_COMPLIANCE_SNAPSHOT: u32 = 2;
+
     fn accepted(events: Vec<abci::Event>, withdrawals: Vec<HostWithdrawal>) -> Self {
         Self {
             events,
@@ -70,7 +72,16 @@ impl HostTxResponse {
 
     fn rejected(error: anyhow::Error) -> Self {
         Self {
-            code: 1,
+            code: if error.is::<shieldd_sdk_compliance::admission::StaleComplianceSnapshot>() {
+                Self::STALE_COMPLIANCE_SNAPSHOT
+            } else {
+                1
+            },
+            info: if error.is::<shieldd_sdk_compliance::admission::StaleComplianceSnapshot>() {
+                "stale_compliance_snapshot: explicit retry required".to_owned()
+            } else {
+                String::new()
+            },
             log: format!("{error:#}"),
             codespace: "shieldd".to_owned(),
             ..Default::default()
@@ -367,7 +378,7 @@ impl HostExecution {
             height,
             time: block.time,
         };
-        let events = self.app.begin_block(&begin_block).await;
+        let events = self.app.begin_block(&begin_block).await?;
         self.phase = HostExecutionPhase::InBlock;
         Ok(HostExecutionResponse { events })
     }
@@ -1286,6 +1297,7 @@ mod tests {
     fn host_withdrawal_action() -> ShieldedHostWithdrawal {
         ShieldedHostWithdrawal {
             body: ShieldedHostWithdrawalBody {
+                rk: *shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.spend_verification_key(),
                 family_id: ShieldedWithdrawalFamilyId::Canonical,
                 anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Default::default(),
@@ -1322,7 +1334,7 @@ mod tests {
                 volume_accumulator:
                     shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
             },
-            auth_sigs: Vec::new(),
+            auth_sig: [0; 64].into(),
             proof: ShieldedWithdrawalProof::default(),
         }
     }
@@ -1411,6 +1423,60 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn begin_block_rejects_backward_time_and_rolls_back_genesis_snapshot() -> Result<()> {
+        use shieldd_sdk_compliance::admission::state as admission;
+        let storage = temp_storage().await;
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        assert!(admission::current(&*host.app.state).await?.is_none());
+        let mut first = host_block(1);
+        first.time = Time::from_unix_timestamp(1000, 0)?;
+        host.begin_block(first).await?;
+        assert_eq!(
+            admission::current(&*host.app.state)
+                .await?
+                .unwrap()
+                .observed_time_seconds,
+            1000
+        );
+        host.rollback().await?;
+        assert!(admission::current(&*host.app.state).await?.is_none());
+        let mut first = host_block(1);
+        first.time = Time::from_unix_timestamp(2000, 0)?;
+        host.begin_block(first).await?;
+        host.end_block(1).await?;
+        host.commit().await?;
+        let version = storage.latest_version();
+        let mut next = host_block(2);
+        next.time = Time::from_unix_timestamp(1999, 0)?;
+        assert!(host
+            .begin_block(next)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("parent block time"));
+        assert!(
+            host.app
+                .begin_block(&cnidarium_component::BlockContext {
+                    height: 2,
+                    time: Time::from_unix_timestamp(1999, 0)?,
+                })
+                .await
+                .is_err(),
+            "direct execution must also reject backward time"
+        );
+        assert_eq!(host.app.state.get_block_height().await?, 1);
+        assert_eq!(host.phase(), HostExecutionPhase::Idle);
+        assert_eq!(storage.latest_version(), version);
+        let mut next = host_block(2);
+        next.time = Time::from_unix_timestamp(2000, 0)?;
+        host.begin_block(next).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn begin_block_rejects_incompatible_state_without_mutation() -> Result<()> {
         use cnidarium::StateWrite;
         use shieldd_sdk_proto::StateWriteProto;
@@ -1471,8 +1537,19 @@ mod tests {
         host.init_genesis(host_genesis()).await?;
         host.commit().await?;
         host.begin_block(host_block(1)).await?;
+        use shieldd_sdk_compliance::admission::state as admission;
+        let genesis_pair = admission::current(&*host.app.state)
+            .await?
+            .context("genesis pair stamped at begin block")?;
         register_regulated_test_user(&mut host).await?;
 
+        // Registration leaves the recorded old nonmembership snapshot usable.
+        admission::validate(
+            &*host.app.state,
+            &genesis_pair.user_root,
+            &genesis_pair.asset_root,
+        )
+        .await?;
         let failed_source = host_source_at(1, 0);
         let failed = host
             .apply_compliance_action(compliance_request(
@@ -1494,6 +1571,17 @@ mod tests {
         assert_eq!(first.response.current_status, 2);
         assert!(!first.response.replayed);
 
+        assert_eq!(admission::epoch(&*host.app.state).await?, 1);
+        let stale = admission::validate(
+            &*host.app.state,
+            &genesis_pair.user_root,
+            &genesis_pair.asset_root,
+        )
+        .await
+        .unwrap_err();
+        let rejected = HostTxResponse::rejected(stale.context("executing cached transaction"));
+        assert_eq!(rejected.code, 2);
+        assert!(rejected.log.contains("reprove and reauthorize"));
         let replay = host
             .apply_compliance_action(compliance_request(
                 failed_source.clone(),
@@ -1527,6 +1615,49 @@ mod tests {
             .await?;
         assert_eq!(unfreeze.response.previous_status, 2);
         assert_eq!(unfreeze.response.current_status, 1);
+        assert_eq!(
+            admission::epoch(&*host.app.state).await?,
+            1,
+            "replay and unfreeze do not advance the barrier"
+        );
+        assert!(admission::validate(
+            &*host.app.state,
+            &genesis_pair.user_root,
+            &genesis_pair.asset_root
+        )
+        .await
+        .is_err());
+        host.end_block(1).await?;
+        host.commit().await?;
+        let checkpoint = host.export_genesis().await?;
+        let saved_pair = admission::current(&storage.latest_snapshot())
+            .await?
+            .context("committed pair")?;
+        drop(host);
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(checkpoint).await?;
+        assert_eq!(
+            admission::current(&*host.app.state).await?,
+            Some(saved_pair.clone())
+        );
+        assert_eq!(admission::epoch(&*host.app.state).await?, 1);
+        // Abandon a real freeze, then replay it from the same parent.
+        host.begin_block(host_block(2)).await?;
+        let request = compliance_request(host_source_at(2, 0), UserAssetStatusAction::Freeze);
+        host.apply_compliance_action(request.clone()).await?;
+        assert_eq!(admission::epoch(&*host.app.state).await?, 2);
+        host.rollback().await?;
+        assert_eq!(admission::epoch(&*host.app.state).await?, 1);
+        assert_eq!(
+            admission::current(&*host.app.state).await?,
+            Some(saved_pair)
+        );
+        host.begin_block(host_block(2)).await?;
+        host.apply_compliance_action(request).await?;
+        assert_eq!(admission::epoch(&*host.app.state).await?, 2);
+        host.end_block(2).await?;
+        host.commit().await?;
         Ok(())
     }
 

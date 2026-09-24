@@ -163,9 +163,9 @@ mod test {
             content
                 .compliance_content
                 .compliance_params
-                .anchor_validation_window_blocks,
+                .compliance_anchor_max_age_seconds,
             shieldd_sdk_compliance::params::ComplianceParameters::default()
-                .anchor_validation_window_blocks
+                .compliance_anchor_max_age_seconds
         );
         Ok(())
     }

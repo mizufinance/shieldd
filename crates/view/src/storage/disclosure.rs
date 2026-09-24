@@ -58,12 +58,12 @@ impl Storage {
                 };
                 accepted.body.validate_shape()?;
                 ensure!(
-                    input.rk(&fvk) == accepted.body.inputs[0].rk,
+                    transfer.rk(&fvk) == accepted.body.rk,
                     "authority key mismatch"
                 );
                 authorities.push(RetainedAuthority {
                     action: u32::try_from(i)?,
-                    randomizer: input.randomizer.to_bytes(),
+                    randomizer: transfer.auth_randomizer.to_bytes(),
                 });
             }
         }

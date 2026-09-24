@@ -29,7 +29,6 @@ impl NoteReshapeFamilyId {
 #[derive(Clone, Debug)]
 pub struct NoteReshapeInputPublic {
     pub nullifier: Nullifier,
-    pub rk: VerificationKey<SpendAuth>,
     pub history_required: bool,
 }
 
@@ -41,6 +40,7 @@ pub struct NoteReshapeOutputPublic {
 
 #[derive(Clone, Debug)]
 pub struct NoteReshapeProofPublic {
+    pub rk: VerificationKey<SpendAuth>,
     pub family_id: NoteReshapeFamilyId,
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
@@ -94,7 +94,6 @@ fn validate_dummy_suffix(label: &str, flags: &[bool]) -> Result<()> {
 pub struct NoteReshapeInputPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
-    pub spend_auth_randomizer: Fr,
     pub(crate) is_dummy: bool,
     pub(crate) dummy_nullifier_seed: Fq,
 }
@@ -106,6 +105,7 @@ pub struct NoteReshapeOutputPrivate {
 
 #[derive(Clone, Debug)]
 pub struct NoteReshapeProofPrivate {
+    pub spend_auth_randomizer: Fr,
     pub family_id: NoteReshapeFamilyId,
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,

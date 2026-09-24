@@ -34,7 +34,13 @@ impl Component for Compliance {
         let compliance_params = app_state
             .map(|genesis| genesis.compliance_params.clone())
             .unwrap_or_default();
-        state.put_compliance_params(compliance_params);
+        if app_state.is_some() {
+            state.put_compliance_params(compliance_params);
+        } else {
+            crate::admission::state::validate_checkpoint(&state)
+                .await
+                .expect("checkpoint compliance admission state");
+        }
 
         if app_state.is_some() {
             state
@@ -149,7 +155,11 @@ impl Component for Compliance {
             }
         }
 
-        // Record initial anchors at genesis (height 0)
+        // Checkpoints preserve their complete admission state and height.
+        if app_state.is_none() {
+            return;
+        }
+        // Preserve genesis root events without inventing a timestamp.
         state
             .finish_block_compliance_anchors(0)
             .await
@@ -157,12 +167,32 @@ impl Component for Compliance {
         tracing::info!("recorded initial compliance anchors at genesis");
     }
 
-    #[instrument(name = "compliance", skip(_state, _begin_block))]
+    #[instrument(name = "compliance", skip(state, begin_block))]
     async fn begin_block<S: StateWrite + 'static>(
-        _state: &mut Arc<S>,
-        _begin_block: &cnidarium_component::BlockContext,
+        state: &mut Arc<S>,
+        begin_block: &cnidarium_component::BlockContext,
     ) {
-        // No-op for compliance component
+        use shieldd_sdk_proto::StateReadProto;
+        let state = Arc::get_mut(state).expect("unique compliance state");
+        if state
+            .get_proto::<bool>(crate::state_key::admission::pending_genesis())
+            .await
+            .expect("genesis marker")
+            == Some(true)
+        {
+            crate::admission::state::record(
+                state,
+                begin_block.height,
+                begin_block
+                    .time
+                    .unix_timestamp()
+                    .try_into()
+                    .expect("nonnegative block time"),
+            )
+            .await
+            .expect("initial compliance snapshot");
+            state.delete(crate::state_key::admission::pending_genesis().to_owned());
+        }
     }
 
     #[instrument(name = "compliance", skip(state, height))]
@@ -177,7 +207,6 @@ impl Component for Compliance {
     }
 
     async fn end_epoch<S: StateWrite + 'static>(_state: &mut Arc<S>) -> Result<()> {
-        // No-op for compliance component
         Ok(())
     }
 }
@@ -536,6 +565,8 @@ mod tests {
             TEST_CHAIN_ID.as_bytes().to_vec(),
         );
 
+        shieldd_sdk_sct::component::clock::EpochManager::put_block_height(&mut state, 0);
+
         let custom_asset = asset::Id(Fq::from(999u64));
         let address = Address::dummy(&mut rand::thread_rng());
         let leaf = ComplianceLeaf::registered_from_rnk(
@@ -549,6 +580,9 @@ mod tests {
         // Custom genesis with a regulated asset (requires dk_pub)
         let dk_pub_bytes = (*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes();
         let genesis = genesis::Content {
+            compliance_params: crate::params::ComplianceParameters {
+                compliance_anchor_max_age_seconds: 73,
+            },
             native_assets: vec![NativeAssetRegistration {
                 audit_keys: Some(crate::audit_keys::test_keys()),
                 asset_id: custom_asset,
@@ -586,6 +620,14 @@ mod tests {
         let user_root = state.get_user_tree_root().await.unwrap();
         let asset_root = state.get_asset_imt_root().await.unwrap();
         Compliance::init_chain(&mut state, None).await;
+        assert_eq!(
+            crate::params::StateReadExt::get_compliance_params(&state)
+                .await
+                .unwrap()
+                .compliance_anchor_max_age_seconds,
+            73
+        );
+
         assert_eq!(state.get_user_tree_root().await.unwrap(), user_root);
         assert_eq!(state.get_asset_imt_root().await.unwrap(), asset_root);
         assert_eq!(

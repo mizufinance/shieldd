@@ -59,7 +59,14 @@ witnesses. [State](state.md) defines batched materialization and storage invaria
 
 A [transaction plan](../crates/core/transaction/src/plan.rs) exposes intended
 effects for authorization. Proof construction fills action proofs; authorization
-assembly adds spend signatures and the transaction binding signature.
+assembly adds exactly one SpendAuth signature per Transfer, NoteReshape or
+ShieldedHostWithdrawal, including the private fee-funding action, and retains the
+transaction binding signature. Each action samples a fresh randomizer before
+signing; its key binds every real input to the shared owner in the circuit.
+Duplicate action keys within one transaction are rejected, including fee funding;
+there is no persistent key-reuse set. Software and FROST custody use the same
+action order with fee funding last. Missing, extra or reordered authorizations
+fail count or key/signature checks. Delegated proving receives no spending secret.
 
 [Effect hashes](../crates/core/txhash/src/effect_hash.rs) use BLAKE2b-512 with an
 8-byte little-endian type-URL length, the type URL and encoded effecting data.

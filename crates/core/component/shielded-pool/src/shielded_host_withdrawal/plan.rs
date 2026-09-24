@@ -1,4 +1,5 @@
 use anyhow::{anyhow, ensure, Context, Error};
+use ff::Field;
 use reddsa::{sapling::SpendAuth, Signature};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, Balance};
@@ -17,9 +18,7 @@ use shieldd_sdk_txhash::EffectingData;
 
 use crate::{
     discovery::{self, Parameters},
-    note_reshape_padding::{
-        dummy_spend_auth_sig, dummy_state_commitment_proof, pad_to_len, HiddenArityPadder,
-    },
+    note_reshape_padding::{dummy_state_commitment_proof, pad_to_len, HiddenArityPadder},
     HostWithdrawal, ShieldedHostWithdrawal, ShieldedInputPlan, ShieldedOutputPlan,
     ShieldedWithdrawalChangeBody, ShieldedWithdrawalChangePrivate, ShieldedWithdrawalChangePublic,
     ShieldedWithdrawalFamilyId, ShieldedWithdrawalInputPublic,
@@ -38,6 +37,7 @@ const PADDED_HOST_WITHDRAWAL_INPUTS: usize = 2;
     into = "pb::ShieldedHostWithdrawalPlan"
 )]
 pub struct ShieldedHostWithdrawalPlan {
+    pub auth_randomizer: Fr,
     pub value_blinding: Fr,
     pub spends: Vec<ShieldedInputPlan>,
     pub change_output: Option<ShieldedOutputPlan>,
@@ -48,6 +48,11 @@ pub struct ShieldedHostWithdrawalPlan {
 }
 
 impl ShieldedHostWithdrawalPlan {
+    pub fn rk(&self, fvk: &FullViewingKey) -> reddsa::VerificationKey<SpendAuth> {
+        fvk.spend_verification_key()
+            .randomize(&self.auth_randomizer)
+    }
+
     pub fn new(
         spends: Vec<ShieldedInputPlan>,
         change_output: Option<ShieldedOutputPlan>,
@@ -58,6 +63,7 @@ impl ShieldedHostWithdrawalPlan {
         routing_parameters: Parameters,
     ) -> anyhow::Result<Self> {
         let plan = Self {
+            auth_randomizer: Fr::random(&mut rand_core::OsRng),
             value_blinding,
             spends,
             change_output,
@@ -139,17 +145,14 @@ impl ShieldedHostWithdrawalPlan {
     fn padder(&self) -> HiddenArityPadder {
         HiddenArityPadder {
             value_blinding: self.value_blinding,
-            first_spend_randomizer: self.first_spend().randomizer,
+            auth_randomizer: self.auth_randomizer,
             sender_address: self.sender_address(),
             asset_id: self.withdrawal_asset_id(),
             payload_key: self.compliance.witness.asset.payload_key(),
             nullifier_domain: shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
             nullifier_seed_label:
                 b"shieldd.shielded_host_withdrawal.synthetic_dummy.nullifier_seed",
-            spend_auth_key_label:
-                b"shieldd.shielded_host_withdrawal.synthetic_dummy.spend_auth_key",
-            spend_auth_randomizer_label:
-                b"shieldd.shielded_host_withdrawal.synthetic_dummy.spend_auth_randomizer",
+
             input_note_label: b"shieldd.shielded_host_withdrawal.synthetic_dummy.input_note",
             output_note_label: b"shieldd.shielded_host_withdrawal.synthetic_dummy.output_note",
         }
@@ -271,7 +274,7 @@ impl ShieldedHostWithdrawalPlan {
             .map(|spend| {
                 Ok(ShieldedWithdrawalInputPublic {
                     nullifier: spend.nullifier(&nullifier_key),
-                    rk: spend.rk(fvk),
+
                     history_required: shieldd_sdk_sct::nullifier_generation::is_old(
                         u64::from(spend.position),
                         recent_position_floor,
@@ -284,7 +287,7 @@ impl ShieldedHostWithdrawalPlan {
         pad_to_len(&mut input_publics, PADDED_HOST_WITHDRAWAL_INPUTS, |slot| {
             ShieldedWithdrawalInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
-                rk: padder.synthetic_dummy_verification_key(slot),
+
                 history_required: false,
             }
         });
@@ -297,7 +300,6 @@ impl ShieldedHostWithdrawalPlan {
                 |(spend, state_commitment_proof)| ShieldedWithdrawalRequiredInputPrivate {
                     state_commitment_proof,
                     spent_note: spend.note.clone(),
-                    spend_auth_randomizer: spend.randomizer,
                 },
             )
             .collect::<Vec<_>>()
@@ -313,7 +315,6 @@ impl ShieldedHostWithdrawalPlan {
                     spend: ShieldedWithdrawalRequiredInputPrivate {
                         state_commitment_proof: dummy_state_commitment_proof(dummy_note.commit()),
                         spent_note: dummy_note,
-                        spend_auth_randomizer: padder.synthetic_dummy_spend_auth_randomizer(slot),
                     },
                     is_dummy: true,
                     dummy_nullifier_seed: padder.synthetic_dummy_nullifier_seed(slot),
@@ -353,6 +354,7 @@ impl ShieldedHostWithdrawalPlan {
 
         Ok((
             ShieldedWithdrawalProofPublic {
+                rk: self.rk(fvk),
                 family_id: ShieldedWithdrawalFamilyId::Canonical,
                 anchor,
                 balance_commitment: Balance::default().commit(self.value_blinding),
@@ -378,6 +380,7 @@ impl ShieldedHostWithdrawalPlan {
                 },
             },
             ShieldedWithdrawalProofPrivate {
+                spend_auth_randomizer: self.auth_randomizer,
                 family_id: ShieldedWithdrawalFamilyId::Canonical,
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
@@ -430,7 +433,7 @@ impl ShieldedHostWithdrawalPlan {
             let nullifier = padder.synthetic_dummy_nullifier(slot);
             TransferInputBody {
                 nullifier,
-                rk: padder.synthetic_dummy_verification_key(slot),
+
                 encrypted_backref: crate::Backref::new(dummy_note.commit())
                     .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
@@ -471,6 +474,7 @@ impl ShieldedHostWithdrawalPlan {
         let withdrawal_compliance = self.withdrawal_compliance_encryption()?;
 
         Ok(ShieldedHostWithdrawalBody {
+            rk: self.rk(fvk),
             family_id: ShieldedWithdrawalFamilyId::Canonical,
             anchor,
             balance_commitment: Balance::default().commit(self.value_blinding),
@@ -491,7 +495,7 @@ impl ShieldedHostWithdrawalPlan {
     pub fn build_unauth_shielded_host_withdrawal(
         &self,
         fvk: &FullViewingKey,
-        auth_sigs: Vec<Signature<SpendAuth>>,
+        auth_sig: Signature<SpendAuth>,
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
@@ -501,13 +505,7 @@ impl ShieldedHostWithdrawalPlan {
         let body = self
             .action_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        if auth_sigs.len() != self.spends.len() {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "shielded host withdrawal expected {} auth sigs, got {}",
-                self.spends.len(),
-                auth_sigs.len()
-            )));
-        }
+
         let (public, private) = self.shielded_host_withdrawal_public_private(
             fvk,
             &state_commitment_proofs,
@@ -515,14 +513,10 @@ impl ShieldedHostWithdrawalPlan {
             recent_position_floor,
         )?;
         let proof = ShieldedWithdrawalProof::prove(public, private, registry)?;
-        let mut auth_sigs = auth_sigs;
-        while auth_sigs.len() < PADDED_HOST_WITHDRAWAL_INPUTS {
-            auth_sigs.push(dummy_spend_auth_sig());
-        }
 
         Ok(ShieldedHostWithdrawal {
             body,
-            auth_sigs,
+            auth_sig,
             proof,
         })
     }
@@ -530,7 +524,7 @@ impl ShieldedHostWithdrawalPlan {
     pub fn build_unauth_shielded_host_withdrawal_with_proof(
         &self,
         fvk: &FullViewingKey,
-        auth_sigs: Vec<Signature<SpendAuth>>,
+        auth_sig: Signature<SpendAuth>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
         proof: ShieldedWithdrawalProof,
@@ -539,31 +533,12 @@ impl ShieldedHostWithdrawalPlan {
         let body = self
             .action_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        if auth_sigs.len() != self.spends.len() {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "shielded host withdrawal expected {} auth sigs, got {}",
-                self.spends.len(),
-                auth_sigs.len()
-            )));
-        }
-        let mut auth_sigs = auth_sigs;
-        while auth_sigs.len() < PADDED_HOST_WITHDRAWAL_INPUTS {
-            auth_sigs.push(dummy_spend_auth_sig());
-        }
 
         Ok(ShieldedHostWithdrawal {
             body,
-            auth_sigs,
+            auth_sig,
             proof,
         })
-    }
-
-    pub fn synthetic_dummy_auth_sig(
-        &self,
-        slot: usize,
-        effect_hash: &[u8],
-    ) -> Signature<SpendAuth> {
-        self.padder().synthetic_dummy_auth_sig(slot, effect_hash)
     }
 }
 
@@ -574,6 +549,7 @@ impl DomainType for ShieldedHostWithdrawalPlan {
 impl From<ShieldedHostWithdrawalPlan> for pb::ShieldedHostWithdrawalPlan {
     fn from(value: ShieldedHostWithdrawalPlan) -> Self {
         Self {
+            auth_randomizer: value.auth_randomizer.to_bytes().to_vec(),
             value_blinding: value.value_blinding.to_bytes().to_vec(),
             spends: value.spends.into_iter().map(Into::into).collect(),
             change_output: value.change_output.map(Into::into),
@@ -595,6 +571,9 @@ impl TryFrom<pb::ShieldedHostWithdrawalPlan> for ShieldedHostWithdrawalPlan {
             .map_err(|_| anyhow!("malformed shielded host withdrawal value blinding"))?;
 
         let plan = Self {
+            auth_randomizer: shieldd_sdk_crypto::encoding::scalar(
+                &value.auth_randomizer.as_slice().try_into()?,
+            )?,
             value_blinding: shieldd_sdk_crypto::encoding::scalar(&value_blinding_bytes).map_err(
                 |_| anyhow!("malformed canonical shielded host withdrawal value blinding"),
             )?,
@@ -733,7 +712,7 @@ mod tests {
             shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
             &[
                 dummy.dummy_nullifier_seed,
-                shieldd_sdk_crypto::encoding::embed_scalar(&dummy.spend.spend_auth_randomizer),
+                shieldd_sdk_crypto::encoding::embed_scalar(&private.spend_auth_randomizer),
                 Fq::from(1),
             ],
         ));
@@ -1018,7 +997,7 @@ mod admission_tests {
     }
 
     #[test]
-    fn materializers_reject_proof_and_auth_count_mismatches() {
+    fn materializers_reject_missing_note_proofs() {
         let plan = one_spend_plan();
         let anchor = tct::Tree::default().root();
 
@@ -1028,20 +1007,6 @@ mod admission_tests {
         assert!(error
             .to_string()
             .contains("shielded host withdrawal expected 1 state commitment proofs, got 0"));
-
-        let error = plan
-            .build_unauth_shielded_host_withdrawal_with_proof(
-                &test_keys::FULL_VIEWING_KEY,
-                Vec::new(),
-                anchor,
-                &PayloadKey::random_key(&mut OsRng),
-                ShieldedWithdrawalProof::default(),
-                0,
-            )
-            .expect_err("action materialization must require one signature per real spend");
-        assert!(error
-            .to_string()
-            .contains("shielded host withdrawal expected 1 auth sigs, got 0"));
     }
 
     #[test]

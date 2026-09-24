@@ -15,17 +15,9 @@ impl TransactionPlan {
         let effect_hash = self.effect_hash(sk.full_viewing_key())?;
         let mut spend_auths = Vec::new();
 
-        for action_plan in &self.actions {
-            for spend_plan in action_plan.spends() {
-                let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
-                spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
-            }
-        }
-        if let Some(fee_funding) = &self.fee_funding {
-            for spend_plan in &fee_funding.transfer.spends {
-                let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
-                spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
-            }
+        for randomizer in self.spend_auth_randomizers() {
+            let rsk = sk.spend_auth_key().randomize(&randomizer);
+            spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
         }
 
         Ok(AuthorizationData {

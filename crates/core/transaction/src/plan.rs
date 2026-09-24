@@ -189,6 +189,27 @@ impl TransactionPlan {
         action_outputs + fee_funding_outputs
     }
 
+    /// Spending-action authorization order, followed by the optional fee action.
+    pub fn spend_auth_randomizers(&self) -> impl Iterator<Item = shieldd_sdk_crypto::Fr> + '_ {
+        self.actions
+            .iter()
+            .filter_map(|action| match action {
+                ActionPlan::Transfer(plan) => Some(plan.auth_randomizer),
+                ActionPlan::NoteReshape(plan) => Some(plan.auth_randomizer),
+                ActionPlan::ShieldedHostWithdrawal(plan) => Some(plan.auth_randomizer),
+                _ => None,
+            })
+            .chain(
+                self.fee_funding
+                    .iter()
+                    .map(|fee| fee.transfer.auth_randomizer),
+            )
+    }
+
+    pub fn num_spend_auths(&self) -> usize {
+        self.spend_auth_randomizers().count()
+    }
+
     pub fn num_spends(&self) -> usize {
         let action_spends = self
             .actions
@@ -330,7 +351,7 @@ mod tests {
                     0,
                 )
                 .expect("note reshape body materialization succeeds"),
-            auth_sigs: vec![[0u8; 64].into(); NoteReshapeFamilyId::EightByOne.auth_sig_count()],
+            auth_sig: [0u8; 64].into(),
             proof: NoteReshapeProof::default(),
         };
         (
@@ -520,7 +541,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_auth_data_rebinds_note_reshape_dummy_signatures_to_transaction_hash() {
+    fn apply_auth_data_uses_one_action_signature_for_padded_reshape() {
         let mut rng = OsRng;
         let input_value = Value {
             amount: 1u64.into(),
@@ -556,7 +577,7 @@ mod tests {
                     0,
                 )
                 .expect("note reshape body materialization succeeds"),
-            auth_sigs: vec![[0u8; 64].into(); NoteReshapeFamilyId::EightByOne.auth_sig_count()],
+            auth_sig: [0u8; 64].into(),
             proof: NoteReshapeProof::default(),
         };
         let plan = TransactionPlan {
@@ -575,7 +596,10 @@ mod tests {
             .apply_auth_data(
                 &crate::AuthorizationData {
                     effect_hash: Some(effect_hash),
-                    spend_auths: vec![[0u8; 64].into(); note_reshape.spends.len()],
+                    spend_auths: vec![test_keys::SPEND_KEY
+                        .spend_auth_key()
+                        .randomize(&note_reshape.auth_randomizer)
+                        .sign(&mut rng, effect_hash.as_ref())],
                 },
                 transaction,
             )
@@ -584,14 +608,13 @@ mod tests {
             panic!("expected NoteReshape action");
         };
 
-        for index in note_reshape.spends.len()..action.body.inputs.len() {
-            action.body.inputs[index]
-                .rk
-                .verify(effect_hash.as_ref(), &action.auth_sigs[index])
-                .unwrap_or_else(|error| {
-                    panic!("dummy signature {index} was not rebound to transaction hash: {error}")
-                });
-        }
+        assert_eq!(action.body.inputs.len(), 8);
+        assert_eq!(plan.num_spend_auths(), 1);
+        action
+            .body
+            .rk
+            .verify(effect_hash.as_ref(), &action.auth_sig)
+            .expect("one action signature authorizes all real inputs and padding");
     }
 
     #[test]
@@ -651,7 +674,7 @@ mod tests {
             .apply_auth_data(
                 &crate::AuthorizationData {
                     effect_hash: None,
-                    spend_auths: vec![[0u8; 64].into(); 2],
+                    spend_auths: vec![[0u8; 64].into(); 1],
                 },
                 Transaction::default(),
             )
@@ -665,6 +688,24 @@ mod tests {
     }
 
     #[test]
+    fn apply_auth_data_rejects_missing_or_extra_action_signatures() {
+        let (plan, transaction) = note_reshape_eight_by_one_fixture();
+        assert_eq!(plan.num_spend_auths(), 1);
+        for count in [0, 2, 8] {
+            let error = plan
+                .apply_auth_data(
+                    &crate::AuthorizationData {
+                        effect_hash: Some(transaction.effect_hash()),
+                        spend_auths: vec![[0u8; 64].into(); count],
+                    },
+                    transaction.clone(),
+                )
+                .unwrap_err();
+            assert!(error.to_string().contains("spend auth"), "{error:#}");
+        }
+    }
+
+    #[test]
     fn apply_auth_data_rejects_action_count_mismatch() {
         let (plan, mut transaction) = note_reshape_eight_by_one_fixture();
         transaction.transaction_body.actions.clear();
@@ -674,7 +715,7 @@ mod tests {
             .apply_auth_data(
                 &crate::AuthorizationData {
                     effect_hash: Some(effect_hash),
-                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spend_auths()],
                 },
                 transaction,
             )
@@ -700,7 +741,7 @@ mod tests {
             .apply_auth_data(
                 &crate::AuthorizationData {
                     effect_hash: Some(effect_hash),
-                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spend_auths()],
                 },
                 transaction,
             )
@@ -725,7 +766,7 @@ mod tests {
             .apply_auth_data(
                 &crate::AuthorizationData {
                     effect_hash: Some(effect_hash),
-                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spend_auths()],
                 },
                 transaction,
             )
@@ -745,7 +786,7 @@ mod tests {
             .apply_auth_data(
                 &crate::AuthorizationData {
                     effect_hash: None,
-                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spend_auths()],
                 },
                 transaction,
             )

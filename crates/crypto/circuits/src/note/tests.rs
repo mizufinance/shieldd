@@ -8,6 +8,7 @@ struct Values {
     asset: Scalar,
     nk: Scalar,
     ak: Point<Scalar>,
+    spend_auth: SpendAuthorization,
     anchor: Scalar,
     floor: Scalar,
 }
@@ -46,9 +47,7 @@ fn fixture(params: &Parameters, dummy: bool) -> (Values, SpendWitness, OptionalW
             position: Scalar::from(37),
             siblings,
         },
-        randomizer,
         nullifier,
-        rk,
         history_required: false,
     };
     (
@@ -57,6 +56,7 @@ fn fixture(params: &Parameters, dummy: bool) -> (Values, SpendWitness, OptionalW
             asset,
             nk,
             ak,
+            spend_auth: SpendAuthorization { randomizer, rk },
             anchor,
             floor: Scalar::from(37),
         },
@@ -74,7 +74,7 @@ fn shared<'a>(ctx: Context<'a, Scalar>, values: &Values) -> SpendContext<'a> {
         },
         asset: var(&values.asset),
         nk: var(&values.nk),
-        ak: point(&values.ak),
+        randomizer: constrain_authorization(ctx, &point(&values.ak), &values.spend_auth).1,
         anchor: var(&values.anchor),
         recent_floor: var(&values.floor),
     }
@@ -106,6 +106,7 @@ fn real_spends_bind_note_path_nullifier_authorization_and_history_boundary() {
         assert!(satisfied(&p, &values, &spend, option));
         for i in 0..9 {
             let mut bad = spend.clone();
+            let mut bad_values = values.clone();
             match i {
                 0 => bad.note.amount += &Scalar::one(),
                 1 => bad.note.blinding += &Scalar::one(),
@@ -113,11 +114,11 @@ fn real_spends_bind_note_path_nullifier_authorization_and_history_boundary() {
                 3 => bad.path.position += &Scalar::one(),
                 4 => bad.path.siblings[STATE_DEPTH - 1][2] += &Scalar::one(),
                 5 => bad.nullifier += &Scalar::one(),
-                6 => bad.randomizer += &Scalar::one(),
-                7 => bad.rk = group::generator(),
+                6 => bad_values.spend_auth.randomizer += &Scalar::one(),
+                7 => bad_values.spend_auth.rk = group::generator(),
                 _ => bad.history_required = true,
             }
-            assert!(!satisfied(&p, &values, &bad, option), "spend field {i}");
+            assert!(!satisfied(&p, &bad_values, &bad, option), "spend field {i}");
         }
         let mut old = values.clone();
         old.floor += &Scalar::one();
@@ -150,7 +151,6 @@ fn optional_dummy_enforces_gated_constraints_and_fixed_slot() {
     assert!(!satisfied(&p, &values, &spend, None));
     values.anchor += &Scalar::one();
     values.floor += &Scalar::one();
-    spend.rk = group::generator();
     spend.note.blinding += &Scalar::one();
     assert!(satisfied(&p, &values, &spend, Some(&optional)));
     for i in 0..6 {
@@ -159,13 +159,13 @@ fn optional_dummy_enforces_gated_constraints_and_fixed_slot() {
             0 => bad.note.amount = Scalar::one(),
             1 => bad.history_required = true,
             2 => bad.path.position = Scalar::from(1u64 << 48),
-            3 => bad.randomizer += &Scalar::one(),
+            3 => bad.nullifier += &Scalar::one(),
             4 => {
                 bad.nullifier = p.native(
                     DUMMY_NULLIFIER,
                     &[
                         optional.seed.clone(),
-                        bad.randomizer.clone(),
+                        values.spend_auth.randomizer.clone(),
                         Scalar::zero(),
                     ],
                 )
@@ -240,12 +240,16 @@ fn output_notes_bind_recovery_and_only_change_can_be_zero() {
 fn identity_randomized_keys_are_rejected_for_real_and_dummy_spends() {
     let p = Parameters::load().unwrap();
     for dummy in [false, true] {
-        let (values, mut spend, optional) = fixture(&p, dummy);
-        spend.randomizer = Scalar::from_limbs(scalar::ORDER) - &Scalar::from(13);
-        spend.rk = Point::identity();
+        let (mut values, mut spend, optional) = fixture(&p, dummy);
+        values.spend_auth.randomizer = Scalar::from_limbs(scalar::ORDER) - &Scalar::from(13);
+        values.spend_auth.rk = Point::identity();
         if dummy {
-            spend.nullifier =
-                dummy_nullifier(&p, &optional.seed, &spend.randomizer, Padding::Transfer);
+            spend.nullifier = dummy_nullifier(
+                &p,
+                &optional.seed,
+                &values.spend_auth.randomizer,
+                Padding::Transfer,
+            );
         }
         assert!(
             !satisfied(

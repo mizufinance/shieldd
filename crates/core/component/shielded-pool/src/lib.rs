@@ -83,7 +83,7 @@ pub use shielded_withdrawal::{
     ShieldedWithdrawalRequiredInputPrivate, SHIELDED_WITHDRAWAL_FAMILY_SPECS,
 };
 pub use transfer::{
-    transfer_auth_sig_count, transfer_input_count, transfer_output_count, Transfer, TransferBody,
+    transfer_input_count, transfer_output_count, Transfer, TransferBody,
     TransferChangeOutputPrivate, TransferInputBody, TransferOptionalSpendPrivate,
     TransferOutputBody, TransferOutputPublic, TransferPlan, TransferProof, TransferProofPrivate,
     TransferProofPublic, TransferReceiverOutputPrivate, TransferSpendPrivate, TransferSpendPublic,

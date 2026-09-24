@@ -97,6 +97,7 @@ pub struct Witness {
 }
 #[derive(Clone)]
 pub struct Statement<F> {
+    pub rk: Point<F>,
     pub anchor: F,
     pub change: OutputStatement<F>,
     pub balance: Point<F>,
@@ -116,6 +117,8 @@ pub struct Statement<F> {
 impl<F: Clone> Statement<F> {
     pub fn fields(&self) -> Vec<F> {
         let mut f = vec![
+            self.rk.x.clone(),
+            self.rk.y.clone(),
             self.anchor.clone(),
             self.change.note.clone(),
             self.change.recovery.clone(),
@@ -124,12 +127,7 @@ impl<F: Clone> Statement<F> {
             self.recent_floor.clone(),
         ];
         for s in &self.spends {
-            f.extend([
-                s.nullifier.clone(),
-                s.rk.x.clone(),
-                s.rk.y.clone(),
-                s.history_required.clone(),
-            ]);
+            f.extend([s.nullifier.clone(), s.history_required.clone()]);
         }
         f.extend([
             self.asset_anchor.clone(),
@@ -160,6 +158,7 @@ impl Witness {
     pub fn statement(&self, g: &Generators) -> Statement<Scalar> {
         let o = &self.owner;
         Statement {
+            rk: o.spend_auth.rk.clone(),
             anchor: o.anchor.clone(),
             change: OutputStatement {
                 note: self.change.commitment.clone(),
@@ -169,7 +168,7 @@ impl Witness {
             recent_floor: o.recent_floor.clone(),
             spends: self.spends.each_ref().map(|s| SpendStatement {
                 nullifier: s.nullifier.clone(),
-                rk: s.rk.clone(),
+
                 history_required: Scalar::from(u64::from(s.history_required)),
             }),
             asset_anchor: o.asset_anchor.clone(),
@@ -305,6 +304,7 @@ pub fn constrain<'a>(
         v
     });
     let s = Statement {
+        rk: f.rk,
         anchor: f.spend.anchor,
         change: OutputStatement {
             note: change.commitment,
@@ -314,7 +314,7 @@ pub fn constrain<'a>(
         recent_floor: f.spend.recent_floor,
         spends: spends.each_ref().map(|s| SpendStatement {
             nullifier: s.nullifier.clone(),
-            rk: s.rk.clone(),
+
             history_required: s.history_required.var().clone(),
         }),
         asset_anchor: f.asset_anchor,

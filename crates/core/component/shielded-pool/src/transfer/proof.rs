@@ -18,7 +18,6 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct TransferSpendPublic {
     pub nullifier: Nullifier,
-    pub rk: VerificationKey<SpendAuth>,
     pub history_required: bool,
 }
 
@@ -50,6 +49,7 @@ pub struct TransferCompliancePublic {
 
 #[derive(Clone, Debug)]
 pub struct TransferProofPublic {
+    pub rk: VerificationKey<SpendAuth>,
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
     pub asset_anchor: tct::StateCommitment,
@@ -93,7 +93,6 @@ impl TransferProofPublic {
 pub struct TransferSpendPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
-    pub spend_auth_randomizer: Fr,
 }
 
 #[derive(Clone, Debug)]
@@ -132,6 +131,7 @@ pub struct TransferCompliancePrivate {
 
 #[derive(Clone, Debug)]
 pub struct TransferProofPrivate {
+    pub spend_auth_randomizer: Fr,
     pub action_balance_blinding: Fr,
     pub ak: VerificationKey<SpendAuth>,
     pub nk: NullifierKey,

@@ -28,10 +28,6 @@ impl ShieldedWithdrawalFamilyId {
         self.spec().n_out
     }
 
-    pub fn auth_sig_count(self) -> usize {
-        self.spec().n_in
-    }
-
     pub fn spec(self) -> &'static ShieldedWithdrawalFamilySpec {
         SHIELDED_WITHDRAWAL_FAMILY_SPECS
             .iter()

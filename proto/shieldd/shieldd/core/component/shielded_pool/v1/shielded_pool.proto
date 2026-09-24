@@ -178,8 +178,6 @@ message NoteSeizure {
 message TransferInputBody {
   // The nullifier of the spent note.
   sct.v1.Nullifier nullifier = 1;
-  // The randomized validating key for the spend authorization signature.
-  crypto.redjubjub_rdsa.v1.SpendVerificationKey rk = 2;
   // An encryption of the commitment of the input note to the sender's OVK.
   bytes encrypted_backref = 3;
   // Compliance ciphertext encrypting spent note details for the asset issuer.
@@ -206,14 +204,15 @@ message TransferOutputBody {
 message Transfer {
   // The effecting data of the transfer.
   TransferBody body = 1;
-  // The authorizing signatures for each transfer input.
-  repeated crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The spend authorization for this action.
+  crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sig = 2;
   // The proof that the transfer is well-formed.
   ZKTransferProof proof = 3;
 }
 
 // The body of a fused shielded transfer.
 message TransferBody {
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey rk = 16;
   // The state commitment tree anchor used during proof generation.
   crypto.tct.v1.MerkleRoot anchor = 15;
   // A commitment to the net balance of the action.
@@ -287,6 +286,7 @@ message TransferView {
 }
 
 message TransferPlan {
+  bytes auth_randomizer = 10;
   reserved 1, 3;
 
   // The blinding factor to use for the net balance commitment.
@@ -338,13 +338,14 @@ message EvmCall {
 message ShieldedHostWithdrawal {
   // The effecting data of the withdrawal.
   ShieldedHostWithdrawalBody body = 1;
-  // The authorizing signatures for each consumed input.
-  repeated crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The spend authorization for this action.
+  crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sig = 2;
   // The proof that the withdrawal is well-formed.
   ZKShieldedWithdrawalProof proof = 3;
 }
 
 message ShieldedHostWithdrawalBody {
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey rk = 15;
   // The proving family this action uses.
   uint32 family_id = 1;
   // The state commitment tree anchor used during proof generation.
@@ -391,6 +392,7 @@ message ShieldedHostWithdrawalView {
 }
 
 message ShieldedHostWithdrawalPlan {
+  bytes auth_randomizer = 10;
   reserved 1, 3;
 
   // The blinding factor to use for the net balance commitment.
@@ -419,8 +421,6 @@ message ShieldedWithdrawalChangeBody {
 message NoteReshapeInputBody {
   // The nullifier of the spent note.
   sct.v1.Nullifier nullifier = 1;
-  // The randomized validating key for the spend authorization signature.
-  crypto.redjubjub_rdsa.v1.SpendVerificationKey rk = 2;
   // An encryption of the commitment of the input note to the sender's OVK.
   bytes encrypted_backref = 3;
   // Whether this real input must carry a complete retired-history proof.
@@ -440,13 +440,14 @@ message NoteReshapeOutputBody {
 message NoteReshape {
   // The effecting data of the note reshape action.
   NoteReshapeBody body = 1;
-  // The authorizing signatures for each consumed input.
-  repeated crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The spend authorization for this action.
+  crypto.redjubjub_rdsa.v1.SpendAuthSignature auth_sig = 2;
   // The proof that the note reshape action is well-formed.
   ZKNoteReshapeProof proof = 3;
 }
 
 message NoteReshapeBody {
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey rk = 11;
   // The proving family this action uses.
   uint32 family_id = 1;
   // The state commitment tree anchor used during proof generation.
@@ -486,6 +487,7 @@ message NoteReshapeView {
 }
 
 message NoteReshapePlan {
+  bytes auth_randomizer = 9;
   reserved 1, 3;
 
   // The blinding factor to use for the net balance commitment.
@@ -514,7 +516,6 @@ message EventNoteCreated {
 message ShieldedInputPlan {
   Note note = 1;
   uint64 position = 2;
-  bytes randomizer = 3;
   bytes value_blinding = 4;
 }
 

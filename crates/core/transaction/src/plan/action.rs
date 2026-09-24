@@ -84,7 +84,7 @@ impl ActionPlan {
                     transfer_plan
                         .build_unauth_transfer(
                             fvk,
-                            vec![[0; 64].into(); transfer_plan.spends.len()],
+                            [0; 64].into(),
                             auth_paths,
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
@@ -113,7 +113,7 @@ impl ActionPlan {
                     note_reshape_plan
                         .note_reshape(
                             fvk,
-                            vec![[0; 64].into(); note_reshape_plan.spends.len()],
+                            [0; 64].into(),
                             auth_paths,
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
@@ -152,7 +152,7 @@ impl ActionPlan {
                 Action::ShieldedHostWithdrawal(
                     plan.build_unauth_shielded_host_withdrawal(
                         fvk,
-                        vec![[0; 64].into(); plan.spends.len()],
+                        [0; 64].into(),
                         auth_paths,
                         witness_data.anchor,
                         memo_key.as_ref().unwrap_or(&dummy_payload_key),

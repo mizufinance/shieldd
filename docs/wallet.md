@@ -53,6 +53,12 @@ principal note and a fee note; resume planning after those outputs are confirmed
 
 The wallet retains witnesses for owned notes. Compliance projection uses separate
 user and indexed asset trees; their pair is validated against advertised anchors.
+On an explicit retry after a [stale compliance snapshot](compliance/flow.md#snapshot-admission-and-freezes),
+sync to current state, complete the intent again, refresh note/compliance witnesses,
+reprove, reauthorize and rebuild. Reusing the old signed plan cannot refresh its
+roots. FROST requires a new signing ceremony. Actually frozen participants fail
+fresh compliance planning. Submission and retry orchestration belong to Bankd;
+Shieldd never silently resubmits.
 Asset-registration events must match their leaf identity and committed policy
 fields before any side policy is persisted.
 The SQLite SCT hash cache is keyed by position and height. Repeated writes of the

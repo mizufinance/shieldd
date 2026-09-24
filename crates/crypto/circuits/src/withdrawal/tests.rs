@@ -26,7 +26,7 @@ fn withdrawal_preserves_volume_encryption_and_exact_conservation() {
                     bad.spends[1].nullifier = note::dummy_nullifier(
                         &p,
                         &bad.optional.seed,
-                        &bad.spends[1].randomizer,
+                        &bad.owner.spend_auth.randomizer,
                         note::Padding::Transfer,
                     )
                 }

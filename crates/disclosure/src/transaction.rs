@@ -46,7 +46,7 @@ pub fn public_output(
                     "body Transfer must use ordinary proof context"
                 );
                 let output = t.body.outputs.get(index).context("invalid output index")?;
-                let rk: [u8; 32] = t.body.inputs[0].rk.into();
+                let rk: [u8; 32] = t.body.rk.into();
                 (
                     &output.note_payload,
                     &output.wrapped_memo_key.0,

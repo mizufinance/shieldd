@@ -1,4 +1,4 @@
--- Cryptographic suite: shieldd-jubjub-pari-v1.
+-- Cryptographic suite: shieldd-jubjub-pari-v1; action-scoped spend authorization.
 -- The hash of this schema file
 CREATE TABLE schema_hash (schema_hash TEXT NOT NULL);
 

@@ -65,6 +65,11 @@ pub struct CompactBlock {
     pub nullifier_window: ::core::option::Option<super::super::sct::v1::NullifierWindow>,
     #[prost(uint64, tag = "19")]
     pub state_payload_start_position: u64,
+    /// Paired admission metadata; absent only before the first consensus timestamp.
+    #[prost(message, optional, tag = "20")]
+    pub compliance_snapshot: ::core::option::Option<
+        super::super::compliance::v1::ComplianceSnapshot,
+    >,
 }
 impl ::prost::Name for CompactBlock {
     const NAME: &'static str = "CompactBlock";

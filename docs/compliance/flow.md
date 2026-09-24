@@ -16,8 +16,8 @@ owns its encoding; the [indexed leaf](../../crates/core/component/compliance/src
 owns the authenticated projection. Issuer and ring projections enter the asset
 tree. Authority keys remain host-validated state; membership is not an authority grant.
 
-Registered assets prove membership; other assets prove a canonical nonmembership
-gap. Asset ID zero is the indexed-tree sentinel and cannot be registered or used
+Within the selected snapshot, registered assets prove membership; other assets
+prove a canonical nonmembership gap. Asset ID zero is the indexed-tree sentinel and cannot be registered or used
 as a Transfer or Withdrawal asset. Policy admission rejects identity detection
 and RNK ring keys. Audit-key separation and canonical encoding requirements are
 specified in [interoperability](../jubjub-external-contract.md#keys-and-encodings).
@@ -30,11 +30,42 @@ The registration certificate binds `rnk_dh_pk = ring_sk * G_d` and the commitmen
 The packed lifecycle contains status, freeze generation and frozen-since height.
 The user tree has arity four and depth sixteen.
 
-Spending and receiving regulated assets require `Active` leaves under the exact
-current user root; policies use the exact current asset root. The same address
+Spending and receiving regulated assets require `Active` leaves under an admitted
+user/asset root pair, as defined below. The same address
 may register independently for different assets. One live address per KYC identity
 is an external ACP requirement: Shieldd authenticates address-specific grants,
 but stores no KYC identity record that could enforce that uniqueness.
+
+## Snapshot admission and freezes
+
+Transfer, split/merge, shielded host withdrawal and private fee funding accept the
+exact current user/asset root pair, or a recorded pair last observed within
+`compliance_anchor_max_age_seconds` (default 1,800 seconds, inclusive). Roots from
+different snapshots cannot be combined. Zero disables historical admission even
+when consecutive blocks have equal timestamps. Ordinary registration, including
+asset registration after a nonmembership proof, does not invalidate a snapshot.
+
+Every successful `Active -> Frozen` transition atomically advances a global freeze
+epoch. A historical pair must carry the current epoch. Transactions before the
+freeze's execution position remain valid; all later transactions recheck admission,
+including those with cached proof verification. Unfreeze never revives old snapshots.
+This global barrier also requires unaffected users to refresh after a freeze.
+
+The current pair is recorded at end block and renewed on every observation.
+Genesis gets its first timestamp at the first begin-block, before transactions;
+its root events remain at genesis. Consensus time must not go backward against
+the selected parent. Verifiable state stores the epoch, canonical pair lookup and
+one chronological entry per pair. Admission uses direct lookup; freeze does not
+scan history. End-block pruning deletes at most 64 obsolete entries. Checkpoints,
+restart and candidate rollback preserve all admission state.
+Retention is bounded by advancing consensus time, not by a fixed snapshot count;
+repeated timestamps do not shorten the grace window through count-based eviction.
+
+Compliance roots remain signed effects. A stale-snapshot result instructs the
+caller to sync and explicitly rebuild, reprove and reauthorize (host response
+code `HostTxResponse::STALE_COMPLIANCE_SNAPSHOT`); threshold custody
+requires a new FROST ceremony. There is no automatic resubmission. Fresh planning
+for an actually frozen participant fails compliance.
 
 ## Transfer visibility
 
@@ -101,7 +132,7 @@ incorrect lengths are rejected. Address plaintext packs two canonical field
 encodings into 31-byte stream words. Tier identity comes from position.
 
 The circuit binds this data to the statement; consensus additionally checks
-current roots, timestamp freshness, proof and spend signatures, spend/volume
+paired snapshot admission, timestamp freshness, proof and action signatures, spend/volume
 nullifier uniqueness and the binding signature. The Transfer effect hash covers
 ciphertext, metadata, accumulator payload and proof context, so a delegated
 builder cannot replace them after authorization. Release points and DLEQ proofs

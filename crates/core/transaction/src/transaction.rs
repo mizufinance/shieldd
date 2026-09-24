@@ -853,6 +853,12 @@ mod tests {
     fn transfer_counts_as_nullifier_and_state_commitment_source() {
         let transfer = shieldd_sdk_shielded_pool::Transfer {
             body: shieldd_sdk_shielded_pool::TransferBody {
+                rk: VerificationKey::from(
+                    &SigningKey::<SpendAuth>::try_from(
+                        (shieldd_sdk_crypto::Fr::from(4u64)).to_bytes(),
+                    )
+                    .expect("canonical key"),
+                ),
                 anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Balance::from(Value {
                     amount: 9u64.into(),
@@ -862,12 +868,7 @@ mod tests {
                 inputs: vec![
                     shieldd_sdk_shielded_pool::TransferInputBody {
                         nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(3u64)),
-                        rk: VerificationKey::from(
-                            &SigningKey::<SpendAuth>::try_from(
-                                (shieldd_sdk_crypto::Fr::from(4u64)).to_bytes(),
-                            )
-                            .expect("canonical key"),
-                        ),
+
                         encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                             [1u8; ENCRYPTED_BACKREF_LEN],
                         )
@@ -877,12 +878,7 @@ mod tests {
                     },
                     shieldd_sdk_shielded_pool::TransferInputBody {
                         nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(30u64)),
-                        rk: VerificationKey::from(
-                            &SigningKey::<SpendAuth>::try_from(
-                                (shieldd_sdk_crypto::Fr::from(40u64)).to_bytes(),
-                            )
-                            .expect("canonical key"),
-                        ),
+
                         encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                             [2u8; 48],
                         )
@@ -944,7 +940,7 @@ mod tests {
                     shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                 proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
             },
-            auth_sigs: vec![[17u8; 64].into(), [0u8; 64].into()],
+            auth_sig: [17u8; 64].into(),
             proof: shieldd_sdk_shielded_pool::TransferProof::default(),
         };
         assert_eq!(transfer.body.inputs.len(), 2);
@@ -1023,12 +1019,6 @@ mod tests {
         let inputs = (0..8)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                 nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(100u64 + index)),
-                rk: VerificationKey::from(
-                    &SigningKey::<SpendAuth>::try_from(
-                        (shieldd_sdk_crypto::Fr::from(200u64 + index)).to_bytes(),
-                    )
-                    .expect("canonical key"),
-                ),
                 encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                     [u8::try_from(index + 1).expect("small test index"); 48],
                 )
@@ -1042,6 +1032,12 @@ mod tests {
 
         let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
             body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                rk: VerificationKey::from(
+                    &SigningKey::<SpendAuth>::try_from(
+                        (shieldd_sdk_crypto::Fr::from(200u64)).to_bytes(),
+                    )
+                    .expect("canonical key"),
+                ),
                 family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                 anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Balance::default().commit(shieldd_sdk_crypto::Fr::from(1u64)),
@@ -1071,7 +1067,7 @@ mod tests {
                     0u64,
                 )),
             },
-            auth_sigs: vec![[0u8; 64].into(); 8],
+            auth_sig: [0u8; 64].into(),
             proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
         };
         let tx = Transaction {
@@ -1103,20 +1099,21 @@ mod tests {
                 actions: vec![
                     Action::NoteReshape(shieldd_sdk_shielded_pool::NoteReshape {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(3u64)).to_bytes()).expect("canonical key")),
                             family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(shieldd_sdk_crypto::Fr::from(1u64)),
                             inputs: vec![
                                 shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                     nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(2u64)),
-                                    rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(3u64)).to_bytes()).expect("canonical key")),
+
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                     history_required: false,
                                 },
                                 shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                     nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(4u64)),
-                                    rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(5u64)).to_bytes()).expect("canonical key")),
+
                                     encrypted_backref:
                                         shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                     history_required: false,
@@ -1144,17 +1141,18 @@ mod tests {
                                 shieldd_sdk_crypto::Fq::from(0u64),
                             ),
                         },
-                        auth_sigs: vec![[11u8; 64].into(), [12u8; 64].into()],
+                        auth_sig: [11u8; 64].into(),
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
                     }),
                     Action::NoteReshape(shieldd_sdk_shielded_pool::NoteReshape {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(15u64)).to_bytes()).expect("canonical key")),
                             family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::OneByEight,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(shieldd_sdk_crypto::Fr::from(13u64)),
                             inputs: vec![shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                                 nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(14u64)),
-                                rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(15u64)).to_bytes()).expect("canonical key")),
+
                                 encrypted_backref:
                                     shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
                                 history_required: false,
@@ -1183,12 +1181,13 @@ mod tests {
                                 shieldd_sdk_crypto::Fq::from(0u64),
                             ),
                         },
-                        auth_sigs: vec![[21u8; 64].into()],
+                        auth_sig: [21u8; 64].into(),
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
                     }),
                     Action::ShieldedHostWithdrawal(
                         shieldd_sdk_shielded_pool::ShieldedHostWithdrawal {
                             body: shieldd_sdk_shielded_pool::ShieldedHostWithdrawalBody {
+                rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(24u64)).to_bytes()).expect("canonical key")),
                                 family_id:
                                     shieldd_sdk_shielded_pool::ShieldedWithdrawalFamilyId::Canonical,
                                 anchor: shieldd_sdk_tct::Tree::default().root(),
@@ -1196,7 +1195,7 @@ mod tests {
                                 inputs: vec![
                                     shieldd_sdk_shielded_pool::TransferInputBody {
                                         nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(23u64)),
-                                        rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(24u64)).to_bytes()).expect("canonical key")),
+
                                         encrypted_backref:
                                             shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                                                 [23u8; 48],
@@ -1207,7 +1206,7 @@ mod tests {
                                     },
                                     shieldd_sdk_shielded_pool::TransferInputBody {
                                         nullifier: Nullifier(shieldd_sdk_crypto::Fq::from(25u64)),
-                                        rk: VerificationKey::from(&SigningKey::<SpendAuth>::try_from((shieldd_sdk_crypto::Fr::from(26u64)).to_bytes()).expect("canonical key")),
+
                                         encrypted_backref:
                                             shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                                                 [25u8; 48],
@@ -1251,7 +1250,7 @@ mod tests {
                                 volume_accumulator:
                                     shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                             },
-                            auth_sigs: vec![[34u8; 64].into(), [35u8; 64].into()],
+                            auth_sig: [34u8; 64].into(),
                             proof: shieldd_sdk_shielded_pool::ShieldedWithdrawalProof::default(),
                         },
                     ),

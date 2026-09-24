@@ -60,6 +60,9 @@ impl serde::Serialize for CompactBlock {
         if self.state_payload_start_position != 0 {
             len += 1;
         }
+        if self.compliance_snapshot.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlock", len)?;
         if self.height != 0 {
             #[allow(clippy::needless_borrow)]
@@ -125,6 +128,9 @@ impl serde::Serialize for CompactBlock {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("statePayloadStartPosition", ToString::to_string(&self.state_payload_start_position).as_str())?;
         }
+        if let Some(v) = self.compliance_snapshot.as_ref() {
+            struct_ser.serialize_field("complianceSnapshot", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -169,6 +175,8 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             "nullifierWindow",
             "state_payload_start_position",
             "statePayloadStartPosition",
+            "compliance_snapshot",
+            "complianceSnapshot",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -191,6 +199,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             RoutingActions,
             NullifierWindow,
             StatePayloadStartPosition,
+            ComplianceSnapshot,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -231,6 +240,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             "routingActions" | "routing_actions" => Ok(GeneratedField::RoutingActions),
                             "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
                             "statePayloadStartPosition" | "state_payload_start_position" => Ok(GeneratedField::StatePayloadStartPosition),
+                            "complianceSnapshot" | "compliance_snapshot" => Ok(GeneratedField::ComplianceSnapshot),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -268,6 +278,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                 let mut routing_actions__ = None;
                 let mut nullifier_window__ = None;
                 let mut state_payload_start_position__ = None;
+                let mut compliance_snapshot__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Height => {
@@ -388,6 +399,12 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::ComplianceSnapshot => {
+                            if compliance_snapshot__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("complianceSnapshot"));
+                            }
+                            compliance_snapshot__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -412,6 +429,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                     routing_actions: routing_actions__.unwrap_or_default(),
                     nullifier_window: nullifier_window__,
                     state_payload_start_position: state_payload_start_position__.unwrap_or_default(),
+                    compliance_snapshot: compliance_snapshot__,
                 })
             }
         }

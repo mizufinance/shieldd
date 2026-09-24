@@ -10,13 +10,13 @@ use shieldd_sdk_circuits::{
 use shieldd_sdk_crypto::{audit::point_fields, domains, encoding, poseidon, Fq, SubgroupPoint};
 
 pub const fn note_reshape_statement_field_count(inputs: usize, outputs: usize) -> usize {
-    8 + 4 * inputs + 2 * outputs
+    10 + 2 * inputs + 2 * outputs
 }
 pub const fn transfer_statement_field_count(inputs: usize, outputs: usize) -> usize {
-    57 + 4 * inputs + 2 * outputs
+    59 + 2 * inputs + 2 * outputs
 }
 pub const fn shielded_withdrawal_statement_field_count(inputs: usize) -> usize {
-    28 + 4 * inputs
+    30 + 2 * inputs
 }
 
 pub(crate) fn point(point: &SubgroupPoint) -> Point<Fq> {
@@ -31,12 +31,10 @@ pub(crate) fn address(address: &shieldd_sdk_keys::Address) -> encryption::Addres
 }
 fn spend(
     nullifier: shieldd_sdk_sct::Nullifier,
-    rk: reddsa::VerificationKey<reddsa::sapling::SpendAuth>,
     history_required: bool,
 ) -> Result<transfer::SpendStatement<Fq>> {
     Ok(transfer::SpendStatement {
         nullifier: nullifier.0,
-        rk: point(&encoding::nonidentity(&<[u8; 32]>::from(rk))?),
         history_required: Fq::from(u64::from(history_required)),
     })
 }
@@ -115,6 +113,7 @@ pub(crate) fn audit(
 pub(crate) fn transfer_statement(p: &TransferProofPublic) -> Result<transfer::Statement<Fq>> {
     p.validate_shape()?;
     Ok(transfer::Statement {
+        rk: point(&encoding::nonidentity(&<[u8; 32]>::from(p.rk))?),
         anchor: p.anchor.into(),
         outputs: p
             .outputs
@@ -134,7 +133,7 @@ pub(crate) fn transfer_statement(p: &TransferProofPublic) -> Result<transfer::St
         spends: p
             .inputs
             .iter()
-            .map(|i| spend(i.nullifier, i.rk, i.history_required))
+            .map(|i| spend(i.nullifier, i.history_required))
             .collect::<Result<Vec<_>>>()?
             .try_into()
             .map_err(|_| anyhow::anyhow!("transfer input shape"))?,
@@ -147,6 +146,7 @@ pub(crate) fn transfer_statement(p: &TransferProofPublic) -> Result<transfer::St
 pub(crate) fn reshape_statement(p: &NoteReshapeProofPublic) -> Result<reshape::Statement<Fq>> {
     p.validate_shape()?;
     Ok(reshape::Statement {
+        rk: point(&encoding::nonidentity(&<[u8; 32]>::from(p.rk))?),
         anchor: p.anchor.into(),
         outputs: p
             .outputs
@@ -165,7 +165,7 @@ pub(crate) fn reshape_statement(p: &NoteReshapeProofPublic) -> Result<reshape::S
         spends: p
             .inputs
             .iter()
-            .map(|i| spend(i.nullifier, i.rk, i.history_required))
+            .map(|i| spend(i.nullifier, i.history_required))
             .collect::<Result<_>>()?,
     })
 }
@@ -180,6 +180,7 @@ pub(crate) fn withdrawal_statement(
         .map(|word| encoding::field(word.try_into().expect("exact chunk")))
         .collect::<Result<Vec<_>>>()?;
     Ok(withdrawal::Statement {
+        rk: point(&encoding::nonidentity(&<[u8; 32]>::from(p.rk))?),
         anchor: p.anchor.into(),
         change: transfer::OutputStatement {
             note: p.change_output.note_commitment.0,
@@ -190,7 +191,7 @@ pub(crate) fn withdrawal_statement(
         spends: p
             .inputs
             .iter()
-            .map(|i| spend(i.nullifier, i.rk, i.history_required))
+            .map(|i| spend(i.nullifier, i.history_required))
             .collect::<Result<Vec<_>>>()?
             .try_into()
             .map_err(|_| anyhow::anyhow!("withdrawal input shape"))?,

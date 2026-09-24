@@ -498,13 +498,14 @@ mod tests {
                     ShieldedHostWithdrawalView::Visible {
                         withdrawal: ShieldedHostWithdrawal {
                             body: ShieldedHostWithdrawalBody {
+                rk: reddsa::VerificationKey::from(&SigningKey::<SpendAuth>::try_from((Fr::from(2u64)).to_bytes()).expect("canonical key"),
+                                    ),
                                 family_id: shieldd_sdk_shielded_pool::ShieldedWithdrawalFamilyId::Canonical,
                                 anchor: Tree::default().root(),
                                 balance_commitment: Balance::default().commit(Fr::from(1u64)),
                                 inputs: vec![TransferInputBody {
                                     nullifier: Nullifier(Fq::from(1u64)),
-                                    rk: reddsa::VerificationKey::from(&SigningKey::<SpendAuth>::try_from((Fr::from(2u64)).to_bytes()).expect("canonical key"),
-                                    ),
+
                                     encrypted_backref: EncryptedBackref::try_from([1u8; 48])
                                         .expect("fixed-size encrypted backref"),
                                     compliance_ciphertext: Vec::new(),
@@ -538,7 +539,7 @@ mod tests {
                                     },
                                 volume_accumulator: shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                             },
-                            auth_sigs: vec![[0u8; 64].into()],
+                            auth_sig: [0u8; 64].into(),
                             proof: ShieldedWithdrawalProof::default(),
                         },
                         spent_notes: vec![note_view(&spent_note)],

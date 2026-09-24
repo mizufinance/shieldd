@@ -2,7 +2,8 @@
   "actions": [
     {
       "noteReshape": {
-        "valueBlinding": "v8qNVTilwcWd6vh1Z3HCeK7XzoUIipC0cZfs1I7jfgI=",
+        "authRandomizer": "KaL4L4srWHLb6ZMGPth0xRv7DYMu6/UfbgxYTnlpdgg=",
+        "valueBlinding": "out6JL/nfx5Kzf9oMGL84l5eCuEd/pbH2F7mpiG6BAM=",
         "spends": [
           {
             "note": {
@@ -14,15 +15,14 @@
                   "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
                 }
               },
-              "rseed": "VY+Ddy5X40QKxCZhezDpPeytPwJcgKePNF1eEVFsPKQ=",
+              "rseed": "hcqZFhqj9JASjTmkooXbidDaukM2X9pvPczn4i4Nq6Y=",
               "address": {
                 "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
               },
               "recoveryCommitment": "4cUbqBIiLU3WCkwfOqdO1dPImo03nH5HebGePpGQXVw="
             },
             "position": "103604728557897",
-            "randomizer": "p+FvURSLSL2ZTWn8KBcBYadKT7D+W3yeLRBcxDAvYgc=",
-            "valueBlinding": "VZ+2Dp51jUwxWucStOASm7gMKd7cjUAhde6QvCSO+wI="
+            "valueBlinding": "rbn3Ksmq1RamFohPIPogHkj+lSXa8ZwtEQ28NuOgpwg="
           },
           {
             "note": {
@@ -34,15 +34,14 @@
                   "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
                 }
               },
-              "rseed": "k5KQGPKIxIzk8sBkGNbNTX+fdOlqwiw67eAM7cW7jyo=",
+              "rseed": "Fu0KEhhMXibbwn2N/Zb0RD52HZnVzlTm0XCSVDqjEpk=",
               "address": {
                 "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
               },
               "recoveryCommitment": "4cUbqBIiLU3WCkwfOqdO1dPImo03nH5HebGePpGQXVw="
             },
             "position": "38458735070598",
-            "randomizer": "tOfYtlSFlUXmlm2B3S3xqKebZQVnQ1ujEDUi3k5Plww=",
-            "valueBlinding": "gxt1LbW/KOQjSMLw7lDoFDR+R+JyjrHrNV65OdtbEgg="
+            "valueBlinding": "2I+VJ0Fs9DEzUot1SolQGDcchLcBfCboxRuOG9qbKgY="
           }
         ],
         "outputs": [
@@ -58,8 +57,8 @@
             "destAddress": {
               "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
             },
-            "rseed": "m4LPOuK6+cRO5ItJKaahXUHqTxtBoR26onEahtgL6o8=",
-            "valueBlinding": "IJvoTSH/7Igmud/skFcsy1R75/VIlWeykPv2pQy5Ggw="
+            "rseed": "qY7tPm7kwSyaIQST+DfVWc561wrQUKolnEz35LvXVLg=",
+            "valueBlinding": "E8Bk8rf1ySF96zZyZEL4eiVT71XvFYAqVfXcj+lSbAU="
           }
         ],
         "familyId": 3,
@@ -340,13 +339,14 @@
               }
             }
           },
-          "nonce": "E5R8w+YqWgCm6zM9Urnm8NbFa1NrfkFUBj5dcdy3OQA="
+          "nonce": "llfPcJgRQ2sgyAjSdYE7kEjUWjkGp1iCunAybBf4mgU="
         }
       }
     },
     {
       "transfer": {
-        "valueBlinding": "KaL4L4srWHLb6ZMGPth0xRv7DYMu6/UfbgxYTnlpdgg=",
+        "authRandomizer": "D+QrAPwu3IyReqcd6RO+vv8MRQ7OEcSdbv/0fZRaVA0=",
+        "valueBlinding": "YNGC/dzoaQseV9iy+vjc3zLH+xnWUV60hIsJExaauwk=",
         "spends": [
           {
             "note": {
@@ -358,15 +358,14 @@
                   "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
                 }
               },
-              "rseed": "64plUxhCzxAhhess7nkQXuuQuQf4wQSg9sKj68Yac/c=",
+              "rseed": "pvNavTdLcgT9R6gQpcvKiTFbUDP5GNlwLCJwDsLzgb0=",
               "address": {
                 "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
               },
               "recoveryCommitment": "4cUbqBIiLU3WCkwfOqdO1dPImo03nH5HebGePpGQXVw="
             },
             "position": "272239137973004",
-            "randomizer": "k8SS3q3S7NaKgVhC5ThkVs/TVc+eRd+kMxTiwqa//AA=",
-            "valueBlinding": "rNSh5/9TVOqJ7QHTDq3kMnoKgPy0FG6abwaFcZTIHw4="
+            "valueBlinding": "tAJTJ5WderXY3FyuQBZH0dAeH8I+XBSsKrl5Et0PUgo="
           }
         ],
         "outputs": [
@@ -380,10 +379,10 @@
               }
             },
             "destAddress": {
-              "inner": "AfHZ0kKvLNI9jHeZ/EbjA3d0VUTSvjnyq2sUowlhByWtmPFBmFdCLIH+fKQFaXXvpw=="
+              "inner": "ARwKXhPZeV8tWTDzYDUZNxZfLiBleP+0K2hru9EQQ5CQ5Luo0fCB42IekYhtfD8ZrA=="
             },
-            "rseed": "Qg4PVatrcR5D6h7Fd1scJuhAX2dBCR/ZOqD6/OEFn9Y=",
-            "valueBlinding": "llfPcJgRQ2sgyAjSdYE7kEjUWjkGp1iCunAybBf4mgU="
+            "rseed": "WOpPpmiAQkGzwpy25deKWhOGCiztZzIp5SoXRwCp1Vc=",
+            "valueBlinding": "Fgx/llS1biLBDPq8iau/JM/m+xoyMjsuUkh+wBe1dQE="
           }
         ],
         "routingParameters": {
@@ -666,7 +665,7 @@
           "recipient": {
             "leaf": {
               "address": {
-                "inner": "AfHZ0kKvLNI9jHeZ/EbjA3d0VUTSvjnyq2sUowlhByWtmPFBmFdCLIH+fKQFaXXvpw=="
+                "inner": "ARwKXhPZeV8tWTDzYDUZNxZfLiBleP+0K2hru9EQQ5CQ5Luo0fCB42IekYhtfD8ZrA=="
               },
               "assetId": {
                 "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
@@ -793,7 +792,7 @@
             }
           },
           "timestamp": "1700000000",
-          "nonce": "k+3/ZO3ISQ4ZlGbYRkKP+E46yohpi2GG5dRKFFiV8Qw="
+          "nonce": "lI/IIWreszF7NTLGaflf7fGquZ38tNykASjBNI4l2wI="
         },
         "volumeAccumulator": {
           "dayStart": "1699920000",
@@ -811,7 +810,8 @@
     },
     {
       "shieldedHostWithdrawal": {
-        "valueBlinding": "BdLSUesKUn7klswkiNNwGIzGK0TLekpbIIRZf5M+Ag0=",
+        "authRandomizer": "06FXVrk7hQMiJcoz1O3mmAMvAU17PlYgpKIf4bOzyQs=",
+        "valueBlinding": "SoEwZnaumRgfgnLqC+KiCNy3WWLRNJq4XuRGQz3RuAQ=",
         "spends": [
           {
             "note": {
@@ -823,15 +823,14 @@
                   "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
                 }
               },
-              "rseed": "a5D4Go4YLSnXRF1BSWEGUerWmoWjHq8hJD9T9uQbKbk=",
+              "rseed": "sE3Tn4rfOr/FquBlTV+unFvK4p/XXptJkLDcnquD87c=",
               "address": {
                 "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
               },
               "recoveryCommitment": "4cUbqBIiLU3WCkwfOqdO1dPImo03nH5HebGePpGQXVw="
             },
             "position": "34299059848808",
-            "randomizer": "2mbp5NujQ1m47oPhErnZfyEek/0xcnjgE1szZ9NpUwc=",
-            "valueBlinding": "thrhpuqygQRpU13kpJ+KQ4j1WHdyFtoi2cjMeE98xQg="
+            "valueBlinding": "v8qNVTilwcWd6vh1Z3HCeK7XzoUIipC0cZfs1I7jfgI="
           }
         ],
         "withdrawal": {
@@ -1125,7 +1124,7 @@
             }
           },
           "timestamp": "1700000000",
-          "nonce": "5hfHmwHr3mCo/OXDBCEN8MELtLg7L2f+Dj/axx0I5wk="
+          "nonce": "CzMobYvO/WkMPGW4HvSRN7VTy6lwnAKhemayCeN9WQI="
         },
         "volumeAccumulator": {
           "dayStart": "1699920000",
@@ -1142,7 +1141,8 @@
     },
     {
       "shieldedHostWithdrawal": {
-        "valueBlinding": "Yi3LLYttOyP5tC/Au4rC+UQ7mKrmxuZDajCSj0GVnAM=",
+        "authRandomizer": "gpFC/D6BiRrFVyMTKkNIpg8S9UODKkScDzYc7ev7CwI=",
+        "valueBlinding": "GeqGUNidKCJc3S1NpHi3yWwlx/fp0ic87JZakVLepAE=",
         "spends": [
           {
             "note": {
@@ -1154,15 +1154,14 @@
                   "inner": "IA1s5a9GFYT+U4AFteIG23lSoTySm7hnOvcc7LUXhzw="
                 }
               },
-              "rseed": "wxhQ0ch8eUyWzAq9blN2oTY221h09P36inHavOOy5pI=",
+              "rseed": "4CcfE9AHs0pWzzN1Lehy9iWPMknjDkUoKnTSiWOYSWU=",
               "address": {
                 "inner": "ASZ6oHDbXWmzDkhCkGLFWHmOOLC42PkR5PYzAVfz1zCHWfP93pP95fqAgjZbWuAl2Q=="
               },
               "recoveryCommitment": "4cUbqBIiLU3WCkwfOqdO1dPImo03nH5HebGePpGQXVw="
             },
             "position": "4715649287410",
-            "randomizer": "X9+5C1VG1VJtycn02V9yVHkFzg0rAHfr8MnvN2hRew4=",
-            "valueBlinding": "gpFC/D6BiRrFVyMTKkNIpg8S9UODKkScDzYc7ev7CwI="
+            "valueBlinding": "rNSh5/9TVOqJ7QHTDq3kMnoKgPy0FG6abwaFcZTIHw4="
           }
         ],
         "withdrawal": {
@@ -1456,7 +1455,7 @@
             }
           },
           "timestamp": "1700000000",
-          "nonce": "GZcAlrTl0c/NB2xyoPHIZl7GYenDqoFTySuuDZSR6gM="
+          "nonce": "X9+5C1VG1VJtycn02V9yVHkFzg0rAHfr8MnvN2hRew4="
         },
         "volumeAccumulator": {
           "dayStart": "1699920000",

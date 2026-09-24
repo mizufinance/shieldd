@@ -156,26 +156,38 @@ pub fn pending_asset_registrations() -> &'static str {
     "compliance/pending_asset_registrations"
 }
 
-/// State keys for historical anchor storage (following SCT pattern).
-///
-/// User roots are retained bidirectionally for historical lookup.
-/// Authorization requires both mutable user and asset roots to equal current state.
-pub mod anchor {
+/// Verifiable paired snapshot admission state.
+pub mod admission {
+    use crate::admission::ComplianceSnapshot;
     use shieldd_sdk_tct::StateCommitment;
-
-    /// State key for the greatest anchor height pruned from retention storage.
-    pub fn pruned_through_height() -> &'static str {
-        "compliance/anchor/pruned_through_height"
+    pub fn freeze_epoch() -> &'static str {
+        "compliance/admission/freeze_epoch"
     }
-
-    /// State key for user tree anchor at a specific block height.
-    pub fn user_anchor_by_height(height: u64) -> String {
-        format!("compliance/anchor/user/by_height/{}", height)
+    pub fn pending_genesis() -> &'static str {
+        "compliance/admission/pending_genesis"
     }
-
-    /// State key for reverse lookup: user tree anchor -> block height.
-    /// Used to validate that a given anchor was valid at some historical point.
-    pub fn user_anchor_lookup(anchor: &StateCommitment) -> String {
-        format!("compliance/anchor/user/lookup/{}", anchor.0)
+    fn pair_bytes(user: &StateCommitment, asset: &StateCommitment) -> String {
+        format!(
+            "{}{}",
+            hex::encode(user.0.to_bytes()),
+            hex::encode(asset.0.to_bytes())
+        )
+    }
+    pub fn pairs_prefix() -> &'static str {
+        "compliance/admission/pairs/"
+    }
+    pub fn pair(user: &StateCommitment, asset: &StateCommitment) -> String {
+        format!("{}{}", pairs_prefix(), pair_bytes(user, asset))
+    }
+    pub fn last_seen_prefix() -> &'static str {
+        "compliance/admission/last_seen/"
+    }
+    pub fn last_seen(snapshot: &ComplianceSnapshot) -> String {
+        format!(
+            "{}{:016x}/{}",
+            last_seen_prefix(),
+            snapshot.observed_height,
+            pair_bytes(&snapshot.user_root, &snapshot.asset_root)
+        )
     }
 }

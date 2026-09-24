@@ -45,7 +45,7 @@ impl TransactionPlan {
         auth_data: &AuthorizationData,
         mut transaction: Transaction,
     ) -> Result<Transaction> {
-        let spend_count = self.num_spends();
+        let spend_count = self.num_spend_auths();
 
         if auth_data.spend_auths.len() != spend_count {
             anyhow::bail!(
@@ -91,7 +91,6 @@ impl TransactionPlan {
         }
 
         let mut spend_auths = auth_data.spend_auths.clone().into_iter();
-        let effect_hash = transaction_effect_hash;
 
         for (action_index, (action_plan, action)) in self
             .actions
@@ -111,28 +110,7 @@ impl TransactionPlan {
                             "invalid transfer shape at action {action_index}: {error}"
                         )
                     })?;
-                    anyhow::ensure!(
-                        transfer.auth_sigs.len()
-                            == shieldd_sdk_shielded_pool::transfer_auth_sig_count(),
-                        "transfer action {action_index} expected {} authorization signature slots, got {}",
-                        shieldd_sdk_shielded_pool::transfer_auth_sig_count(),
-                        transfer.auth_sigs.len()
-                    );
-                    anyhow::ensure!(
-                        plan.spends.len() <= transfer.auth_sigs.len(),
-                        "transfer action {action_index} has fewer authorization signature slots than real spends"
-                    );
-                    for (index, auth_sig) in transfer.auth_sigs.iter_mut().enumerate() {
-                        if index < plan.spends.len() {
-                            *auth_sig = spend_auths.next().ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "missing spend authorization for transfer action {action_index} slot {index}"
-                                )
-                            })?;
-                        } else {
-                            *auth_sig = plan.synthetic_dummy_auth_sig(index, effect_hash.as_ref());
-                        }
-                    }
+                    transfer.auth_sig = spend_auths.next().ok_or_else(|| anyhow::anyhow!("missing action spend authorization"))?;
                 }
                 (ActionPlan::NoteReshape(plan), Action::NoteReshape(note_reshape)) => {
                     plan.validate().map_err(|error| {
@@ -149,28 +127,7 @@ impl TransactionPlan {
                             "invalid NoteReshape shape at action {action_index}: {error}"
                         )
                     })?;
-                    anyhow::ensure!(
-                        note_reshape.auth_sigs.len()
-                            == note_reshape.body.family_id.auth_sig_count(),
-                        "NoteReshape action {action_index} expected {} authorization signature slots, got {}",
-                        note_reshape.body.family_id.auth_sig_count(),
-                        note_reshape.auth_sigs.len()
-                    );
-                    anyhow::ensure!(
-                        plan.spends.len() <= note_reshape.auth_sigs.len(),
-                        "NoteReshape action {action_index} has fewer authorization signature slots than real spends"
-                    );
-                    for (index, auth_sig) in note_reshape.auth_sigs.iter_mut().enumerate() {
-                        if index < plan.spends.len() {
-                            *auth_sig = spend_auths.next().ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "missing spend authorization for NoteReshape action {action_index} slot {index}"
-                                )
-                            })?;
-                        } else {
-                            *auth_sig = plan.synthetic_dummy_auth_sig(index, effect_hash.as_ref());
-                        }
-                    }
+                    note_reshape.auth_sig = spend_auths.next().ok_or_else(|| anyhow::anyhow!("missing action spend authorization"))?;
                 }
 
                 (
@@ -191,29 +148,7 @@ impl TransactionPlan {
                         plan.withdrawal.effect_hash() == withdrawal.body.withdrawal.effect_hash(),
                         "shielded host withdrawal payload at action {action_index} does not match plan"
                     );
-                    anyhow::ensure!(
-                        withdrawal.auth_sigs.len()
-                            == withdrawal.body.family_id.auth_sig_count(),
-                        "shielded host withdrawal action {action_index} expected {} authorization signature slots, got {}",
-                        withdrawal.body.family_id.auth_sig_count(),
-                        withdrawal.auth_sigs.len()
-                    );
-                    anyhow::ensure!(
-                        plan.spends.len() <= withdrawal.auth_sigs.len(),
-                        "shielded host withdrawal action {action_index} has fewer authorization signature slots than real spends"
-                    );
-                    for (index, auth_sig) in withdrawal.auth_sigs.iter_mut().enumerate() {
-                        if index < plan.spends.len() {
-                            *auth_sig = spend_auths.next().ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "missing spend authorization for shielded host withdrawal action {action_index} slot {index}"
-                                )
-                            })?;
-                        } else {
-                            *auth_sig =
-                                plan.synthetic_dummy_auth_sig(index, effect_hash.as_ref());
-                        }
-                    }
+                    withdrawal.auth_sig = spend_auths.next().ok_or_else(|| anyhow::anyhow!("missing action spend authorization"))?;
                 }
                 (
                     ActionPlan::ComplianceRegisterAsset(plan),
@@ -250,30 +185,9 @@ impl TransactionPlan {
                     .map_err(|error| {
                         anyhow::anyhow!("invalid fee-funding transfer shape: {error}")
                     })?;
-                anyhow::ensure!(
-                    fee_funding.transfer.auth_sigs.len()
-                        == shieldd_sdk_shielded_pool::transfer_auth_sig_count(),
-                    "fee-funding transfer expected {} authorization signature slots, got {}",
-                    shieldd_sdk_shielded_pool::transfer_auth_sig_count(),
-                    fee_funding.transfer.auth_sigs.len()
-                );
-                anyhow::ensure!(
-                    fee_funding_plan.transfer.spends.len() <= fee_funding.transfer.auth_sigs.len(),
-                    "fee-funding transfer has fewer authorization signature slots than real spends"
-                );
-                for (index, auth_sig) in fee_funding.transfer.auth_sigs.iter_mut().enumerate() {
-                    if index < fee_funding_plan.transfer.spends.len() {
-                        *auth_sig = spend_auths.next().ok_or_else(|| {
-                            anyhow::anyhow!(
-                                "missing spend authorization for fee-funding slot {index}"
-                            )
-                        })?;
-                    } else {
-                        *auth_sig = fee_funding_plan
-                            .transfer
-                            .synthetic_dummy_auth_sig(index, effect_hash.as_ref());
-                    }
-                }
+                fee_funding.transfer.auth_sig = spend_auths
+                    .next()
+                    .ok_or_else(|| anyhow::anyhow!("missing action spend authorization"))?;
             }
             (None, None) => {}
             _ => anyhow::bail!("transaction fee-funding presence does not match plan"),

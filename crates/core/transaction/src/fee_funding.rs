@@ -62,7 +62,7 @@ impl FeeFundingPlan {
         let transfer = transfer_plan
             .build_unauth_transfer(
                 fvk,
-                vec![[0; 64].into(); self.transfer.spends.len()],
+                [0; 64].into(),
                 auth_paths,
                 witness_data.anchor,
                 memo_key,

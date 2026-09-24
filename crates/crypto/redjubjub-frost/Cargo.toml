@@ -10,7 +10,7 @@ edition = {workspace = true}
 [dependencies]
 anyhow = {workspace = true}
 shieldd-sdk-crypto.workspace = true
-reddsa.workspace = true
+reddsa = { workspace = true, features = ["frost"] }
 frost-core = "=3.0.0"
 frost-rerandomized = "=3.0.0"
 rand_core = {workspace = true, features = ["getrandom"]}

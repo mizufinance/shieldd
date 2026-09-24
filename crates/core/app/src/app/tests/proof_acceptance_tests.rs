@@ -645,7 +645,7 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
         height: context.height,
         time: context.time,
     };
-    app.begin_block(&begin_block).await;
+    app.begin_block(&begin_block).await?;
 
     let cache = StatelessCache::new();
     app.deliver_tx_bytes(&fixture.tx_bytes, Some(&cache))
@@ -1067,5 +1067,141 @@ async fn output_capacity_rejection_rolls_back_all_transaction_effects() -> Resul
     assert_eq!(app.state.pending_nullifiers(), before_nullifiers);
     assert_eq!(app.state.get_sct_position().await?, Some(position));
     assert_no_tx_effects(&app, &tx, "SCT capacity rejection").await?;
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires local Pari keys and actual proof generation"]
+async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result<()> {
+    use shieldd_sdk_compliance::registry::ComplianceRegistryRead as _;
+    use shieldd_sdk_compliance::{admission::StaleComplianceSnapshot, UserAssetStatusAction};
+    let fixtures = family_fixtures().await?;
+    for fixture in fixtures
+        .fixtures
+        .iter()
+        .chain(std::iter::once(&fixtures.fee_funding_fixture))
+    {
+        let storage = build_fixture_storage().await?;
+        let cache = StatelessCache::new();
+        let target_asset = asset::Id(Fq::from(991));
+        let target = test_keys::ADDRESS_0.deref().clone();
+        for frozen in [false, true] {
+            // Both executions start from the same unspent committed parent.
+            let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+            let context = app.benchmark_block_context().await?;
+            app.begin_block(&cnidarium_component::BlockContext {
+                height: context.height,
+                time: context.time,
+            })
+            .await?;
+            let mut state = StateDelta::new(app.state.clone());
+            state
+                .test_only_register_asset(
+                    target_asset,
+                    AssetPolicy::for_test(
+                        *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                        u128::MAX,
+                        *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                    ),
+                    true,
+                )
+                .await?;
+            state
+                .test_only_add_compliance_leaf(ComplianceLeaf::registered_for_test(
+                    target.clone(),
+                    target_asset,
+                ))
+                .await?;
+            if frozen {
+                state
+                    .apply_user_status_action(
+                        &target,
+                        target_asset,
+                        UserAssetStatusAction::Freeze,
+                        context.height,
+                    )
+                    .await?;
+            }
+            app.apply(state);
+            let before = app.state.get_user_tree_root().await?;
+            let result = app.deliver_tx_bytes(&fixture.tx_bytes, Some(&cache)).await;
+            if !frozen {
+                result.with_context(|| {
+                    format!(
+                        "{} must accept ordinary registration grace",
+                        fixture.label()
+                    )
+                })?;
+                assert!(matches!(
+                    cache.get(
+                        registry().id(),
+                        &tx_hash(&fixture.tx_bytes),
+                        &fixture.tx_bytes
+                    ),
+                    Some(CacheEntry::FullyVerified(_))
+                ));
+            } else {
+                let error =
+                    result.expect_err("a preverified proof must not cross a freeze barrier");
+                assert_eq!(
+                    error.downcast_ref::<StaleComplianceSnapshot>(),
+                    Some(&StaleComplianceSnapshot::Frozen),
+                    "{}: {error:#}",
+                    fixture.label()
+                );
+                let tx = Transaction::decode(fixture.tx_bytes.as_slice())?;
+                for nullifier in tx.spent_nullifiers() {
+                    assert!(
+                        !app.state.is_nullifier_spent(nullifier).await?,
+                        "rejected action wrote a nullifier"
+                    );
+                }
+                assert_eq!(app.state.get_user_tree_root().await?, before);
+                if fixture.label() == "transfer" {
+                    app.end_block(context.height).await;
+                    app.commit(storage.as_ref().clone(), None).await?;
+                    let client = MockClient::new(test_keys::SPEND_KEY.clone())
+                        .with_sync_to_storage(&storage)
+                        .await?;
+                    let note = client
+                        .notes
+                        .values()
+                        .find(|note| {
+                            note.asset_id() == *BASE_ASSET_ID
+                                && note.address() == test_keys::ADDRESS_0.deref().clone()
+                        })
+                        .context("unaffected note")?
+                        .clone();
+                    let intent = shieldd_sdk_mock_client::TransactionIntent {
+                        actions: vec![transfer_plan(
+                            &client,
+                            note,
+                            Fr::from(1),
+                            test_keys::ADDRESS_1.deref().clone(),
+                        )?
+                        .into()],
+                        transaction_parameters: TransactionParameters {
+                            chain_id: TEST_CHAIN_ID.to_owned(),
+                            ..Default::default()
+                        },
+                        memo: None,
+                        fee_funding: None,
+                        nullifier_window: Some(test_nullifier_window()),
+                    };
+                    let plan = client
+                        .complete_intent(intent, storage.latest_snapshot())
+                        .await?;
+                    let refreshed = client.witness_auth_build(&plan, registry()).await?;
+                    let context = app.benchmark_block_context().await?;
+                    app.begin_block(&cnidarium_component::BlockContext {
+                        height: context.height,
+                        time: context.time,
+                    })
+                    .await?;
+                    app.deliver_tx_bytes(&refreshed.encode_to_vec(), Some(&cache)).await.context("unaffected user must succeed after explicit refresh and reauthorization")?;
+                }
+            }
+        }
+    }
     Ok(())
 }

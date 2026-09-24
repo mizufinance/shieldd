@@ -19,7 +19,17 @@ path = "benches/state/nullifier_storage.rs"
 harness = false
 
 
+[[bench]]
+name = "compliance_auth"
+path = "benches/state/compliance_auth.rs"
+harness = false
+
 [dependencies]
+shieldd-sdk-compliance = { workspace = true, features = ["component"] }
+shieldd-sdk-proto = { workspace = true }
+shieldd-sdk-tct = { workspace = true }
+tendermint = { workspace = true }
+reddsa = { workspace = true }
 shieldd-sdk-crypto = { workspace = true }
 ff = { workspace = true }
 group = { workspace = true }

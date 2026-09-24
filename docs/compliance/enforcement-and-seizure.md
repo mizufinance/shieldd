@@ -56,8 +56,9 @@ Active -> Frozen -> Seized
 Seized -> Seized       while consuming more notes from the same freeze
 ```
 
-Every regulated spend and receive requires an `Active` leaf under the current
-root. A new freeze generation invalidates older seizure instructions.
+Every regulated spend and receive requires an `Active` leaf under an
+[admitted snapshot](flow.md#snapshot-admission-and-freezes). A new per-user freeze
+generation invalidates older seizure instructions independently of the global epoch.
 
 `SeizeNote` verifies the authority signature and expiry, the current frozen
 leaf, the capsule-specific DLEQ release, the Pari note-membership and opening
@@ -65,6 +66,18 @@ proof, the canonical regulated nullifier, and nullifier nonmembership. One
 state delta inserts the nullifier, updates the lifecycle, records the audit
 effect and receipt, and returns the exact typed Bankd withdrawal. Exact source
 replay returns the receipt without another mutation.
+
+## Joint Bankd freeze contract
+
+Joint public and private freezes remain gated on the shared repository and native
+executor. Bankd must authenticate one canonical command naming explicit public
+and Shieldd address/asset targets, persist their association with the receipt,
+and reject incomplete commands before mutation. Both changes must execute at the
+same ordered position and roll back together on failure or enclosing execution
+revert, including candidate abandonment, finalization, restart and replay.
+An EVM address does not identify a private address; polling or Commonware consensus
+alone does not supply atomicity. The current Shieldd host API does not claim this
+joint guarantee.
 
 ## Implementation status
 
