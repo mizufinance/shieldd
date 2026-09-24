@@ -6430,6 +6430,7 @@ dependencies = [
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
  "shieldd-sdk-tct",
+ "shieldd-sdk-transaction",
  "tempfile",
  "tendermint",
  "tendermint-proto",

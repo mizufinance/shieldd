@@ -62,10 +62,11 @@ Bankd's `shieldd` Docker target exports only native artifacts; `shieldd-provers`
 exports the proof builders, and `shieldd-audit` exports audit tooling.
 
 CI compares uninterrupted execution with close/reopen and checkpoint reimport,
-checks committed query bytes/proofs, spent markers and nonempty history, rejects
+checks committed query bytes/proofs, deposited notes and nonempty history, rejects
 replayed host sources, and compares the next committed root. The same fixture
 runs under a nested Bankd source directory to check source relocation.
-Bankd owns real transfer/withdrawal integration tests. Shieldd PR CI explicitly
+Bankd owns real transfer/withdrawal integration tests, including spent-note replay
+rejection after restarting the embedded service. Shieldd PR CI explicitly
 runs `just pari-proof-tests`, including the ignored Disclosure CLI/application
 tests with a prover-enabled pcli. Ordinary `cargo test` does not run ignored tests.
 These gates use the optimized `ci` profile; they do not establish a separate

@@ -21,3 +21,6 @@
 *.so binary
 *.dylib binary
 *.wasm binary
+
+# Unified diffs encode empty context lines as a single space.
+*.patch whitespace=-blank-at-eol
