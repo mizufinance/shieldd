@@ -9,7 +9,8 @@ This provenance is independent of Commonware.
 The patch adds non-verifiable prefix deletion to a frozen `StagedWriteBatch`.
 It rejects overlapping point writes, overlapping ranges, substore boundaries
 and migration batches. The existing RocksDB batch atomically commits tombstones
-and application metadata; ordinary snapshot publication remains unchanged.
+and application metadata. Commits sync the WAL before publishing the snapshot;
+write failures return without publishing it.
 Change subscribers receive range invalidations. The upstream watch protocol
 cannot represent them, so affected watch streams fail explicitly and require a
 fresh snapshot. A separate method permits bounded, host-scheduled compaction

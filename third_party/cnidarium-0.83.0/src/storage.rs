@@ -594,7 +594,11 @@ impl Storage {
 
         tracing::debug!(new_jmt_version = ?batch.version, "committing batch to db");
 
-        db.write(write_batch).expect("can write to db");
+        // The host may publish this height or reclaim archived state after return.
+        // Persist the entire batch before exposing its snapshot to subscribers.
+        let mut write_options = rocksdb::WriteOptions::default();
+        write_options.set_sync(true);
+        db.write_opt(write_batch, &write_options)?;
         tracing::debug!(
             ?global_root_hash,
             ?version,

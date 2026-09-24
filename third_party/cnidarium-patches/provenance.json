@@ -1,7 +1,7 @@
 {
   "archive_url": "https://static.crates.io/crates/cnidarium/cnidarium-0.83.0.crate",
   "archive_sha256": "2caa1090700cdec4305df871194280f800f8c74e1fed4031697d436a31811af5",
-  "patch_sha256": "7f438422c80b02d7eb09df4824c4335745a873b1b3dc2c41a6839bcbbaa4d206",
+  "patch_sha256": "6fe259e27a84f988a2e7658776ddaab94dc6f61361c49da0cb5642030f7ef9ed",
   "files": {
     ".cargo_vcs_info.json": "2934888944f960b8f0f8de6c1d240976e052e2b27d99f5dba9e1f9a99f50e4eb",
     ".github/workflows/release.yml": "4667f2fc04721e3e35da55a5eeefdd3714fb367abaff5397af5e4797e1ed8206",
@@ -35,7 +35,7 @@
     "src/snapshot.rs": "f0c2a2fd0f04893b74b3172b534fbf64929af350569bba1466220e96e7c6a424",
     "src/snapshot_cache.rs": "ba4403ef89f345a66044eb6ea6f1e7ddd2571725bde0df1895145309a740dcc1",
     "src/storage/temp.rs": "249c9cc3e05f9e29a834c7be58414f5d33a4122e2fd57b078d1f03633a819ece",
-    "src/storage.rs": "02fd98ccf2980a1437f98dddd136e1c3493ef45a0d9fac32f52b040f0ae21a4a",
+    "src/storage.rs": "01b91053ee22cbf9ac52f8ce7cb986463b9b781b8b120d4e6a5f2f4881f92f7f",
     "src/store/multistore.rs": "a9513c49e6a534b40d5756ec73b7644407b9f7982d6157325199740ebcc7a398",
     "src/store/substore.rs": "d2adecedee132b0e3c67020bc48057128958ed3d37fa234fd2ab305384a9149b",
     "src/store.rs": "9ea3b0872d4396b6bbdd614d275c1e9cb690bd66fbeb9e3695ebe647794a21b3",
