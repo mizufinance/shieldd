@@ -72,6 +72,7 @@
           # Keep Rust-only CI independent from standalone node and observability
           # tooling. In particular, evaluating this shell must not build CometBFT.
           rustCiPackages = [
+            buf
             openssl
             cargo-hack
             cargo-nextest
