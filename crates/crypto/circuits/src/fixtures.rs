@@ -378,8 +378,15 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
     }
     let state = tree::<STATE_DEPTH>(p, Tree::State, &leaves)?;
     let dummy_seed = Scalar::random(&mut rng);
+    let randomizer = secret(&mut rng);
+    let spend_auth = note::SpendAuthorization {
+        rk: ak.add(
+            &group::generator().multiply(&randomizer),
+            &group::coefficient_d(),
+        ),
+        randomizer: randomizer.clone(),
+    };
     let spends = std::array::from_fn(|i| {
-        let randomizer = secret(&mut rng);
         let dummy = i == 1 && f.optional_dummy;
         let nullifier = if dummy {
             note::dummy_nullifier(p, &dummy_seed, &randomizer, note::Padding::Transfer)
@@ -400,15 +407,6 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
                 .get(&f.spend_positions[i])
                 .expect("fixture spend position")
                 .clone(),
-            rk: if dummy {
-                point(&mut rng)
-            } else {
-                ak.add(
-                    &group::generator().multiply(&randomizer),
-                    &group::coefficient_d(),
-                )
-            },
-            randomizer,
             nullifier,
             history_required: f.history[i],
         }
@@ -522,6 +520,7 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
         Scalar::from(f.routing_height),
     )?;
     let w = Witness {
+        spend_auth,
         anchor: state.root,
         asset_anchor: assets.root,
         compliance_anchor: users.root,
@@ -584,6 +583,7 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
 
 pub fn owner(p: &Parameters, w: &Witness) -> crate::self_action::Witness {
     crate::self_action::Witness {
+        spend_auth: w.spend_auth.clone(),
         anchor: w.anchor.clone(),
         asset_anchor: w.asset_anchor.clone(),
         compliance_anchor: w.compliance_anchor.clone(),
@@ -683,7 +683,7 @@ pub fn reshape(
         let state = tree::<STATE_DEPTH>(p, Tree::State, &leaves)?;
         owner.anchor = state.root;
         let inputs = std::array::from_fn(|i| {
-            let randomizer = Scalar::from(i as u64 + 7);
+            let randomizer = owner.spend_auth.randomizer.clone();
             let padding = note::OptionalWitness {
                 is_dummy: i >= count,
                 seed: Scalar::from(i as u64 + 19),
@@ -705,11 +705,6 @@ pub fn reshape(
                 spend: note::SpendWitness {
                     note: notes[i].clone(),
                     path: state.paths[&position].clone(),
-                    rk: owner.auth.ak.add(
-                        &group::generator().multiply(&randomizer),
-                        &group::coefficient_d(),
-                    ),
-                    randomizer,
                     nullifier,
                     history_required: false,
                 },
@@ -743,7 +738,7 @@ pub fn withdrawal(
         spends[1].nullifier = note::dummy_nullifier(
             p,
             &transfer.optional.seed,
-            &spends[1].randomizer,
+            &owner.spend_auth.randomizer,
             note::Padding::Withdrawal,
         );
     }

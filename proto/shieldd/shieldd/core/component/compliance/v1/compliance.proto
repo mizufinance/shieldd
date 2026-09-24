@@ -14,8 +14,17 @@ message ComplianceViewingKey {
 
 // Compliance component chain parameters.
 message ComplianceParameters {
-  // Retention window for recorded user roots; authorization requires current roots.
-  uint64 anchor_validation_window_blocks = 1;
+  // Maximum age in consensus seconds of a recorded root pair; zero requires current roots.
+  uint64 compliance_anchor_max_age_seconds = 1;
+}
+
+// One canonical observation of both compliance roots, covered by application state.
+message ComplianceSnapshot {
+  bytes user_root = 1;
+  bytes asset_root = 2;
+  uint64 freeze_epoch = 3;
+  uint64 observed_height = 4;
+  uint64 observed_time_seconds = 5;
 }
 
 // A compliance leaf in the public on-chain registry for regulated assets.
@@ -234,6 +243,9 @@ message ComplianceAnchorsResponse {
   // The root of the asset regulation tree (Quad Merkle Tree).
   // This is a StateCommitment (32 bytes).
   bytes asset_tree_root = 2;
+  uint64 freeze_epoch = 3;
+  // Absent until the first block supplies authoritative time.
+  ComplianceSnapshot snapshot = 4;
 }
 
 // Request for querying Merkle proofs needed for compliance ZK proofs.

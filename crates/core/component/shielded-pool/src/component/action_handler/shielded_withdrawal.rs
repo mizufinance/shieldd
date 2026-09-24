@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use cnidarium::StateRead;
-use reddsa::{sapling::SpendAuth, Signature};
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
@@ -16,6 +16,7 @@ use crate::{
 };
 
 pub(crate) struct ProofPublicData<'a> {
+    pub rk: VerificationKey<SpendAuth>,
     pub family_id: ShieldedWithdrawalFamilyId,
     pub balance_commitment: balance::Commitment,
     pub asset_anchor: tct::StateCommitment,
@@ -31,15 +32,6 @@ pub(crate) struct ProofPublicData<'a> {
     pub volume_accumulator: &'a crate::VolumeAccumulatorPayload,
 }
 
-pub(crate) fn verify_auth_sigs(
-    action_label: &str,
-    inputs: &[TransferInputBody],
-    auth_sigs: &[Signature<SpendAuth>],
-    context: &TransactionContext,
-) -> Result<()> {
-    note_reshape::verify_auth_sigs(action_label, inputs, auth_sigs, context, |input| &input.rk)
-}
-
 pub(crate) fn extract_public(
     data: ProofPublicData<'_>,
     context: &TransactionContext,
@@ -47,7 +39,7 @@ pub(crate) fn extract_public(
     let (inputs, change_outputs) = note_reshape::extract_public_parts(
         data.inputs,
         std::slice::from_ref(data.change_output),
-        |input| (input.nullifier, &input.rk),
+        |input| input.nullifier,
         |output| &output.note_payload,
     );
     let change_output = change_outputs
@@ -55,6 +47,7 @@ pub(crate) fn extract_public(
         .next()
         .expect("one change output was supplied");
     let public = ShieldedWithdrawalProofPublic {
+        rk: data.rk,
         family_id: data.family_id,
         anchor: context.anchor,
         balance_commitment: data.balance_commitment,
@@ -66,7 +59,6 @@ pub(crate) fn extract_public(
             .zip(data.inputs.iter())
             .map(|(input, body_input)| ShieldedWithdrawalInputPublic {
                 nullifier: input.nullifier,
-                rk: input.rk,
                 history_required: body_input.history_required,
             })
             .collect(),

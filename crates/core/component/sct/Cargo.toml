@@ -14,9 +14,7 @@ component = [
     "shieldd-sdk-proto/cnidarium",
     "tokio",
 ]
-default = ["std", "component"]
-std = []
-docsrs = []
+default = ["component"]
 parallel = ["shieldd-sdk-tct/parallel", "dep:rayon"]
 
 [dependencies]

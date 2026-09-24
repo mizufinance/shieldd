@@ -516,11 +516,11 @@ mod test {
                 .effect_hash
                 .expect("effect hash not present")
         );
-        let spend_randomizers = plan
-            .actions
-            .iter()
-            .flat_map(|action| action.spends())
-            .map(|spend| spend.randomizer);
+        assert_eq!(
+            tx_authorization_data.spend_auths.len(),
+            plan.num_spend_auths()
+        );
+        let spend_randomizers = plan.spend_auth_randomizers();
         for (randomizer, sig) in spend_randomizers.zip(tx_authorization_data.spend_auths) {
             fvk.spend_verification_key().randomize(&randomizer).verify(
                 tx_authorization_data

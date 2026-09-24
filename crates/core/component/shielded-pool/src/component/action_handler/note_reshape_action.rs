@@ -11,16 +11,15 @@ use crate::{
     NoteReshapeOutputPublic, NoteReshapeProofPublic,
 };
 
-fn note_reshape_verify_auth_sigs(
+fn note_reshape_verify_auth_sig(
     note_reshape: &NoteReshape,
     context: &TransactionContext,
 ) -> Result<()> {
-    note_reshape::verify_auth_sigs(
+    note_reshape::verify_auth_sig(
         "note_reshape",
-        &note_reshape.body.inputs,
-        &note_reshape.auth_sigs,
+        &note_reshape.body.rk,
+        &note_reshape.auth_sig,
         context,
-        |input| &input.rk,
     )
 }
 
@@ -31,11 +30,12 @@ fn note_reshape_extract_public(
     let (inputs, outputs) = note_reshape::extract_public_parts(
         &note_reshape.body.inputs,
         &note_reshape.body.outputs,
-        |input| (input.nullifier, &input.rk),
+        |input| input.nullifier,
         |output| &output.note_payload,
     );
 
     let public = NoteReshapeProofPublic {
+        rk: note_reshape.body.rk,
         family_id: note_reshape.body.family_id,
         anchor: context.anchor,
         balance_commitment: note_reshape.body.balance_commitment,
@@ -49,7 +49,6 @@ fn note_reshape_extract_public(
             .zip(note_reshape.body.inputs.iter())
             .map(|(input, body_input)| NoteReshapeInputPublic {
                 nullifier: input.nullifier,
-                rk: input.rk,
                 history_required: body_input.history_required,
             })
             .collect(),
@@ -88,7 +87,7 @@ pub fn note_reshape_check_stateless_and_extract(
 ) -> Result<Verification> {
     note_reshape::validate_action_anchor("note_reshape", note_reshape.body.anchor, context)?;
     note_reshape.body.validate_shape()?;
-    note_reshape_verify_auth_sigs(note_reshape, context)?;
+    note_reshape_verify_auth_sig(note_reshape, context)?;
     let public = note_reshape_extract_public(note_reshape, context)?;
     note_reshape_to_batch_item(note_reshape, public)
 }
@@ -228,7 +227,7 @@ mod tests {
                         0,
                     )
                     .expect("derive action body"),
-                auth_sigs: Vec::new(),
+                auth_sig: [0; 64].into(),
                 proof: Default::default(),
             };
             let context = TransactionContext {

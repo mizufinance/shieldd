@@ -452,11 +452,6 @@ pub struct TransferInputBody {
     /// The nullifier of the spent note.
     #[prost(message, optional, tag = "1")]
     pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
-    /// The randomized validating key for the spend authorization signature.
-    #[prost(message, optional, tag = "2")]
-    pub rk: ::core::option::Option<
-        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
-    >,
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub encrypted_backref: ::prost::alloc::vec::Vec<u8>,
@@ -512,9 +507,9 @@ pub struct Transfer {
     /// The effecting data of the transfer.
     #[prost(message, optional, tag = "1")]
     pub body: ::core::option::Option<TransferBody>,
-    /// The authorizing signatures for each transfer input.
-    #[prost(message, repeated, tag = "2")]
-    pub auth_sigs: ::prost::alloc::vec::Vec<
+    /// The spend authorization for this action.
+    #[prost(message, optional, tag = "2")]
+    pub auth_sig: ::core::option::Option<
         super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the transfer is well-formed.
@@ -534,6 +529,10 @@ impl ::prost::Name for Transfer {
 /// The body of a fused shielded transfer.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransferBody {
+    #[prost(message, optional, tag = "16")]
+    pub rk: ::core::option::Option<
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
+    >,
     /// The state commitment tree anchor used during proof generation.
     #[prost(message, optional, tag = "15")]
     pub anchor: ::core::option::Option<
@@ -713,6 +712,8 @@ impl ::prost::Name for TransferView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransferPlan {
+    #[prost(bytes = "vec", tag = "10")]
+    pub auth_randomizer: ::prost::alloc::vec::Vec<u8>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
@@ -835,9 +836,9 @@ pub struct ShieldedHostWithdrawal {
     /// The effecting data of the withdrawal.
     #[prost(message, optional, tag = "1")]
     pub body: ::core::option::Option<ShieldedHostWithdrawalBody>,
-    /// The authorizing signatures for each consumed input.
-    #[prost(message, repeated, tag = "2")]
-    pub auth_sigs: ::prost::alloc::vec::Vec<
+    /// The spend authorization for this action.
+    #[prost(message, optional, tag = "2")]
+    pub auth_sig: ::core::option::Option<
         super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the withdrawal is well-formed.
@@ -856,6 +857,10 @@ impl ::prost::Name for ShieldedHostWithdrawal {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedHostWithdrawalBody {
+    #[prost(message, optional, tag = "15")]
+    pub rk: ::core::option::Option<
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
+    >,
     /// The proving family this action uses.
     #[prost(uint32, tag = "1")]
     pub family_id: u32,
@@ -987,6 +992,8 @@ impl ::prost::Name for ShieldedHostWithdrawalView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedHostWithdrawalPlan {
+    #[prost(bytes = "vec", tag = "10")]
+    pub auth_randomizer: ::prost::alloc::vec::Vec<u8>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
@@ -1044,11 +1051,6 @@ pub struct NoteReshapeInputBody {
     /// The nullifier of the spent note.
     #[prost(message, optional, tag = "1")]
     pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
-    /// The randomized validating key for the spend authorization signature.
-    #[prost(message, optional, tag = "2")]
-    pub rk: ::core::option::Option<
-        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
-    >,
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
     pub encrypted_backref: ::prost::alloc::vec::Vec<u8>,
@@ -1094,9 +1096,9 @@ pub struct NoteReshape {
     /// The effecting data of the note reshape action.
     #[prost(message, optional, tag = "1")]
     pub body: ::core::option::Option<NoteReshapeBody>,
-    /// The authorizing signatures for each consumed input.
-    #[prost(message, repeated, tag = "2")]
-    pub auth_sigs: ::prost::alloc::vec::Vec<
+    /// The spend authorization for this action.
+    #[prost(message, optional, tag = "2")]
+    pub auth_sig: ::core::option::Option<
         super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the note reshape action is well-formed.
@@ -1115,6 +1117,10 @@ impl ::prost::Name for NoteReshape {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteReshapeBody {
+    #[prost(message, optional, tag = "11")]
+    pub rk: ::core::option::Option<
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
+    >,
     /// The proving family this action uses.
     #[prost(uint32, tag = "1")]
     pub family_id: u32,
@@ -1226,6 +1232,8 @@ impl ::prost::Name for NoteReshapeView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteReshapePlan {
+    #[prost(bytes = "vec", tag = "9")]
+    pub auth_randomizer: ::prost::alloc::vec::Vec<u8>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
@@ -1294,8 +1302,6 @@ pub struct ShieldedInputPlan {
     pub note: ::core::option::Option<Note>,
     #[prost(uint64, tag = "2")]
     pub position: u64,
-    #[prost(bytes = "vec", tag = "3")]
-    pub randomizer: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "4")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
 }

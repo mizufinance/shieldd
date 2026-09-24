@@ -1,6 +1,5 @@
 use ff::Field;
 use rand_core::{CryptoRng, RngCore};
-use reddsa::{sapling::SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{Balance, Value};
 use shieldd_sdk_crypto::Fr;
@@ -18,7 +17,6 @@ use crate::{Backref, Note, RecoveryCapsule, Rseed, TransferInputBody};
 pub struct ShieldedInputPlan {
     pub note: Note,
     pub position: tct::Position,
-    pub randomizer: Fr,
     pub value_blinding: Fr,
 }
 
@@ -31,7 +29,6 @@ impl ShieldedInputPlan {
         ShieldedInputPlan {
             note,
             position,
-            randomizer: Fr::random(&mut *rng),
             value_blinding: Fr::random(&mut *rng),
         }
     }
@@ -47,7 +44,6 @@ impl ShieldedInputPlan {
 
         Ok(TransferInputBody {
             nullifier: self.nullifier(nullifier_key),
-            rk: self.rk(fvk),
             encrypted_backref,
             compliance_ciphertext: Vec::new(),
             history_required: shieldd_sdk_sct::nullifier_generation::is_old(
@@ -55,10 +51,6 @@ impl ShieldedInputPlan {
                 recent_position_floor,
             )?,
         })
-    }
-
-    pub fn rk(&self, fvk: &FullViewingKey) -> VerificationKey<SpendAuth> {
-        fvk.spend_verification_key().randomize(&self.randomizer)
     }
 
     pub fn nullifier(&self, key: &NullifierKey) -> Nullifier {
@@ -130,7 +122,6 @@ impl From<ShieldedInputPlan> for pb::ShieldedInputPlan {
         Self {
             note: Some(plan.note.into()),
             position: plan.position.into(),
-            randomizer: plan.randomizer.to_bytes().to_vec(),
             value_blinding: plan.value_blinding.to_bytes().to_vec(),
         }
     }
@@ -145,7 +136,6 @@ impl TryFrom<pb::ShieldedInputPlan> for ShieldedInputPlan {
                 .ok_or_else(|| anyhow::anyhow!("missing note"))?
                 .try_into()?,
             position: plan.position.into(),
-            randomizer: parse_fr(&plan.randomizer)?,
             value_blinding: parse_fr(&plan.value_blinding)?,
         })
     }

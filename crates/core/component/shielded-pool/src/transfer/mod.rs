@@ -7,9 +7,8 @@ mod view;
 
 pub use action::{Transfer, TransferBody, TransferInputBody, TransferOutputBody};
 pub use generated::{
-    transfer_auth_sig_count, transfer_input_count, transfer_output_count, PADDED_TRANSFER_INPUTS,
-    PADDED_TRANSFER_OUTPUTS, TRANSFER_ARTIFACT_NAME, TRANSFER_PROOF_LABEL,
-    TRANSFER_STATEMENT_FIELD_COUNT,
+    transfer_input_count, transfer_output_count, PADDED_TRANSFER_INPUTS, PADDED_TRANSFER_OUTPUTS,
+    TRANSFER_ARTIFACT_NAME, TRANSFER_PROOF_LABEL, TRANSFER_STATEMENT_FIELD_COUNT,
 };
 pub use plan::TransferPlan;
 pub use proof::{

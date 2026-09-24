@@ -39,6 +39,7 @@ fn validate_compliance_anchors(
     user_tree: &ComplianceUserTree,
     asset_tree: &ComplianceAssetTree,
 ) -> anyhow::Result<()> {
+    block.validate_compliance_snapshot()?;
     let user_anchor = block
         .compliance_user_anchor
         .context("compact block is missing its compliance user anchor")?;
@@ -634,6 +635,21 @@ mod compliance_projection_tests {
         validate_compliance_anchors(&block, &user_tree, &asset_tree)
             .expect("matching empty-tree anchors must validate");
 
+        block.compliance_snapshot = Some(shieldd_sdk_compliance::admission::ComplianceSnapshot {
+            user_root: user_tree.root(),
+            asset_root: asset_tree.root(),
+            freeze_epoch: 1,
+            observed_height: block.height,
+            observed_time_seconds: 1000,
+        });
+        validate_compliance_anchors(&block, &user_tree, &asset_tree).unwrap();
+        block.compliance_snapshot.as_mut().unwrap().asset_root =
+            shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(99));
+        assert!(validate_compliance_anchors(&block, &user_tree, &asset_tree)
+            .unwrap_err()
+            .to_string()
+            .contains("snapshot does not match"));
+        block.compliance_snapshot = None;
         block.compliance_user_anchor = None;
         validate_compliance_anchors(&block, &user_tree, &asset_tree)
             .expect_err("an event-free block must not bypass anchor validation");

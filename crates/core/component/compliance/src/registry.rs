@@ -16,7 +16,6 @@ use crate::{
     indexed_tree::{
         FqOrdKey, IndexedLeaf, IndexedMerkleTree, InsertResult, FQ_MAX, IMT_ZERO_HASHES,
     },
-    params::StateReadExt as _,
     state_key,
     structs::{AssetPolicy, ComplianceLeaf, MerklePath, UserAssetStatus, UserAssetStatusAction},
     tree::{QuadTree, ZERO_HASHES},
@@ -56,9 +55,6 @@ fn root_from_auth_path(
 
 // Note: QuadTree is still used for the user tree. Asset tree has been migrated to IMT.
 
-/// Maximum number of blocks the RPC will search backwards for a recorded anchor.
-pub const MAX_ANCHOR_SEARCH_DEPTH_BLOCKS: u64 = 10;
-
 /// Maximum allowed drift between target_timestamp and block timestamp (±30 minutes).
 pub const MAX_TIMESTAMP_DRIFT_SECS: u64 = 1_800;
 
@@ -75,24 +71,6 @@ pub fn check_timestamp_freshness(
     anyhow::ensure!(
         diff <= MAX_TIMESTAMP_DRIFT_SECS,
         "target_timestamp {target_timestamp} is {diff}s from block time {block_timestamp}, exceeds ±{MAX_TIMESTAMP_DRIFT_SECS}s"
-    );
-    Ok(())
-}
-
-/// Require the current mutable user-status and asset-policy roots.
-pub fn validate_compliance_anchor_facts(
-    user_anchor: &StateCommitment,
-    current_user_anchor: &StateCommitment,
-    asset_anchor: &StateCommitment,
-    current_asset_anchor: &StateCommitment,
-) -> Result<()> {
-    anyhow::ensure!(
-        user_anchor == current_user_anchor,
-        "user compliance anchor does not match the current user compliance root"
-    );
-    anyhow::ensure!(
-        asset_anchor == current_asset_anchor,
-        "asset compliance anchor does not match the current asset compliance root"
     );
     Ok(())
 }
@@ -802,35 +780,13 @@ pub trait ComplianceRegistryRead: StateRead {
 
     // ========== Historical Anchor Validation ==========
 
-    /// Check if a user tree anchor is valid (exists in historical records).
-    ///
-    /// Returns `Some(height)` if the anchor was recorded at that block height,
-    /// `None` if the anchor is unknown.
-    async fn check_user_anchor(&self, anchor: &StateCommitment) -> Result<Option<u64>> {
-        let key = state_key::anchor::user_anchor_lookup(anchor);
-        self.get_proto(&key).await
-    }
-
-    /// Get the user tree anchor at a specific block height.
-    async fn get_user_anchor_by_height(&self, height: u64) -> Result<Option<StateCommitment>> {
-        self.get(&state_key::anchor::user_anchor_by_height(height))
-            .await
-    }
-
-    /// Require the current user-status and asset-policy roots.
+    /// Validate one paired snapshot against the current freeze barrier and clock.
     async fn validate_compliance_anchors(
         &self,
         user_anchor: &StateCommitment,
         asset_anchor: &StateCommitment,
     ) -> Result<()> {
-        let current_user_anchor = self.get_user_tree_root().await?;
-        let current_asset_anchor = self.get_asset_imt_root().await?;
-        validate_compliance_anchor_facts(
-            user_anchor,
-            &current_user_anchor,
-            asset_anchor,
-            &current_asset_anchor,
-        )
+        crate::admission::state::validate(self, user_anchor, asset_anchor).await
     }
 }
 
@@ -1445,67 +1401,21 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
 
     // ========== Historical Anchor Storage ==========
 
-    /// Record the current compliance tree anchors at the given block height.
-    ///
-    /// Retains the user root for historical lookup and emits both roots for sync.
-    /// Retention does not make a stale user or asset root admissible for authorization.
+    /// Publish roots independently of time initialization at fresh genesis.
     async fn record_compliance_anchors(&mut self, height: u64) -> Result<()> {
-        // Get current anchors
-        let user_anchor = self.get_user_tree_root().await?;
-        let asset_anchor = self.get_asset_imt_root().await?;
-
-        // Store user anchor bidirectionally using verifiable storage (matching SCT pattern)
-        self.put(
-            state_key::anchor::user_anchor_by_height(height),
-            user_anchor,
-        );
-        self.put_proto(state_key::anchor::user_anchor_lookup(&user_anchor), height);
-
-        // Emit anchor event for local sync
-        self.record_proto(event::compliance_anchor(height, user_anchor, asset_anchor));
-
-        tracing::debug!(
-            height,
-            ?user_anchor,
-            ?asset_anchor,
-            "recorded compliance anchors"
-        );
-
-        let anchor_retention_blocks = self
-            .get_compliance_params()
-            .await?
-            .anchor_validation_window_blocks
-            .saturating_add(MAX_ANCHOR_SEARCH_DEPTH_BLOCKS);
-
-        if let Some(cutoff_height) = height.checked_sub(anchor_retention_blocks + 1) {
-            let start_height = self
-                .get_proto::<u64>(state_key::anchor::pruned_through_height())
+        use shieldd_sdk_sct::component::clock::EpochRead;
+        let user = self.get_user_tree_root().await?;
+        let asset = self.get_asset_imt_root().await?;
+        self.record_proto(event::compliance_anchor(height, user, asset));
+        if height > 0 {
+            let time = self
+                .get_current_block_timestamp()
                 .await?
-                .map_or(0, |height| height.saturating_add(1));
-
-            if start_height <= cutoff_height {
-                for expired_height in start_height..=cutoff_height {
-                    if let Some(expired_user_anchor) =
-                        self.get_user_anchor_by_height(expired_height).await?
-                    {
-                        self.delete(state_key::anchor::user_anchor_by_height(expired_height));
-                        if self.check_user_anchor(&expired_user_anchor).await?
-                            == Some(expired_height)
-                        {
-                            self.delete(state_key::anchor::user_anchor_lookup(
-                                &expired_user_anchor,
-                            ));
-                        }
-                    }
-                }
-
-                self.put_proto(
-                    state_key::anchor::pruned_through_height().to_string(),
-                    cutoff_height,
-                );
-            }
+                .unix_timestamp()
+                .try_into()?;
+            crate::admission::state::record(self, height, time).await?;
+            crate::admission::state::prune(self, time).await?;
         }
-
         Ok(())
     }
 
@@ -1621,6 +1531,8 @@ pub(crate) trait ComplianceRegistryComponentWrite:
             self.load_user_tree_nodes().await?.is_empty() && self.get_user_count().await? == 0,
             "new compliance user tree has existing state"
         );
+        self.put_proto(state_key::admission::freeze_epoch().to_owned(), 0u64);
+        self.put_proto(state_key::admission::pending_genesis().to_owned(), true);
         self.put(
             state_key::user_tree_root().to_string(),
             QuadTree::new().root(),
@@ -1679,6 +1591,16 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         action: UserAssetStatusAction,
         source_height: u64,
     ) -> Result<event::EventUserAssetStatusChanged> {
+        let next_epoch = if action == UserAssetStatusAction::Freeze {
+            Some(
+                crate::admission::state::epoch(self)
+                    .await?
+                    .checked_add(1)
+                    .ok_or_else(|| anyhow::anyhow!("compliance freeze epoch overflow"))?,
+            )
+        } else {
+            None
+        };
         let event = <Self as ComplianceRegistryRawWrite>::change_user_asset_status(
             self,
             address,
@@ -1687,6 +1609,9 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
             source_height,
         )
         .await?;
+        if let Some(epoch) = next_epoch {
+            self.put_proto(state_key::admission::freeze_epoch().to_owned(), epoch);
+        }
         <Self as ComplianceRegistryRawWrite>::emit_user_status_change(self, event.clone());
         Ok(event)
     }

@@ -11,7 +11,6 @@ use crate::{component::NoteManager, event, NotePayload};
 
 pub(crate) struct NoteReshapeInputPublicParts {
     pub nullifier: Nullifier,
-    pub rk: VerificationKey<SpendAuth>,
 }
 
 pub(crate) struct NoteReshapeOutputPublicParts {
@@ -30,35 +29,21 @@ pub(crate) fn validate_action_anchor(
     Ok(())
 }
 
-pub(crate) fn verify_auth_sigs<I>(
+pub(crate) fn verify_auth_sig(
     action_label: &str,
-    inputs: &[I],
-    auth_sigs: &[Signature<SpendAuth>],
+    rk: &VerificationKey<SpendAuth>,
+    auth_sig: &Signature<SpendAuth>,
     context: &TransactionContext,
-    rk: impl Fn(&I) -> &VerificationKey<SpendAuth>,
 ) -> Result<()> {
-    anyhow::ensure!(
-        inputs.len() == auth_sigs.len(),
-        "{action_label} expected {} auth sigs, got {}",
-        inputs.len(),
-        auth_sigs.len()
-    );
-    for (index, (input, auth_sig)) in inputs.iter().zip(auth_sigs.iter()).enumerate() {
-        let rk = rk(input);
-        ensure_nonidentity_spend_auth_key(
-            rk,
-            &format!("{action_label} randomized spend key {index}"),
-        )?;
-        rk.verify(context.effect_hash.as_ref(), auth_sig)
-            .with_context(|| format!("{action_label} auth signature {index} failed to verify"))?;
-    }
-    Ok(())
+    ensure_nonidentity_spend_auth_key(rk, &format!("{action_label} randomized spend key"))?;
+    rk.verify(context.effect_hash.as_ref(), auth_sig)
+        .with_context(|| format!("{action_label} auth signature failed to verify"))
 }
 
 pub(crate) fn extract_public_parts<I, O>(
     inputs: &[I],
     outputs: &[O],
-    input_parts: impl Fn(&I) -> (Nullifier, &VerificationKey<SpendAuth>),
+    input_parts: impl Fn(&I) -> Nullifier,
     output_parts: impl Fn(&O) -> &NotePayload,
 ) -> (
     Vec<NoteReshapeInputPublicParts>,
@@ -67,8 +52,8 @@ pub(crate) fn extract_public_parts<I, O>(
     let inputs = inputs
         .iter()
         .map(|input| {
-            let (nullifier, rk) = input_parts(input);
-            NoteReshapeInputPublicParts { nullifier, rk: *rk }
+            let nullifier = input_parts(input);
+            NoteReshapeInputPublicParts { nullifier }
         })
         .collect();
     let outputs = outputs
@@ -258,30 +243,30 @@ mod tests {
     }
 
     #[test]
-    fn auth_verification_rejects_invalid_dummy_slot_signature() {
-        let real_sk = SigningKey::<SpendAuth>::try_from(Fr::from(11u64).to_bytes()).unwrap();
-        let dummy_sk = SigningKey::<SpendAuth>::try_from(Fr::from(12u64).to_bytes()).unwrap();
-        let wrong_dummy_sk = SigningKey::<SpendAuth>::try_from(Fr::from(13u64).to_bytes()).unwrap();
-        let inputs = [
-            VerificationKey::from(&real_sk),
-            VerificationKey::from(&dummy_sk),
-        ];
+    fn auth_verification_rejects_wrong_action_key() {
+        let sk = SigningKey::<SpendAuth>::try_from(Fr::from(11u64).to_bytes()).unwrap();
+        let other = SigningKey::<SpendAuth>::try_from(Fr::from(13u64).to_bytes()).unwrap();
+        let rk = VerificationKey::from(&sk);
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
             recent_position_floor: 0,
         };
-        let signatures = [
-            real_sk.sign(OsRng, context.effect_hash.as_ref()),
-            wrong_dummy_sk.sign(OsRng, context.effect_hash.as_ref()),
-        ];
-
-        let err = verify_auth_sigs("note reshape", &inputs, &signatures, &context, |rk| rk)
-            .expect_err("every padded RK, including a dummy slot, must verify");
-        assert!(
-            err.to_string().contains("auth signature 1 failed"),
-            "unexpected rejection reason: {err:#}"
-        );
+        verify_auth_sig(
+            "reshape",
+            &rk,
+            &sk.sign(OsRng, context.effect_hash.as_ref()),
+            &context,
+        )
+        .unwrap();
+        let error = verify_auth_sig(
+            "reshape",
+            &rk,
+            &other.sign(OsRng, context.effect_hash.as_ref()),
+            &context,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("auth signature failed"));
     }
 
     #[test]
@@ -300,14 +285,8 @@ mod tests {
         identity_rk
             .verify(context.effect_hash.as_ref(), &signature)
             .expect("the pinned RDSA primitive admits identity keys across messages");
-        let error = verify_auth_sigs(
-            "note_reshape",
-            &[identity_rk],
-            &[signature],
-            &context,
-            |rk| rk,
-        )
-        .expect_err("identity randomized spend keys must fail before RDSA verification");
+        let error = verify_auth_sig("note_reshape", &identity_rk, &signature, &context)
+            .expect_err("identity randomized spend keys must fail before RDSA verification");
         assert!(
             error
                 .chain()

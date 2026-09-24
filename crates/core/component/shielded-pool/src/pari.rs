@@ -131,17 +131,13 @@ fn note(note: &Note) -> c::note::Note<Scalar> {
 fn spend(
     note_value: &Note,
     path: &tct::Proof,
-    randomizer: Fr,
     nullifier: Nullifier,
-    rk: VerificationKey<SpendAuth>,
     history_required: bool,
 ) -> Result<c::note::SpendWitness> {
     Ok(c::note::SpendWitness {
         note: note(note_value),
         path: state_path(path),
-        randomizer: scalar(randomizer),
         nullifier: field(&nullifier.0),
-        rk: key(rk)?,
         history_required,
     })
 }
@@ -298,6 +294,10 @@ pub(crate) fn transfer(
     let optional = &w.optional_input.spend;
     Ok(c::catalogue::Witness::Transfer(Box::new(
         c::transfer::Witness {
+            spend_auth: c::note::SpendAuthorization {
+                randomizer: scalar(w.spend_auth_randomizer),
+                rk: key(p.rk)?,
+            },
             anchor: field(&p.anchor.into()),
             asset_anchor: field(&p.asset_anchor.0),
             compliance_anchor: field(&p.compliance_anchor.0),
@@ -323,17 +323,13 @@ pub(crate) fn transfer(
                 spend(
                     &required.spent_note,
                     &required.state_commitment_proof,
-                    required.spend_auth_randomizer,
                     p.inputs[0].nullifier,
-                    p.inputs[0].rk,
                     p.inputs[0].history_required,
                 )?,
                 spend(
                     &optional.spent_note,
                     &optional.state_commitment_proof,
-                    optional.spend_auth_randomizer,
                     p.inputs[1].nullifier,
-                    p.inputs[1].rk,
                     p.inputs[1].history_required,
                 )?,
             ],
@@ -387,6 +383,10 @@ pub(crate) fn reshape(
     w.validate_shape()?;
     ensure!(p.family_id == w.family_id, "reshape family mismatch");
     let owner = c::self_action::Witness {
+        spend_auth: c::note::SpendAuthorization {
+            randomizer: scalar(w.spend_auth_randomizer),
+            rk: key(p.rk)?,
+        },
         anchor: field(&p.anchor.into()),
         asset_anchor: field(&p.asset_anchor.0),
         compliance_anchor: field(&p.compliance_anchor.0),
@@ -417,9 +417,7 @@ pub(crate) fn reshape(
                 spend: spend(
                     &w.spent_note,
                     &w.state_commitment_proof,
-                    w.spend_auth_randomizer,
                     p.nullifier,
-                    p.rk,
                     p.history_required,
                 )?,
                 padding: c::note::OptionalWitness {
@@ -471,6 +469,10 @@ pub(crate) fn withdrawal(
     let s = crate::public_input_hash::withdrawal_statement(p)?;
     let e = s.encryption;
     let owner = c::self_action::Witness {
+        spend_auth: c::note::SpendAuthorization {
+            randomizer: scalar(w.spend_auth_randomizer),
+            rk: key(p.rk)?,
+        },
         anchor: field(&p.anchor.into()),
         asset_anchor: field(&p.asset_anchor.0),
         compliance_anchor: field(&p.compliance_anchor.0),
@@ -504,17 +506,13 @@ pub(crate) fn withdrawal(
                 spend(
                     &required.spent_note,
                     &required.state_commitment_proof,
-                    required.spend_auth_randomizer,
                     p.inputs[0].nullifier,
-                    p.inputs[0].rk,
                     p.inputs[0].history_required,
                 )?,
                 spend(
                     &optional.spent_note,
                     &optional.state_commitment_proof,
-                    optional.spend_auth_randomizer,
                     p.inputs[1].nullifier,
-                    p.inputs[1].rk,
                     p.inputs[1].history_required,
                 )?,
             ],

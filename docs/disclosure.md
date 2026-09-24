@@ -124,7 +124,7 @@ is no data migration.
 ## Spending-authority control
 
 Software and encrypted custody sign a domain-separated request under the ordinary
-Transfer's mandatory real first input authorization key. The wallet retains its
+Transfer's action authorization key. The wallet retains its
 randomizer before returning a built outgoing transaction for submission. The
 spending key remains in custody. External signatures can be supplied through the
 SDK. Historical payments without retained randomizers report an unavailable witness.

@@ -1,3 +1,4 @@
+pub mod admission;
 pub mod enrichment;
 pub mod registration;
 pub use enrichment::{AssetProofData, BatchComplianceData, ComplianceQuery, UserProofData};

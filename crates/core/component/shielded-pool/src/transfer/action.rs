@@ -9,7 +9,7 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
-use super::generated::{transfer_auth_sig_count, transfer_input_count, transfer_output_count};
+use super::generated::{transfer_input_count, transfer_output_count};
 use crate::{
     backref::ENCRYPTED_BACKREF_LEN, discovery::TransferRouting, transfer::TransferProof,
     EncryptedBackref, NotePayload, TransferProofContext, VolumeAccumulatorPayload,
@@ -19,7 +19,6 @@ use crate::{
 #[serde(try_from = "pb::TransferInputBody", into = "pb::TransferInputBody")]
 pub struct TransferInputBody {
     pub nullifier: Nullifier,
-    pub rk: VerificationKey<SpendAuth>,
     pub encrypted_backref: EncryptedBackref,
     pub compliance_ciphertext: Vec<u8>,
     pub history_required: bool,
@@ -38,6 +37,7 @@ pub struct TransferOutputBody {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(try_from = "pb::TransferBody", into = "pb::TransferBody")]
 pub struct TransferBody {
+    pub rk: VerificationKey<SpendAuth>,
     pub anchor: shieldd_sdk_tct::Root,
     pub balance_commitment: balance::Commitment,
     pub inputs: Vec<TransferInputBody>,
@@ -54,7 +54,7 @@ pub struct TransferBody {
 #[derive(Clone, Debug)]
 pub struct Transfer {
     pub body: TransferBody,
-    pub auth_sigs: Vec<Signature<SpendAuth>>,
+    pub auth_sig: Signature<SpendAuth>,
     pub proof: TransferProof,
 }
 
@@ -107,7 +107,7 @@ impl From<Transfer> for pb::Transfer {
     fn from(msg: Transfer) -> Self {
         pb::Transfer {
             body: Some(msg.body.into()),
-            auth_sigs: msg.auth_sigs.into_iter().map(Into::into).collect(),
+            auth_sig: Some(msg.auth_sig.into()),
             proof: Some(msg.proof.into()),
         }
     }
@@ -124,22 +124,14 @@ impl TryFrom<pb::Transfer> for Transfer {
             .context("malformed transfer body")?;
         body.validate_shape()?;
 
-        let auth_sigs = proto
-            .auth_sigs
-            .into_iter()
-            .map(|sig| sig.try_into().context("malformed transfer auth sig"))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        anyhow::ensure!(
-            auth_sigs.len() == transfer_auth_sig_count(),
-            "transfer expected {} auth sigs, got {}",
-            transfer_auth_sig_count(),
-            auth_sigs.len()
-        );
+        let auth_sig = proto
+            .auth_sig
+            .ok_or_else(|| anyhow::anyhow!("missing action spend signature"))?
+            .try_into()?;
 
         Ok(Self {
             body,
-            auth_sigs,
+            auth_sig,
             proof: proto
                 .proof
                 .ok_or_else(|| anyhow::anyhow!("missing transfer proof"))?
@@ -157,7 +149,6 @@ impl From<TransferInputBody> for pb::TransferInputBody {
     fn from(msg: TransferInputBody) -> Self {
         Self {
             nullifier: Some(msg.nullifier.into()),
-            rk: Some(msg.rk.into()),
             encrypted_backref: msg.encrypted_backref.into(),
             compliance_ciphertext: msg.compliance_ciphertext,
             history_required: msg.history_required,
@@ -182,11 +173,6 @@ impl TryFrom<pb::TransferInputBody> for TransferInputBody {
                 .ok_or_else(|| anyhow::anyhow!("missing nullifier"))?
                 .try_into()
                 .context("malformed nullifier")?,
-            rk: proto
-                .rk
-                .ok_or_else(|| anyhow::anyhow!("missing rk"))?
-                .try_into()
-                .context("malformed rk")?,
             encrypted_backref,
             compliance_ciphertext: proto.compliance_ciphertext,
             history_required: proto.history_required,
@@ -239,6 +225,7 @@ impl DomainType for TransferBody {
 impl From<TransferBody> for pb::TransferBody {
     fn from(msg: TransferBody) -> Self {
         Self {
+            rk: Some(msg.rk.into()),
             anchor: Some(msg.anchor.into()),
             balance_commitment: Some(msg.balance_commitment.into()),
             inputs: msg.inputs.into_iter().map(Into::into).collect(),
@@ -259,6 +246,10 @@ impl TryFrom<pb::TransferBody> for TransferBody {
 
     fn try_from(proto: pb::TransferBody) -> Result<Self, Self::Error> {
         let body = Self {
+            rk: proto
+                .rk
+                .ok_or_else(|| anyhow::anyhow!("missing action rk"))?
+                .try_into()?,
             anchor: proto
                 .anchor
                 .ok_or_else(|| anyhow::anyhow!("missing anchor"))?

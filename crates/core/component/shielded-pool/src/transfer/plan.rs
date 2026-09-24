@@ -1,5 +1,6 @@
 use anyhow::{anyhow, ensure, Error};
-use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
+use ff::Field;
+use reddsa::{sapling::SpendAuth, Signature};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, balance, Balance};
 use shieldd_sdk_crypto::{Fq, Fr};
@@ -18,7 +19,7 @@ use super::compliance::{
     build_transfer_compliance, change_output_transfer_compliance, is_change_output_index,
     is_receiver_output_index, receiver_output_transfer_compliance, CHANGE_OUTPUT_INDEX,
 };
-use crate::note_reshape_padding::dummy_spend_auth_sig;
+
 use crate::note_reshape_padding::dummy_state_commitment_proof;
 use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
 use crate::transfer::{
@@ -36,6 +37,7 @@ use crate::{TransferProofContext, VolumeAccumulatorPlan};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(try_from = "pb::TransferPlan", into = "pb::TransferPlan")]
 pub struct TransferPlan {
+    pub auth_randomizer: Fr,
     pub value_blinding: Fr,
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
@@ -46,6 +48,11 @@ pub struct TransferPlan {
 }
 
 impl TransferPlan {
+    pub fn rk(&self, fvk: &FullViewingKey) -> reddsa::VerificationKey<SpendAuth> {
+        fvk.spend_verification_key()
+            .randomize(&self.auth_randomizer)
+    }
+
     /// Recover a payload opening only after matching the completed compliance ciphertext.
     /// The caller must seal this scalar before crossing a wallet or persistence boundary.
     pub fn audit_opening(
@@ -105,6 +112,7 @@ impl TransferPlan {
         routing_parameters: Parameters,
     ) -> anyhow::Result<Self> {
         let plan = Self {
+            auth_randomizer: Fr::random(&mut rand_core::OsRng),
             value_blinding,
             spends,
             outputs,
@@ -155,10 +163,6 @@ impl TransferPlan {
             shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce),
             self.proof_context,
         )
-    }
-
-    pub fn spend_randomizers(&self) -> impl Iterator<Item = Fr> + '_ {
-        self.spends.iter().map(|spend| spend.randomizer)
     }
 
     pub fn dest_addresses(&self) -> impl Iterator<Item = shieldd_sdk_keys::Address> + '_ {
@@ -216,14 +220,13 @@ impl TransferPlan {
     fn padder(&self) -> HiddenArityPadder {
         HiddenArityPadder {
             value_blinding: self.value_blinding,
-            first_spend_randomizer: self.first_spend().randomizer,
+            auth_randomizer: self.auth_randomizer,
             sender_address: self.sender_address(),
             asset_id: self.transfer_asset_id(),
             payload_key: self.compliance.witness.asset.payload_key(),
             nullifier_domain: shieldd_sdk_crypto::domains::DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.transfer.synthetic_dummy.nullifier_seed",
-            spend_auth_key_label: b"shieldd.transfer.synthetic_dummy.spend_auth_key",
-            spend_auth_randomizer_label: b"shieldd.transfer.synthetic_dummy.spend_auth_randomizer",
+
             input_note_label: b"shieldd.transfer.synthetic_dummy.input_note",
             output_note_label: b"shieldd.transfer.synthetic_dummy.output_note",
         }
@@ -233,24 +236,8 @@ impl TransferPlan {
         self.padder().synthetic_dummy_nullifier_seed(slot)
     }
 
-    fn synthetic_dummy_spend_auth_randomizer(&self, slot: usize) -> Fr {
-        self.padder().synthetic_dummy_spend_auth_randomizer(slot)
-    }
-
     fn synthetic_dummy_nullifier(&self, slot: usize) -> shieldd_sdk_sct::Nullifier {
         self.padder().synthetic_dummy_nullifier(slot)
-    }
-
-    fn synthetic_dummy_verification_key(&self, slot: usize) -> VerificationKey<SpendAuth> {
-        self.padder().synthetic_dummy_verification_key(slot)
-    }
-
-    pub fn synthetic_dummy_auth_sig(
-        &self,
-        slot: usize,
-        effect_hash: &[u8],
-    ) -> Signature<SpendAuth> {
-        self.padder().synthetic_dummy_auth_sig(slot, effect_hash)
     }
 
     fn synthetic_dummy_input_note(&self, slot: usize) -> Note {
@@ -365,7 +352,7 @@ impl TransferPlan {
             let dummy_note = self.synthetic_dummy_input_note(slot);
             TransferInputBody {
                 nullifier,
-                rk: self.synthetic_dummy_verification_key(slot),
+
                 encrypted_backref: crate::Backref::new(dummy_note.commit())
                     .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
@@ -427,6 +414,7 @@ impl TransferPlan {
         });
 
         Ok(TransferBody {
+            rk: self.rk(fvk),
             anchor,
             balance_commitment: action_balance_commitment,
             inputs,
@@ -483,7 +471,7 @@ impl TransferPlan {
             .map(|spend| {
                 Ok(TransferSpendPublic {
                     nullifier: spend.nullifier(&nullifier_key),
-                    rk: spend.rk(fvk),
+
                     history_required: shieldd_sdk_sct::nullifier_generation::is_old(
                         u64::from(spend.position),
                         recent_position_floor,
@@ -496,7 +484,7 @@ impl TransferPlan {
         pad_to_len(&mut input_publics, PADDED_TRANSFER_INPUTS, |slot| {
             TransferSpendPublic {
                 nullifier: self.synthetic_dummy_nullifier(slot),
-                rk: self.synthetic_dummy_verification_key(slot),
+
                 history_required: false,
             }
         });
@@ -524,14 +512,12 @@ impl TransferPlan {
         let required_input = TransferSpendPrivate {
             state_commitment_proof: state_commitment_proofs[0].clone(),
             spent_note: self.spends[0].note.clone(),
-            spend_auth_randomizer: self.spends[0].randomizer,
         };
         let optional_input = if self.spends.len() == PADDED_TRANSFER_INPUTS {
             TransferOptionalSpendPrivate {
                 spend: TransferSpendPrivate {
                     state_commitment_proof: state_commitment_proofs[1].clone(),
                     spent_note: self.spends[1].note.clone(),
-                    spend_auth_randomizer: self.spends[1].randomizer,
                 },
                 is_dummy: false,
                 dummy_nullifier_seed: Fq::from(0u64),
@@ -544,7 +530,6 @@ impl TransferPlan {
                 spend: TransferSpendPrivate {
                     state_commitment_proof: dummy_proof,
                     spent_note: dummy_note,
-                    spend_auth_randomizer: self.synthetic_dummy_spend_auth_randomizer(slot),
                 },
                 is_dummy: true,
                 dummy_nullifier_seed: self.synthetic_dummy_nullifier_seed(slot),
@@ -585,6 +570,7 @@ impl TransferPlan {
 
         Ok((
             TransferProofPublic {
+                rk: self.rk(fvk),
                 anchor,
                 balance_commitment: self.balance().commit(self.value_blinding),
                 asset_anchor: self.compliance.witness.asset.root,
@@ -604,6 +590,7 @@ impl TransferPlan {
                 proof_context: self.proof_context,
             },
             TransferProofPrivate {
+                spend_auth_randomizer: self.auth_randomizer,
                 action_balance_blinding: self.value_blinding,
                 ak: *fvk.spend_verification_key(),
                 nk: *fvk.nullifier_key(),
@@ -632,7 +619,7 @@ impl TransferPlan {
     pub fn build_unauth_transfer(
         &self,
         fvk: &FullViewingKey,
-        auth_sigs: Vec<Signature<reddsa::sapling::SpendAuth>>,
+        auth_sig: Signature<reddsa::sapling::SpendAuth>,
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
@@ -642,13 +629,7 @@ impl TransferPlan {
         let body = self
             .transfer_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        if auth_sigs.len() != self.spends.len() {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "transfer expected {} auth sigs, got {}",
-                self.spends.len(),
-                auth_sigs.len()
-            )));
-        }
+
         let (public, private) = self.transfer_public_private(
             fvk,
             &state_commitment_proofs,
@@ -656,14 +637,10 @@ impl TransferPlan {
             recent_position_floor,
         )?;
         let proof = TransferProof::prove(public, private, registry)?;
-        let mut auth_sigs = auth_sigs;
-        while auth_sigs.len() < PADDED_TRANSFER_INPUTS {
-            auth_sigs.push(dummy_spend_auth_sig());
-        }
 
         Ok(Transfer {
             body,
-            auth_sigs,
+            auth_sig,
             proof,
         })
     }
@@ -671,7 +648,7 @@ impl TransferPlan {
     pub fn build_unauth_transfer_with_proof(
         &self,
         fvk: &FullViewingKey,
-        auth_sigs: Vec<Signature<reddsa::sapling::SpendAuth>>,
+        auth_sig: Signature<reddsa::sapling::SpendAuth>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
         proof: TransferProof,
@@ -680,21 +657,10 @@ impl TransferPlan {
         let body = self
             .transfer_body(fvk, memo_key, anchor, recent_position_floor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        if auth_sigs.len() != self.spends.len() {
-            return Err(crate::ProofError::InvalidPublicInput(format!(
-                "transfer expected {} auth sigs, got {}",
-                self.spends.len(),
-                auth_sigs.len()
-            )));
-        }
-        let mut auth_sigs = auth_sigs;
-        while auth_sigs.len() < PADDED_TRANSFER_INPUTS {
-            auth_sigs.push(dummy_spend_auth_sig());
-        }
 
         Ok(Transfer {
             body,
-            auth_sigs,
+            auth_sig,
             proof,
         })
     }
@@ -707,6 +673,7 @@ impl DomainType for TransferPlan {
 impl From<TransferPlan> for pb::TransferPlan {
     fn from(msg: TransferPlan) -> Self {
         Self {
+            auth_randomizer: msg.auth_randomizer.to_bytes().to_vec(),
             value_blinding: msg.value_blinding.to_bytes().to_vec(),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
@@ -728,6 +695,9 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
             .map_err(|_| anyhow!("malformed value blinding"))?;
 
         let plan = Self {
+            auth_randomizer: shieldd_sdk_crypto::encoding::scalar(
+                &proto.auth_randomizer.as_slice().try_into()?,
+            )?,
             value_blinding: shieldd_sdk_crypto::encoding::scalar(&value_blinding_bytes)
                 .map_err(|_| anyhow!("malformed canonical value blinding"))?,
             spends: proto
@@ -992,7 +962,7 @@ mod tests {
     }
 
     #[test]
-    fn materializers_reject_missing_compliance_inputs_and_count_mismatches() {
+    fn materializers_reject_missing_note_proofs() {
         let (spend, output, _, anchor) = transfer_parts(100, 100);
         let plan = crate::test_plan_helpers::transfer(vec![spend], vec![output], Fr::from(5u64))
             .expect("transfer plan should be valid");
@@ -1003,20 +973,6 @@ mod tests {
         assert!(error
             .to_string()
             .contains("transfer expected 1 state commitment proofs, got 0"));
-
-        let error = plan
-            .build_unauth_transfer_with_proof(
-                &test_keys::FULL_VIEWING_KEY,
-                Vec::new(),
-                anchor,
-                &PayloadKey::random_key(&mut OsRng),
-                TransferProof::default(),
-                0,
-            )
-            .expect_err("action materialization must require one signature per real spend");
-        assert!(error
-            .to_string()
-            .contains("transfer expected 1 auth sigs, got 0"));
     }
 
     #[test]

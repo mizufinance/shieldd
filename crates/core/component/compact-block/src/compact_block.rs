@@ -48,6 +48,8 @@ pub struct CompactBlock {
     pub compliance_user_anchor: Option<StateCommitment>,
     /// Compliance asset tree anchor (root) for this block.
     pub compliance_asset_anchor: Option<StateCommitment>,
+    /// Paired admission metadata, stamped from consensus time after genesis.
+    pub compliance_snapshot: Option<shieldd_sdk_compliance::admission::ComplianceSnapshot>,
     /// User registrations in this block (for compliance tree sync).
     pub compliance_user_registrations: Vec<EventUserRegistered>,
     /// In-place user status changes in this block.
@@ -79,6 +81,7 @@ impl Default for CompactBlock {
             epoch_index: 0,
             compliance_user_anchor: None,
             compliance_asset_anchor: None,
+            compliance_snapshot: None,
             compliance_user_registrations: Vec::new(),
             compliance_user_status_changes: Vec::new(),
             compliance_asset_registrations: Vec::new(),
@@ -88,8 +91,21 @@ impl Default for CompactBlock {
 }
 
 impl CompactBlock {
+    pub fn validate_compliance_snapshot(&self) -> Result<()> {
+        if let Some(snapshot) = &self.compliance_snapshot {
+            anyhow::ensure!(
+                Some(snapshot.user_root) == self.compliance_user_anchor
+                    && Some(snapshot.asset_root) == self.compliance_asset_anchor
+                    && snapshot.observed_height == self.height,
+                "compliance snapshot does not match compact block"
+            );
+        }
+        Ok(())
+    }
+
     /// Every reference must name an actual, uniquely owned payload in this block.
     pub fn validate_payload_references(&self) -> Result<()> {
+        self.validate_compliance_snapshot()?;
         let start = self.state_payload_start_position;
         let end = start
             .checked_add(self.state_payloads.len() as u64)
@@ -172,6 +188,7 @@ impl From<CompactBlock> for pb::CompactBlock {
                 .compliance_asset_anchor
                 .map(|a| <[u8; 32]>::from(a).to_vec())
                 .unwrap_or_default(),
+            compliance_snapshot: cb.compliance_snapshot.map(Into::into),
             compliance_user_registrations: cb
                 .compliance_user_registrations
                 .into_iter()
@@ -250,6 +267,10 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
             epoch_index: value.epoch_index,
             compliance_user_anchor,
             compliance_asset_anchor,
+            compliance_snapshot: value
+                .compliance_snapshot
+                .map(TryInto::try_into)
+                .transpose()?,
             compliance_user_registrations: value
                 .compliance_user_registrations
                 .into_iter()

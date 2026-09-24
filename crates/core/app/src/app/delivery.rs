@@ -277,7 +277,7 @@ mod tests {
             height: 1,
             time: Time::from_unix_timestamp(1_700_000_000, 0)?,
         })
-        .await;
+        .await?;
         Ok(app)
     }
 

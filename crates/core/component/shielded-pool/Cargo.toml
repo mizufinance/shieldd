@@ -16,11 +16,9 @@ component = [
     "shieldd-sdk-proto/cnidarium",
     "shieldd-sdk-sct/component",
 ]
-default = ["std", "component"]
-std = []
+default = ["component"]
 prover = []
 parallel = ["shieldd-sdk-tct/parallel"]
-docsrs = []
 
 [dependencies]
 shieldd-sdk-crypto.workspace = true

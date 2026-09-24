@@ -268,12 +268,6 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
     let inputs = (0..8)
         .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
             nullifier: Nullifier(Fq::from(10u64 + index)),
-            rk: rdsa::VerificationKey::from(
-                &rdsa::SigningKey::<rdsa::sapling::SpendAuth>::try_from(
-                    Fr::from(20u64 + index).to_bytes(),
-                )
-                .unwrap(),
-            ),
             encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                 [u8::try_from(index + 1).expect("small index"); 48],
             )
@@ -283,6 +277,7 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
         .collect();
     let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+            rk: *shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.spend_verification_key(),
             family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
             anchor: action_anchor,
             balance_commitment,
@@ -300,7 +295,7 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
             asset_anchor: tct::StateCommitment(Fq::from(0u64)),
             compliance_anchor: tct::StateCommitment(Fq::from(0u64)),
         },
-        auth_sigs: vec![[0u8; 64].into(); 8],
+        auth_sig: [0u8; 64].into(),
         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
     };
     let mut invalid_auth = Transaction {
@@ -344,7 +339,7 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
         Err(error) => error,
     };
     assert!(
-        format!("{error:#}").contains("auth signature 0 failed to verify"),
+        format!("{error:#}").contains("auth signature failed to verify"),
         "unexpected authorization rejection: {error:#}"
     );
 
@@ -359,13 +354,14 @@ fn fee_funding_extraction_rejects_identity_randomized_key() {
         shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding();
     let identity_sk =
         rdsa::SigningKey::<rdsa::sapling::SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap();
-    transfer.body.inputs[0].rk = rdsa::VerificationKey::from(&identity_sk);
+    transfer.body.rk = rdsa::VerificationKey::from(&identity_sk);
     let different_message = b"different fee funding authorization hash";
     assert_ne!(&different_message[..], context.effect_hash.as_ref());
-    transfer.auth_sigs[0] = identity_sk.sign(rand_core::OsRng, different_message);
-    transfer.body.inputs[0]
+    transfer.auth_sig = identity_sk.sign(rand_core::OsRng, different_message);
+    transfer
+        .body
         .rk
-        .verify(context.effect_hash.as_ref(), &transfer.auth_sigs[0])
+        .verify(context.effect_hash.as_ref(), &transfer.auth_sig)
         .expect("the pinned RDSA primitive admits identity keys across messages");
     let fee_funding = shieldd_sdk_transaction::FeeFunding { transfer };
 

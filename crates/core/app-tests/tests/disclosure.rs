@@ -266,11 +266,9 @@ async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()
     ensure!(
         authority.randomizer
             == plan
-                .spends()
+                .spend_auth_randomizers()
                 .next()
-                .context("missing spend")?
-                .spend
-                .randomizer
+                .context("missing action authorization")?
                 .to_bytes(),
         "wrong retained authority"
     );
@@ -312,18 +310,11 @@ async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()
     };
     disclosure::confirm_acceptance(&statement, TEST_CHAIN_ID, &[block.clone()])?;
     let mut substituted = statement.clone();
-    let dummy_key: [u8; 32] = tx
-        .transfers()
-        .next()
-        .context("missing transfer")?
-        .body
-        .inputs[1]
-        .rk
-        .into();
-    substituted.outputs[0].public.spend_verification_key = Some(dummy_key.to_vec());
+    let other_key: [u8; 32] = (*test_keys::FULL_VIEWING_KEY.spend_verification_key()).into();
+    substituted.outputs[0].public.spend_verification_key = Some(other_key.to_vec());
     ensure!(
         disclosure::confirm_acceptance(&substituted, TEST_CHAIN_ID, &[block.clone()]).is_err(),
-        "dummy authority substitution accepted"
+        "unrelated authority substitution accepted"
     );
     let mut changed_reference = statement.clone();
     changed_reference.request.outputs[0].reference.output = 1;

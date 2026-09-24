@@ -20,7 +20,6 @@ use crate::{backref::ENCRYPTED_BACKREF_LEN, discovery::RoutingTag, EncryptedBack
 )]
 pub struct NoteReshapeInputBody {
     pub nullifier: Nullifier,
-    pub rk: VerificationKey<SpendAuth>,
     pub encrypted_backref: EncryptedBackref,
     pub history_required: bool,
 }
@@ -39,6 +38,7 @@ pub struct NoteReshapeOutputBody {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(try_from = "pb::NoteReshapeBody", into = "pb::NoteReshapeBody")]
 pub struct NoteReshapeBody {
+    pub rk: VerificationKey<SpendAuth>,
     pub family_id: NoteReshapeFamilyId,
     pub anchor: shieldd_sdk_tct::Root,
     pub balance_commitment: balance::Commitment,
@@ -53,7 +53,7 @@ pub struct NoteReshapeBody {
 #[derive(Clone, Debug)]
 pub struct NoteReshape {
     pub body: NoteReshapeBody,
-    pub auth_sigs: Vec<Signature<SpendAuth>>,
+    pub auth_sig: Signature<SpendAuth>,
     pub proof: NoteReshapeProof,
 }
 
@@ -105,7 +105,7 @@ impl From<NoteReshape> for pb::NoteReshape {
     fn from(msg: NoteReshape) -> Self {
         Self {
             body: Some(msg.body.into()),
-            auth_sigs: msg.auth_sigs.into_iter().map(Into::into).collect(),
+            auth_sig: Some(msg.auth_sig.into()),
             proof: Some(msg.proof.into()),
         }
     }
@@ -122,22 +122,14 @@ impl TryFrom<pb::NoteReshape> for NoteReshape {
             .context("malformed note_reshape body")?;
         body.validate_shape()?;
 
-        let auth_sigs = proto
-            .auth_sigs
-            .into_iter()
-            .map(|sig| sig.try_into().context("malformed note_reshape auth sig"))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        anyhow::ensure!(
-            auth_sigs.len() == body.family_id.auth_sig_count(),
-            "note_reshape expected {} auth sigs, got {}",
-            body.family_id.auth_sig_count(),
-            auth_sigs.len()
-        );
+        let auth_sig = proto
+            .auth_sig
+            .ok_or_else(|| anyhow::anyhow!("missing action spend signature"))?
+            .try_into()?;
 
         Ok(Self {
             body,
-            auth_sigs,
+            auth_sig,
             proof: proto
                 .proof
                 .ok_or_else(|| anyhow::anyhow!("missing note_reshape proof"))?
@@ -155,7 +147,6 @@ impl From<NoteReshapeInputBody> for pb::NoteReshapeInputBody {
     fn from(msg: NoteReshapeInputBody) -> Self {
         Self {
             nullifier: Some(msg.nullifier.into()),
-            rk: Some(msg.rk.into()),
             encrypted_backref: msg.encrypted_backref.into(),
             history_required: msg.history_required,
         }
@@ -179,11 +170,6 @@ impl TryFrom<pb::NoteReshapeInputBody> for NoteReshapeInputBody {
                 .ok_or_else(|| anyhow::anyhow!("missing nullifier"))?
                 .try_into()
                 .context("malformed nullifier")?,
-            rk: proto
-                .rk
-                .ok_or_else(|| anyhow::anyhow!("missing rk"))?
-                .try_into()
-                .context("malformed rk")?,
             encrypted_backref,
             history_required: proto.history_required,
         })
@@ -235,6 +221,7 @@ impl DomainType for NoteReshapeBody {
 impl From<NoteReshapeBody> for pb::NoteReshapeBody {
     fn from(msg: NoteReshapeBody) -> Self {
         Self {
+            rk: Some(msg.rk.into()),
             family_id: msg.family_id.into(),
             anchor: Some(msg.anchor.into()),
             balance_commitment: Some(msg.balance_commitment.into()),
@@ -253,6 +240,10 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
 
     fn try_from(proto: pb::NoteReshapeBody) -> Result<Self, Self::Error> {
         let body = Self {
+            rk: proto
+                .rk
+                .ok_or_else(|| anyhow::anyhow!("missing action rk"))?
+                .try_into()?,
             family_id: proto.family_id.try_into()?,
             anchor: proto
                 .anchor
@@ -309,6 +300,9 @@ mod tests {
     fn unknown_family_id_is_rejected_at_wire_boundary() {
         let proto = pb::NoteReshapeBody {
             family_id: u32::MAX,
+            rk: Some(
+                (*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.spend_verification_key()).into(),
+            ),
             ..Default::default()
         };
         let err = NoteReshapeBody::try_from(proto)

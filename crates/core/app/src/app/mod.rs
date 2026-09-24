@@ -486,7 +486,7 @@ impl App {
         };
 
         let begin_block_start = Instant::now();
-        let _events = self.begin_block(&begin_block).await;
+        let _events = self.begin_block(&begin_block).await?;
         profile.begin_block_ms = begin_block_start.elapsed().as_secs_f64() * 1000.0;
 
         let decoded_txs = envelope

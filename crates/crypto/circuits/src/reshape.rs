@@ -36,6 +36,7 @@ pub struct Witness {
 }
 #[derive(Clone)]
 pub struct Statement<F> {
+    pub rk: Point<F>,
     pub anchor: F,
     pub outputs: Vec<OutputStatement<F>>,
     pub balance: Point<F>,
@@ -55,7 +56,7 @@ impl<F: Clone> Statement<F> {
         }
     }
     pub fn fields(&self) -> Vec<F> {
-        let mut f = vec![self.anchor.clone()];
+        let mut f = vec![self.rk.x.clone(), self.rk.y.clone(), self.anchor.clone()];
         for o in &self.outputs {
             f.extend([o.note.clone(), o.recovery.clone()]);
         }
@@ -69,12 +70,7 @@ impl<F: Clone> Statement<F> {
             self.recent_floor.clone(),
         ]);
         for s in &self.spends {
-            f.extend([
-                s.nullifier.clone(),
-                s.rk.x.clone(),
-                s.rk.y.clone(),
-                s.history_required.clone(),
-            ]);
+            f.extend([s.nullifier.clone(), s.history_required.clone()]);
         }
         f
     }
@@ -94,6 +90,7 @@ impl Witness {
         };
         let w = &self.owner;
         Statement {
+            rk: w.spend_auth.rk.clone(),
             anchor: w.anchor.clone(),
             outputs: outputs
                 .iter()
@@ -112,7 +109,7 @@ impl Witness {
                 .iter()
                 .map(|s| SpendStatement {
                     nullifier: s.nullifier.clone(),
-                    rk: s.rk.clone(),
+
                     history_required: Scalar::from(u64::from(s.history_required)),
                 })
                 .collect(),
@@ -194,6 +191,7 @@ pub fn constrain<'a>(
         &f.blinding,
     );
     let s = Statement {
+        rk: f.rk,
         anchor: f.spend.anchor,
         outputs: outputs
             .iter()
@@ -212,7 +210,7 @@ pub fn constrain<'a>(
             .iter()
             .map(|s| SpendStatement {
                 nullifier: s.nullifier.clone(),
-                rk: s.rk.clone(),
+
                 history_required: s.history_required.var().clone(),
             })
             .collect(),

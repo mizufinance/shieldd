@@ -11,7 +11,7 @@ use shieldd_sdk_keys::FullViewingKey;
 use frost::round1::SigningCommitments;
 use redjubjub_frost as frost;
 use shieldd_sdk_proto::{shieldd::custody::threshold::v1 as pb, DomainType, Message};
-use shieldd_sdk_transaction::{AuthorizationData, TransactionPlan};
+use shieldd_sdk_transaction::AuthorizationData;
 use shieldd_sdk_txhash::EffectHash;
 
 use crate::terminal::SigningRequest;
@@ -299,19 +299,7 @@ impl DomainType for FollowerRound2 {
 /// A plan can require more than one signature, hence the need for this method.
 fn required_signatures(request: &SigningRequest) -> usize {
     let SigningRequest::TransactionPlan(plan) = request;
-    plan.num_spends()
-}
-
-fn spend_randomizers(plan: &TransactionPlan) -> impl Iterator<Item = shieldd_sdk_crypto::Fr> + '_ {
-    plan.actions
-        .iter()
-        .flat_map(|action| action.spends().iter().map(|spend| spend.randomizer))
-        .chain(
-            plan.fee_funding
-                .iter()
-                .flat_map(|fee_funding| &fee_funding.transfer.spends)
-                .map(|spend| spend.randomizer),
-        )
+    plan.num_spend_auths()
 }
 
 /// Create a trivial signing response if no signatures are needed.
@@ -466,8 +454,13 @@ pub fn coordinator_round3(
         }
     }
 
+    anyhow::ensure!(
+        state.signing_packages.len() == required,
+        "incorrect signing package count"
+    );
     let SigningRequest::TransactionPlan(plan) = state.request;
-    let spend_auths = spend_randomizers(&plan)
+    let spend_auths = plan
+        .spend_auth_randomizers()
         .zip(share_maps.iter())
         .zip(state.signing_packages.iter())
         .map(|((randomizer, share_map), signing_package)| {
@@ -536,7 +529,8 @@ pub fn follower_round2(
         .map(|tree| frost::SigningPackage::new(tree, to_be_signed.as_ref()));
 
     let SigningRequest::TransactionPlan(plan) = state.request;
-    let shares = spend_randomizers(&plan)
+    let shares = plan
+        .spend_auth_randomizers()
         .zip(signing_packages)
         .zip(state.nonces.into_iter())
         .map(|((randomizer, signing_package), signer_nonces)| {
@@ -555,6 +549,7 @@ pub fn follower_round2(
 mod tests {
     use super::*;
     use rand_core::OsRng;
+    use shieldd_sdk_transaction::TransactionPlan;
     fn request(config: &Config) -> SigningRequest {
         use shieldd_sdk_shielded_pool::{
             Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan,
@@ -593,6 +588,47 @@ mod tests {
             }),
         })
     }
+    #[test]
+    fn action_signatures_cover_multiple_inputs_and_fee_funding() {
+        let configs = Config::deal(&mut OsRng, 2, 2).unwrap();
+        let SigningRequest::TransactionPlan(mut plan) = request(&configs[0]);
+        let shieldd_sdk_transaction::ActionPlan::Transfer(transfer) = &mut plan.actions[0] else {
+            unreachable!()
+        };
+        transfer.spends.push(transfer.spends[0].clone());
+        transfer.outputs[0].value.amount = 2000u64.into();
+        let mut fee = transfer.clone();
+        fee.auth_randomizer += shieldd_sdk_crypto::Fr::from(1);
+        fee.proof_context = shieldd_sdk_shielded_pool::TransferProofContext::FeeFunding;
+        fee.volume_accumulator =
+            shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(fee.compliance.timestamp);
+        plan.fee_funding = Some(shieldd_sdk_transaction::FeeFundingPlan { transfer: fee });
+        assert_eq!(plan.num_spends(), 4);
+        assert_eq!(plan.num_spend_auths(), 2);
+        let request = SigningRequest::TransactionPlan(plan.clone());
+        let (round1, state1) = coordinator_round1(&mut OsRng, &configs[0], request).unwrap();
+        let (reply1, follower) = follower_round1(&mut OsRng, &configs[1], round1).unwrap();
+        assert_eq!(reply1.commitments.len(), 2);
+        let (round2, state2) = coordinator_round2(&configs[0], state1, &[reply1]).unwrap();
+        let reply2 = follower_round2(&configs[1], follower, round2).unwrap();
+        let SigningResponse::Transaction(auth) =
+            coordinator_round3(&configs[0], state2, &[reply2]).unwrap();
+        assert_eq!(auth.spend_auths.len(), 2);
+        let hash = plan.effect_hash(configs[0].fvk()).unwrap();
+        for (index, randomizer) in plan.spend_auth_randomizers().enumerate() {
+            let rk = configs[0]
+                .fvk()
+                .spend_verification_key()
+                .randomize(&randomizer);
+            rk.verify(hash.as_ref(), &auth.spend_auths[index]).unwrap();
+            assert!(
+                rk.verify(hash.as_ref(), &auth.spend_auths[1 - index])
+                    .is_err(),
+                "reordered signatures must fail"
+            );
+        }
+    }
+
     #[test]
     fn follower_rejects_missing_signing_packages() {
         let configs = Config::deal(&mut OsRng, 2, 2).unwrap();

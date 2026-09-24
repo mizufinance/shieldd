@@ -8,9 +8,8 @@ license = {workspace = true}
 edition = {workspace = true}
 
 [features]
-default = ["std", "parallel"]
+default = ["parallel"]
 prover = ["shieldd-sdk-shielded-pool/prover"]
-std = []
 parallel = [
     "tokio",
     "shieldd-sdk-shielded-pool/parallel",

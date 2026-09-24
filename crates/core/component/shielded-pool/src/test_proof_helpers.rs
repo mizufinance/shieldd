@@ -880,18 +880,16 @@ pub mod proof_test_helpers {
             .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
             .expect("derive transfer public/private inputs");
         let effect_hash = shieldd_sdk_txhash::EffectHash::default();
-        let auth_sigs = transfer_plan
-            .spend_randomizers()
-            .map(|randomizer| {
-                let rsk = base.sk.spend_auth_key().randomize(&randomizer);
-                rsk.sign(&mut rng, effect_hash.as_ref())
-            })
-            .collect();
+        let auth_sig = base
+            .sk
+            .spend_auth_key()
+            .randomize(&transfer_plan.auth_randomizer)
+            .sign(&mut rng, effect_hash.as_ref());
         let memo_key = PayloadKey::random_key(&mut rng);
         let transfer = transfer_plan
             .build_unauth_transfer_with_proof(
                 &base.fvk,
-                auth_sigs,
+                auth_sig,
                 anchor,
                 &memo_key,
                 crate::TransferProof::default(),
@@ -1117,17 +1115,16 @@ pub mod proof_test_helpers {
         )
         .expect("create shielded withdrawal change note");
 
+        let auth_randomizer = Fr::random(&mut *rng);
         let padder = HiddenArityPadder {
             value_blinding: Fr::from(13u64),
-            first_spend_randomizer: spend_a.randomizer,
+            auth_randomizer,
             sender_address: base.address.clone(),
             asset_id: base.value.asset_id,
             payload_key: base.action_witness().asset.payload_key(),
             nullifier_domain: shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.shielded_withdrawal.synthetic_dummy.nullifier_seed",
-            spend_auth_key_label: b"shieldd.shielded_withdrawal.synthetic_dummy.spend_auth_key",
-            spend_auth_randomizer_label:
-                b"shieldd.shielded_withdrawal.synthetic_dummy.spend_auth_randomizer",
+
             input_note_label: b"shieldd.shielded_withdrawal.synthetic_dummy.input_note",
             output_note_label: b"shieldd.shielded_withdrawal.synthetic_dummy.output_note",
         };
@@ -1138,7 +1135,7 @@ pub mod proof_test_helpers {
                     .nullifier_key(&base.fvk)
                     .expect("fixture nullifier key"),
             ),
-            rk: spend_a.rk(&base.fvk),
+
             history_required: false,
         }];
         input_publics.push(if real_spends == 2 {
@@ -1149,27 +1146,25 @@ pub mod proof_test_helpers {
                         .nullifier_key(&base.fvk)
                         .expect("fixture nullifier key"),
                 ),
-                rk: spend_b.rk(&base.fvk),
+
                 history_required: false,
             }
         } else {
             ShieldedWithdrawalInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(1),
-                rk: padder.synthetic_dummy_verification_key(1),
+
                 history_required: false,
             }
         });
         let required_input = ShieldedWithdrawalRequiredInputPrivate {
             state_commitment_proof: required_proof,
             spent_note: note_a,
-            spend_auth_randomizer: spend_a.randomizer,
         };
         let optional_input = if let Some(state_commitment_proof) = optional_proof {
             ShieldedWithdrawalOptionalInputPrivate {
                 spend: ShieldedWithdrawalRequiredInputPrivate {
                     state_commitment_proof,
                     spent_note: note_b,
-                    spend_auth_randomizer: spend_b.randomizer,
                 },
                 is_dummy: false,
                 dummy_nullifier_seed: Fq::from(0u64),
@@ -1180,7 +1175,6 @@ pub mod proof_test_helpers {
                 spend: ShieldedWithdrawalRequiredInputPrivate {
                     state_commitment_proof: dummy_state_commitment_proof(dummy_note.commit()),
                     spent_note: dummy_note,
-                    spend_auth_randomizer: padder.synthetic_dummy_spend_auth_randomizer(1),
                 },
                 is_dummy: true,
                 dummy_nullifier_seed: padder.synthetic_dummy_nullifier_seed(1),
@@ -1250,6 +1244,10 @@ pub mod proof_test_helpers {
 
         (
             ShieldedWithdrawalProofPublic {
+                rk: base
+                    .fvk
+                    .spend_verification_key()
+                    .randomize(&auth_randomizer),
                 family_id,
                 anchor,
                 balance_commitment: Balance::default().commit(Fr::from(13u64)),
@@ -1280,6 +1278,7 @@ pub mod proof_test_helpers {
                 },
             },
             ShieldedWithdrawalProofPrivate {
+                spend_auth_randomizer: auth_randomizer,
                 family_id,
                 action_balance_blinding: Fr::from(13u64),
                 ak: *base.fvk.spend_verification_key(),

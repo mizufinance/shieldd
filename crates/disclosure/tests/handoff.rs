@@ -78,10 +78,6 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
     };
     let input = pool::TransferInputBody {
         nullifier: shieldd_sdk_sct::Nullifier(Fq::from(3u64)),
-        rk: reddsa::VerificationKey::from(
-            &reddsa::SigningKey::<reddsa::sapling::SpendAuth>::try_from(Fr::from(4u64).to_bytes())
-                .unwrap(),
-        ),
         encrypted_backref: pool::EncryptedBackref::try_from([1; 48]).unwrap(),
         compliance_ciphertext: vec![],
         history_required: false,
@@ -101,6 +97,13 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
     proof.extend(Scalar::zero().encode());
     let transfer = pool::Transfer {
         body: pool::TransferBody {
+            rk: reddsa::VerificationKey::from(
+                &reddsa::SigningKey::<reddsa::sapling::SpendAuth>::try_from(
+                    Fr::from(4u64).to_bytes(),
+                )
+                .unwrap(),
+            ),
+
             anchor: shieldd_sdk_tct::Tree::default().root(),
             balance_commitment: Balance::default().commit(Fr::from(2u64)),
             inputs: vec![input.clone(), input],
@@ -113,7 +116,7 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
             volume_accumulator: pool::VolumeAccumulatorPayload::canonical_fee_funding(),
             proof_context: pool::TransferProofContext::Ordinary,
         },
-        auth_sigs: vec![[17; 64].into(), [0; 64].into()],
+        auth_sig: [17; 64].into(),
         proof: pool::TransferProof { inner: proof },
     };
     Transaction {

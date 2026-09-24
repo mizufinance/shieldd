@@ -37,20 +37,23 @@ impl App {
     pub async fn begin_block(
         &mut self,
         begin_block: &cnidarium_component::BlockContext,
-    ) -> Vec<abci::Event> {
+    ) -> anyhow::Result<Vec<abci::Event>> {
+        shieldd_sdk_compliance::admission::state::validate_time(&*self.state, begin_block.time)
+            .await?;
         let mut state_tx = StateDelta::new(self.state.clone());
 
         clear_block_fee_price_cache(&mut state_tx);
 
         let mut arc_state_tx = Arc::new(state_tx);
         Sct::begin_block(&mut arc_state_tx, begin_block).await;
+        Compliance::begin_block(&mut arc_state_tx, begin_block).await;
         ShieldedPool::begin_block(&mut arc_state_tx, begin_block).await;
         FeeComponent::begin_block(&mut arc_state_tx, begin_block).await;
 
         let state_tx = Arc::try_unwrap(arc_state_tx)
             .expect("components did not retain copies of shared state");
 
-        self.apply(state_tx)
+        Ok(self.apply(state_tx))
     }
 
     /// Flushes host transactions and closes execution-component block and epoch state.

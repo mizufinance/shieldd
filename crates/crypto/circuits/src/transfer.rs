@@ -17,10 +17,11 @@ use commonware_cryptography::{
 use commonware_math::algebra::{Additive, Ring};
 
 pub use shieldd_sdk_crypto::domains::TRANSFER_STATEMENT as STATEMENT_DOMAIN;
-pub const STATEMENT_FIELDS: usize = 69;
+pub const STATEMENT_FIELDS: usize = 67;
 
 #[derive(Clone)]
 pub struct Witness {
+    pub spend_auth: note::SpendAuthorization,
     pub anchor: Scalar,
     pub asset_anchor: Scalar,
     pub compliance_anchor: Scalar,
@@ -45,7 +46,6 @@ pub struct Witness {
 #[derive(Clone)]
 pub struct SpendStatement<F> {
     pub nullifier: F,
-    pub rk: Point<F>,
     pub history_required: F,
 }
 #[derive(Clone)]
@@ -62,6 +62,7 @@ pub struct VolumeStatement<F> {
 }
 #[derive(Clone)]
 pub struct Statement<F> {
+    pub rk: Point<F>,
     pub anchor: F,
     pub outputs: [OutputStatement<F>; 2],
     pub balance: Point<F>,
@@ -78,7 +79,7 @@ pub struct Statement<F> {
 impl<F: Clone> Statement<F> {
     /// Canonical Transfer statement order; points bind both affine coordinates.
     pub fn fields(&self) -> [F; STATEMENT_FIELDS] {
-        let mut f = vec![self.anchor.clone()];
+        let mut f = vec![self.rk.x.clone(), self.rk.y.clone(), self.anchor.clone()];
         for o in &self.outputs {
             f.extend([o.note.clone(), o.recovery.clone()]);
         }
@@ -93,12 +94,7 @@ impl<F: Clone> Statement<F> {
             self.volume.context.clone(),
         ]);
         for s in &self.spends {
-            f.extend([
-                s.nullifier.clone(),
-                s.rk.x.clone(),
-                s.rk.y.clone(),
-                s.history_required.clone(),
-            ]);
+            f.extend([s.nullifier.clone(), s.history_required.clone()]);
         }
         f.extend([self.asset_anchor.clone(), self.compliance_anchor.clone()]);
         f.extend(self.audit.detection.clone());
@@ -135,7 +131,7 @@ impl<F: Clone> Statement<F> {
             f.extend(ciphertext.fields());
         }
         f.try_into().unwrap_or_else(|v: Vec<F>| {
-            panic!("native Transfer expected 69 fields, got {}", v.len())
+            panic!("native Transfer expected 67 fields, got {}", v.len())
         })
     }
 }
@@ -163,6 +159,7 @@ pub fn statement(
     w: &Witness,
 ) -> Result<Statement<Scalar>> {
     Ok(Statement {
+        rk: w.spend_auth.rk.clone(),
         anchor: w.anchor.clone(),
         outputs: std::array::from_fn(|i| OutputStatement {
             note: w.outputs[i].commitment.clone(),
@@ -193,7 +190,7 @@ pub fn statement(
         },
         spends: std::array::from_fn(|i| SpendStatement {
             nullifier: w.spends[i].nullifier.clone(),
-            rk: w.spends[i].rk.clone(),
+
             history_required: Scalar::from(u64::from(w.spends[i].history_required)),
         }),
         asset_anchor: w.asset_anchor.clone(),
@@ -266,11 +263,12 @@ pub fn constrain<'ctx>(
             registered_rnk_commitment: sender.rnk_commitment.clone(),
         },
     );
+    let (rk, randomizer) = note::constrain_authorization(ctx, &auth.ak, &w.spend_auth);
     let spend_context = note::SpendContext {
         address: sender.address.clone(),
         asset: asset.clone(),
         nk: auth.effective_nk,
-        ak: auth.ak,
+        randomizer,
         anchor: anchor.clone(),
         recent_floor: recent_floor.clone(),
     };
@@ -371,6 +369,7 @@ pub fn constrain<'ctx>(
         &blinding,
     );
     let statement = Statement {
+        rk,
         anchor,
         outputs: std::array::from_fn(|i| OutputStatement {
             note: outputs[i].commitment.clone(),
@@ -388,7 +387,7 @@ pub fn constrain<'ctx>(
         },
         spends: std::array::from_fn(|i| SpendStatement {
             nullifier: spends[i].nullifier.clone(),
-            rk: spends[i].rk.clone(),
+
             history_required: spends[i].history_required.var().clone(),
         }),
         asset_anchor,

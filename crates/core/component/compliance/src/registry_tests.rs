@@ -64,11 +64,11 @@ async fn delete_nv_prefix(
     }
 }
 
-const TEST_ANCHOR_WINDOW_BLOCKS: u64 = 100;
+const TEST_ANCHOR_MAX_AGE_SECONDS: u64 = 100;
 
 fn put_test_compliance_params<S: cnidarium::StateWrite>(state: &mut S) {
     state.put_compliance_params(ComplianceParameters {
-        anchor_validation_window_blocks: TEST_ANCHOR_WINDOW_BLOCKS,
+        compliance_anchor_max_age_seconds: TEST_ANCHOR_MAX_AGE_SECONDS,
     });
 }
 
@@ -77,24 +77,6 @@ fn base_fee_asset_cannot_be_admitted_as_regulated() {
     assert!(ensure_regulated_asset_id(*shieldd_sdk_asset::BASE_ASSET_ID, true).is_err());
     assert!(ensure_regulated_asset_id(*shieldd_sdk_asset::BASE_ASSET_ID, false).is_ok());
     assert!(ensure_regulated_asset_id(asset::Id(Fq::from(9u64)), true).is_ok());
-}
-
-#[test]
-fn compliance_anchor_facts_require_current_user_root() {
-    let user_anchor = StateCommitment(Fq::from(2u64));
-    let current_user_anchor = StateCommitment(Fq::from(3u64));
-    let asset_anchor = StateCommitment(Fq::from(1u64));
-    let error = validate_compliance_anchor_facts(
-        &user_anchor,
-        &current_user_anchor,
-        &asset_anchor,
-        &asset_anchor,
-    )
-    .expect_err("a stale user root cannot be live");
-    assert!(
-        error.to_string().contains("current user compliance root"),
-        "unexpected error: {error:#}"
-    );
 }
 
 #[tokio::test]
@@ -124,11 +106,27 @@ async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
         .await
         .unwrap();
     let active_root = state.get_user_tree_root().await.unwrap();
+    let asset_root = state.get_asset_imt_root().await.unwrap();
+    put_test_compliance_params(&mut state);
+    state.put_block_timestamp(40, tendermint::Time::from_unix_timestamp(1000, 0).unwrap());
+    crate::admission::state::record(&mut state, 40, 1000)
+        .await
+        .unwrap();
+    assert_eq!(crate::admission::state::epoch(&state).await.unwrap(), 0);
 
     let frozen = state
         .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 40)
         .await
         .unwrap();
+    assert_eq!(crate::admission::state::epoch(&state).await.unwrap(), 1);
+    let stale = state
+        .validate_compliance_anchors(&active_root, &asset_root)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        stale.downcast_ref::<crate::admission::StaleComplianceSnapshot>(),
+        Some(&crate::admission::StaleComplianceSnapshot::Frozen)
+    );
     assert_eq!(frozen.position, position);
     assert_eq!(frozen.previous_status, UserAssetStatus::Active);
     assert_eq!(frozen.leaf.status, UserAssetStatus::Frozen);
@@ -153,6 +151,11 @@ async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
         .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Unfreeze, 42)
         .await
         .unwrap();
+    assert_eq!(crate::admission::state::epoch(&state).await.unwrap(), 1);
+    assert!(state
+        .validate_compliance_anchors(&active_root, &asset_root)
+        .await
+        .is_err());
     assert_eq!(active.position, position);
     assert_eq!(active.previous_status, UserAssetStatus::Frozen);
     assert_eq!(active.leaf.status, UserAssetStatus::Active);
@@ -162,9 +165,37 @@ async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
         .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 50)
         .await
         .unwrap();
+    assert_eq!(crate::admission::state::epoch(&state).await.unwrap(), 2);
     assert_eq!(refrozen.leaf.freeze_generation, 2);
     assert_eq!(refrozen.leaf.frozen_since_height, 50);
     assert_ne!(refrozen.commitment, frozen.commitment);
+    state
+        .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Unfreeze, 51)
+        .await
+        .unwrap();
+    state.put_proto(state_key::admission::freeze_epoch().to_owned(), u64::MAX);
+    let before = state
+        .get_user_leaf(&address, asset_id)
+        .await
+        .unwrap()
+        .unwrap();
+    let root = state.get_user_tree_root().await.unwrap();
+    assert!(state
+        .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 52)
+        .await
+        .unwrap_err()
+        .to_string()
+        .contains("epoch overflow"));
+    assert_eq!(state.get_user_tree_root().await.unwrap(), root);
+    assert_eq!(
+        state
+            .get_user_leaf(&address, asset_id)
+            .await
+            .unwrap()
+            .unwrap()
+            .commit(),
+        before.commit()
+    );
 }
 
 #[tokio::test]
@@ -992,336 +1023,7 @@ async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
 
 // ========== Historical Anchor Tests ==========
 
-#[tokio::test]
-async fn test_record_and_validate_anchors() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    let mut rng = rand::thread_rng();
-    put_test_compliance_params(&mut state);
-
-    // Set block height first (required for validation)
-    state.put_block_height(1);
-
-    // Add a user and asset
-    let leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
-    state.add_compliance_leaf(leaf).await.unwrap();
-    state
-        .register_regulated_asset(
-            asset::Id(Fq::from(200u64)),
-            AssetPolicy::for_test(
-                *shieldd_sdk_crypto::generators::SPEND_AUTH,
-                u128::MAX,
-                *shieldd_sdk_crypto::generators::SPEND_AUTH,
-            ),
-        )
-        .await
-        .unwrap();
-
-    // Record anchors at height 1
-    state.record_compliance_anchors(1).await.unwrap();
-
-    // Get the anchors
-    let user_anchor = state.get_user_tree_root().await.unwrap();
-    let asset_anchor = state.get_asset_imt_root().await.unwrap();
-
-    // Validation should succeed
-    state
-        .validate_compliance_anchors(&user_anchor, &asset_anchor)
-        .await
-        .unwrap();
-
-    // Recorded user roots remain available for recent historical lookup.
-    let user_anchor_by_height = state.get_user_anchor_by_height(1).await.unwrap().unwrap();
-    assert_eq!(user_anchor.0, user_anchor_by_height.0);
-
-    // Historical lookup does not establish current authorization admissibility.
-    let user_height = state.check_user_anchor(&user_anchor).await.unwrap();
-    assert_eq!(user_height, Some(1));
-}
-
-#[tokio::test]
-async fn test_invalid_anchor_rejected() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    put_test_compliance_params(&mut state);
-
-    // Set block height first (required for validation)
-    state.put_block_height(1);
-
-    // Record initial anchors
-    state.record_compliance_anchors(1).await.unwrap();
-
-    let valid_user_anchor = state.get_user_tree_root().await.unwrap();
-    let valid_asset_anchor = state.get_asset_imt_root().await.unwrap();
-
-    // Create invalid anchors
-    let invalid_user_anchor = StateCommitment(Fq::from(12345u64));
-    let invalid_asset_anchor = StateCommitment(Fq::from(67890u64));
-
-    // Valid anchors should pass
-    assert!(state
-        .validate_compliance_anchors(&valid_user_anchor, &valid_asset_anchor)
-        .await
-        .is_ok());
-
-    // Invalid user anchor should fail
-    assert!(state
-        .validate_compliance_anchors(&invalid_user_anchor, &valid_asset_anchor)
-        .await
-        .is_err());
-
-    // Invalid asset anchor should fail
-    assert!(state
-        .validate_compliance_anchors(&valid_user_anchor, &invalid_asset_anchor)
-        .await
-        .is_err());
-}
-
-#[tokio::test]
-async fn historical_anchors_are_retained_but_only_the_current_root_is_accepted() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    let mut rng = rand::thread_rng();
-    put_test_compliance_params(&mut state);
-
-    // Set initial block height and record anchors at height 1 (empty state)
-    state.put_block_height(1);
-    state.record_compliance_anchors(1).await.unwrap();
-    let anchor_at_1 = state.get_user_tree_root().await.unwrap();
-
-    // Add a user and record at height 2
-    state.put_block_height(2);
-    let leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
-    state.add_compliance_leaf(leaf).await.unwrap();
-    state.record_compliance_anchors(2).await.unwrap();
-    let anchor_at_2 = state.get_user_tree_root().await.unwrap();
-
-    // Both anchors should be different
-    assert_ne!(anchor_at_1.0, anchor_at_2.0);
-
-    // Historical records remain available for indexing and audit, but proofs
-    // must use the current root so a pre-freeze proof cannot be replayed.
-    let asset_anchor = state.get_asset_imt_root().await.unwrap();
-    let error = state
-        .validate_compliance_anchors(&anchor_at_1, &asset_anchor)
-        .await
-        .expect_err("a historical user root must not authorize a transaction");
-    assert!(
-        error.to_string().contains("current user compliance root"),
-        "unexpected error: {error:#}"
-    );
-    assert!(state
-        .validate_compliance_anchors(&anchor_at_2, &asset_anchor)
-        .await
-        .is_ok());
-
-    // Can retrieve both by height
-    assert_eq!(
-        state.get_user_anchor_by_height(1).await.unwrap().unwrap().0,
-        anchor_at_1.0
-    );
-    assert_eq!(
-        state.get_user_anchor_by_height(2).await.unwrap().unwrap().0,
-        anchor_at_2.0
-    );
-}
-
 // ========== Bounded Anchor Window Tests (Phase 7) ==========
-
-#[tokio::test]
-async fn user_root_change_invalidates_old_anchor_before_history_recording() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    let mut rng = rand::thread_rng();
-    put_test_compliance_params(&mut state);
-
-    // Set initial height and record anchor
-    state.put_block_height(1);
-    state.record_compliance_anchors(1).await.unwrap();
-    let old_user_anchor = state.get_user_tree_root().await.unwrap();
-    let old_asset_anchor = state.get_asset_imt_root().await.unwrap();
-
-    // Add something to change the tree roots (so old anchors remain distinct)
-    let leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(9999u64)));
-    state.add_compliance_leaf(leaf).await.unwrap();
-
-    // New anchors should be different
-    let new_user_anchor = state.get_user_tree_root().await.unwrap();
-    assert_ne!(
-        old_user_anchor.0, new_user_anchor.0,
-        "Anchors should differ after adding leaf"
-    );
-
-    // Validation of the old user root must fail immediately.
-    let result = state
-        .validate_compliance_anchors(&old_user_anchor, &old_asset_anchor)
-        .await;
-
-    assert!(result.is_err());
-    let err_msg = result.unwrap_err().to_string();
-    assert!(
-        err_msg.contains("current user compliance root"),
-        "error should identify the current-root mismatch: {}",
-        err_msg
-    );
-    state
-        .validate_compliance_anchors(&new_user_anchor, &old_asset_anchor)
-        .await
-        .unwrap();
-}
-
-#[tokio::test]
-async fn stale_asset_anchor_is_rejected_immediately_after_policy_change() {
-    for initial_height in [0u64, 1] {
-        let storage = TempStorage::new().await.unwrap();
-        let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
-        state.initialize_trees().await.unwrap();
-        put_test_compliance_params(&mut state);
-
-        state.put_block_height(initial_height);
-        state
-            .record_compliance_anchors(initial_height)
-            .await
-            .unwrap();
-        let user_anchor = state.get_user_tree_root().await.unwrap();
-        let stale_asset_anchor = state.get_asset_imt_root().await.unwrap();
-
-        state.put_block_height(2);
-        state
-            .register_regulated_asset(
-                asset::Id(Fq::from(4242u64)),
-                AssetPolicy::for_test(
-                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
-                    u128::MAX,
-                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
-                ),
-            )
-            .await
-            .unwrap();
-        let current_asset_anchor = state.get_asset_imt_root().await.unwrap();
-        assert_ne!(stale_asset_anchor, current_asset_anchor);
-
-        let error = state
-            .validate_compliance_anchors(&user_anchor, &stale_asset_anchor)
-            .await
-            .expect_err("an asset anchor predating a policy change must be invalid immediately");
-        assert!(
-            error.to_string().contains("current asset compliance root"),
-            "unexpected error: {error:#}"
-        );
-        state
-            .validate_compliance_anchors(&user_anchor, &current_asset_anchor)
-            .await
-            .unwrap();
-        let after_window = TEST_ANCHOR_WINDOW_BLOCKS + 2;
-        state.put_block_height(after_window);
-        state.record_compliance_anchors(after_window).await.unwrap();
-        assert!(state
-            .validate_compliance_anchors(&user_anchor, &stale_asset_anchor)
-            .await
-            .is_err());
-        state
-            .validate_compliance_anchors(&user_anchor, &current_asset_anchor)
-            .await
-            .unwrap();
-    }
-}
-
-#[tokio::test]
-async fn current_roots_remain_valid_when_the_history_window_changes() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    put_test_compliance_params(&mut state);
-
-    state.put_block_height(1);
-    state.record_compliance_anchors(1).await.unwrap();
-    let user_anchor = state.get_user_tree_root().await.unwrap();
-    let asset_anchor = state.get_asset_imt_root().await.unwrap();
-
-    for (window, height) in [
-        (TEST_ANCHOR_WINDOW_BLOCKS, 1 + TEST_ANCHOR_WINDOW_BLOCKS / 2),
-        (10, 12),
-    ] {
-        state.put_compliance_params(ComplianceParameters {
-            anchor_validation_window_blocks: window,
-        });
-        state.put_block_height(height);
-        state.record_compliance_anchors(height).await.unwrap();
-        state
-            .validate_compliance_anchors(&user_anchor, &asset_anchor)
-            .await
-            .expect("history-retention policy must not invalidate current roots");
-    }
-}
-
-#[tokio::test]
-async fn test_shortened_anchor_window_pruning_catches_up() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    let mut rng = rand::thread_rng();
-    put_test_compliance_params(&mut state);
-
-    state.put_block_height(1);
-    state.record_compliance_anchors(1).await.unwrap();
-    let height_one_user_anchor = state.get_user_tree_root().await.unwrap();
-
-    state.put_block_height(2);
-    state
-        .add_compliance_leaf(ComplianceLeaf::registered_for_test(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(9090u64)),
-        ))
-        .await
-        .unwrap();
-    state.record_compliance_anchors(2).await.unwrap();
-    let height_two_user_anchor = state.get_user_tree_root().await.unwrap();
-
-    state.put_compliance_params(ComplianceParameters {
-        anchor_validation_window_blocks: 10,
-    });
-    state.put_block_height(50);
-    state.record_compliance_anchors(50).await.unwrap();
-
-    assert_eq!(state.get_user_anchor_by_height(1).await.unwrap(), None);
-    assert_eq!(state.get_user_anchor_by_height(2).await.unwrap(), None);
-    assert_eq!(
-        state
-            .check_user_anchor(&height_one_user_anchor)
-            .await
-            .unwrap(),
-        None
-    );
-    assert_eq!(
-        state
-            .check_user_anchor(&height_two_user_anchor)
-            .await
-            .unwrap(),
-        Some(50)
-    );
-    assert_eq!(
-        state
-            .get_proto::<u64>(state_key::anchor::pruned_through_height())
-            .await
-            .unwrap(),
-        Some(29)
-    );
-}
 
 #[tokio::test]
 async fn test_get_asset_policy_cached_matches_uncached() {
@@ -1366,38 +1068,6 @@ async fn test_get_asset_policy_cached_matches_uncached() {
         .unwrap();
     assert_eq!(cached.get(&present_asset), Some(&Some(policy)));
     assert_eq!(cached.get(&missing_asset), Some(&None));
-}
-
-#[tokio::test]
-async fn test_anchor_pruning_removes_expired_entries() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    let mut rng = rand::thread_rng();
-    put_test_compliance_params(&mut state);
-
-    state.put_block_height(1);
-    state.record_compliance_anchors(1).await.unwrap();
-    let expired_user_anchor = state.get_user_tree_root().await.unwrap();
-
-    state.put_block_height(2);
-    state
-        .add_compliance_leaf(ComplianceLeaf::registered_for_test(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(4242u64)),
-        ))
-        .await
-        .unwrap();
-    let prune_height = TEST_ANCHOR_WINDOW_BLOCKS + MAX_ANCHOR_SEARCH_DEPTH_BLOCKS + 2;
-    state.put_block_height(prune_height);
-    state.record_compliance_anchors(prune_height).await.unwrap();
-
-    assert_eq!(state.get_user_anchor_by_height(1).await.unwrap(), None);
-    assert_eq!(
-        state.check_user_anchor(&expired_user_anchor).await.unwrap(),
-        None
-    );
 }
 
 #[tokio::test]
@@ -1478,29 +1148,6 @@ async fn test_replace_asset_ibc_policy_requires_expected_hash() {
     assert!(
         stale.to_string().contains("did not match"),
         "unexpected error: {stale:#}"
-    );
-}
-
-#[tokio::test]
-async fn test_anchor_pruning_preserves_latest_lookup_for_reused_anchor() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    put_test_compliance_params(&mut state);
-
-    state.put_block_height(1);
-    state.record_compliance_anchors(1).await.unwrap();
-    let reused_user_anchor = state.get_user_tree_root().await.unwrap();
-
-    let prune_height = TEST_ANCHOR_WINDOW_BLOCKS + MAX_ANCHOR_SEARCH_DEPTH_BLOCKS + 2;
-    state.put_block_height(prune_height);
-    state.record_compliance_anchors(prune_height).await.unwrap();
-
-    assert_eq!(state.get_user_anchor_by_height(1).await.unwrap(), None);
-    assert_eq!(
-        state.check_user_anchor(&reused_user_anchor).await.unwrap(),
-        Some(prune_height)
     );
 }
 

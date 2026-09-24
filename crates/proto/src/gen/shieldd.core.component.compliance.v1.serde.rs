@@ -888,6 +888,12 @@ impl serde::Serialize for ComplianceAnchorsResponse {
         if !self.asset_tree_root.is_empty() {
             len += 1;
         }
+        if self.freeze_epoch != 0 {
+            len += 1;
+        }
+        if self.snapshot.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.ComplianceAnchorsResponse", len)?;
         if !self.user_tree_root.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -898,6 +904,14 @@ impl serde::Serialize for ComplianceAnchorsResponse {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("assetTreeRoot", pbjson::private::base64::encode(&self.asset_tree_root).as_str())?;
+        }
+        if self.freeze_epoch != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("freezeEpoch", ToString::to_string(&self.freeze_epoch).as_str())?;
+        }
+        if let Some(v) = self.snapshot.as_ref() {
+            struct_ser.serialize_field("snapshot", v)?;
         }
         struct_ser.end()
     }
@@ -913,12 +927,17 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
             "userTreeRoot",
             "asset_tree_root",
             "assetTreeRoot",
+            "freeze_epoch",
+            "freezeEpoch",
+            "snapshot",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             UserTreeRoot,
             AssetTreeRoot,
+            FreezeEpoch,
+            Snapshot,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -943,6 +962,8 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                         match value {
                             "userTreeRoot" | "user_tree_root" => Ok(GeneratedField::UserTreeRoot),
                             "assetTreeRoot" | "asset_tree_root" => Ok(GeneratedField::AssetTreeRoot),
+                            "freezeEpoch" | "freeze_epoch" => Ok(GeneratedField::FreezeEpoch),
+                            "snapshot" => Ok(GeneratedField::Snapshot),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -964,6 +985,8 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
             {
                 let mut user_tree_root__ = None;
                 let mut asset_tree_root__ = None;
+                let mut freeze_epoch__ = None;
+                let mut snapshot__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::UserTreeRoot => {
@@ -982,6 +1005,20 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::FreezeEpoch => {
+                            if freeze_epoch__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("freezeEpoch"));
+                            }
+                            freeze_epoch__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Snapshot => {
+                            if snapshot__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("snapshot"));
+                            }
+                            snapshot__ = map_.next_value()?;
+                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -990,6 +1027,8 @@ impl<'de> serde::Deserialize<'de> for ComplianceAnchorsResponse {
                 Ok(ComplianceAnchorsResponse {
                     user_tree_root: user_tree_root__.unwrap_or_default(),
                     asset_tree_root: asset_tree_root__.unwrap_or_default(),
+                    freeze_epoch: freeze_epoch__.unwrap_or_default(),
+                    snapshot: snapshot__,
                 })
             }
         }
@@ -2266,14 +2305,14 @@ impl serde::Serialize for ComplianceParameters {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
-        if self.anchor_validation_window_blocks != 0 {
+        if self.compliance_anchor_max_age_seconds != 0 {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.ComplianceParameters", len)?;
-        if self.anchor_validation_window_blocks != 0 {
+        if self.compliance_anchor_max_age_seconds != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("anchorValidationWindowBlocks", ToString::to_string(&self.anchor_validation_window_blocks).as_str())?;
+            struct_ser.serialize_field("complianceAnchorMaxAgeSeconds", ToString::to_string(&self.compliance_anchor_max_age_seconds).as_str())?;
         }
         struct_ser.end()
     }
@@ -2285,13 +2324,13 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "anchor_validation_window_blocks",
-            "anchorValidationWindowBlocks",
+            "compliance_anchor_max_age_seconds",
+            "complianceAnchorMaxAgeSeconds",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            AnchorValidationWindowBlocks,
+            ComplianceAnchorMaxAgeSeconds,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2314,7 +2353,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                         E: serde::de::Error,
                     {
                         match value {
-                            "anchorValidationWindowBlocks" | "anchor_validation_window_blocks" => Ok(GeneratedField::AnchorValidationWindowBlocks),
+                            "complianceAnchorMaxAgeSeconds" | "compliance_anchor_max_age_seconds" => Ok(GeneratedField::ComplianceAnchorMaxAgeSeconds),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2334,14 +2373,14 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                let mut anchor_validation_window_blocks__ = None;
+                let mut compliance_anchor_max_age_seconds__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::AnchorValidationWindowBlocks => {
-                            if anchor_validation_window_blocks__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("anchorValidationWindowBlocks"));
+                        GeneratedField::ComplianceAnchorMaxAgeSeconds => {
+                            if compliance_anchor_max_age_seconds__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("complianceAnchorMaxAgeSeconds"));
                             }
-                            anchor_validation_window_blocks__ =
+                            compliance_anchor_max_age_seconds__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2351,11 +2390,199 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                     }
                 }
                 Ok(ComplianceParameters {
-                    anchor_validation_window_blocks: anchor_validation_window_blocks__.unwrap_or_default(),
+                    compliance_anchor_max_age_seconds: compliance_anchor_max_age_seconds__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.compliance.v1.ComplianceParameters", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ComplianceSnapshot {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.user_root.is_empty() {
+            len += 1;
+        }
+        if !self.asset_root.is_empty() {
+            len += 1;
+        }
+        if self.freeze_epoch != 0 {
+            len += 1;
+        }
+        if self.observed_height != 0 {
+            len += 1;
+        }
+        if self.observed_time_seconds != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.ComplianceSnapshot", len)?;
+        if !self.user_root.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("userRoot", pbjson::private::base64::encode(&self.user_root).as_str())?;
+        }
+        if !self.asset_root.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("assetRoot", pbjson::private::base64::encode(&self.asset_root).as_str())?;
+        }
+        if self.freeze_epoch != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("freezeEpoch", ToString::to_string(&self.freeze_epoch).as_str())?;
+        }
+        if self.observed_height != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("observedHeight", ToString::to_string(&self.observed_height).as_str())?;
+        }
+        if self.observed_time_seconds != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("observedTimeSeconds", ToString::to_string(&self.observed_time_seconds).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ComplianceSnapshot {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "user_root",
+            "userRoot",
+            "asset_root",
+            "assetRoot",
+            "freeze_epoch",
+            "freezeEpoch",
+            "observed_height",
+            "observedHeight",
+            "observed_time_seconds",
+            "observedTimeSeconds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UserRoot,
+            AssetRoot,
+            FreezeEpoch,
+            ObservedHeight,
+            ObservedTimeSeconds,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "userRoot" | "user_root" => Ok(GeneratedField::UserRoot),
+                            "assetRoot" | "asset_root" => Ok(GeneratedField::AssetRoot),
+                            "freezeEpoch" | "freeze_epoch" => Ok(GeneratedField::FreezeEpoch),
+                            "observedHeight" | "observed_height" => Ok(GeneratedField::ObservedHeight),
+                            "observedTimeSeconds" | "observed_time_seconds" => Ok(GeneratedField::ObservedTimeSeconds),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ComplianceSnapshot;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.component.compliance.v1.ComplianceSnapshot")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ComplianceSnapshot, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut user_root__ = None;
+                let mut asset_root__ = None;
+                let mut freeze_epoch__ = None;
+                let mut observed_height__ = None;
+                let mut observed_time_seconds__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UserRoot => {
+                            if user_root__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userRoot"));
+                            }
+                            user_root__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::AssetRoot => {
+                            if asset_root__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetRoot"));
+                            }
+                            asset_root__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::FreezeEpoch => {
+                            if freeze_epoch__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("freezeEpoch"));
+                            }
+                            freeze_epoch__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::ObservedHeight => {
+                            if observed_height__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("observedHeight"));
+                            }
+                            observed_height__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::ObservedTimeSeconds => {
+                            if observed_time_seconds__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("observedTimeSeconds"));
+                            }
+                            observed_time_seconds__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(ComplianceSnapshot {
+                    user_root: user_root__.unwrap_or_default(),
+                    asset_root: asset_root__.unwrap_or_default(),
+                    freeze_epoch: freeze_epoch__.unwrap_or_default(),
+                    observed_height: observed_height__.unwrap_or_default(),
+                    observed_time_seconds: observed_time_seconds__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.component.compliance.v1.ComplianceSnapshot", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ComplianceUserLeafRequest {

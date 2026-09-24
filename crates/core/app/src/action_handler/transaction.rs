@@ -345,6 +345,7 @@ pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()>
 pub(crate) fn validate_transaction_envelope(tx: &Transaction) -> Result<()> {
     ensure_transaction_resource_bounds(tx)?;
     tx.transaction_body.validate_nullifier_history()?;
+    stateless::distinct_spend_keys(tx)?;
     valid_binding_signature(tx)?;
     check_memo_exists_if_outputs_absent_if_not(tx)?;
     check_non_empty_transaction(tx)

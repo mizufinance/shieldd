@@ -55,12 +55,33 @@ impl Note<Scalar> {
 }
 
 #[derive(Clone)]
+pub struct SpendAuthorization {
+    pub randomizer: Scalar,
+    pub rk: Point<Scalar>,
+}
+
+pub fn constrain_authorization<'a>(
+    ctx: Context<'a, Scalar>,
+    ak: &Point<Var<'a, Scalar>>,
+    w: &SpendAuthorization,
+) -> (Point<Var<'a, Scalar>>, Var<'a, Scalar>) {
+    let randomizer = Var::witness(ctx, |_| w.randomizer.clone());
+    let bits = scalar::canonical_bits(ctx, &randomizer);
+    let computed = ak.add(
+        &group::generator().multiply_fixed(&bits),
+        &Var::native(group::coefficient_d()),
+    );
+    let rk = group::witness_subgroup(ctx, &w.rk, &w.rk.cofactor_preimage());
+    rk.assert_non_identity();
+    computed.assert_equal(&rk);
+    (rk, randomizer)
+}
+
+#[derive(Clone)]
 pub struct SpendWitness {
     pub note: Note<Scalar>,
     pub path: Path<Scalar, STATE_DEPTH>,
-    pub randomizer: Scalar,
     pub nullifier: Scalar,
-    pub rk: Point<Scalar>,
     pub history_required: bool,
 }
 
@@ -74,7 +95,7 @@ pub struct SpendContext<'ctx> {
     pub address: Address<Var<'ctx, Scalar>>,
     pub asset: Var<'ctx, Scalar>,
     pub nk: Var<'ctx, Scalar>,
-    pub ak: Point<Var<'ctx, Scalar>>,
+    pub randomizer: Var<'ctx, Scalar>,
     pub anchor: Var<'ctx, Scalar>,
     pub recent_floor: Var<'ctx, Scalar>,
 }
@@ -83,7 +104,6 @@ pub struct Spend<'ctx> {
     pub is_dummy: BoolVar<'ctx, Scalar>,
     pub amount: Var<'ctx, Scalar>,
     pub nullifier: Var<'ctx, Scalar>,
-    pub rk: Point<Var<'ctx, Scalar>>,
     pub history_required: BoolVar<'ctx, Scalar>,
 }
 
@@ -140,20 +160,11 @@ pub fn constrain_spend<'ctx>(
     let positions = decompose(ctx, &path.position, 48);
     let anchor =
         tree::root_with_position_bits(ctx, params, Tree::State, commitment, &path, &positions);
-    let randomizer = var(&w.randomizer);
-    let bits = scalar::canonical_bits(ctx, &randomizer);
-    let random_point = group::generator().multiply_fixed(&bits);
-    let computed_rk = shared
-        .ak
-        .add(&random_point, &Var::native(group::coefficient_d()));
-    let rk = group::witness_subgroup(ctx, &w.rk, &w.rk.cofactor_preimage());
-    rk.assert_non_identity();
     let nullifier = var(&w.nullifier);
     let dummy = match optional {
         None => {
             real_nullifier.assert_eq(&nullifier);
             anchor.assert_eq(&shared.anchor);
-            computed_rk.assert_equal(&rk);
             BoolVar::constant(false)
         }
         Some((optional, padding)) => {
@@ -163,7 +174,7 @@ pub fn constrain_spend<'ctx>(
                 domain,
                 &[
                     var(&optional.seed),
-                    randomizer,
+                    shared.randomizer.clone(),
                     Var::native(Scalar::from(slot as u64)),
                 ],
             );
@@ -172,8 +183,6 @@ pub fn constrain_spend<'ctx>(
                 .assert_eq(&nullifier);
             let real = !dummy.clone();
             (real.var().clone() * &(anchor - &shared.anchor)).assert_eq(&Var::zero());
-            (real.var().clone() * &(computed_rk.x - &rk.x)).assert_eq(&Var::zero());
-            (real.var().clone() * &(computed_rk.y - &rk.y)).assert_eq(&Var::zero());
             (dummy.var().clone() * &note.amount).assert_eq(&Var::zero());
             dummy
         }
@@ -186,7 +195,6 @@ pub fn constrain_spend<'ctx>(
         is_dummy: dummy,
         amount: note.amount,
         nullifier,
-        rk,
         history_required,
     }
 }

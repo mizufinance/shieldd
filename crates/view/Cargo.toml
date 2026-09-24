@@ -9,8 +9,7 @@ license = {workspace = true}
 publish = true
 
 [features]
-default = ["std"]
-std = []
+default = []
 prover = ["shieldd-sdk-transaction/prover"]
 rpc = ["dep:tonic", "shieldd-sdk-proto/rpc"]
 

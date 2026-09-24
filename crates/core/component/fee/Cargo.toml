@@ -13,9 +13,7 @@ component = [
     "cnidarium",
     "shieldd-sdk-proto/cnidarium",
 ]
-default = ["std", "component"]
-std = []
-docsrs = []
+default = ["component"]
 
 [dependencies]
 shieldd-sdk-crypto.workspace = true

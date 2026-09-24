@@ -1,5 +1,4 @@
 use blake2b_simd;
-use reddsa::{sapling::SpendAuth, Signature, SigningKey, VerificationKey};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 use shieldd_sdk_keys::Address;
@@ -11,14 +10,12 @@ use crate::{Note, RecoveryCapsule, Rseed};
 
 pub(crate) struct HiddenArityPadder {
     pub value_blinding: Fr,
-    pub first_spend_randomizer: Fr,
+    pub auth_randomizer: Fr,
     pub sender_address: Address,
     pub asset_id: asset::Id,
     pub payload_key: SubgroupPoint,
     pub nullifier_domain: u8,
     pub nullifier_seed_label: &'static [u8],
-    pub spend_auth_key_label: &'static [u8],
-    pub spend_auth_randomizer_label: &'static [u8],
     pub input_note_label: &'static [u8],
     pub output_note_label: &'static [u8],
 }
@@ -28,7 +25,7 @@ impl HiddenArityPadder {
         let mut data = Vec::with_capacity(label.len() + 32 + 32 + 8);
         data.extend_from_slice(label);
         data.extend_from_slice(&self.value_blinding.to_bytes());
-        data.extend_from_slice(&self.first_spend_randomizer.to_bytes());
+        data.extend_from_slice(&self.auth_randomizer.to_bytes());
         data.extend_from_slice(&(slot as u64).to_le_bytes());
         let digest = blake2b_simd::blake2b(&data);
         digest.as_bytes().try_into().expect("Blake2b-512 output")
@@ -36,14 +33,6 @@ impl HiddenArityPadder {
 
     pub fn synthetic_dummy_nullifier_seed(&self, slot: usize) -> Fq {
         Fq::from_bytes_wide(&self.derive_dummy_bytes(self.nullifier_seed_label, slot))
-    }
-
-    pub fn synthetic_dummy_spend_auth_key(&self, slot: usize) -> Fr {
-        Fr::from_bytes_wide(&self.derive_dummy_bytes(self.spend_auth_key_label, slot))
-    }
-
-    pub fn synthetic_dummy_spend_auth_randomizer(&self, slot: usize) -> Fr {
-        Fr::from_bytes_wide(&self.derive_dummy_bytes(self.spend_auth_randomizer_label, slot))
     }
 
     fn synthetic_dummy_rseed(&self, slot: usize, label: &[u8]) -> Rseed {
@@ -56,7 +45,7 @@ impl HiddenArityPadder {
 
     pub fn synthetic_dummy_nullifier(&self, slot: usize) -> Nullifier {
         let seed = self.synthetic_dummy_nullifier_seed(slot);
-        let randomizer = self.synthetic_dummy_spend_auth_randomizer(slot);
+        let randomizer = self.auth_randomizer;
         Nullifier(shieldd_sdk_crypto::poseidon::hash(
             self.nullifier_domain,
             &[
@@ -65,26 +54,6 @@ impl HiddenArityPadder {
                 Fq::from(slot as u64),
             ],
         ))
-    }
-
-    pub fn synthetic_dummy_verification_key(&self, slot: usize) -> VerificationKey<SpendAuth> {
-        let dummy_sk =
-            SigningKey::<SpendAuth>::try_from(self.synthetic_dummy_spend_auth_key(slot).to_bytes())
-                .expect("canonical dummy key");
-        let randomized = dummy_sk.randomize(&self.synthetic_dummy_spend_auth_randomizer(slot));
-        VerificationKey::from(&randomized)
-    }
-
-    pub fn synthetic_dummy_auth_sig(
-        &self,
-        slot: usize,
-        effect_hash: &[u8],
-    ) -> Signature<SpendAuth> {
-        let dummy_sk =
-            SigningKey::<SpendAuth>::try_from(self.synthetic_dummy_spend_auth_key(slot).to_bytes())
-                .expect("canonical dummy key");
-        let randomized = dummy_sk.randomize(&self.synthetic_dummy_spend_auth_randomizer(slot));
-        randomized.sign(rand_core::OsRng, effect_hash)
     }
 
     pub fn synthetic_dummy_input_note(&self, slot: usize) -> Note {
@@ -139,8 +108,4 @@ pub(crate) fn dummy_state_commitment_proof(commitment: tct::StateCommitment) -> 
         0u64.into(),
         [[shieldd_sdk_tct::structure::Hash::new(Fq::from(0u64)); 3]; 24],
     )
-}
-
-pub(crate) fn dummy_spend_auth_sig() -> Signature<SpendAuth> {
-    [0u8; 64].into()
 }

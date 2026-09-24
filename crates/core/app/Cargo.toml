@@ -25,11 +25,8 @@ parallel = [
 benchmark-helpers = [
   "shieldd-sdk-shielded-pool/benchmark-helpers",
 ]
-default = ["std", "component"]
-fuzzing = []
+default = ["component"]
 # Insecure isolated integration only; never enable in production.
-orbis-dev-srs = []
-std     = []
 
 [dependencies]
 reddsa.workspace = true

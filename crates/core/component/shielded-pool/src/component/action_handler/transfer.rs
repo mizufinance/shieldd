@@ -18,14 +18,8 @@ use crate::{
     VolumeAccumulatorPublic,
 };
 
-fn transfer_verify_auth_sigs(transfer: &Transfer, context: &TransactionContext) -> Result<()> {
-    note_reshape::verify_auth_sigs(
-        "transfer",
-        &transfer.body.inputs,
-        &transfer.auth_sigs,
-        context,
-        |input| &input.rk,
-    )
+fn transfer_verify_auth_sig(transfer: &Transfer, context: &TransactionContext) -> Result<()> {
+    note_reshape::verify_auth_sig("transfer", &transfer.body.rk, &transfer.auth_sig, context)
 }
 
 fn transfer_check_lengths(transfer: &Transfer) -> Result<()> {
@@ -51,7 +45,6 @@ pub(crate) fn transfer_extract_public(
         .map(|input| {
             Ok(TransferSpendPublic {
                 nullifier: input.nullifier,
-                rk: input.rk,
                 history_required: input.history_required,
             })
         })
@@ -75,6 +68,7 @@ pub(crate) fn transfer_extract_public(
         .collect::<Result<Vec<_>>>()?;
 
     let public = TransferProofPublic {
+        rk: transfer.body.rk,
         anchor: context.anchor,
         balance_commitment: transfer.body.balance_commitment,
         asset_anchor: transfer.body.asset_anchor,
@@ -120,7 +114,7 @@ pub fn transfer_check_stateless_and_extract(
         transfer.body.proof_context == expected_context,
         "transfer proof context does not match its transaction location"
     );
-    transfer_verify_auth_sigs(transfer, context)?;
+    transfer_verify_auth_sig(transfer, context)?;
     transfer_check_lengths(transfer)?;
     let public = transfer_extract_public(transfer, context)?;
     transfer_to_batch_item(transfer, public)
@@ -259,19 +253,17 @@ mod tests {
     use crate::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
 
     #[test]
-    fn auth_verification_rejects_invalid_fixed_slot_signature() {
+    fn auth_verification_rejects_invalid_action_signature() {
         let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
-        transfer_verify_auth_sigs(&transfer, &context)
-            .expect("fixture signatures must authenticate every fixed slot");
+        transfer_verify_auth_sig(&transfer, &context)
+            .expect("fixture signature must authenticate the action");
 
         let wrong_key = SigningKey::<SpendAuth>::try_from(Fr::from(999u64).to_bytes()).unwrap();
-        transfer.auth_sigs[1] = wrong_key.sign(&mut OsRng, context.effect_hash.as_ref());
-        let error = transfer_verify_auth_sigs(&transfer, &context)
-            .expect_err("an unrelated fixed-slot signature must be rejected");
+        transfer.auth_sig = wrong_key.sign(&mut OsRng, context.effect_hash.as_ref());
+        let error = transfer_verify_auth_sig(&transfer, &context)
+            .expect_err("an unrelated action signature must be rejected");
         assert!(
-            error
-                .to_string()
-                .contains("transfer auth signature 1 failed"),
+            error.to_string().contains("transfer auth signature failed"),
             "unexpected rejection reason: {error:#}"
         );
     }
@@ -280,16 +272,17 @@ mod tests {
     fn transfer_auth_verification_rejects_identity_randomized_key() {
         let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
         let identity_sk = SigningKey::<SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap();
-        transfer.body.inputs[0].rk = VerificationKey::from(&identity_sk);
+        transfer.body.rk = VerificationKey::from(&identity_sk);
         let different_message = b"different transfer authorization hash";
         assert_ne!(&different_message[..], context.effect_hash.as_ref());
-        transfer.auth_sigs[0] = identity_sk.sign(rand_core::OsRng, different_message);
+        transfer.auth_sig = identity_sk.sign(rand_core::OsRng, different_message);
 
-        transfer.body.inputs[0]
+        transfer
+            .body
             .rk
-            .verify(context.effect_hash.as_ref(), &transfer.auth_sigs[0])
+            .verify(context.effect_hash.as_ref(), &transfer.auth_sig)
             .expect("the pinned RDSA primitive admits identity keys across messages");
-        let error = transfer_verify_auth_sigs(&transfer, &context)
+        let error = transfer_verify_auth_sig(&transfer, &context)
             .expect_err("Transfer must reject an identity randomized spend key");
         assert!(
             error

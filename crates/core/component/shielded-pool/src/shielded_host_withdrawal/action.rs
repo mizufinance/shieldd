@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
-use reddsa::{sapling::SpendAuth, Signature};
+use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
@@ -20,6 +20,7 @@ use crate::{
     into = "pb::ShieldedHostWithdrawalBody"
 )]
 pub struct ShieldedHostWithdrawalBody {
+    pub rk: VerificationKey<SpendAuth>,
     pub family_id: ShieldedWithdrawalFamilyId,
     pub anchor: tct::Root,
     pub balance_commitment: balance::Commitment,
@@ -38,7 +39,7 @@ pub struct ShieldedHostWithdrawalBody {
 #[derive(Clone, Debug)]
 pub struct ShieldedHostWithdrawal {
     pub body: ShieldedHostWithdrawalBody,
-    pub auth_sigs: Vec<Signature<SpendAuth>>,
+    pub auth_sig: Signature<SpendAuth>,
     pub proof: ShieldedWithdrawalProof,
 }
 
@@ -86,7 +87,7 @@ impl From<ShieldedHostWithdrawal> for pb::ShieldedHostWithdrawal {
     fn from(value: ShieldedHostWithdrawal) -> Self {
         Self {
             body: Some(value.body.into()),
-            auth_sigs: value.auth_sigs.into_iter().map(Into::into).collect(),
+            auth_sig: Some(value.auth_sig.into()),
             proof: Some(value.proof.into()),
         }
     }
@@ -103,25 +104,14 @@ impl TryFrom<pb::ShieldedHostWithdrawal> for ShieldedHostWithdrawal {
             .context("malformed shielded host withdrawal body")?;
         body.validate_shape()?;
 
-        let auth_sigs = value
-            .auth_sigs
-            .into_iter()
-            .map(|sig| {
-                sig.try_into()
-                    .context("malformed shielded host withdrawal auth sig")
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        anyhow::ensure!(
-            auth_sigs.len() == body.family_id.auth_sig_count(),
-            "shielded host withdrawal expected {} auth sigs, got {}",
-            body.family_id.auth_sig_count(),
-            auth_sigs.len()
-        );
+        let auth_sig = value
+            .auth_sig
+            .ok_or_else(|| anyhow::anyhow!("missing action spend signature"))?
+            .try_into()?;
 
         Ok(Self {
             body,
-            auth_sigs,
+            auth_sig,
             proof: value
                 .proof
                 .ok_or_else(|| anyhow::anyhow!("missing shielded host withdrawal proof"))?
@@ -138,6 +128,7 @@ impl DomainType for ShieldedHostWithdrawalBody {
 impl From<ShieldedHostWithdrawalBody> for pb::ShieldedHostWithdrawalBody {
     fn from(value: ShieldedHostWithdrawalBody) -> Self {
         Self {
+            rk: Some(value.rk.into()),
             family_id: value.family_id.get(),
             anchor: Some(value.anchor.into()),
             balance_commitment: Some(value.balance_commitment.into()),
@@ -163,6 +154,10 @@ impl TryFrom<pb::ShieldedHostWithdrawalBody> for ShieldedHostWithdrawalBody {
 
     fn try_from(value: pb::ShieldedHostWithdrawalBody) -> Result<Self, Self::Error> {
         let body = Self {
+            rk: value
+                .rk
+                .ok_or_else(|| anyhow::anyhow!("missing action rk"))?
+                .try_into()?,
             family_id: value.family_id.try_into()?,
             anchor: value
                 .anchor
@@ -238,6 +233,9 @@ mod tests {
     fn unknown_family_id_is_rejected_at_wire_boundary() {
         let proto = pb::ShieldedHostWithdrawalBody {
             family_id: u32::MAX,
+            rk: Some(
+                (*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.spend_verification_key()).into(),
+            ),
             ..Default::default()
         };
         let error = ShieldedHostWithdrawalBody::try_from(proto)

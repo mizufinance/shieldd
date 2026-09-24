@@ -18,9 +18,9 @@ impl ::prost::Name for ComplianceViewingKey {
 /// Compliance component chain parameters.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ComplianceParameters {
-    /// Retention window for recorded user roots; authorization requires current roots.
+    /// Maximum age in consensus seconds of a recorded root pair; zero requires current roots.
     #[prost(uint64, tag = "1")]
-    pub anchor_validation_window_blocks: u64,
+    pub compliance_anchor_max_age_seconds: u64,
 }
 impl ::prost::Name for ComplianceParameters {
     const NAME: &'static str = "ComplianceParameters";
@@ -30,6 +30,30 @@ impl ::prost::Name for ComplianceParameters {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compliance.v1.ComplianceParameters".into()
+    }
+}
+/// One canonical observation of both compliance roots, covered by application state.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComplianceSnapshot {
+    #[prost(bytes = "vec", tag = "1")]
+    pub user_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub asset_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "3")]
+    pub freeze_epoch: u64,
+    #[prost(uint64, tag = "4")]
+    pub observed_height: u64,
+    #[prost(uint64, tag = "5")]
+    pub observed_time_seconds: u64,
+}
+impl ::prost::Name for ComplianceSnapshot {
+    const NAME: &'static str = "ComplianceSnapshot";
+    const PACKAGE: &'static str = "shieldd.core.component.compliance.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compliance.v1.ComplianceSnapshot".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compliance.v1.ComplianceSnapshot".into()
     }
 }
 /// A compliance leaf in the public on-chain registry for regulated assets.
@@ -449,6 +473,11 @@ pub struct ComplianceAnchorsResponse {
     /// This is a StateCommitment (32 bytes).
     #[prost(bytes = "vec", tag = "2")]
     pub asset_tree_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "3")]
+    pub freeze_epoch: u64,
+    /// Absent until the first block supplies authoritative time.
+    #[prost(message, optional, tag = "4")]
+    pub snapshot: ::core::option::Option<ComplianceSnapshot>,
 }
 impl ::prost::Name for ComplianceAnchorsResponse {
     const NAME: &'static str = "ComplianceAnchorsResponse";

@@ -266,6 +266,7 @@ trait Inner: StateWrite {
             epoch_index,
             compliance_user_anchor,
             compliance_asset_anchor,
+            compliance_snapshot: shieldd_sdk_compliance::admission::state::current(&*self).await?,
             compliance_user_registrations,
             compliance_user_status_changes,
             compliance_asset_registrations,

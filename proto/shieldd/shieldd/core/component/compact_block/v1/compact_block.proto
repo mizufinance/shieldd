@@ -44,6 +44,8 @@ message CompactBlock {
   // Exact nullifier-generation window, emitted at genesis and app-epoch boundaries.
   sct.v1.NullifierWindow nullifier_window = 17;
   uint64 state_payload_start_position = 19;
+  // Paired admission metadata; absent only before the first consensus timestamp.
+  compliance.v1.ComplianceSnapshot compliance_snapshot = 20;
 }
 
 // An encrypted payload, corresponding to a single commitment in the state commitment tree.

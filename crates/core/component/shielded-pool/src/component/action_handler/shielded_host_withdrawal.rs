@@ -15,14 +15,14 @@ use crate::{
     ShieldedHostWithdrawal, ShieldedWithdrawalProofPublic,
 };
 
-pub fn shielded_host_withdrawal_verify_auth_sigs(
+pub fn shielded_host_withdrawal_verify_auth_sig(
     action: &ShieldedHostWithdrawal,
     context: &TransactionContext,
 ) -> Result<()> {
-    shielded_withdrawal::verify_auth_sigs(
+    super::note_reshape::verify_auth_sig(
         "shielded_host_withdrawal",
-        &action.body.inputs,
-        &action.auth_sigs,
+        &action.body.rk,
+        &action.auth_sig,
         context,
     )
 }
@@ -33,6 +33,7 @@ pub fn shielded_host_withdrawal_extract_public(
 ) -> Result<ShieldedWithdrawalProofPublic> {
     shielded_withdrawal::extract_public(
         shielded_withdrawal::ProofPublicData {
+            rk: action.body.rk,
             family_id: action.body.family_id,
             balance_commitment: action.body.balance_commitment,
             asset_anchor: action.body.asset_anchor,
@@ -65,7 +66,7 @@ pub fn shielded_host_withdrawal_check_stateless_and_extract(
 ) -> Result<Verification> {
     action.body.validate_shape()?;
     action.body.withdrawal.validate()?;
-    shielded_host_withdrawal_verify_auth_sigs(action, context)?;
+    shielded_host_withdrawal_verify_auth_sig(action, context)?;
     let public = shielded_host_withdrawal_extract_public(action, context)?;
     shielded_host_withdrawal_to_batch_item(action, public)
 }

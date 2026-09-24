@@ -2699,7 +2699,7 @@ impl serde::Serialize for NoteReshape {
         if self.body.is_some() {
             len += 1;
         }
-        if !self.auth_sigs.is_empty() {
+        if self.auth_sig.is_some() {
             len += 1;
         }
         if self.proof.is_some() {
@@ -2709,8 +2709,8 @@ impl serde::Serialize for NoteReshape {
         if let Some(v) = self.body.as_ref() {
             struct_ser.serialize_field("body", v)?;
         }
-        if !self.auth_sigs.is_empty() {
-            struct_ser.serialize_field("authSigs", &self.auth_sigs)?;
+        if let Some(v) = self.auth_sig.as_ref() {
+            struct_ser.serialize_field("authSig", v)?;
         }
         if let Some(v) = self.proof.as_ref() {
             struct_ser.serialize_field("proof", v)?;
@@ -2726,15 +2726,15 @@ impl<'de> serde::Deserialize<'de> for NoteReshape {
     {
         const FIELDS: &[&str] = &[
             "body",
-            "auth_sigs",
-            "authSigs",
+            "auth_sig",
+            "authSig",
             "proof",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Body,
-            AuthSigs,
+            AuthSig,
             Proof,
             __SkipField__,
         }
@@ -2759,7 +2759,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshape {
                     {
                         match value {
                             "body" => Ok(GeneratedField::Body),
-                            "authSigs" | "auth_sigs" => Ok(GeneratedField::AuthSigs),
+                            "authSig" | "auth_sig" => Ok(GeneratedField::AuthSig),
                             "proof" => Ok(GeneratedField::Proof),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -2781,7 +2781,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshape {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut body__ = None;
-                let mut auth_sigs__ = None;
+                let mut auth_sig__ = None;
                 let mut proof__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -2791,11 +2791,11 @@ impl<'de> serde::Deserialize<'de> for NoteReshape {
                             }
                             body__ = map_.next_value()?;
                         }
-                        GeneratedField::AuthSigs => {
-                            if auth_sigs__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("authSigs"));
+                        GeneratedField::AuthSig => {
+                            if auth_sig__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authSig"));
                             }
-                            auth_sigs__ = Some(map_.next_value()?);
+                            auth_sig__ = map_.next_value()?;
                         }
                         GeneratedField::Proof => {
                             if proof__.is_some() {
@@ -2810,7 +2810,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshape {
                 }
                 Ok(NoteReshape {
                     body: body__,
-                    auth_sigs: auth_sigs__.unwrap_or_default(),
+                    auth_sig: auth_sig__,
                     proof: proof__,
                 })
             }
@@ -2826,6 +2826,9 @@ impl serde::Serialize for NoteReshapeBody {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if self.rk.is_some() {
+            len += 1;
+        }
         if self.family_id != 0 {
             len += 1;
         }
@@ -2854,6 +2857,9 @@ impl serde::Serialize for NoteReshapeBody {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapeBody", len)?;
+        if let Some(v) = self.rk.as_ref() {
+            struct_ser.serialize_field("rk", v)?;
+        }
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
         }
@@ -2893,6 +2899,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "rk",
             "family_id",
             "familyId",
             "anchor",
@@ -2912,6 +2919,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            Rk,
             FamilyId,
             Anchor,
             BalanceCommitment,
@@ -2943,6 +2951,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                         E: serde::de::Error,
                     {
                         match value {
+                            "rk" => Ok(GeneratedField::Rk),
                             "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
                             "anchor" => Ok(GeneratedField::Anchor),
                             "balanceCommitment" | "balance_commitment" => Ok(GeneratedField::BalanceCommitment),
@@ -2971,6 +2980,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut rk__ = None;
                 let mut family_id__ = None;
                 let mut anchor__ = None;
                 let mut balance_commitment__ = None;
@@ -2982,6 +2992,12 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                 let mut compliance_anchor__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::Rk => {
+                            if rk__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rk"));
+                            }
+                            rk__ = map_.next_value()?;
+                        }
                         GeneratedField::FamilyId => {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
@@ -3046,6 +3062,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                     }
                 }
                 Ok(NoteReshapeBody {
+                    rk: rk__,
                     family_id: family_id__.unwrap_or_default(),
                     anchor: anchor__,
                     balance_commitment: balance_commitment__,
@@ -3188,9 +3205,6 @@ impl serde::Serialize for NoteReshapeInputBody {
         if self.nullifier.is_some() {
             len += 1;
         }
-        if self.rk.is_some() {
-            len += 1;
-        }
         if !self.encrypted_backref.is_empty() {
             len += 1;
         }
@@ -3200,9 +3214,6 @@ impl serde::Serialize for NoteReshapeInputBody {
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapeInputBody", len)?;
         if let Some(v) = self.nullifier.as_ref() {
             struct_ser.serialize_field("nullifier", v)?;
-        }
-        if let Some(v) = self.rk.as_ref() {
-            struct_ser.serialize_field("rk", v)?;
         }
         if !self.encrypted_backref.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -3223,7 +3234,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
     {
         const FIELDS: &[&str] = &[
             "nullifier",
-            "rk",
             "encrypted_backref",
             "encryptedBackref",
             "history_required",
@@ -3233,7 +3243,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Nullifier,
-            Rk,
             EncryptedBackref,
             HistoryRequired,
             __SkipField__,
@@ -3259,7 +3268,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                     {
                         match value {
                             "nullifier" => Ok(GeneratedField::Nullifier),
-                            "rk" => Ok(GeneratedField::Rk),
                             "encryptedBackref" | "encrypted_backref" => Ok(GeneratedField::EncryptedBackref),
                             "historyRequired" | "history_required" => Ok(GeneratedField::HistoryRequired),
                             _ => Ok(GeneratedField::__SkipField__),
@@ -3282,7 +3290,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut nullifier__ = None;
-                let mut rk__ = None;
                 let mut encrypted_backref__ = None;
                 let mut history_required__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -3292,12 +3299,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                                 return Err(serde::de::Error::duplicate_field("nullifier"));
                             }
                             nullifier__ = map_.next_value()?;
-                        }
-                        GeneratedField::Rk => {
-                            if rk__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("rk"));
-                            }
-                            rk__ = map_.next_value()?;
                         }
                         GeneratedField::EncryptedBackref => {
                             if encrypted_backref__.is_some() {
@@ -3320,7 +3321,6 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                 }
                 Ok(NoteReshapeInputBody {
                     nullifier: nullifier__,
-                    rk: rk__,
                     encrypted_backref: encrypted_backref__.unwrap_or_default(),
                     history_required: history_required__.unwrap_or_default(),
                 })
@@ -3477,6 +3477,9 @@ impl serde::Serialize for NoteReshapePlan {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if !self.auth_randomizer.is_empty() {
+            len += 1;
+        }
         if !self.value_blinding.is_empty() {
             len += 1;
         }
@@ -3496,6 +3499,11 @@ impl serde::Serialize for NoteReshapePlan {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.NoteReshapePlan", len)?;
+        if !self.auth_randomizer.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("authRandomizer", pbjson::private::base64::encode(&self.auth_randomizer).as_str())?;
+        }
         if !self.value_blinding.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -3526,6 +3534,8 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "auth_randomizer",
+            "authRandomizer",
             "value_blinding",
             "valueBlinding",
             "spends",
@@ -3539,6 +3549,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            AuthRandomizer,
             ValueBlinding,
             Spends,
             Outputs,
@@ -3567,6 +3578,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                         E: serde::de::Error,
                     {
                         match value {
+                            "authRandomizer" | "auth_randomizer" => Ok(GeneratedField::AuthRandomizer),
                             "valueBlinding" | "value_blinding" => Ok(GeneratedField::ValueBlinding),
                             "spends" => Ok(GeneratedField::Spends),
                             "outputs" => Ok(GeneratedField::Outputs),
@@ -3592,6 +3604,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut auth_randomizer__ = None;
                 let mut value_blinding__ = None;
                 let mut spends__ = None;
                 let mut outputs__ = None;
@@ -3600,6 +3613,14 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                 let mut compliance__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::AuthRandomizer => {
+                            if auth_randomizer__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authRandomizer"));
+                            }
+                            auth_randomizer__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::ValueBlinding => {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
@@ -3646,6 +3667,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                     }
                 }
                 Ok(NoteReshapePlan {
+                    auth_randomizer: auth_randomizer__.unwrap_or_default(),
                     value_blinding: value_blinding__.unwrap_or_default(),
                     spends: spends__.unwrap_or_default(),
                     outputs: outputs__.unwrap_or_default(),
@@ -5043,7 +5065,7 @@ impl serde::Serialize for ShieldedHostWithdrawal {
         if self.body.is_some() {
             len += 1;
         }
-        if !self.auth_sigs.is_empty() {
+        if self.auth_sig.is_some() {
             len += 1;
         }
         if self.proof.is_some() {
@@ -5053,8 +5075,8 @@ impl serde::Serialize for ShieldedHostWithdrawal {
         if let Some(v) = self.body.as_ref() {
             struct_ser.serialize_field("body", v)?;
         }
-        if !self.auth_sigs.is_empty() {
-            struct_ser.serialize_field("authSigs", &self.auth_sigs)?;
+        if let Some(v) = self.auth_sig.as_ref() {
+            struct_ser.serialize_field("authSig", v)?;
         }
         if let Some(v) = self.proof.as_ref() {
             struct_ser.serialize_field("proof", v)?;
@@ -5070,15 +5092,15 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawal {
     {
         const FIELDS: &[&str] = &[
             "body",
-            "auth_sigs",
-            "authSigs",
+            "auth_sig",
+            "authSig",
             "proof",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Body,
-            AuthSigs,
+            AuthSig,
             Proof,
             __SkipField__,
         }
@@ -5103,7 +5125,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawal {
                     {
                         match value {
                             "body" => Ok(GeneratedField::Body),
-                            "authSigs" | "auth_sigs" => Ok(GeneratedField::AuthSigs),
+                            "authSig" | "auth_sig" => Ok(GeneratedField::AuthSig),
                             "proof" => Ok(GeneratedField::Proof),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -5125,7 +5147,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawal {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut body__ = None;
-                let mut auth_sigs__ = None;
+                let mut auth_sig__ = None;
                 let mut proof__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -5135,11 +5157,11 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawal {
                             }
                             body__ = map_.next_value()?;
                         }
-                        GeneratedField::AuthSigs => {
-                            if auth_sigs__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("authSigs"));
+                        GeneratedField::AuthSig => {
+                            if auth_sig__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authSig"));
                             }
-                            auth_sigs__ = Some(map_.next_value()?);
+                            auth_sig__ = map_.next_value()?;
                         }
                         GeneratedField::Proof => {
                             if proof__.is_some() {
@@ -5154,7 +5176,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawal {
                 }
                 Ok(ShieldedHostWithdrawal {
                     body: body__,
-                    auth_sigs: auth_sigs__.unwrap_or_default(),
+                    auth_sig: auth_sig__,
                     proof: proof__,
                 })
             }
@@ -5170,6 +5192,9 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if self.rk.is_some() {
+            len += 1;
+        }
         if self.family_id != 0 {
             len += 1;
         }
@@ -5210,6 +5235,9 @@ impl serde::Serialize for ShieldedHostWithdrawalBody {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalBody", len)?;
+        if let Some(v) = self.rk.as_ref() {
+            struct_ser.serialize_field("rk", v)?;
+        }
         if self.family_id != 0 {
             struct_ser.serialize_field("familyId", &self.family_id)?;
         }
@@ -5265,6 +5293,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "rk",
             "family_id",
             "familyId",
             "anchor",
@@ -5292,6 +5321,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            Rk,
             FamilyId,
             Anchor,
             BalanceCommitment,
@@ -5327,6 +5357,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                         E: serde::de::Error,
                     {
                         match value {
+                            "rk" => Ok(GeneratedField::Rk),
                             "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
                             "anchor" => Ok(GeneratedField::Anchor),
                             "balanceCommitment" | "balance_commitment" => Ok(GeneratedField::BalanceCommitment),
@@ -5359,6 +5390,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut rk__ = None;
                 let mut family_id__ = None;
                 let mut anchor__ = None;
                 let mut balance_commitment__ = None;
@@ -5374,6 +5406,12 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                 let mut volume_accumulator__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::Rk => {
+                            if rk__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rk"));
+                            }
+                            rk__ = map_.next_value()?;
+                        }
                         GeneratedField::FamilyId => {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
@@ -5466,6 +5504,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalBody {
                     }
                 }
                 Ok(ShieldedHostWithdrawalBody {
+                    rk: rk__,
                     family_id: family_id__.unwrap_or_default(),
                     anchor: anchor__,
                     balance_commitment: balance_commitment__,
@@ -5493,6 +5532,9 @@ impl serde::Serialize for ShieldedHostWithdrawalPlan {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if !self.auth_randomizer.is_empty() {
+            len += 1;
+        }
         if !self.value_blinding.is_empty() {
             len += 1;
         }
@@ -5515,6 +5557,11 @@ impl serde::Serialize for ShieldedHostWithdrawalPlan {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.ShieldedHostWithdrawalPlan", len)?;
+        if !self.auth_randomizer.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("authRandomizer", pbjson::private::base64::encode(&self.auth_randomizer).as_str())?;
+        }
         if !self.value_blinding.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -5548,6 +5595,8 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "auth_randomizer",
+            "authRandomizer",
             "value_blinding",
             "valueBlinding",
             "spends",
@@ -5563,6 +5612,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            AuthRandomizer,
             ValueBlinding,
             Spends,
             ChangeOutput,
@@ -5592,6 +5642,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                         E: serde::de::Error,
                     {
                         match value {
+                            "authRandomizer" | "auth_randomizer" => Ok(GeneratedField::AuthRandomizer),
                             "valueBlinding" | "value_blinding" => Ok(GeneratedField::ValueBlinding),
                             "spends" => Ok(GeneratedField::Spends),
                             "changeOutput" | "change_output" => Ok(GeneratedField::ChangeOutput),
@@ -5618,6 +5669,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut auth_randomizer__ = None;
                 let mut value_blinding__ = None;
                 let mut spends__ = None;
                 let mut change_output__ = None;
@@ -5627,6 +5679,14 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                 let mut volume_accumulator__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::AuthRandomizer => {
+                            if auth_randomizer__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authRandomizer"));
+                            }
+                            auth_randomizer__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::ValueBlinding => {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
@@ -5677,6 +5737,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedHostWithdrawalPlan {
                     }
                 }
                 Ok(ShieldedHostWithdrawalPlan {
+                    auth_randomizer: auth_randomizer__.unwrap_or_default(),
                     value_blinding: value_blinding__.unwrap_or_default(),
                     spends: spends__.unwrap_or_default(),
                     change_output: change_output__,
@@ -6061,9 +6122,6 @@ impl serde::Serialize for ShieldedInputPlan {
         if self.position != 0 {
             len += 1;
         }
-        if !self.randomizer.is_empty() {
-            len += 1;
-        }
         if !self.value_blinding.is_empty() {
             len += 1;
         }
@@ -6075,11 +6133,6 @@ impl serde::Serialize for ShieldedInputPlan {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("position", ToString::to_string(&self.position).as_str())?;
-        }
-        if !self.randomizer.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("randomizer", pbjson::private::base64::encode(&self.randomizer).as_str())?;
         }
         if !self.value_blinding.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -6098,7 +6151,6 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
         const FIELDS: &[&str] = &[
             "note",
             "position",
-            "randomizer",
             "value_blinding",
             "valueBlinding",
         ];
@@ -6107,7 +6159,6 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
         enum GeneratedField {
             Note,
             Position,
-            Randomizer,
             ValueBlinding,
             __SkipField__,
         }
@@ -6133,7 +6184,6 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                         match value {
                             "note" => Ok(GeneratedField::Note),
                             "position" => Ok(GeneratedField::Position),
-                            "randomizer" => Ok(GeneratedField::Randomizer),
                             "valueBlinding" | "value_blinding" => Ok(GeneratedField::ValueBlinding),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -6156,7 +6206,6 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
             {
                 let mut note__ = None;
                 let mut position__ = None;
-                let mut randomizer__ = None;
                 let mut value_blinding__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -6172,14 +6221,6 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             }
                             position__ =
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::Randomizer => {
-                            if randomizer__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("randomizer"));
-                            }
-                            randomizer__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
                         GeneratedField::ValueBlinding => {
@@ -6198,7 +6239,6 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                 Ok(ShieldedInputPlan {
                     note: note__,
                     position: position__.unwrap_or_default(),
-                    randomizer: randomizer__.unwrap_or_default(),
                     value_blinding: value_blinding__.unwrap_or_default(),
                 })
             }
@@ -6631,7 +6671,7 @@ impl serde::Serialize for Transfer {
         if self.body.is_some() {
             len += 1;
         }
-        if !self.auth_sigs.is_empty() {
+        if self.auth_sig.is_some() {
             len += 1;
         }
         if self.proof.is_some() {
@@ -6641,8 +6681,8 @@ impl serde::Serialize for Transfer {
         if let Some(v) = self.body.as_ref() {
             struct_ser.serialize_field("body", v)?;
         }
-        if !self.auth_sigs.is_empty() {
-            struct_ser.serialize_field("authSigs", &self.auth_sigs)?;
+        if let Some(v) = self.auth_sig.as_ref() {
+            struct_ser.serialize_field("authSig", v)?;
         }
         if let Some(v) = self.proof.as_ref() {
             struct_ser.serialize_field("proof", v)?;
@@ -6658,15 +6698,15 @@ impl<'de> serde::Deserialize<'de> for Transfer {
     {
         const FIELDS: &[&str] = &[
             "body",
-            "auth_sigs",
-            "authSigs",
+            "auth_sig",
+            "authSig",
             "proof",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Body,
-            AuthSigs,
+            AuthSig,
             Proof,
             __SkipField__,
         }
@@ -6691,7 +6731,7 @@ impl<'de> serde::Deserialize<'de> for Transfer {
                     {
                         match value {
                             "body" => Ok(GeneratedField::Body),
-                            "authSigs" | "auth_sigs" => Ok(GeneratedField::AuthSigs),
+                            "authSig" | "auth_sig" => Ok(GeneratedField::AuthSig),
                             "proof" => Ok(GeneratedField::Proof),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -6713,7 +6753,7 @@ impl<'de> serde::Deserialize<'de> for Transfer {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut body__ = None;
-                let mut auth_sigs__ = None;
+                let mut auth_sig__ = None;
                 let mut proof__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -6723,11 +6763,11 @@ impl<'de> serde::Deserialize<'de> for Transfer {
                             }
                             body__ = map_.next_value()?;
                         }
-                        GeneratedField::AuthSigs => {
-                            if auth_sigs__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("authSigs"));
+                        GeneratedField::AuthSig => {
+                            if auth_sig__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authSig"));
                             }
-                            auth_sigs__ = Some(map_.next_value()?);
+                            auth_sig__ = map_.next_value()?;
                         }
                         GeneratedField::Proof => {
                             if proof__.is_some() {
@@ -6742,7 +6782,7 @@ impl<'de> serde::Deserialize<'de> for Transfer {
                 }
                 Ok(Transfer {
                     body: body__,
-                    auth_sigs: auth_sigs__.unwrap_or_default(),
+                    auth_sig: auth_sig__,
                     proof: proof__,
                 })
             }
@@ -6758,6 +6798,9 @@ impl serde::Serialize for TransferBody {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if self.rk.is_some() {
+            len += 1;
+        }
         if self.anchor.is_some() {
             len += 1;
         }
@@ -6792,6 +6835,9 @@ impl serde::Serialize for TransferBody {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferBody", len)?;
+        if let Some(v) = self.rk.as_ref() {
+            struct_ser.serialize_field("rk", v)?;
+        }
         if let Some(v) = self.anchor.as_ref() {
             struct_ser.serialize_field("anchor", v)?;
         }
@@ -6841,6 +6887,7 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "rk",
             "anchor",
             "balance_commitment",
             "balanceCommitment",
@@ -6863,6 +6910,7 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            Rk,
             Anchor,
             BalanceCommitment,
             Inputs,
@@ -6896,6 +6944,7 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                         E: serde::de::Error,
                     {
                         match value {
+                            "rk" => Ok(GeneratedField::Rk),
                             "anchor" => Ok(GeneratedField::Anchor),
                             "balanceCommitment" | "balance_commitment" => Ok(GeneratedField::BalanceCommitment),
                             "inputs" => Ok(GeneratedField::Inputs),
@@ -6926,6 +6975,7 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut rk__ = None;
                 let mut anchor__ = None;
                 let mut balance_commitment__ = None;
                 let mut inputs__ = None;
@@ -6939,6 +6989,12 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                 let mut proof_context__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::Rk => {
+                            if rk__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rk"));
+                            }
+                            rk__ = map_.next_value()?;
+                        }
                         GeneratedField::Anchor => {
                             if anchor__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("anchor"));
@@ -7015,6 +7071,7 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                     }
                 }
                 Ok(TransferBody {
+                    rk: rk__,
                     anchor: anchor__,
                     balance_commitment: balance_commitment__,
                     inputs: inputs__.unwrap_or_default(),
@@ -7197,9 +7254,6 @@ impl serde::Serialize for TransferInputBody {
         if self.nullifier.is_some() {
             len += 1;
         }
-        if self.rk.is_some() {
-            len += 1;
-        }
         if !self.encrypted_backref.is_empty() {
             len += 1;
         }
@@ -7212,9 +7266,6 @@ impl serde::Serialize for TransferInputBody {
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferInputBody", len)?;
         if let Some(v) = self.nullifier.as_ref() {
             struct_ser.serialize_field("nullifier", v)?;
-        }
-        if let Some(v) = self.rk.as_ref() {
-            struct_ser.serialize_field("rk", v)?;
         }
         if !self.encrypted_backref.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -7240,7 +7291,6 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
     {
         const FIELDS: &[&str] = &[
             "nullifier",
-            "rk",
             "encrypted_backref",
             "encryptedBackref",
             "compliance_ciphertext",
@@ -7252,7 +7302,6 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Nullifier,
-            Rk,
             EncryptedBackref,
             ComplianceCiphertext,
             HistoryRequired,
@@ -7279,7 +7328,6 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                     {
                         match value {
                             "nullifier" => Ok(GeneratedField::Nullifier),
-                            "rk" => Ok(GeneratedField::Rk),
                             "encryptedBackref" | "encrypted_backref" => Ok(GeneratedField::EncryptedBackref),
                             "complianceCiphertext" | "compliance_ciphertext" => Ok(GeneratedField::ComplianceCiphertext),
                             "historyRequired" | "history_required" => Ok(GeneratedField::HistoryRequired),
@@ -7303,7 +7351,6 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut nullifier__ = None;
-                let mut rk__ = None;
                 let mut encrypted_backref__ = None;
                 let mut compliance_ciphertext__ = None;
                 let mut history_required__ = None;
@@ -7314,12 +7361,6 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                                 return Err(serde::de::Error::duplicate_field("nullifier"));
                             }
                             nullifier__ = map_.next_value()?;
-                        }
-                        GeneratedField::Rk => {
-                            if rk__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("rk"));
-                            }
-                            rk__ = map_.next_value()?;
                         }
                         GeneratedField::EncryptedBackref => {
                             if encrypted_backref__.is_some() {
@@ -7350,7 +7391,6 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                 }
                 Ok(TransferInputBody {
                     nullifier: nullifier__,
-                    rk: rk__,
                     encrypted_backref: encrypted_backref__.unwrap_or_default(),
                     compliance_ciphertext: compliance_ciphertext__.unwrap_or_default(),
                     history_required: history_required__.unwrap_or_default(),
@@ -7552,6 +7592,9 @@ impl serde::Serialize for TransferPlan {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
+        if !self.auth_randomizer.is_empty() {
+            len += 1;
+        }
         if !self.value_blinding.is_empty() {
             len += 1;
         }
@@ -7574,6 +7617,11 @@ impl serde::Serialize for TransferPlan {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferPlan", len)?;
+        if !self.auth_randomizer.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("authRandomizer", pbjson::private::base64::encode(&self.auth_randomizer).as_str())?;
+        }
         if !self.value_blinding.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -7609,6 +7657,8 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "auth_randomizer",
+            "authRandomizer",
             "value_blinding",
             "valueBlinding",
             "spends",
@@ -7624,6 +7674,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            AuthRandomizer,
             ValueBlinding,
             Spends,
             Outputs,
@@ -7653,6 +7704,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                         E: serde::de::Error,
                     {
                         match value {
+                            "authRandomizer" | "auth_randomizer" => Ok(GeneratedField::AuthRandomizer),
                             "valueBlinding" | "value_blinding" => Ok(GeneratedField::ValueBlinding),
                             "spends" => Ok(GeneratedField::Spends),
                             "outputs" => Ok(GeneratedField::Outputs),
@@ -7679,6 +7731,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                 where
                     V: serde::de::MapAccess<'de>,
             {
+                let mut auth_randomizer__ = None;
                 let mut value_blinding__ = None;
                 let mut spends__ = None;
                 let mut outputs__ = None;
@@ -7688,6 +7741,14 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                 let mut proof_context__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
+                        GeneratedField::AuthRandomizer => {
+                            if auth_randomizer__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("authRandomizer"));
+                            }
+                            auth_randomizer__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
                         GeneratedField::ValueBlinding => {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
@@ -7738,6 +7799,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                     }
                 }
                 Ok(TransferPlan {
+                    auth_randomizer: auth_randomizer__.unwrap_or_default(),
                     value_blinding: value_blinding__.unwrap_or_default(),
                     spends: spends__.unwrap_or_default(),
                     outputs: outputs__.unwrap_or_default(),

@@ -3,6 +3,27 @@ use group::{Group, GroupEncoding};
 use shieldd_sdk_transaction::{is_no_binding_signature, Action, Transaction};
 use shieldd_sdk_txhash::AuthorizingData;
 
+pub(crate) fn distinct_spend_keys(tx: &Transaction) -> Result<()> {
+    let mut keys = std::collections::BTreeSet::new();
+    let body = tx.transaction_body();
+    for rk in tx
+        .actions()
+        .filter_map(|action| match action {
+            Action::Transfer(action) => Some(action.body.rk),
+            Action::NoteReshape(action) => Some(action.body.rk),
+            Action::ShieldedHostWithdrawal(action) => Some(action.body.rk),
+            _ => None,
+        })
+        .chain(body.fee_funding.iter().map(|fee| fee.transfer.body.rk))
+    {
+        anyhow::ensure!(
+            keys.insert(<[u8; 32]>::from(rk)),
+            "duplicate action spend key"
+        );
+    }
+    Ok(())
+}
+
 fn note_creating_output_count(tx: &Transaction) -> usize {
     let action_outputs = tx
         .actions()
@@ -103,6 +124,7 @@ mod tests {
         let mut tx = Transaction::default();
         tx.transaction_body.actions.push(Action::Transfer(Transfer {
             body: TransferBody {
+                rk: *shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.spend_verification_key(),
                 anchor: tx.anchor,
                 balance_commitment: Balance::default().commit(blinding),
                 inputs: Vec::new(),
@@ -116,10 +138,42 @@ mod tests {
                     shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                 proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
             },
-            auth_sigs: Vec::new(),
+            auth_sig: [0; 64].into(),
             proof: TransferProof::default(),
         }));
         tx
+    }
+
+    #[test]
+    fn duplicate_action_keys_include_fee_funding() {
+        let mut tx = transaction_with_binding_blinding(Fr::from(7));
+        distinct_spend_keys(&tx).unwrap();
+        let Action::Transfer(transfer) = tx.transaction_body.actions[0].clone() else {
+            unreachable!()
+        };
+        tx.transaction_body
+            .actions
+            .push(Action::Transfer(transfer.clone()));
+        assert!(distinct_spend_keys(&tx)
+            .unwrap_err()
+            .to_string()
+            .contains("duplicate action spend key"));
+        tx.transaction_body.actions.pop();
+        tx.transaction_body.fee_funding = Some(shieldd_sdk_transaction::FeeFunding { transfer });
+        assert!(distinct_spend_keys(&tx)
+            .unwrap_err()
+            .to_string()
+            .contains("duplicate action spend key"));
+        tx.transaction_body
+            .fee_funding
+            .as_mut()
+            .unwrap()
+            .transfer
+            .body
+            .rk = VerificationKey::from(
+            &SigningKey::<SpendAuth>::try_from(Fr::from(11).to_bytes()).unwrap(),
+        );
+        distinct_spend_keys(&tx).unwrap();
     }
 
     #[test]
@@ -181,25 +235,24 @@ mod tests {
     }
 
     #[test]
-    fn proof_bearing_transaction_rejects_identity_binding_key_signature_permutation() {
+    fn proof_bearing_transaction_rejects_identity_binding_key_signature_replacement() {
         let signing_key = SigningKey::<SpendAuth>::try_from(Fr::from(9u64).to_bytes()).unwrap();
         let rk = VerificationKey::from(&signing_key);
         let mut tx = Transaction::default();
         tx.transaction_body.actions.push(Action::Transfer(Transfer {
             body: TransferBody {
+                rk,
                 anchor: tx.anchor,
                 balance_commitment: Balance::default().commit(Fr::from(0u64)),
                 inputs: vec![
                     TransferInputBody {
                         nullifier: Nullifier(Fq::from(1u64)),
-                        rk,
                         encrypted_backref: EncryptedBackref::dummy(),
                         compliance_ciphertext: Vec::new(),
                         history_required: false,
                     },
                     TransferInputBody {
                         nullifier: Nullifier(Fq::from(2u64)),
-                        rk,
                         encrypted_backref: EncryptedBackref::dummy(),
                         compliance_ciphertext: Vec::new(),
                         history_required: false,
@@ -215,7 +268,7 @@ mod tests {
                     shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding(),
                 proof_context: shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
             },
-            auth_sigs: Vec::new(),
+            auth_sig: [0; 64].into(),
             proof: TransferProof::default(),
         }));
         assert!(
@@ -234,31 +287,27 @@ mod tests {
         let Action::Transfer(transfer) = &mut tx.transaction_body.actions[0] else {
             unreachable!("test constructed a Transfer")
         };
-        transfer.auth_sigs = vec![first, second];
-        for signature in &transfer.auth_sigs {
-            rk.verify(effect_hash.as_ref(), signature)
-                .expect("both original slots verify under the shared randomized key");
-        }
+        transfer.auth_sig = first;
+        rk.verify(effect_hash.as_ref(), &transfer.auth_sig)
+            .expect("original action authorization verifies");
         let original_auth_hash = tx.auth_hash();
         let original_id = tx.id();
 
         let Action::Transfer(transfer) = &mut tx.transaction_body.actions[0] else {
             unreachable!("test constructed a Transfer")
         };
-        transfer.auth_sigs.swap(0, 1);
-        for signature in &transfer.auth_sigs {
-            rk.verify(effect_hash.as_ref(), signature)
-                .expect("permuted signatures remain valid under the shared randomized key");
-        }
+        transfer.auth_sig = second;
+        rk.verify(effect_hash.as_ref(), &transfer.auth_sig)
+            .expect("replacement authorization also verifies");
         assert_ne!(
             original_auth_hash,
             tx.auth_hash(),
-            "ordered spend authorizations must be part of the authorization hash"
+            "exact spend authorization bytes must be part of the authorization hash"
         );
         assert_ne!(
             original_id,
             tx.id(),
-            "signature permutation must change the transaction identifier"
+            "signature replacement must change the transaction identifier"
         );
 
         let error = valid_binding_signature(&tx)
@@ -283,17 +332,19 @@ mod tests {
         let Action::Transfer(transfer) = &mut tx.transaction_body.actions[0] else {
             unreachable!("test constructed a Transfer")
         };
-        transfer.auth_sigs = vec![bound_first, bound_second];
+        transfer.auth_sig = bound_first;
         tx.binding_sig = binding_signing_key.sign(rand_core::OsRng, tx.auth_hash().as_bytes());
         valid_binding_signature(&tx)
-            .expect("a nonidentity binding key authenticates the original signature ordering");
+            .expect("a nonidentity binding key authenticates the original signature bytes");
 
         let Action::Transfer(transfer) = &mut tx.transaction_body.actions[0] else {
             unreachable!("test constructed a Transfer")
         };
-        transfer.auth_sigs.swap(0, 1);
+        transfer.auth_sig = bound_second;
+        rk.verify(bound_effect_hash.as_ref(), &transfer.auth_sig)
+            .expect("replacement authorization verifies");
         let bound_error = valid_binding_signature(&tx)
-            .expect_err("the binding signature must reject a spend-signature permutation");
+            .expect_err("the binding signature must reject a spend-signature replacement");
         assert!(
             bound_error
                 .to_string()

@@ -38,9 +38,6 @@ impl NoteReshapeFamilyId {
     pub fn max_real_outputs(self) -> usize {
         self.spec().max_real_outputs
     }
-    pub fn auth_sig_count(self) -> usize {
-        self.input_count()
-    }
     pub fn is_many_to_one(self) -> bool {
         self.output_count() == 1
     }

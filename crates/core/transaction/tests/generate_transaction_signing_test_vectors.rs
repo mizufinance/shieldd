@@ -260,13 +260,20 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
             nullifier_window: None,
         };
         for action in &mut plan.actions {
-            let nonce = match action {
-                ActionPlan::Transfer(plan) => &mut plan.compliance.nonce,
-                ActionPlan::NoteReshape(plan) => &mut plan.compliance.nonce,
-                ActionPlan::ShieldedHostWithdrawal(plan) => &mut plan.compliance.nonce,
+            let (nonce, randomizer) = match action {
+                ActionPlan::Transfer(plan) => {
+                    (&mut plan.compliance.nonce, &mut plan.auth_randomizer)
+                }
+                ActionPlan::NoteReshape(plan) => {
+                    (&mut plan.compliance.nonce, &mut plan.auth_randomizer)
+                }
+                ActionPlan::ShieldedHostWithdrawal(plan) => {
+                    (&mut plan.compliance.nonce, &mut plan.auth_randomizer)
+                }
                 _ => continue,
             };
             *nonce = Fr::random(&mut OsRng);
+            *randomizer = Fr::random(&mut OsRng);
         }
         if plan.num_spends() > 0 {
             plan.nullifier_window = Some(NullifierWindow {
