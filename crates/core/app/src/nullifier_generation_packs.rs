@@ -365,16 +365,6 @@ async fn ensure_pack<S: StateRead + ?Sized>(
     Ok(receipt)
 }
 
-pub async fn repair_pack<S: StateRead + ?Sized>(
-    state: &S,
-    repository: &GenerationPackRepository,
-    generation_index: u64,
-) -> Result<()> {
-    let archived = nullifier_tree::archived_generation(state, generation_index).await?;
-    ensure_pack(state, repository, archived).await?;
-    Ok(())
-}
-
 async fn recover_from_compact_blocks<S: StateRead + ?Sized>(
     state: &S,
     repository: &GenerationPackRepository,
@@ -553,7 +543,8 @@ mod tests {
         Ok(())
     }
     #[tokio::test]
-    async fn generation_local_history_repairs_missing_archive_after_pruning() -> Result<()> {
+    async fn generation_local_history_repairs_missing_and_corrupt_archives_after_pruning(
+    ) -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
         seed(&mut state).await?;
@@ -576,6 +567,25 @@ mod tests {
                 .nonmembership_proof(archived, nf(value))?
                 .verify_for(nf(value))?;
         }
+        assert!(repository.nonmembership_proof(archived, nf(0)).is_err());
+        // The manifest can be valid while the immutable data at its digest is damaged.
+        // Rebuilding must restore that data from canonical history after expanded state is gone.
+        let data = std::fs::read_dir(directory.path())?
+            .collect::<std::io::Result<Vec<_>>>()?
+            .into_iter()
+            .map(|entry| entry.path())
+            .find(|path| {
+                path.extension()
+                    .is_some_and(|extension| extension == "data")
+            })
+            .context("archive data file")?;
+        std::fs::write(&data, b"truncated")?;
+        let cold = GenerationPackRepository::new(directory.path().to_path_buf(), 0)?;
+        assert!(cold.nonmembership_proof(archived, nf(8)).is_err());
+        ensure_pack(&snapshot, &repository, archived).await?;
+        repository
+            .nonmembership_proof(archived, nf(8))?
+            .verify_for(nf(8))?;
         assert!(repository.nonmembership_proof(archived, nf(0)).is_err());
         // A corrupted manifest is quarantined; a gap in canonical coverage fails closed.
         std::fs::write(repository.path(0), b"corrupt")?;

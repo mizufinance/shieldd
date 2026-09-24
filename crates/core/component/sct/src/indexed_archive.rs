@@ -470,7 +470,21 @@ impl Repository {
         match data.persist_noclobber(&data_path) {
             Ok(_) => {}
             Err(e) if e.error.kind() == std::io::ErrorKind::AlreadyExists => {
-                validate_file(&mut File::open(&data_path)?, &manifest)?;
+                if validate_file(&mut File::open(&data_path)?, &manifest).is_err() {
+                    // Repair only unpublished, invalid data, after the replacement
+                    // has passed complete validation against the committed root.
+                    ensure!(
+                        !self.path(archived.generation_index).try_exists()?,
+                        "quarantine the invalid manifest before repairing archive data"
+                    );
+                    let quarantine = tempfile::Builder::new()
+                        .prefix(".corrupt-data-")
+                        .tempfile_in(self.directory())?;
+                    fs::rename(&data_path, quarantine.path())?;
+                    e.file
+                        .persist_noclobber(&data_path)
+                        .map_err(|error| error.error)?;
+                }
             }
             Err(e) => return Err(e.error.into()),
         }
@@ -924,6 +938,16 @@ mod tests {
         fs::write(&path, &original[..original.len() - 1])?;
         assert!(repository.verify(archived).is_err());
         assert!(repository.ready_receipt(0)?.is_none());
+        assert!(repository
+            .write_stream(archived, values.into_iter().map(Ok))
+            .is_err());
+        assert_eq!(fs::read(&path)?, original[..original.len() - 1]);
+        repository.quarantine(0)?;
+        repository.write_stream(archived, values.into_iter().map(Ok))?;
+        assert_eq!(fs::read(&path)?, original);
+        let cold = Repository::new(directory.path().to_path_buf(), 0)?;
+        cold.nonmembership_proof(archived, nf(8))?
+            .verify_for(nf(8))?;
         Ok(())
     }
     #[test]
