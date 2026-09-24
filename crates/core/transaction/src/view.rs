@@ -1,5 +1,5 @@
 use anyhow::Context;
-use decaf377_rdsa::{Binding, Signature};
+use reddsa::{sapling::Binding, Signature};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_keys::AddressView;
@@ -436,9 +436,9 @@ impl TryFrom<pbt::MemoPlaintextView> for MemoPlaintextView {
 
 #[cfg(test)]
 mod tests {
-    use decaf377::{Fq, Fr};
-    use decaf377_rdsa::{SigningKey, SpendAuth};
+    use reddsa::{sapling::SpendAuth, SigningKey};
     use shieldd_sdk_asset::{Balance, Value, ValueView, BASE_ASSET_ID};
+    use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_keys::{
         symmetric::{OvkWrappedKey, PayloadKey, WrappedMemoKey},
         AddressView,
@@ -488,7 +488,7 @@ mod tests {
                 asset_id: *BASE_ASSET_ID,
             },
             Rseed([2u8; 32]),
-            decaf377::Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
         )
         .expect("valid change note");
 
@@ -503,8 +503,7 @@ mod tests {
                                 balance_commitment: Balance::default().commit(Fr::from(1u64)),
                                 inputs: vec![TransferInputBody {
                                     nullifier: Nullifier(Fq::from(1u64)),
-                                    rk: decaf377_rdsa::VerificationKey::from(
-                                        SigningKey::<SpendAuth>::from(Fr::from(2u64)),
+                                    rk: reddsa::VerificationKey::from(&SigningKey::<SpendAuth>::try_from((Fr::from(2u64)).to_bytes()).expect("canonical key"),
                                     ),
                                     encrypted_backref: EncryptedBackref::try_from([1u8; 48])
                                         .expect("fixed-size encrypted backref"),
@@ -532,7 +531,7 @@ mod tests {
                                 routing_parameter_set_id: Fq::from(0u64),
                                 withdrawal_compliance_ciphertext:
                                     shieldd_sdk_compliance::WithdrawalComplianceCiphertext {
-                                        epk: decaf377::Element::GENERATOR,
+                                        epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
                                         c2: Fq::from(6u64),
                                         key_confirmation: Fq::from(7u64),
                                         encrypted_sender_address: [0u8; 96],

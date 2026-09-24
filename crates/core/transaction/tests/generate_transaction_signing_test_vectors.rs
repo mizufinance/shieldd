@@ -1,10 +1,11 @@
-use decaf377::Fr;
+use ff::Field;
 use proptest::prelude::*;
 use proptest::strategy::ValueTree;
 use proptest::test_runner::TestRunner;
 use rand::{rngs::StdRng, SeedableRng};
 use rand_core::{CryptoRng, Error as RandError, RngCore};
 use shieldd_sdk_asset::{asset::Id, Value};
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_fee::Fee;
 use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use shieldd_sdk_keys::test_keys::SEED_PHRASE;
@@ -117,7 +118,7 @@ fn shielded_host_withdrawal_plan_strategy(
                 vec![ShieldedInputPlan::new(&mut OsRng, note, position)],
                 None,
                 withdrawal,
-                Fr::rand(&mut OsRng),
+                Fr::random(&mut OsRng),
             )
             .expect("valid host withdrawal plan")
         })
@@ -142,7 +143,7 @@ fn transfer_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Transfe
             shieldd_sdk_shielded_pool::test_plan_helpers::transfer(
                 vec![spend],
                 vec![output],
-                Fr::rand(&mut OsRng),
+                Fr::random(&mut OsRng),
             )
             .expect("valid transfer plan")
         })
@@ -175,7 +176,7 @@ fn note_reshape_two_to_one_plan_strategy(
                     ShieldedInputPlan::new(&mut OsRng, note_2, pos_2).into(),
                 ],
                 vec![output.into()],
-                Fr::rand(&mut OsRng),
+                Fr::random(&mut OsRng),
             )
             .expect("valid note reshape plan")
         })
@@ -216,7 +217,7 @@ fn note_reshape_one_to_eight_plan_strategy(
                 NoteReshapeFamilyId::OneByEight,
                 vec![ShieldedInputPlan::new(&mut OsRng, note, position).into()],
                 outputs,
-                Fr::rand(&mut OsRng),
+                Fr::random(&mut OsRng),
             )
             .expect("valid note reshape plan")
         })
@@ -265,7 +266,7 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
                 ActionPlan::ShieldedHostWithdrawal(plan) => &mut plan.compliance.nonce,
                 _ => continue,
             };
-            *nonce = Fr::rand(&mut OsRng);
+            *nonce = Fr::random(&mut OsRng);
         }
         if plan.num_spends() > 0 {
             plan.nullifier_window = Some(NullifierWindow {

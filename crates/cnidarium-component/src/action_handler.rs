@@ -5,33 +5,23 @@ use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 
 #[async_trait]
-/// Defines the interface for handling transaction actions.
+/// Validates and executes individual transaction actions.
 ///
-/// Block-wide execution is performed using the [`Component`](crate::Component)
-/// trait.  Per-transaction execution is performed using the `ActionHandler`
-/// trait.
+/// [`Component`](crate::Component) handles block-wide lifecycle work. The caller
+/// performs transaction-wide validation and invokes these action-level phases:
 ///
-/// The `ActionHandler` trait has a top-level implementation on [`Transaction`],
-/// which performs any transaction-wide checks and then calls the
-/// `ActionHandler` implementation for each [`Action`](shieldd_sdk_transaction::Action).
+/// - [`Self::check_stateless`] uses only [`Self::CheckStatelessContext`].
+/// - [`Self::check_historical`] reads a snapshot and may check only facts that
+///   remain valid when earlier actions change state.
+/// - [`Self::check_and_execute`] validates current facts and applies writes.
 ///
-/// The validation logic in the `ActionHandler` trait is split into three phases:
-///
-/// * [`ActionHandler::check_stateless`], which has no access to chain state, only to the [`CheckStatelessContext`];
-/// * [`ActionHandler::check_stateful`], which has read access to a snapshot of state prior to transaction execution;
-/// * [`ActionHandler::execute`], which has write access to the state and read access to its own writes.
-///
-/// All of these methods are asynchronous and fallible; an error at any level
-/// fails the transaction and aborts any in-progress execution.
-///
-/// These methods are described in more detail below, but in general, as much
-/// work as possible should be pushed up the stack, where greater parallelism is
-/// available, with checks performed in `execute` only as a last resort.
+/// Errors abort admission or execution. The caller must isolate staged writes
+/// and discard them on failure; this trait does not supply transaction rollback.
 pub trait ActionHandler {
     /// Context for stateless validity checks, like the transaction containing the action.
     type CheckStatelessContext: Clone + Send + Sync + 'static;
     /// Performs all of this action's stateless validity checks in the
-    /// `context` of some [`Transaction`].
+    /// transaction-wide `context`.
     ///
     /// This method is `async` to make it easy to perform stateless validity
     /// checks in parallel, by allowing `ActionHandler` implementations to
@@ -73,28 +63,10 @@ pub trait ActionHandler {
         Ok(())
     }
 
-    /// Attempts to execute this action against the provided `state`.
+    /// Validate current state and execute this action after the earlier check phases.
     ///
-    /// This method provides read and write access to the `state`. It is
-    /// fallible, so it's possible to perform checks within the `check_and_execute`
-    /// implementation and abort execution on error; the [`StateTransaction`]
-    /// mechanism ensures that all writes are correctly discarded.
-    ///
-    /// Because `execute` must run sequentially, whenever possible, checks
-    /// should be performed in [`ActionHandler::check_stateless`], or (more carefully) in
-    /// [`ActionHandler::check_historical`].  One example of where this is not
-    /// possible (in fact, the motivating example) is for IBC, where a
-    /// transaction may (1) submit a client update and then (2) relay messages
-    /// valid relative to the newly updated state.  In this case, the checks for
-    /// (2) must be performed during execution, as they depend on the state
-    /// changes written while processing the client update.
-    ///
-    /// However, this data flow pattern should be avoided whenever possible.
-    ///
-    /// # Invariants
-    ///
-    /// This method should only be called after an invocation of
-    /// [`ActionHandler::check_historical`] on the same transaction.  This method
-    /// can be called before [`Component::begin_block`](crate::Component::begin_block).
+    /// The caller must discard staged writes if execution fails. Checks that can
+    /// be invalidated by earlier actions belong here, not in `check_historical`.
+    /// Current-state checks and writes run sequentially within the transaction.
     async fn check_and_execute<S: StateWrite>(&self, state: S) -> Result<()>;
 }

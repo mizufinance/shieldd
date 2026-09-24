@@ -3,7 +3,7 @@ syntax = "proto3";
 package shieldd.custody.threshold.v1;
 
 import "shieldd/core/transaction/v1/transaction.proto";
-import "shieldd/crypto/decaf377_frost/v1/decaf377_frost.proto";
+import "shieldd/crypto/redjubjub_frost/v1/redjubjub_frost.proto";
 
 // A key one can use to verify signatures.
 //
@@ -33,7 +33,7 @@ message CoordinatorRound2 {
     // The serialization of a FROST identifier.
     bytes identifier = 1;
     // The commitments this person has produced for this round of signing.
-    crypto.decaf377_frost.v1.SigningCommitments commitments = 2;
+    crypto.redjubjub_frost.v1.SigningCommitments commitments = 2;
   }
 
   // A FROST signing package without a message.
@@ -54,7 +54,7 @@ message FollowerRound1 {
   // The inner message that will be signed by the follower.
   message Inner {
     // One signing commitment pair for each signature requested by the plan, in order.
-    repeated crypto.decaf377_frost.v1.SigningCommitments commitments = 1;
+    repeated crypto.redjubjub_frost.v1.SigningCommitments commitments = 1;
   }
 
   Inner inner = 1;
@@ -69,7 +69,7 @@ message FollowerRound2 {
   // The inner message that will be signed by the follower.
   message Inner {
     // One share for each signature requested by the plan, in order.
-    repeated crypto.decaf377_frost.v1.SignatureShare shares = 1;
+    repeated crypto.redjubjub_frost.v1.SignatureShare shares = 1;
   }
 
   Inner inner = 1;
@@ -82,7 +82,7 @@ message FollowerRound2 {
 // The first message we broadcast in the DKG protocol.
 message DKGRound1 {
   // The package we're sending to other people
-  crypto.decaf377_frost.v1.DKGRound1Package pkg = 1;
+  crypto.redjubjub_frost.v1.DKGRound1Package pkg = 1;
   // A commitment to a share of the nullifier-deriving key
   bytes nullifier_commitment = 2;
   // An encryption key for the second round.

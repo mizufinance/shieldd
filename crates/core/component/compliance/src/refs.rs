@@ -9,7 +9,7 @@ use shieldd_sdk_txhash::TransactionId;
 
 /// Reference to a block by height, hash, parent hash, and optional Unix
 /// timestamp.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BlockRef {
     pub height: u64,
     pub block_hash: [u8; 32],
@@ -20,7 +20,7 @@ pub struct BlockRef {
 /// Lightweight reference to a transaction inside a block.
 /// `block` identifies the containing block, `tx_index` its position, and
 /// `tx_hash` the canonical transaction id.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TxRef {
     pub block: BlockRef,
     pub tx_index: u32,
@@ -30,7 +30,7 @@ pub struct TxRef {
 /// Reference to an action inside a transaction.
 /// `tx` identifies the containing transaction and `action_index` is the
 /// zero-based action position.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ActionRef {
     pub tx: TxRef,
     pub action_index: u32,
@@ -38,14 +38,14 @@ pub struct ActionRef {
 
 /// Reference to a specific output of an action.
 /// `action` identifies the containing action and `output_index` is zero-based.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct OutputRef {
     pub action: ActionRef,
     pub output_index: u32,
 }
 
 /// Canonical reference to the action record carrying compliance ciphertext.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ComplianceRecordRef {
     TransferOutput(OutputRef),
     HostWithdrawal(ActionRef),

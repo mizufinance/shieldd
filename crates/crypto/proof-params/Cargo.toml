@@ -6,55 +6,21 @@ description = "Shieldd proof parameters"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
-# Large proving artifacts are external to this crate. Repository builds that
-# enable `bundled-proving-keys` must materialize the runtime proving-key bundle.
-
-[build-dependencies]
-serde = {workspace = true, features = ["derive"]}
-serde_json = {workspace = true}
-sha2 = {workspace = true}
-hex = {workspace = true}
-anyhow = {workspace = true}
-
-[features]
-default = []
-bundled-proving-keys = []
-parallel = [
-    "dep:rayon",
-    "ark-ff/parallel",
-    "decaf377/parallel",
-    "ark-groth16/parallel",
-    "ark-std/parallel",
-]
-
 [dependencies]
+shieldd-sdk-circuits.workspace = true
+shieldd-sdk-crypto.workspace = true
+commonware-cryptography.workspace = true
+commonware-codec.workspace = true
+commonware-parallel.workspace = true
+rand10.workspace = true
 anyhow = {workspace = true}
-ark-ec = {workspace = true}
-ark-bw6-761 = {workspace = true}
-ark-ff = {workspace = true, default-features = false}
-ark-groth16 = {workspace = true, default-features = false}
-ark-serialize = {workspace = true}
-ark-snark = {workspace = true}
-ark-std = {workspace = true, default-features = false}
-bech32 = {workspace = true}
-decaf377 = {workspace = true, default-features = true}
 hex = {workspace = true}
-num-bigint = {workspace = true}
-once_cell = {workspace = true}
-poseidon377 = {workspace = true}
-rand = {workspace = true}
-rand_core = {workspace = true, features = ["getrandom"]}
-rayon = { version = "1.10", optional = true }
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
-tracing = {workspace = true}
 
 [dev-dependencies]
-ark-r1cs-std = {workspace = true}
-ark-relations = {workspace = true}
-rand_chacha = {workspace = true}
-shieldd-sdk-sct = { workspace = true, default-features = false, features = ["std"] }
+tempfile.workspace = true
 
 [package.metadata.docs.rs]
 features = [] # docs.rs

@@ -12,127 +12,6 @@ mkdir -p "$COMPLIANCE_TMP"
 export COMPLIANCE_TMP
 export ORBIS_RUNTIME_FILE
 
-gnark_lib_ext() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "dylib"
-    elif [[ "$OSTYPE" == "linux"* ]]; then
-        echo "so"
-    else
-        echo "dylib"
-    fi
-}
-
-export_demo_gnark_env() {
-    local ext
-    ext="$(gnark_lib_ext)"
-
-    export SHIELDD_GNARK_TRANSFER_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_transfer.${ext}"
-    export SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/transfer"
-
-    export SHIELDD_GNARK_NOTE_RESHAPE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_note_reshape.${ext}"
-
-    export SHIELDD_GNARK_SHIELDED_WITHDRAWAL_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_shielded_withdrawal.${ext}"
-    export SHIELDD_GNARK_SHIELDED_WITHDRAWAL_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/shielded_withdrawal"
-}
-
-export_compliance_rust_log() {
-    if [ -z "${RUST_LOG:-}" ]; then
-        export RUST_LOG="info"
-    fi
-}
-
-export_compliance_rust_log
-
-gnark_symbol_grep() {
-    local lib_path="$1"
-    local symbol="$2"
-
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        nm -gU "$lib_path" 2>/dev/null | grep -q "$symbol"
-    else
-        nm -D --defined-only "$lib_path" 2>/dev/null | grep -q "$symbol"
-    fi
-}
-
-validate_demo_gnark_lib() {
-    local lib_path="$1"
-    local symbol="$2"
-
-    [ -f "$lib_path" ] || return 1
-
-    if command -v python3 >/dev/null 2>&1; then
-        python3 - "$lib_path" >/dev/null 2>&1 <<'PY'
-import ctypes
-import sys
-
-ctypes.CDLL(sys.argv[1])
-PY
-    else
-        gnark_symbol_grep "$lib_path" "$symbol" || return 1
-    fi
-
-    gnark_symbol_grep "$lib_path" "$symbol"
-}
-
-build_demo_gnark_libs() {
-    command -v go >/dev/null 2>&1 || {
-        log_error "go not found in PATH; cannot rebuild demo gnark libraries"
-        return 1
-    }
-
-    (
-        cd "$COMPLIANCE_REPO_ROOT/tools/gnark"
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_note_reshape.$(gnark_lib_ext)" ./cmd/note_reshapelib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_transfer.$(gnark_lib_ext)" ./cmd/transferlib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_shielded_withdrawal.$(gnark_lib_ext)" ./cmd/shieldedwithdrawallib
-    )
-}
-
-ensure_demo_gnark_libs() {
-    local ext
-    ext="$(gnark_lib_ext)"
-    local needs_rebuild=0
-    local lib_path
-
-    for spec in \
-        "note_reshape:shieldd_gnark_note_reshape_init" \
-        "transfer:shieldd_gnark_transfer_init" \
-        "shielded_withdrawal:shieldd_gnark_shielded_withdrawal_init"
-    do
-        local family="${spec%%:*}"
-        local symbol="${spec#*:}"
-        lib_path="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_${family}.${ext}"
-        if ! validate_demo_gnark_lib "$lib_path" "$symbol"; then
-            log_warning "demo gnark runtime is missing or invalid: $lib_path"
-            needs_rebuild=1
-        fi
-    done
-
-    if [ "$needs_rebuild" -eq 1 ]; then
-        log_info "Rebuilding demo gnark shared libraries..."
-        build_demo_gnark_libs || {
-            log_error "Failed to rebuild demo gnark shared libraries"
-            return 1
-        }
-    fi
-
-    for spec in \
-        "note_reshape:shieldd_gnark_note_reshape_init" \
-        "transfer:shieldd_gnark_transfer_init" \
-        "shielded_withdrawal:shieldd_gnark_shielded_withdrawal_init"
-    do
-        local family="${spec%%:*}"
-        local symbol="${spec#*:}"
-        lib_path="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_${family}.${ext}"
-        validate_demo_gnark_lib "$lib_path" "$symbol" || {
-            log_error "demo gnark runtime failed validation: $lib_path"
-            return 1
-        }
-    done
-
-    log_success "Demo gnark runtimes validated"
-}
-
 # --- Colors ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -319,7 +198,7 @@ orbis_pinned_rev_from_cargo() {
 # Load the pinned integration runtime and verify that the Orbis image's source
 # revision matches all three Cargo git dependencies. Vera is built locally from
 # its pinned source revision because there is no matching published image.
-ensure_orbis_images() {
+load_orbis_images() {
     local lock_file="$COMPLIANCE_REPO_ROOT/deployments/orbis/images.lock.json"
     if [ ! -f "$lock_file" ]; then
         log_error "Orbis image lock not found: $lock_file"
@@ -356,6 +235,18 @@ ensure_orbis_images() {
     export ORBIS_IMAGE="${ORBIS_IMAGE:-$(jq -r '.orbis.image' "$lock_file")}"
     export VERA_REF="${VERA_REF:-$(jq -r '.vera.source_revision' "$lock_file")}"
     export VERA_IMAGE="${VERA_IMAGE:-shieldd-vera:local}"
+}
+
+validate_orbis_runtime_crypto() {
+    if [ "$1" != "bls12-381" ]; then
+        log_error "Unsupported Orbis runtime crypto '$1': Shieldd PRE requires BLS12-381; Jubjub PET requires separate audit support."
+        return 1
+    fi
+}
+
+ensure_orbis_images() {
+    load_orbis_images || return 1
+    validate_orbis_runtime_crypto "$(jq -r '.orbis.crypto' "$COMPLIANCE_REPO_ROOT/deployments/orbis/images.lock.json")"
 }
 
 orbis_compose_project_name() {
@@ -704,15 +595,3 @@ print_phase() {
     echo "$line"
     echo ""
 }
-
-maybe_enable_demo_gnark_env() {
-    if [ "${SHIELDD_ORBIS_USE_DEMO_GNARK:-0}" != "1" ]; then
-        return 0
-    fi
-
-    log_info "SHIELDD_ORBIS_USE_DEMO_GNARK=1 enabled; validating demo gnark runtimes"
-    ensure_demo_gnark_libs
-    export_demo_gnark_env
-}
-
-maybe_enable_demo_gnark_env

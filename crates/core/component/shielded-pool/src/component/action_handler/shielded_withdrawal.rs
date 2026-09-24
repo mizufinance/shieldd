@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use cnidarium::StateRead;
-use decaf377_rdsa::{Signature, SpendAuth};
+use reddsa::{sapling::SpendAuth, Signature};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
@@ -26,7 +26,7 @@ pub(crate) struct ProofPublicData<'a> {
     pub outbound_value: Value,
     pub withdrawal_effect_hash: EffectHash,
     pub routing_tag: crate::discovery::RoutingTag,
-    pub routing_parameter_set_id: decaf377::Fq,
+    pub routing_parameter_set_id: shieldd_sdk_crypto::Fq,
     pub withdrawal_compliance_ciphertext: &'a WithdrawalComplianceCiphertext,
     pub volume_accumulator: &'a crate::VolumeAccumulatorPayload,
 }
@@ -60,7 +60,7 @@ pub(crate) fn extract_public(
         balance_commitment: data.balance_commitment,
         asset_anchor: data.asset_anchor,
         compliance_anchor: data.compliance_anchor,
-        target_timestamp: decaf377::Fq::from(data.target_timestamp),
+        target_timestamp: shieldd_sdk_crypto::Fq::from(data.target_timestamp),
         inputs: inputs
             .into_iter()
             .zip(data.inputs.iter())
@@ -81,7 +81,7 @@ pub(crate) fn extract_public(
                 .commitment(),
         },
         outbound_asset_id: data.outbound_value.asset_id.0,
-        outbound_amount: decaf377::Fq::from(data.outbound_value.amount),
+        outbound_amount: shieldd_sdk_crypto::Fq::from(data.outbound_value.amount),
         withdrawal_effect_hash_limbs: crate::shielded_withdrawal::withdrawal_effect_hash_limbs(
             data.withdrawal_effect_hash.as_bytes(),
         ),
@@ -141,6 +141,6 @@ pub(crate) async fn execute_volume<S: cnidarium::StateWrite>(
         .await?;
     state
         .add_volume_accumulator_payload(payload.clone(), source.into())
-        .await;
+        .await?;
     Ok(())
 }

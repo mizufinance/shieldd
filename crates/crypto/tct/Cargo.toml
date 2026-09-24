@@ -10,15 +10,13 @@ edition = {workspace = true}
 [features]
 internal = []
 arbitrary = ["proptest", "proptest-derive"]
-parallel = ["ark-ff/parallel", "decaf377/parallel", "poseidon377/parallel", "dep:rayon"]
+parallel = ["dep:rayon"]
 
 [dependencies]
-ark-ed-on-bls12-377 = { workspace = true }
-ark-ff = {workspace = true, default-features = false}
-ark-serialize = {workspace = true}
+shieldd-sdk-crypto.workspace = true
+ff.workspace = true
+anyhow.workspace = true
 async-trait = {workspace = true}
-blake2b_simd = {workspace = true}
-decaf377 = {workspace = true, default-features = true}
 derivative = {workspace = true}
 futures = {workspace = true}
 getrandom = {workspace = true, features = ["js"]}
@@ -28,7 +26,6 @@ imbl = {workspace = true, features = ["serde"]}
 once_cell = {workspace = true}
 parking_lot = {workspace = true}
 shieldd-sdk-proto = {workspace = true, default-features = true}
-poseidon377 = {workspace = true}
 proptest = {workspace = true, optional = true}
 proptest-derive = {workspace = true, optional = true}
 rand = {workspace = true}
@@ -38,6 +35,7 @@ thiserror = {workspace = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+shieldd-sdk-circuits.workspace = true
 static_assertions = "1"
 proptest = {workspace = true}
 proptest-derive = {workspace = true}

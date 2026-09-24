@@ -146,7 +146,7 @@ where
 
     /// Check whether this tier is full.
     ///
-    /// If this returns `false`, then insertion will fail.
+    /// If this returns `true`, then insertion will fail.
     #[inline]
     pub fn is_full(&self) -> bool {
         match &self.inner {

@@ -88,20 +88,20 @@ message NullifierWindow {
   bytes archived_history_head = 5;
 }
 
-// One BLS12-377 proof of nonmembership in a retired generation.
+// One suite-identified Pari proof of nonmembership in a retired generation.
 message GenerationNonmembershipProof {
   uint64 generation_index = 1;
   bytes generation_root = 2;
   uint64 generation_start_position = 3;
   uint64 generation_end_position = 4;
-  bytes groth16_proof = 5;
+  bytes proof = 5;
 }
 
-// One BW6-761 proof covering a canonical fixed-width history chunk.
+// One Pari proof covering ten raw generation nonmembership witnesses.
 message HistoricalChunkProof {
   uint64 chunk_index = 1;
   bytes end_history_head = 2;
-  bytes groth16_proof = 3;
+  bytes proof = 3;
 }
 
 // Complete retired-prefix proof for one public nullifier.
@@ -261,8 +261,30 @@ message ArchivedNullifierProofResponse {
   IndexedNullifierWitness witness = 6;
 }
 
+// Trusted-provider spend discovery; absence is not a completeness proof.
+message SpendStatusPageRequest {
+  repeated Nullifier nullifiers = 1;
+  uint64 start_height = 2;
+  uint64 end_height = 3;
+  bytes cursor = 4;
+}
+message SpentNullifier {
+  Nullifier nullifier = 1;
+  uint64 height = 2;
+  uint64 generation = 3;
+  bytes generation_root = 4;
+  IndexedNullifierWitness witness = 5;
+}
+message SpendStatusPageResponse {
+  string chain_id = 1;
+  uint64 anchor_height = 2;
+  repeated SpentNullifier spends = 3;
+  bytes next_cursor = 4;
+}
+
 // Query operations for the SCT component.
 service QueryService {
+  rpc SpendStatusPage(SpendStatusPageRequest) returns (SpendStatusPageResponse);
   rpc AnchorByHeight(AnchorByHeightRequest) returns (AnchorByHeightResponse);
   rpc EpochByHeight(EpochByHeightRequest) returns (EpochByHeightResponse);
   rpc TimestampByHeight(TimestampByHeightRequest) returns (TimestampByHeightResponse);

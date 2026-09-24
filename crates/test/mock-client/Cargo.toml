@@ -8,16 +8,18 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
+shieldd-sdk-proof-params.workspace = true
+tokio.workspace = true
 anyhow = {workspace = true}
 cnidarium = {workspace = true, default-features = true}
-decaf377 = {workspace = true, default-features = true}
+shieldd-sdk-crypto.workspace = true
 shieldd-sdk-asset = {workspace = true}
 shieldd-sdk-compact-block = {workspace = true, default-features = true}
 shieldd-sdk-compliance = {workspace = true, features = ["component"], default-features = true}
 shieldd-sdk-keys = {workspace = true, default-features = true}
 shieldd-sdk-sct = {workspace = true, default-features = true}
 shieldd-sdk-shielded-pool = {workspace = true, features = [
-    "bundled-proving-keys",
+    "prover",
     "component",
 ], default-features = true}
 shieldd-sdk-tct = {workspace = true, default-features = true}

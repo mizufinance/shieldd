@@ -16,25 +16,26 @@ component = [
     "dep:tokio",
 ]
 default = ["component"]
-scanner = ["dep:rusqlite", "dep:tokio", "tokio/sync", "tokio/time"]
+scanner = ["dep:tempfile", "dep:rusqlite", "dep:tokio", "tokio/sync", "tokio/time"]
 sqlite-bundled = ["scanner", "rusqlite/bundled"]
-test-helpers = ["decaf377-ka"]
+test-helpers = []
 
 [[example]]
 name = "dev_orbis_registration"
 required-features = ["test-helpers"]
 
 [dependencies]
+zeroize = "1.8"
+shieldd-sdk-crypto.workspace = true
+ff.workspace = true
+group.workspace = true
+reddsa.workspace = true
 anyhow = {workspace = true}
-ark-ff = {workspace = true}
 base64 = {workspace = true}
 async-trait = {workspace = true}
 bincode = {workspace = true}
 cnidarium = {workspace = true, optional = true, default-features = true}
 cnidarium-component = {workspace = true, optional = true, default-features = true}
-decaf377 = {workspace = true, default-features = true}
-decaf377-rdsa = {workspace = true}
-decaf377-ka = {workspace = true, optional = true}
 once_cell = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = false}
@@ -43,7 +44,6 @@ shieldd-sdk-proto = {workspace = true, default-features = false}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-tct = {workspace = true, default-features = false}
 shieldd-sdk-txhash = {workspace = true, default-features = false}
-poseidon377 = {workspace = true}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
@@ -51,15 +51,16 @@ blake2b_simd = {workspace = true}
 hex = {workspace = true}
 futures = {workspace = true}
 rand_core = {workspace = true}
+tempfile = {workspace = true, optional = true}
 rusqlite = {version = "0.32", optional = true}
 tendermint = {workspace = true}
 tokio = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+commonware-cryptography.workspace = true
+shieldd-sdk-circuits.workspace = true
 shieldd-sdk-compliance = { path = ".", features = ["scanner"] }
-ark-serialize = {workspace = true}
-decaf377-ka = {workspace = true}
 shieldd-sdk-keys = {workspace = true, features = ["demo"]}
 rand = {workspace = true}
 serde_json = {workspace = true}

@@ -3,7 +3,7 @@ package shieldd.core.component.compliance.v1;
 
 import "shieldd/core/asset/v1/asset.proto";
 import "shieldd/core/keys/v1/keys.proto";
-import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
+import "shieldd/crypto/redjubjub_rdsa/v1/redjubjub_rdsa.proto";
 
 // Crypto Structures
 
@@ -14,7 +14,7 @@ message ComplianceViewingKey {
 
 // Compliance component chain parameters.
 message ComplianceParameters {
-  // Number of recent compliance anchors accepted for proof validation.
+  // Retention window for recorded user roots; authorization requires current roots.
   uint64 anchor_validation_window_blocks = 1;
 }
 
@@ -24,11 +24,11 @@ message ComplianceLeaf {
   keys.v1.Address address = 1;
   // The asset ID this compliance leaf applies to.
   asset.v1.AssetId asset_id = 2;
-  // Ordinary-Orbis address capability for this asset's ring.
-  bytes capk = 3;
+  reserved 3;
+  reserved "capk";
   // Orbis ring public key evaluated on this address's diversified generator.
   bytes rnk_dh_pk = 4;
-  // Poseidon commitment to the regulated nullifier key derivable by the wallet and daily_volume_limit Orbis.
+  // Poseidon commitment to the regulated nullifier key derivable by the wallet and the RNK derivation ring.
   bytes rnk_commitment = 5;
   // Current authorization state for this address and asset.
   UserAssetStatus status = 6;
@@ -72,13 +72,13 @@ message MsgRegisterAsset {
   // ACP resource type.
   string resource = 10;
   // Immutable authority key that signs user registration grants for this asset.
-  crypto.decaf377_rdsa.v1.SpendVerificationKey registration_authority_vk = 11;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey registration_authority_vk = 11;
   // Registrar authorization for this asset registration.
   AssetRegistrationGrant asset_registration_grant = 12;
   // External IBC origin for a regulated voucher asset, if any.
   IbcAssetOrigin ibc_origin = 13;
   // Immutable authority key that authorizes note seizures for this asset.
-  crypto.decaf377_rdsa.v1.SpendVerificationKey seizure_authority_vk = 14;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey seizure_authority_vk = 14;
   bytes audit_keys = 16;
   OrbisCapabilityCertificate audit_certificate = 17;
 }
@@ -95,10 +95,10 @@ message AssetRegistrationGrantBody {
   string policy_id = 8;
   string permission = 9;
   string resource = 10;
-  crypto.decaf377_rdsa.v1.SpendVerificationKey registration_authority_vk = 11;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey registration_authority_vk = 11;
   uint64 valid_until_unix = 12;
   IbcAssetOrigin ibc_origin = 13;
-  crypto.decaf377_rdsa.v1.SpendVerificationKey seizure_authority_vk = 14;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey seizure_authority_vk = 14;
   bytes audit_keys = 15;
 }
 
@@ -120,8 +120,8 @@ message IbcAssetOrigin {
 // Chain-registrar authorization for an asset registration.
 message AssetRegistrationGrant {
   AssetRegistrationGrantBody body = 1;
-  crypto.decaf377_rdsa.v1.SpendVerificationKey registrar_vk = 2;
-  crypto.decaf377_rdsa.v1.SpendAuthSignature signature = 3;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey registrar_vk = 2;
+  crypto.redjubjub_rdsa.v1.SpendAuthSignature signature = 3;
 }
 
 // Body signed by an asset's registration authority to authorize one user leaf.
@@ -135,20 +135,20 @@ message UserRegistrationGrantBody {
 // Asset-authority authorization for a user registration.
 message UserRegistrationGrant {
   UserRegistrationGrantBody body = 1;
-  crypto.decaf377_rdsa.v1.SpendAuthSignature signature = 2;
+  crypto.redjubjub_rdsa.v1.SpendAuthSignature signature = 2;
 }
 
-// Message to register a user's compliance viewing key for a regulated asset.
+// Message to register a user's RNK derivation and authorization state for a regulated asset.
 message MsgRegisterUser {
   // The compliance leaf containing the user's registration information.
   ComplianceLeaf leaf = 1;
   // Grant authorizing this registration.
   UserRegistrationGrant grant = 2;
-  // Orbis daily_volume_limit certificate for the address-diversified ring public key.
+  // Orbis threshold certificate for the address-diversified ring public key.
   OrbisCapabilityCertificate capability_certificate = 3;
 }
 
-// DailyVolumeLimit-Orbis attestation for an address-diversified ring public key.
+// Orbis threshold attestation for an address-diversified ring public key.
 message OrbisCapabilityCertificate {
   // Chain on which this certificate may be used.
   string chain_id = 1;
@@ -189,7 +189,7 @@ service QueryService {
   // Use this for multi-spend transactions to avoid multiple round trips.
   rpc ComplianceBatchMerkleProofs(ComplianceBatchMerkleProofsRequest) returns (ComplianceBatchMerkleProofsResponse);
   // Query a user's registered compliance leaf.
-  // Returns the full leaf (including ACK) that was registered on-chain.
+  // Returns the full authenticated leaf that was registered on-chain.
   rpc ComplianceUserLeaf(ComplianceUserLeafRequest) returns (ComplianceUserLeafResponse);
 }
 
@@ -346,7 +346,8 @@ message IndexedLeafData {
   bytes audit_keys = 13;
 }
 
-// Full asset compliance policy (state-only, not in Merkle commitment).
+// Issuer parameters and ring data are projected into the indexed leaf commitment.
+// Registration and seizure authority keys remain host-validated state.
 message AssetPolicy {
   // AssetParams
   bytes dk_pub = 1;
@@ -358,16 +359,16 @@ message AssetPolicy {
   string policy_id = 6;
   string permission = 7;
   string resource = 8;
-  crypto.decaf377_rdsa.v1.SpendVerificationKey registration_authority_vk = 9;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey registration_authority_vk = 9;
   IbcAssetOrigin ibc_origin = 10;
-  crypto.decaf377_rdsa.v1.SpendVerificationKey seizure_authority_vk = 11;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey seizure_authority_vk = 11;
   bytes audit_keys = 12;
 }
 
 // Genesis configuration for the compliance component.
 message GenesisContent {
   repeated NativeAssetRegistration native_assets = 1;
-  repeated crypto.decaf377_rdsa.v1.SpendVerificationKey compliance_registrar_vk = 2;
+  repeated crypto.redjubjub_rdsa.v1.SpendVerificationKey compliance_registrar_vk = 2;
   ComplianceParameters compliance_params = 3;
   // Active users that must exist before regulated genesis allocations are minted.
   repeated GenesisUserRegistration user_registrations = 4;
@@ -384,8 +385,8 @@ message NativeAssetRegistration {
   asset.v1.AssetId asset_id = 1;
   bool is_regulated = 2;
   bytes dk_pub = 3;
-  crypto.decaf377_rdsa.v1.SpendVerificationKey registration_authority_vk = 4;
-  crypto.decaf377_rdsa.v1.SpendVerificationKey seizure_authority_vk = 5;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey registration_authority_vk = 4;
+  crypto.redjubjub_rdsa.v1.SpendVerificationKey seizure_authority_vk = 5;
   bytes ring_pk = 6;
   string ring_id = 7;
   string policy_id = 8;

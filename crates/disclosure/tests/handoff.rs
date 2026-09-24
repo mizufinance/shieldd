@@ -1,9 +1,12 @@
 //! Canonical selection vectors with synthetic acceptance and local checking keys, never live PET.
-use ark_serialize::CanonicalSerialize;
-use decaf377::{Element, Fq, Fr};
+use commonware_codec::Encode;
+use commonware_math::algebra::{Additive, CryptoGroup};
+use group::GroupEncoding;
 use rand::{rngs::StdRng, SeedableRng};
 use shieldd_sdk_asset::{asset, Balance, Value};
 use shieldd_sdk_compliance::{encrypt_transfer, ownership, AuditKeys, TransferComplianceMetadata};
+use shieldd_sdk_crypto::generators::SPEND_AUTH;
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_disclosure::*;
 use shieldd_sdk_keys::{
     keys::{SpendKey, SpendKeyBytes},
@@ -35,15 +38,13 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
     );
     let keys = AuditKeys {
         epoch: 7,
-        amount: Element::GENERATOR * Fr::from(101u64),
-        sender: Element::GENERATOR * Fr::from(102u64),
-        receiver: Element::GENERATOR * Fr::from(103u64),
-        checking: Element::GENERATOR * Fr::from(104u64),
+        payload: *SPEND_AUTH * Fr::from(101u64),
+        checking: *SPEND_AUTH * Fr::from(104u64),
     };
     let encrypted = encrypt_transfer(
         StdRng::seed_from_u64(17),
         &keys,
-        &(Element::GENERATOR * Fr::from(37u64)),
+        &(*SPEND_AUTH * Fr::from(37u64)),
         &address(if self_transfer { 7 } else { 8 }),
         &address(7),
         Value {
@@ -59,10 +60,10 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
     let output = pool::TransferOutputBody {
         note_payload: pool::NotePayload {
             note_commitment: shieldd_sdk_tct::StateCommitment(Fq::from(5u64)),
-            ephemeral_key: decaf377_ka::Public(Element::GENERATOR.vartime_compress().0),
+            ephemeral_key: shieldd_sdk_crypto::ka::Public::from_point(*SPEND_AUTH).unwrap(),
             encrypted_note: pool::NoteCiphertext([7; pool::note::NOTE_CIPHERTEXT_BYTES]),
             recovery_capsule: Some(pool::RecoveryCapsule {
-                epk: Element::GENERATOR,
+                epk: *SPEND_AUTH,
                 c2: Fq::from(2u64),
                 salt: Fq::from(3u64),
                 key_confirmation: Fq::from(4u64),
@@ -77,17 +78,27 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
     };
     let input = pool::TransferInputBody {
         nullifier: shieldd_sdk_sct::Nullifier(Fq::from(3u64)),
-        rk: decaf377_rdsa::VerificationKey::from(decaf377_rdsa::SigningKey::<
-            decaf377_rdsa::SpendAuth,
-        >::from(Fr::from(4u64))),
+        rk: reddsa::VerificationKey::from(
+            &reddsa::SigningKey::<reddsa::sapling::SpendAuth>::try_from(Fr::from(4u64).to_bytes())
+                .unwrap(),
+        ),
         encrypted_backref: pool::EncryptedBackref::try_from([1; 48]).unwrap(),
         compliance_ciphertext: vec![],
         history_required: false,
     };
-    let mut proof = Vec::new();
-    ark_groth16::Proof::<decaf377::Bls12_377>::default()
-        .serialize_compressed(&mut proof)
-        .unwrap();
+    use commonware_cryptography::{
+        bls12381::primitives::group::{Scalar, G1},
+        zk::pari::Claim,
+    };
+    let mut proof = vec![
+        shieldd_sdk_crypto::SUITE,
+        shieldd_sdk_circuits::proof::Family::Transfer as u8,
+    ];
+    proof.extend([0; 32]);
+    proof.extend(Claim::new(vec![Scalar::from(1)], vec![G1::generator()]).encode());
+    proof.extend(G1::generator().encode());
+    proof.extend(G1::generator().encode());
+    proof.extend(Scalar::zero().encode());
     let transfer = pool::Transfer {
         body: pool::TransferBody {
             anchor: shieldd_sdk_tct::Tree::default().root(),
@@ -202,10 +213,10 @@ fn canonical_handoff_vectors() {
                 }
                 vectors.push(serde_json::json!({ "name": name, "synthetic_acceptance": true, "live_pet": false,
                     "transaction": hex::encode(tx.encode_to_vec()), "accepted": accepted,
-                    "generator": hex::encode(owner.diversified_generator().vartime_compress_to_field().to_bytes()),
-                    "transmission": hex::encode(owner.transmission_key().0),
-                    "fingerprint": hex::encode(ownership::fingerprint(&owner).vartime_compress_to_field().to_bytes()),
-                    "ownership_r": hex::encode(ownership.r.vartime_compress().0), "ownership_c": hex::encode(ownership.c.vartime_compress().0),
+                    "generator": hex::encode(owner.diversified_generator().to_bytes()),
+                    "transmission": hex::encode(owner.transmission_key().to_bytes()),
+                    "fingerprint": hex::encode(ownership::fingerprint(&owner).to_bytes()),
+                    "ownership_r": hex::encode(ownership.r.to_bytes()), "ownership_c": hex::encode(ownership.c.to_bytes()),
                     "synthetic_checking_secret": hex::encode(Fr::from(104u64).to_bytes()), "local_key_match": matches,
                     "issuer_only": flagged, "rejected_changes": ["chain", "height", "output", "ring", "policy", "resource", "permission"],
                 }));
@@ -231,7 +242,7 @@ fn canonical_handoff_vectors() {
         transaction(false, false, 8).id()
     );
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tools/gnark/internal/compliance/handoff_vectors.json");
+        .join("tests/fixtures/handoff_vectors.json");
     let bytes = serde_json::to_vec_pretty(&vectors).unwrap();
     if std::env::var_os("UPDATE_HANDOFF_VECTORS").is_some() {
         std::fs::write(&path, &bytes).unwrap();

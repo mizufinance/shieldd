@@ -21,18 +21,17 @@ component = [
 ]
 # proving-keys = ["shieldd-sdk-proof-params/proving-keys"]
 default = ["std", "component"]
-std = ["ark-ff/std"]
+std = []
 docsrs = []
 
 [dependencies]
+sha2.workspace = true
 anyhow = {workspace = true}
-ark-ff = {workspace = true, default-features = false}
 async-trait = {workspace = true}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true}
 cnidarium = {workspace = true, optional = true, default-features = true}
 cnidarium-component = {workspace = true, optional = true, default-features = true}
-decaf377-rdsa = {workspace = true}
 futures = {workspace = true}
 imbl = {workspace = true}
 metrics = {workspace = true}

@@ -9,12 +9,14 @@ edition = { workspace = true }
 publish = false
 
 [dependencies]
+shieldd-sdk-circuits.workspace = true
+shieldd-sdk-crypto.workspace = true
+reddsa.workspace = true
+ff.workspace = true
+group.workspace = true
 anyhow = { workspace = true }
-ark-serialize = { workspace = true }
 cnidarium = { workspace = true, features = ["migration"], default-features = true }
 csv = "1"
-decaf377 = { workspace = true }
-decaf377-rdsa = { workspace = true }
 hex = { workspace = true }
 once_cell = { workspace = true }
 shieldd-sdk-app = { workspace = true, features = ["benchmark-helpers"], default-features = true }

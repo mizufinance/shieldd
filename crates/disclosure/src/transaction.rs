@@ -68,7 +68,7 @@ pub fn public_output(
     Ok(PublicOutput {
         reference: reference.clone(),
         commitment: hex::encode(payload.note_commitment.0.to_bytes()),
-        ephemeral_key: payload.ephemeral_key.0.to_vec(),
+        ephemeral_key: payload.ephemeral_key.to_bytes().to_vec(),
         encrypted_note: payload.encrypted_note.0.to_vec(),
         wrapped_memo_key: wrapped.to_vec(),
         memo_ciphertext: tx.transaction_body().memo.as_ref().map(|m| m.0.to_vec()),
@@ -97,7 +97,9 @@ pub fn prepare(
         let key = keys
             .get(&commitment)
             .context("selected payload key unavailable")?;
-        let epk = decaf377_ka::Public(public.ephemeral_key.as_slice().try_into()?);
+        let epk = shieldd_sdk_crypto::ka::Public::try_from(<[u8; 32]>::try_from(
+            public.ephemeral_key.as_slice(),
+        )?)?;
         let ciphertext =
             shieldd_sdk_shielded_pool::NoteCiphertext(public.encrypted_note.as_slice().try_into()?);
         let note = Note::decrypt_with_payload_key(&ciphertext, key, &epk)?;

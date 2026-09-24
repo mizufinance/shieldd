@@ -1,9 +1,10 @@
 //! Fixed-shape sender ciphertext for regulated host withdrawals.
 
 use anyhow::{anyhow, ensure, Context, Result};
-use decaf377::{Element, Fq, Fr};
-use once_cell::sync::Lazy;
+use ff::Field;
+use group::{Group, GroupEncoding};
 use rand_core::{CryptoRng, RngCore};
+use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 use shieldd_sdk_keys::Address;
 
 use crate::{
@@ -14,17 +15,11 @@ use crate::{
 pub const WITHDRAWAL_ADDRESS_BYTES: usize = 64;
 pub const WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS: usize = 3;
 pub const WITHDRAWAL_COMPLIANCE_WIRE_BYTES: usize =
-    FQ_BYTES * (3 + WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS);
-
-pub static WITHDRAWAL_KEY_CONFIRMATION_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"shieldd.withdrawal.compliance.key_confirmation.v1").as_bytes(),
-    )
-});
+    1 + FQ_BYTES * (3 + WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WithdrawalComplianceCiphertext {
-    pub epk: Element,
+    pub epk: SubgroupPoint,
     pub c2: Fq,
     pub key_confirmation: Fq,
     pub encrypted_sender_address: [u8; FQ_BYTES * WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS],
@@ -40,10 +35,12 @@ pub struct WithdrawalEncryptionResult {
 impl WithdrawalComplianceCiphertext {
     pub fn to_bytes(&self) -> [u8; WITHDRAWAL_COMPLIANCE_WIRE_BYTES] {
         let mut bytes = [0u8; WITHDRAWAL_COMPLIANCE_WIRE_BYTES];
-        bytes[..32].copy_from_slice(&self.epk.vartime_compress().0);
-        bytes[32..64].copy_from_slice(&self.c2.to_bytes());
-        bytes[64..96].copy_from_slice(&self.key_confirmation.to_bytes());
-        bytes[96..].copy_from_slice(&self.encrypted_sender_address);
+        bytes[0] = shieldd_sdk_crypto::SUITE;
+        let payload = &mut bytes[1..];
+        payload[..32].copy_from_slice(&self.epk.to_bytes());
+        payload[32..64].copy_from_slice(&self.c2.to_bytes());
+        payload[64..96].copy_from_slice(&self.key_confirmation.to_bytes());
+        payload[96..].copy_from_slice(&self.encrypted_sender_address);
         bytes
     }
 
@@ -53,11 +50,15 @@ impl WithdrawalComplianceCiphertext {
             "withdrawal compliance ciphertext must be {WITHDRAWAL_COMPLIANCE_WIRE_BYTES} bytes, got {}",
             bytes.len()
         );
-        let epk = decaf377::Encoding(bytes[..32].try_into()?)
-            .vartime_decompress()
+        ensure!(
+            bytes[0] == shieldd_sdk_crypto::SUITE,
+            "unsupported withdrawal compliance suite"
+        );
+        let bytes = &bytes[1..];
+        let epk = shieldd_sdk_crypto::encoding::nonidentity(bytes[..32].try_into()?)
             .map_err(|_| anyhow!("invalid withdrawal compliance EPK"))?;
         ensure!(
-            !epk.is_identity(),
+            !bool::from(epk.is_identity()),
             "withdrawal compliance EPK must not be identity"
         );
         let c2 = read_fq(&bytes[32..64], "c2")?;
@@ -78,42 +79,31 @@ impl WithdrawalComplianceCiphertext {
     /// Classify an issuer- or PRE-authorized candidate shared point.
     pub fn decrypt_sender_if_key_matches(
         &self,
-        shared_point: Element,
+        shared_point: SubgroupPoint,
     ) -> Result<Option<AddressData>> {
         ensure!(
-            !shared_point.is_identity(),
+            !bool::from(shared_point.is_identity()),
             "withdrawal shared point must not be identity"
         );
-        let seed = self.c2 - shared_point.vartime_compress_to_field();
-        if withdrawal_key_confirmation(seed, self.epk.vartime_compress_to_field())
-            != self.key_confirmation
-        {
+        let seed = self.c2 - crate::crypto::shared_secret(&shared_point);
+        if withdrawal_key_confirmation(seed, &self.epk) != self.key_confirmation {
             return Ok(None);
         }
 
-        let mut plaintext = Vec::with_capacity(WITHDRAWAL_ADDRESS_BYTES);
-        for (counter, word) in self
-            .encrypted_sender_address
-            .chunks_exact(FQ_BYTES)
-            .enumerate()
-        {
-            let ciphertext = read_fq(word, "encrypted sender address")?;
-            let decoded = (ciphertext - compliance_stream_block(seed, counter as u64)).to_bytes();
-            let take = (WITHDRAWAL_ADDRESS_BYTES - plaintext.len()).min(31);
-            plaintext.extend_from_slice(&decoded[..take]);
-        }
-        ensure!(
-            plaintext.len() == WITHDRAWAL_ADDRESS_BYTES,
-            "withdrawal sender address plaintext has the wrong length"
-        );
+        let plaintext = crate::crypto::decrypt_tier_bytes(
+            &self.encrypted_sender_address,
+            seed,
+            WITHDRAWAL_ADDRESS_BYTES,
+        )?;
+        shieldd_sdk_crypto::encoding::nonidentity(plaintext[32..64].try_into()?)?;
         let diversified_generator_bytes: [u8; 32] = plaintext[..32]
             .try_into()
             .context("withdrawal sender diversified generator")?;
-        let diversified_generator = decaf377::Encoding(diversified_generator_bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow!("invalid withdrawal sender diversified generator"))?;
+        let diversified_generator =
+            shieldd_sdk_crypto::encoding::point(&diversified_generator_bytes)
+                .map_err(|_| anyhow!("invalid withdrawal sender diversified generator"))?;
         ensure!(
-            !diversified_generator.is_identity(),
+            !bool::from(diversified_generator.is_identity()),
             "withdrawal sender diversified generator must not be identity"
         );
         Ok(Some(AddressData {
@@ -127,11 +117,11 @@ impl WithdrawalComplianceCiphertext {
 
 pub fn encrypt_withdrawal(
     mut rng: impl RngCore + CryptoRng,
-    encryption_key: Element,
+    encryption_key: SubgroupPoint,
     sender_address: &Address,
 ) -> Result<WithdrawalEncryptionResult> {
     let r = sample_nonzero_scalar(&mut rng);
-    let seed = Fq::rand(&mut rng);
+    let seed = Fq::random(&mut rng);
     encrypt_withdrawal_with_material(encryption_key, sender_address, seed, r)
 }
 
@@ -145,7 +135,7 @@ pub fn derive_withdrawal_encryption_material(root: Fr) -> (Fq, Fr) {
         ]
         .concat(),
     );
-    let seed = Fq::from_le_bytes_mod_order(seed_hash.as_bytes());
+    let seed = Fq::from_bytes_wide(seed_hash.as_array());
     let mut counter = 0u32;
     let r = loop {
         let hash = blake2b_simd::blake2b(
@@ -156,7 +146,7 @@ pub fn derive_withdrawal_encryption_material(root: Fr) -> (Fq, Fr) {
             ]
             .concat(),
         );
-        let candidate = Fr::from_le_bytes_mod_order(hash.as_bytes());
+        let candidate = Fr::from_bytes_wide(hash.as_array());
         if candidate != Fr::from(0u64) {
             break candidate;
         }
@@ -166,23 +156,23 @@ pub fn derive_withdrawal_encryption_material(root: Fr) -> (Fq, Fr) {
 }
 
 pub fn encrypt_withdrawal_with_material(
-    encryption_key: Element,
+    encryption_key: SubgroupPoint,
     sender_address: &Address,
     seed: Fq,
     r: Fr,
 ) -> Result<WithdrawalEncryptionResult> {
     ensure!(
-        !encryption_key.is_identity(),
+        !bool::from(encryption_key.is_identity()),
         "withdrawal compliance encryption key must not be identity"
     );
     ensure!(
         r != Fr::from(0u64),
         "withdrawal compliance randomizer must be nonzero"
     );
-    let epk = Element::GENERATOR * r;
+    let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * r;
     let shared = encryption_key * r;
-    let c2 = seed + shared.vartime_compress_to_field();
-    let key_confirmation = withdrawal_key_confirmation(seed, epk.vartime_compress_to_field());
+    let c2 = seed + crate::crypto::shared_secret(&shared);
+    let key_confirmation = withdrawal_key_confirmation(seed, &epk);
 
     let plaintext = address_components(sender_address);
     let mut encrypted_sender_address = [0u8; FQ_BYTES * WITHDRAWAL_ADDRESS_CIPHERTEXT_FQS];
@@ -193,8 +183,9 @@ pub fn encrypt_withdrawal_with_material(
     {
         let mut padded = [0u8; 32];
         padded[..chunk.len()].copy_from_slice(chunk);
-        let ciphertext =
-            Fq::from_le_bytes_mod_order(&padded) + compliance_stream_block(seed, counter as u64);
+        let ciphertext = shieldd_sdk_crypto::encoding::field(&padded)
+            .expect("31-byte plaintext word")
+            + compliance_stream_block(seed, counter as u64);
         output.copy_from_slice(&ciphertext.to_bytes());
     }
 
@@ -210,8 +201,12 @@ pub fn encrypt_withdrawal_with_material(
     })
 }
 
-pub fn withdrawal_key_confirmation(seed: Fq, epk_fq: Fq) -> Fq {
-    poseidon377::hash_2(&WITHDRAWAL_KEY_CONFIRMATION_DOMAIN, (seed, epk_fq))
+pub fn withdrawal_key_confirmation(seed: Fq, epk: &SubgroupPoint) -> Fq {
+    let [x, y] = shieldd_sdk_crypto::audit::point_fields(epk);
+    shieldd_sdk_crypto::poseidon::hash(
+        shieldd_sdk_crypto::domains::WITHDRAWAL_CONFIRMATION,
+        &[seed, x, y],
+    )
 }
 
 pub fn withdrawal_encryption_key(
@@ -219,7 +214,7 @@ pub fn withdrawal_encryption_key(
     is_flagged: bool,
     sender_leaf: &ComplianceLeaf,
     asset_leaf: &IndexedLeaf,
-) -> Result<(Element, bool)> {
+) -> Result<(SubgroupPoint, bool)> {
     if is_regulated {
         ensure!(
             sender_leaf.asset_id.0 == asset_leaf.value,
@@ -232,11 +227,13 @@ pub fn withdrawal_encryption_key(
     );
     let key = if is_flagged {
         asset_leaf.params.dk_pub
+    } else if is_regulated {
+        asset_leaf.ring.audit_keys.payload
     } else {
-        sender_leaf.capk
+        *crate::UNREGULATED_RING
     };
     ensure!(
-        !key.is_identity(),
+        !bool::from(key.is_identity()),
         "withdrawal compliance selected an identity encryption key"
     );
     Ok((key, is_flagged))
@@ -263,14 +260,14 @@ pub fn classify_withdrawal_with_issuer(
 
 pub fn address_components(address: &Address) -> [u8; WITHDRAWAL_ADDRESS_BYTES] {
     let mut bytes = [0u8; WITHDRAWAL_ADDRESS_BYTES];
-    bytes[..32].copy_from_slice(&address.diversified_generator().vartime_compress().0);
-    bytes[32..].copy_from_slice(&address.transmission_key().0);
+    bytes[..32].copy_from_slice(&address.diversified_generator().to_bytes());
+    bytes[32..].copy_from_slice(&address.transmission_key().to_bytes());
     bytes
 }
 
 fn sample_nonzero_scalar(rng: &mut (impl RngCore + CryptoRng)) -> Fr {
     loop {
-        let scalar = Fr::rand(&mut *rng);
+        let scalar = Fr::random(&mut *rng);
         if scalar != Fr::from(0u64) {
             return scalar;
         }
@@ -281,7 +278,7 @@ fn read_fq(bytes: &[u8], label: &str) -> Result<Fq> {
     let bytes: [u8; FQ_BYTES] = bytes
         .try_into()
         .with_context(|| format!("withdrawal compliance {label} must be {FQ_BYTES} bytes"))?;
-    Fq::from_bytes_checked(&bytes)
+    shieldd_sdk_crypto::encoding::field(&bytes)
         .map_err(|_| anyhow!("withdrawal compliance {label} is not canonical"))
 }
 
@@ -294,7 +291,7 @@ mod tests {
     #[test]
     fn withdrawal_ciphertext_round_trips_and_classifies_wrong_keys() {
         let secret = Fr::from(17u64);
-        let encryption_key = Element::GENERATOR * secret;
+        let encryption_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * secret;
         let sender = make_address(73);
         let encrypted = encrypt_withdrawal(&mut OsRng, encryption_key, &sender).unwrap();
         let encoded = encrypted.ciphertext.to_bytes();
@@ -308,7 +305,10 @@ mod tests {
             opened.diversified_generator,
             *sender.diversified_generator()
         );
-        assert_eq!(opened.transmission_key, sender.transmission_key().0);
+        assert_eq!(
+            opened.transmission_key,
+            sender.transmission_key().to_bytes()
+        );
         assert!(decoded
             .decrypt_sender_if_key_matches(decoded.epk * Fr::from(19u64))
             .unwrap()
@@ -318,13 +318,42 @@ mod tests {
     #[test]
     fn withdrawal_ciphertext_rejects_noncanonical_fields_and_identity_epk() {
         let sender = make_address(74);
-        let encrypted = encrypt_withdrawal(&mut OsRng, Element::GENERATOR, &sender).unwrap();
-        let mut identity = encrypted.ciphertext.to_bytes();
-        identity[..32].copy_from_slice(&Element::IDENTITY.vartime_compress().0);
-        assert!(WithdrawalComplianceCiphertext::from_bytes(&identity).is_err());
+        let encrypted = encrypt_withdrawal_with_material(
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
+            &sender,
+            Fq::from(23u64),
+            Fr::from(17u64),
+        )
+        .unwrap();
+        let encoded = encrypted.ciphertext.to_bytes();
+        assert_eq!(
+            WithdrawalComplianceCiphertext::from_bytes(&encoded).unwrap(),
+            encrypted.ciphertext
+        );
+        let mut identity = encoded;
+        identity[1..33].copy_from_slice(&SubgroupPoint::identity().to_bytes());
+        assert_eq!(
+            WithdrawalComplianceCiphertext::from_bytes(&identity)
+                .unwrap_err()
+                .to_string(),
+            "invalid withdrawal compliance EPK"
+        );
 
-        let mut noncanonical = encrypted.ciphertext.to_bytes();
-        noncanonical[32..64].fill(0xff);
-        assert!(WithdrawalComplianceCiphertext::from_bytes(&noncanonical).is_err());
+        for (offset, label) in [
+            (33, "c2"),
+            (65, "key_confirmation"),
+            (97, "sender address word 0"),
+            (129, "sender address word 1"),
+            (161, "sender address word 2"),
+        ] {
+            let mut noncanonical = encoded;
+            noncanonical[offset..offset + FQ_BYTES].fill(0xff);
+            assert_eq!(
+                WithdrawalComplianceCiphertext::from_bytes(&noncanonical)
+                    .unwrap_err()
+                    .to_string(),
+                format!("withdrawal compliance {label} is not canonical")
+            );
+        }
     }
 }

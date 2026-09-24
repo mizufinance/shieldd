@@ -1,8 +1,7 @@
 # Protocol reference
 
 This page describes current Shieldd records. Exact field ordering and encodings
-live in the linked code and schemas; cryptographic relations also have independent
-Rust/Go vectors. Internal format policy is in [AGENTS.md](../AGENTS.md).
+live in the linked code and schemas. Internal format policy is in [AGENTS.md](../AGENTS.md).
 
 ## Keys and addresses
 
@@ -14,8 +13,9 @@ sent-note data. Proving can be delegated without giving the builder signing keys
 Key constructors enforce the current nonzero/nonidentity refinements.
 
 [Addresses](../crates/core/keys/src/address.rs) contain a 16-byte diversifier and
-32-byte canonical transmission key. The 48-byte payload is F4Jumbled and Bech32m
-encoded. Diversifiers are AES-derived from address indices; the diversified
+32-byte canonical transmission key. The payload is F4Jumbled; serialized addresses
+include the suite tag defined in [interoperability](jubjub-external-contract.md#keys-and-encodings)
+and use Bech32m for text. Diversifiers are AES-derived from address indices; the diversified
 basepoint uses the `Shieldd_Divrsfy` domain, and the transmission key is
 `ivk * B_d`. There is no separate discovery key in the address. Exact key KDF
 labels and rejection rules live in [keys](../crates/core/keys/src/keys).
@@ -73,8 +73,8 @@ including private fee funding, must sum to zero. Frozen signing vectors live in
 Supported user action families are defined by [Action](../crates/core/transaction/src/action.rs).
 Transfer binds its receiver ciphertext, metadata, owner accumulator payload and
 proof context. NoteReshape preserves sender ownership and regulated Active status.
-Withdrawals bind the complete destination and withdrawn value. AggregateBundle
-is an internal action and is rejected in user-submitted transactions.
+Withdrawals bind the complete destination and withdrawn value. Each action carries
+its own proof; [native verification](proof-system.md) batches compatible statements.
 
 Host deposits, registrations, status changes and seizure use canonical host
 source locations and replay-protected receipts. Bankd supplies their authorization;
@@ -89,16 +89,8 @@ Bankd settles the resulting host effects and owns all IBC execution.
 `ShieldedWithdrawalProof` binds the host destination effect hash, value and
 compliance facts; the canonical proof family is `shielded_withdrawal`.
 
-[Gnark circuits](../tools/gnark/internal/circuits) and Rust public-input projection
-must agree on fields, canonical encodings, hash domains, dummy branches and
-statement ordering. Exact relation coverage is in the
-[Transfer](transfer-circuit/constraint-checklist.md) and
-[compliance](compliance/constraint-checklist.md) checklists. Proof metadata and
-staged manifests bind exact artifacts. Setup changes require fresh proof checks
-and coordinated deployment of verifiers and proving clients.
-
-[SnarkPack](snarkpack/design.md) retains full-target v1 and torus v2 encodings
-with the existing transcript, statement and SRS semantics. Independent reference,
-interoperability and fuzz tests remain verification roots. External
-[Shieldd Security](https://github.com/mizufinance/shieldd-security) owns formal
-specifications and certification evidence for exact commits.
+[Native circuits](../crates/crypto/circuits/src) and Rust witness projections
+share Jubjub encodings and Poseidon-381 domains. Relation coverage is defined in
+[Circuit constraints](circuits.md). The
+[proof registry](proof-system.md) binds each circuit relation and its configured
+verification key. Key changes require fresh pool and wallet state.

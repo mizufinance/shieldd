@@ -191,7 +191,7 @@ impl ::prost::Name for NoteCiphertext {
         "/shieldd.core.component.shielded_pool.v1.NoteCiphertext".into()
     }
 }
-/// Fixed-shape capability ciphertext for amount and note blinding.
+/// Fixed-shape payload-key ciphertext for amount and note blinding.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RecoveryCapsule {
     /// Canonical 192-byte encoding of epk and five Fq words.
@@ -357,8 +357,10 @@ pub struct CapsuleReleaseRequest {
     pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
     #[prost(message, optional, tag = "8")]
     pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
-    #[prost(bytes = "vec", tag = "9")]
-    pub capk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "15")]
+    pub payload_key: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "16")]
+    pub audit_epoch: u64,
     #[prost(message, optional, tag = "10")]
     pub note_commitment: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
@@ -410,7 +412,7 @@ pub struct NoteSeizure {
     pub authorization: ::core::option::Option<NoteSeizureAuthorizationBody>,
     #[prost(message, optional, tag = "2")]
     pub authority_signature: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     #[prost(message, optional, tag = "3")]
     pub anchor: ::core::option::Option<
@@ -453,7 +455,7 @@ pub struct TransferInputBody {
     /// The randomized validating key for the spend authorization signature.
     #[prost(message, optional, tag = "2")]
     pub rk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
@@ -513,7 +515,7 @@ pub struct Transfer {
     /// The authorizing signatures for each transfer input.
     #[prost(message, repeated, tag = "2")]
     pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the transfer is well-formed.
     #[prost(message, optional, tag = "3")]
@@ -836,7 +838,7 @@ pub struct ShieldedHostWithdrawal {
     /// The authorizing signatures for each consumed input.
     #[prost(message, repeated, tag = "2")]
     pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the withdrawal is well-formed.
     #[prost(message, optional, tag = "3")]
@@ -1045,7 +1047,7 @@ pub struct NoteReshapeInputBody {
     /// The randomized validating key for the spend authorization signature.
     #[prost(message, optional, tag = "2")]
     pub rk: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendVerificationKey,
     >,
     /// An encryption of the commitment of the input note to the sender's OVK.
     #[prost(bytes = "vec", tag = "3")]
@@ -1095,7 +1097,7 @@ pub struct NoteReshape {
     /// The authorizing signatures for each consumed input.
     #[prost(message, repeated, tag = "2")]
     pub auth_sigs: ::prost::alloc::vec::Vec<
-        super::super::super::super::crypto::decaf377_rdsa::v1::SpendAuthSignature,
+        super::super::super::super::crypto::redjubjub_rdsa::v1::SpendAuthSignature,
     >,
     /// The proof that the note reshape action is well-formed.
     #[prost(message, optional, tag = "3")]

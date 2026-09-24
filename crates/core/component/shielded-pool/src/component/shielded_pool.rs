@@ -277,7 +277,7 @@ impl<T: StateWrite + ?Sized> StateWriteExt for T {}
 mod tests {
     use super::*;
     use cnidarium::{StateDelta, TempStorage};
-    use decaf377::Fq;
+    use shieldd_sdk_crypto::Fq;
 
     #[tokio::test]
     async fn volume_nullifiers_are_exclusive_and_pruned_after_the_buffer() -> Result<()> {

@@ -86,7 +86,11 @@ impl ComplianceScreener {
                         })
                     }
                 };
-                (public.asset_id, is_flagged, decaf377::Fq::from(0u64))
+                (
+                    public.asset_id,
+                    is_flagged,
+                    shieldd_sdk_crypto::Fq::from(0u64),
+                )
             }
         };
 
@@ -146,25 +150,25 @@ mod tests {
     }
 
     fn make_ciphertext(
-        dk_pub: &decaf377::Element,
+        dk_pub: &shieldd_sdk_crypto::SubgroupPoint,
         sender_address: &shieldd_sdk_keys::Address,
         receiver_address: &shieldd_sdk_keys::Address,
         asset_id: asset::Id,
         amount: Amount,
         is_flagged: bool,
-        salt: decaf377::Fq,
+        salt: shieldd_sdk_crypto::Fq,
     ) -> TransferComplianceCiphertext {
         encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
+            &crate::audit_keys::test_keys(),
             dk_pub,
             receiver_address,
             sender_address,
             Value { amount, asset_id },
             is_flagged,
             salt,
-            salt + decaf377::Fq::from(1u64),
-            salt + decaf377::Fq::from(2u64),
+            salt + shieldd_sdk_crypto::Fq::from(1u64),
+            salt + shieldd_sdk_crypto::Fq::from(2u64),
         )
         .unwrap()
         .ciphertext
@@ -176,7 +180,7 @@ mod tests {
         let dk_pub = dk.public_key();
         let sender_address = make_address(11);
         let receiver_address = make_address(21);
-        let asset_id = asset::Id(decaf377::Fq::from(9999u64));
+        let asset_id = asset::Id(shieldd_sdk_crypto::Fq::from(9999u64));
 
         let ciphertext = make_ciphertext(
             &dk_pub,
@@ -185,7 +189,7 @@ mod tests {
             asset_id,
             Amount::from(123u128),
             true,
-            decaf377::Fq::from(7u64),
+            shieldd_sdk_crypto::Fq::from(7u64),
         );
         let screener = ComplianceScreener::new(dk, asset_id);
 
@@ -204,8 +208,8 @@ mod tests {
         let dk_pub = dk.public_key();
         let sender_address = make_address(12);
         let receiver_address = make_address(22);
-        let asset_id = asset::Id(decaf377::Fq::from(1111u64));
-        let other_asset = asset::Id(decaf377::Fq::from(2222u64));
+        let asset_id = asset::Id(shieldd_sdk_crypto::Fq::from(1111u64));
+        let other_asset = asset::Id(shieldd_sdk_crypto::Fq::from(2222u64));
         let ciphertext = make_ciphertext(
             &dk_pub,
             &sender_address,
@@ -213,7 +217,7 @@ mod tests {
             asset_id,
             Amount::from(123u128),
             false,
-            decaf377::Fq::from(8u64),
+            shieldd_sdk_crypto::Fq::from(8u64),
         );
 
         let wrong_asset_screener = ComplianceScreener::new(dk.clone(), other_asset);
@@ -232,7 +236,7 @@ mod tests {
 
     #[test]
     fn screener_reports_invalid_ciphertext() {
-        let asset_id = asset::Id(decaf377::Fq::from(3333u64));
+        let asset_id = asset::Id(shieldd_sdk_crypto::Fq::from(3333u64));
         let screener = ComplianceScreener::new(DetectionKey::demo(), asset_id);
         match screener.screen(make_extracted(vec![1, 2, 3], asset_id)) {
             ScreeningResult::InvalidCiphertext(invalid) => {

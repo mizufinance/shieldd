@@ -67,7 +67,7 @@ impl SeedPhraseType {
     }
 }
 
-/// A mnemonic seed phrase. Used to generate [`SpendSeed`]s.
+/// A mnemonic seed phrase. Used to derive a [`SpendKey`](crate::keys::SpendKey).
 #[derive(Clone, Debug)]
 pub struct SeedPhrase(pub Vec<String>);
 

@@ -1,5 +1,7 @@
 use anyhow::{Context, Result};
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+use ff::Field;
+use group::GroupEncoding;
+use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_compliance::structs::{
     AssetRegistrationGrant, AssetRegistrationGrantBody, IbcAssetOrigin, IbcRoute,
@@ -82,9 +84,6 @@ pub enum ComplianceCmd {
         /// Vera policy ID bound to this grant.
         #[clap(long)]
         policy_id: String,
-        /// Orbis ring public key for the registered asset.
-        #[clap(long)]
-        ring_pk_hex: String,
         /// Orbis ring public key evaluated on the address diversified generator.
         #[clap(long)]
         rnk_dh_pk_hex: String,
@@ -121,10 +120,10 @@ impl ComplianceCmd {
     pub fn exec_generate_dk(&self) -> Result<()> {
         match self {
             ComplianceCmd::GenerateDk => {
-                let dk = decaf377::Fr::rand(&mut rand_core::OsRng);
-                let dk_pub = decaf377::Element::GENERATOR * dk;
+                let dk = shieldd_sdk_crypto::Fr::random(&mut rand_core::OsRng);
+                let dk_pub = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * dk;
                 let dk_hex = hex::encode(dk.to_bytes());
-                let dk_pub_hex = hex::encode(dk_pub.vartime_compress().0);
+                let dk_pub_hex = hex::encode(dk_pub.to_bytes());
 
                 println!("=== Issuer Detection Key Generation ===");
                 println!();
@@ -172,7 +171,7 @@ impl ComplianceCmd {
                 };
                 let asset_id = Self::parse_asset_id(asset_id)?;
                 let dk_pub = if let Some(hex_str) = dk_pub_hex {
-                    Some(parse_decaf377_element(hex_str, "dk_pub_hex")?)
+                    Some(parse_point(hex_str, "dk_pub_hex")?)
                 } else if is_regulated {
                     anyhow::bail!("--dk-pub-hex is required for regulated assets");
                 } else {
@@ -180,7 +179,7 @@ impl ComplianceCmd {
                 };
                 let ring_pk = ring_pk_hex
                     .as_ref()
-                    .map(|hex_str| parse_decaf377_element(hex_str, "ring_pk_hex"))
+                    .map(|hex_str| parse_point(hex_str, "ring_pk_hex"))
                     .transpose()?;
                 require_regulated_orbis_config(
                     is_regulated,
@@ -247,20 +246,17 @@ impl ComplianceCmd {
                 asset_id,
                 address,
                 policy_id,
-                ring_pk_hex,
                 rnk_dh_pk_hex,
                 rnk_commitment_hex,
                 registration_authority_sk_hex,
                 valid_until_unix,
             } => {
                 let asset_id = Self::parse_asset_id(asset_id)?;
-                let ring_pk = parse_decaf377_element(ring_pk_hex, "ring_pk_hex")?;
-                let rnk_dh_pk = parse_decaf377_element(rnk_dh_pk_hex, "rnk_dh_pk_hex")?;
+                let rnk_dh_pk = parse_point(rnk_dh_pk_hex, "rnk_dh_pk_hex")?;
                 let rnk_commitment = parse_fq(rnk_commitment_hex, "rnk_commitment_hex")?;
                 let leaf = ComplianceLeaf::registered(
                     address.clone(),
                     asset_id,
-                    ring_pk,
                     rnk_dh_pk,
                     rnk_commitment,
                 )?;
@@ -286,16 +282,14 @@ impl ComplianceCmd {
             ComplianceCmd::DeriveSpendVk { signing_key_hex } => {
                 let signing_key = parse_spend_sk(signing_key_hex, "signing_key_hex")?;
                 let vk = VerificationKey::from(&signing_key);
-                println!("{}", hex::encode(vk.to_bytes()));
+                println!("{}", hex::encode(<[u8; 32]>::from(vk)));
                 Ok(())
             }
             _ => anyhow::bail!("exec_sign_grant called on non-grant command"),
         }
     }
 
-    /// Create the transaction plan for this compliance command.
-    /// Helper to parse asset ID from string.
-    /// Accepts either a full asset ID or a unit name like "shieldd" or "ushieldd".
+    /// Parse a full asset ID or a unit name such as "shieldd" or "ushieldd".
     fn parse_asset_id(asset_str: &str) -> Result<asset::Id> {
         if let Ok(asset_id) = asset_str.parse() {
             return Ok(asset_id);
@@ -414,46 +408,52 @@ mod tests {
 
     #[test]
     fn authorization_key_parsers_reject_identity() {
-        let identity_sk = SigningKey::<SpendAuth>::from(decaf377::Fr::from(0u64));
+        let identity_sk = SigningKey::<SpendAuth>::try_from([0u8; 32]).unwrap();
         let identity_vk = VerificationKey::from(&identity_sk);
 
         assert!(
-            parse_spend_vk(&hex::encode(identity_vk.to_bytes()), "test_vk").is_err(),
+            parse_spend_vk(&hex::encode(<[u8; 32]>::from(identity_vk)), "test_vk").is_err(),
             "CLI verification-key parsing must reject identity"
         );
         assert!(
-            parse_spend_sk(&hex::encode(decaf377::Fr::from(0u64).to_bytes()), "test_sk").is_err(),
+            parse_spend_sk(
+                &hex::encode(shieldd_sdk_crypto::Fr::from(0u64).to_bytes()),
+                "test_sk"
+            )
+            .is_err(),
             "CLI signing-key parsing must reject a key deriving identity"
         );
     }
 }
 
-fn parse_decaf377_element(hex_str: &str, label: &str) -> Result<decaf377::Element> {
+fn parse_point(hex_str: &str, label: &str) -> Result<shieldd_sdk_crypto::SubgroupPoint> {
     let bytes = hex::decode(hex_str).with_context(|| format!("invalid {label}: must be hex"))?;
     if bytes.len() != 32 {
         anyhow::bail!("{label} must be exactly 64 hex chars (32 bytes)");
     }
     let arr: [u8; 32] = bytes.try_into().unwrap();
-    decaf377::Encoding(arr)
-        .vartime_decompress()
+    shieldd_sdk_crypto::encoding::nonidentity(&arr)
         .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))
 }
 
-fn parse_fq(hex_str: &str, label: &str) -> Result<decaf377::Fq> {
+fn parse_fq(hex_str: &str, label: &str) -> Result<shieldd_sdk_crypto::Fq> {
     let bytes = hex::decode(hex_str).with_context(|| format!("invalid {label}: must be hex"))?;
     if bytes.len() != 32 {
         anyhow::bail!("{label} must be exactly 64 hex chars (32 bytes)");
     }
     let bytes: [u8; 32] = bytes.try_into().unwrap();
-    let value = decaf377::Fq::from_bytes_checked(&bytes)
+    let value = shieldd_sdk_crypto::encoding::field(&bytes)
         .map_err(|_| anyhow::anyhow!("invalid {label} field encoding"))?;
-    anyhow::ensure!(value != decaf377::Fq::from(0u64), "{label} must be nonzero");
+    anyhow::ensure!(
+        value != shieldd_sdk_crypto::Fq::from(0u64),
+        "{label} must be nonzero"
+    );
     Ok(value)
 }
 
 fn require_regulated_orbis_config(
     is_regulated: bool,
-    ring_pk: Option<&decaf377::Element>,
+    ring_pk: Option<&shieldd_sdk_crypto::SubgroupPoint>,
     ring_id: &str,
     policy_id: &str,
     permission: &str,
@@ -482,7 +482,7 @@ fn parse_spend_vk(hex_str: &str, label: &str) -> Result<VerificationKey<SpendAut
     if bytes.len() != 32 {
         anyhow::bail!("{label} must be exactly 64 hex chars (32 bytes)");
     }
-    let key = VerificationKey::<SpendAuth>::try_from(bytes.as_slice())
+    let key = VerificationKey::<SpendAuth>::try_from(<[u8; 32]>::try_from(bytes.as_slice())?)
         .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))?;
     ensure_nonidentity_spend_auth_key(&key, label)?;
     Ok(key)
@@ -493,7 +493,7 @@ fn parse_spend_sk(hex_str: &str, label: &str) -> Result<SigningKey<SpendAuth>> {
     if bytes.len() != 32 {
         anyhow::bail!("{label} must be exactly 64 hex chars (32 bytes)");
     }
-    let key = SigningKey::<SpendAuth>::try_from(bytes.as_slice())
+    let key = SigningKey::<SpendAuth>::try_from(<[u8; 32]>::try_from(bytes.as_slice())?)
         .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))?;
     ensure_nonidentity_spend_auth_key(&VerificationKey::from(&key), label)?;
     Ok(key)

@@ -1,6 +1,5 @@
-use ark_ff::ToConstraintField;
-use decaf377::{Fq, Fr};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_proto::{shieldd::core::num::v1 as pb, DomainType};
 use std::{fmt::Display, iter::Sum, num::NonZeroU128, ops};
 
@@ -82,14 +81,6 @@ impl ops::Not for Amount {
 
     fn not(self) -> Self::Output {
         Self { inner: !self.inner }
-    }
-}
-
-impl ToConstraintField<Fq> for Amount {
-    fn to_field_elements(&self) -> Option<Vec<Fq>> {
-        let mut elements = Vec::new();
-        elements.extend_from_slice(&[Fq::from(self.inner)]);
-        Some(elements)
     }
 }
 
@@ -240,13 +231,13 @@ impl From<NonZeroU128> for Amount {
 
 impl From<Amount> for Fq {
     fn from(amount: Amount) -> Fq {
-        Fq::from(amount.inner)
+        Fq::from_raw([amount.inner as u64, (amount.inner >> 64) as u64, 0, 0])
     }
 }
 
 impl From<Amount> for Fr {
     fn from(amount: Amount) -> Fr {
-        Fr::from(amount.inner)
+        Fr::from_raw([amount.inner as u64, (amount.inner >> 64) as u64, 0, 0])
     }
 }
 
@@ -315,27 +306,17 @@ mod test {
         }
     }
 
-    // Regression tests for ZK-ASSUME-AMOUNT-RANGE / ZK-PROP-AMOUNT-RANGE-128.
-    //
-    // The circuit enforces `amount < 2^128` in-gadget via `ScalarMulLE(.., 128)`
-    // (pinned Go-side by `TestAmountRangeBoundIs128Bits`). These tests pin the
-    // Rust-side half of the assumption: every amount that can exist off-circuit is
-    // < 2^128 by construction, and its scalar-field embedding — the value the
-    // net-balance commitment sums — does not wrap the curve order, so a valid
-    // amount can never alias a smaller one mod `Fr`.
-
     #[test]
     fn scalar_embedding_of_max_amount_does_not_wrap() {
-        use ark_ff::{BigInteger, PrimeField};
-        use decaf377::Fr;
+        use shieldd_sdk_crypto::Fr;
 
         // The net-balance commitment scalar-multiplies by `Fr::from(amount)`.
         // If `2^128 - 1 >= Fr::MODULUS` the embedding would wrap and two distinct
         // amounts could collide mod the curve order. Prove the max amount embeds
         // with no reduction: its little-endian field bytes are exactly the 16
         // bytes of u128::MAX, zero-padded — i.e. the integer is unchanged.
-        let fr = Fr::from(u128::MAX);
-        let le = fr.into_bigint().to_bytes_le();
+        let fr = Fr::from(Amount::from(u128::MAX));
+        let le = fr.to_bytes();
         assert_eq!(&le[0..16], &u128::MAX.to_le_bytes());
         assert!(le[16..].iter().all(|&b| b == 0));
     }

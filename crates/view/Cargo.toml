@@ -15,13 +15,18 @@ prover = ["shieldd-sdk-transaction/prover"]
 rpc = ["dep:tonic", "shieldd-sdk-proto/rpc"]
 
 [dependencies]
+futures.workspace = true
+ff.workspace = true
+group.workspace = true
+shieldd-sdk-circuits.workspace = true
+shieldd-sdk-crypto.workspace = true
+commonware-parallel.workspace = true
 shieldd-sdk-disclosure = { workspace = true }
 shieldd-sdk-txhash = { workspace = true }
 anyhow = {workspace = true}
 async-trait = {workspace = true}
 bytes = {workspace = true, features = ["serde"]}
 camino = {workspace = true}
-decaf377 = {workspace = true, default-features = true}
 digest = "0.9"
 genawaiter = "0.99"
 hex = {workspace = true}
@@ -46,11 +51,12 @@ rand_core = {workspace = true, features = ["getrandom"]}
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
-tokio = {workspace = true, features = ["macros", "rt-multi-thread", "sync"]}
+tokio = {workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"]}
 tonic = {workspace = true, optional = true, features = ["tls", "tls-webpki-roots"]}
 tracing = {workspace = true}
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
 pbjson-types = { workspace = true }
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false, features = ["benchmark-helpers"]}
 shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}

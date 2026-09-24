@@ -1,8 +1,9 @@
-use poseidon377::Fq;
+use ff::Field;
+use shieldd_sdk_crypto::Fq;
 
 use crate::prelude::*;
 
-/// A proof of the inclusion of some [`Commitment`] in a [`Tree`] with a particular [`Root`].
+/// A proof of the inclusion of some [`crate::StateCommitment`] in a [`Tree`] with a particular [`Root`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Proof(
     pub(super)  crate::internal::proof::Proof<
@@ -11,7 +12,7 @@ pub struct Proof(
 );
 
 impl Proof {
-    /// Construct a new [`Proof`] of inclusion for a given [`Commitment`], index, and authentication
+    /// Construct a new [`Proof`] of inclusion for a given [`crate::StateCommitment`], index, and authentication
     /// path from root to leaf.
     pub fn new(
         commitment: StateCommitment,
@@ -58,7 +59,7 @@ impl Proof {
     /// Generate a dummy [`Proof`] for a given commitment.
     pub fn dummy<R: Rng + rand::CryptoRng>(rng: &mut R, commitment: StateCommitment) -> Self {
         let dummy_position = 0u64.into();
-        let dummy_auth_path: [[Hash; 3]; 24] = [[Hash::new(Fq::rand(rng)); 3]; 24];
+        let dummy_auth_path: [[Hash; 3]; 24] = [[Hash::new(Fq::random(rng)); 3]; 24];
         Self::new(commitment, dummy_position, dummy_auth_path)
     }
 

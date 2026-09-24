@@ -6,10 +6,7 @@ use shieldd_sdk_compliance::event::{
     EventAssetRegistered, EventUserAssetStatusChanged, EventUserRegistered,
 };
 use shieldd_sdk_fee::GasPrices;
-use shieldd_sdk_proto::{
-    core::component::compact_block::v1::CompactBlockRangeResponse,
-    shieldd::core::component::compact_block::v1 as pb, DomainType,
-};
+use shieldd_sdk_proto::{shieldd::core::component::compact_block::v1 as pb, DomainType};
 use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::{
@@ -17,7 +14,7 @@ use shieldd_sdk_tct::{
     StateCommitment,
 };
 
-use super::{RoutingActionPayloads, RoutingRecord, StatePayload};
+use super::{RoutingAction, RoutingRecord, StatePayload};
 
 /// A compressed delta update with the minimal data from a block required to
 /// synchronize private client state.
@@ -27,6 +24,8 @@ pub struct CompactBlock {
     pub height: u64,
     /// State payloads describing new state fragments.
     pub state_payloads: Vec<StatePayload>,
+    /// Position of the first payload; subsequent positions are contiguous.
+    pub state_payload_start_position: u64,
     /// Nullifiers identifying spent notes.
     pub nullifiers: Vec<Nullifier>,
     /// The block root of this block.
@@ -37,8 +36,8 @@ pub struct CompactBlock {
     pub discovery_parameters: Option<discovery::Parameters>,
     /// Fixed-shape action-level routing records.
     pub routing_records: Vec<RoutingRecord>,
-    /// Encrypted note payloads grouped by their producing action.
-    pub routing_action_payloads: Vec<RoutingActionPayloads>,
+    /// Producing actions reference canonical SCT payload positions.
+    pub routing_actions: Vec<RoutingAction>,
     /// Set if the app parameters have been updated. Notifies the client that it should re-sync from the fullnode RPC.
     pub app_parameters_updated: bool,
     /// Updated gas prices for the native token, if they have changed.
@@ -68,12 +67,13 @@ impl Default for CompactBlock {
         Self {
             height: 0,
             state_payloads: Vec::new(),
+            state_payload_start_position: 0,
             nullifiers: Vec::new(),
             block_root: block::Finalized::default().root(),
             epoch_root: None,
             discovery_parameters: None,
             routing_records: Vec::new(),
-            routing_action_payloads: Vec::new(),
+            routing_actions: Vec::new(),
             app_parameters_updated: false,
             gas_prices: None,
             epoch_index: 0,
@@ -88,6 +88,44 @@ impl Default for CompactBlock {
 }
 
 impl CompactBlock {
+    /// Every reference must name an actual, uniquely owned payload in this block.
+    pub fn validate_payload_references(&self) -> Result<()> {
+        let start = self.state_payload_start_position;
+        let end = start
+            .checked_add(self.state_payloads.len() as u64)
+            .ok_or_else(|| anyhow::anyhow!("compact payload position overflow"))?;
+        anyhow::ensure!(
+            self.state_payloads.len() <= 65_536,
+            "compact block exceeds SCT capacity"
+        );
+        let mut positions = std::collections::BTreeSet::new();
+        let mut actions = std::collections::BTreeSet::new();
+        for action in &self.routing_actions {
+            anyhow::ensure!(
+                actions.insert((action.transaction_id.0, action.action_index)),
+                "duplicate routing action"
+            );
+            for &position in &action.payload_positions {
+                anyhow::ensure!(
+                    (start..end).contains(&position),
+                    "routing references absent payload"
+                );
+                anyhow::ensure!(
+                    positions.insert(position),
+                    "payload assigned to multiple routing actions"
+                );
+            }
+            anyhow::ensure!(
+                action
+                    .payload_positions
+                    .windows(2)
+                    .all(|pair| pair[0] < pair[1]),
+                "routing payload positions are not ordered"
+            );
+        }
+        Ok(())
+    }
+
     /// Returns true if the compact block contains any data that requires scanning.
     pub fn requires_scanning(&self) -> bool {
         !self.state_payloads.is_empty() // need to scan notes
@@ -111,6 +149,7 @@ impl From<CompactBlock> for pb::CompactBlock {
     fn from(cb: CompactBlock) -> Self {
         pb::CompactBlock {
             height: cb.height,
+            state_payload_start_position: cb.state_payload_start_position,
             state_payloads: cb.state_payloads.into_iter().map(Into::into).collect(),
             nullifiers: cb.nullifiers.into_iter().map(Into::into).collect(),
             // We don't serialize block roots if they are the empty block, because we don't need to
@@ -148,11 +187,7 @@ impl From<CompactBlock> for pb::CompactBlock {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            routing_action_payloads: cb
-                .routing_action_payloads
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+            routing_actions: cb.routing_actions.into_iter().map(Into::into).collect(),
             nullifier_window: cb.nullifier_window.map(Into::into),
         }
     }
@@ -181,8 +216,9 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
             Some(StateCommitment::try_from(bytes)?)
         };
 
-        Ok(CompactBlock {
+        let block = CompactBlock {
             height: value.height,
+            state_payload_start_position: value.state_payload_start_position,
             state_payloads: value
                 .state_payloads
                 .into_iter()
@@ -229,31 +265,14 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<EventAssetRegistered>>>()?,
-            routing_action_payloads: value
-                .routing_action_payloads
+            routing_actions: value
+                .routing_actions
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>>>()?,
             nullifier_window: value.nullifier_window.map(TryInto::try_into).transpose()?,
-        })
-    }
-}
-
-impl From<CompactBlock> for CompactBlockRangeResponse {
-    fn from(cb: CompactBlock) -> Self {
-        Self {
-            compact_block: Some(cb.into()),
-        }
-    }
-}
-
-impl TryFrom<CompactBlockRangeResponse> for CompactBlock {
-    type Error = anyhow::Error;
-
-    fn try_from(response: CompactBlockRangeResponse) -> Result<Self, Self::Error> {
-        response
-            .compact_block
-            .ok_or_else(|| anyhow::anyhow!("empty CompactBlockRangeResponse message"))?
-            .try_into()
+        };
+        block.validate_payload_references()?;
+        Ok(block)
     }
 }

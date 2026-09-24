@@ -1,12 +1,12 @@
 use std::convert::{TryFrom, TryInto};
 
 use crate::genesis::Allocation;
-use blake2b_simd;
-use decaf377::{Element, Fq};
-use decaf377_ka as ka;
-use once_cell::sync::Lazy;
+
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::ka;
+use shieldd_sdk_crypto::{audit::point_fields, domains, poseidon};
+use shieldd_sdk_crypto::{Fq, SubgroupPoint};
 use shieldd_sdk_keys::{
     keys::{Diversifier, FullViewingKey, IncomingViewingKey, OutgoingViewingKey},
     symmetric::{OutgoingCipherKey, OvkWrappedKey, PayloadKey, PayloadKind},
@@ -22,8 +22,8 @@ use shieldd_sdk_num::Amount;
 
 use crate::{NotePayload, RecoveryCapsule, RecoveryCommitment, Rseed};
 
-pub const NOTE_LEN_BYTES: usize = 160;
-pub const NOTE_CIPHERTEXT_BYTES: usize = 176;
+pub const NOTE_LEN_BYTES: usize = 161;
+pub const NOTE_CIPHERTEXT_BYTES: usize = NOTE_LEN_BYTES + 16;
 
 /// A plaintext Shieldd note.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,11 +36,6 @@ pub struct Note {
     rseed: Rseed,
     /// The address controlling this note.
     address: Address,
-    /// The s-component of the transmission key of the destination address.
-    /// We store this separately to ensure that every `Note` is constructed
-    /// with a valid transmission key (the `ka::Public` does not validate
-    /// the curve point until it is used, since validation is not free).
-    transmission_key_s: Fq,
     /// Commitment to the public recovery capsule for this exact note.
     recovery_commitment: RecoveryCommitment,
 }
@@ -83,11 +78,6 @@ impl TryFrom<NoteView> for Note {
 #[serde(into = "pb::NoteCiphertext", try_from = "pb::NoteCiphertext")]
 pub struct NoteCiphertext(pub [u8; NOTE_CIPHERTEXT_BYTES]);
 
-/// The domain separator used to generate note commitments.
-pub(crate) static NOTECOMMIT_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.notecommit").as_bytes())
-});
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Invalid note commitment")]
@@ -121,7 +111,8 @@ impl Note {
             return *self.transmission_key()
                 == fvk
                     .incoming()
-                    .diversified_public(&self.diversified_generator());
+                    .diversified_public(&self.diversified_generator())
+                    .expect("validated diversified generator");
         } else {
             false
         }
@@ -157,8 +148,6 @@ impl Note {
             value,
             rseed,
             address: address.clone(),
-            transmission_key_s: Fq::from_bytes_checked(&address.transmission_key().0)
-                .map_err(|_| Error::InvalidTransmissionKey)?,
             recovery_commitment,
         })
     }
@@ -167,10 +156,14 @@ impl Note {
         address: Address,
         value: Value,
         rseed: Rseed,
-        capk: Element,
+        payload_key: SubgroupPoint,
     ) -> anyhow::Result<(Self, RecoveryCapsule)> {
-        let (capsule, _) =
-            RecoveryCapsule::encrypt(value.amount, rseed.derive_note_blinding(), capk, rseed)?;
+        let (capsule, _) = RecoveryCapsule::encrypt(
+            value.amount,
+            rseed.derive_note_blinding(),
+            payload_key,
+            rseed,
+        )?;
         let note = Self::from_parts(address, value, rseed, capsule.commitment())?;
         Ok((note, capsule))
     }
@@ -202,7 +195,7 @@ impl Note {
         self.address.clone()
     }
 
-    pub fn diversified_generator(&self) -> decaf377::Element {
+    pub fn diversified_generator(&self) -> shieldd_sdk_crypto::SubgroupPoint {
         *self.address.diversified_generator()
     }
 
@@ -210,8 +203,8 @@ impl Note {
         self.address.transmission_key()
     }
 
-    pub fn transmission_key_s(&self) -> Fq {
-        self.transmission_key_s
+    pub fn transmission_point(&self) -> &SubgroupPoint {
+        self.address.transmission_point()
     }
 
     pub fn diversifier(&self) -> &Diversifier {
@@ -225,6 +218,7 @@ impl Note {
     pub fn ephemeral_public_key(&self) -> ka::Public {
         self.ephemeral_secret_key()
             .diversified_public(&self.diversified_generator())
+            .expect("validated diversified generator")
     }
 
     pub fn note_blinding(&self) -> Fq {
@@ -254,10 +248,10 @@ impl Note {
     /// Encrypt a note, returning its ciphertext.
     pub fn encrypt(&self) -> NoteCiphertext {
         let esk = self.ephemeral_secret_key();
-        let epk = esk.diversified_public(&self.diversified_generator());
-        let shared_secret = esk
-            .key_agreement_with(self.transmission_key())
-            .expect("key agreement succeeded");
+        let epk = esk
+            .diversified_public(&self.diversified_generator())
+            .expect("validated diversified generator");
+        let shared_secret = esk.key_agreement_with(self.transmission_key());
 
         let key = PayloadKey::derive(&shared_secret, &epk);
         let note_plaintext: Vec<u8> = self.into();
@@ -273,13 +267,13 @@ impl Note {
     /// Generate encrypted outgoing cipher key for use with this note.
     pub fn encrypt_key(&self, ovk: &OutgoingViewingKey, cv: balance::Commitment) -> OvkWrappedKey {
         let esk = self.ephemeral_secret_key();
-        let epk = esk.diversified_public(&self.diversified_generator());
+        let epk = esk
+            .diversified_public(&self.diversified_generator())
+            .expect("validated diversified generator");
         let ock = OutgoingCipherKey::derive(ovk, cv, self.commit(), &epk);
-        let shared_secret = esk
-            .key_agreement_with(self.transmission_key())
-            .expect("key agreement succeeded");
+        let shared_secret = esk.key_agreement_with(self.transmission_key());
 
-        let encryption_result = ock.encrypt(shared_secret.0.to_vec(), PayloadKind::Note);
+        let encryption_result = ock.encrypt(shared_secret.to_bytes().to_vec(), PayloadKind::Note);
 
         OvkWrappedKey(
             encryption_result
@@ -302,7 +296,8 @@ impl Note {
             .decrypt(wrapped_ovk.to_vec(), PayloadKind::Note)
             .map_err(|_| Error::DecryptionError)?;
 
-        let shared_secret_bytes: [u8; 32] = plaintext[0..32]
+        let shared_secret_bytes: [u8; 32] = plaintext
+            .as_slice()
             .try_into()
             .map_err(|_| Error::DecryptionError)?;
         let shared_secret: ka::SharedSecret = shared_secret_bytes
@@ -334,9 +329,7 @@ impl Note {
         ivk: &IncomingViewingKey,
         epk: &ka::Public,
     ) -> Result<Note, Error> {
-        let shared_secret = ivk
-            .key_agreement_with(epk)
-            .map_err(|_| Error::DecryptionError)?;
+        let shared_secret = ivk.key_agreement_with(epk);
 
         let key = PayloadKey::derive(&shared_secret, epk);
         Note::decrypt_with_payload_key(ciphertext, &key, epk)
@@ -373,7 +366,7 @@ impl Note {
             self.note_blinding(),
             self.value,
             self.diversified_generator(),
-            self.transmission_key_s,
+            *self.transmission_point(),
             self.recovery_commitment,
         )
     }
@@ -387,47 +380,40 @@ impl Note {
 pub fn commitment(
     note_blinding: Fq,
     value: Value,
-    diversified_generator: decaf377::Element,
-    transmission_key_s: Fq,
+    diversified_generator: SubgroupPoint,
+    transmission_key: SubgroupPoint,
     recovery_commitment: RecoveryCommitment,
 ) -> StateCommitment {
-    let commit = poseidon377::hash_6(
-        &NOTECOMMIT_DOMAIN_SEP,
-        (
+    let [gx, gy] = point_fields(&diversified_generator);
+    let [px, py] = point_fields(&transmission_key);
+    StateCommitment(poseidon::hash(
+        domains::NOTE,
+        &[
             note_blinding,
             value.amount.into(),
             value.asset_id.0,
-            diversified_generator.vartime_compress_to_field(),
-            transmission_key_s,
+            gx,
+            gy,
+            px,
+            py,
             recovery_commitment.0,
-        ),
-    );
-
-    StateCommitment(commit)
+        ],
+    ))
 }
 
-/// Create a note commitment from the blinding factor, value, and address.
 pub fn commitment_from_address(
     address: Address,
     value: Value,
     note_blinding: Fq,
     recovery_commitment: RecoveryCommitment,
-) -> Result<StateCommitment, Error> {
-    let transmission_key_s = Fq::from_bytes_checked(&address.transmission_key().0)
-        .map_err(|_| Error::InvalidTransmissionKey)?;
-    let commit = poseidon377::hash_6(
-        &NOTECOMMIT_DOMAIN_SEP,
-        (
-            note_blinding,
-            value.amount.into(),
-            value.asset_id.0,
-            address.diversified_generator().vartime_compress_to_field(),
-            transmission_key_s,
-            recovery_commitment.0,
-        ),
-    );
-
-    Ok(StateCommitment(commit))
+) -> StateCommitment {
+    commitment(
+        note_blinding,
+        value,
+        *address.diversified_generator(),
+        *address.transmission_point(),
+        recovery_commitment,
+    )
 }
 
 impl std::fmt::Debug for Note {
@@ -457,7 +443,7 @@ impl TryFrom<pb::Note> for Note {
             .try_into()
             .map_err(|_| anyhow::anyhow!("recovery commitment must be 32 bytes"))?;
         let recovery_commitment = RecoveryCommitment(
-            Fq::from_bytes_checked(&recovery_commitment_bytes)
+            shieldd_sdk_crypto::encoding::field(&recovery_commitment_bytes)
                 .map_err(|_| anyhow::anyhow!("invalid recovery commitment"))?,
         );
 
@@ -506,7 +492,7 @@ impl TryFrom<pb::NoteView> for NoteView {
         let rseed = Rseed(msg.rseed.as_slice().try_into()?);
         let recovery_commitment_bytes: [u8; 32] = msg.recovery_commitment.as_slice().try_into()?;
         let recovery_commitment = RecoveryCommitment(
-            Fq::from_bytes_checked(&recovery_commitment_bytes)
+            shieldd_sdk_crypto::encoding::field(&recovery_commitment_bytes)
                 .map_err(|_| anyhow::anyhow!("invalid recovery commitment"))?,
         );
 
@@ -522,11 +508,11 @@ impl TryFrom<pb::NoteView> for NoteView {
 impl From<&Note> for [u8; NOTE_LEN_BYTES] {
     fn from(note: &Note) -> [u8; NOTE_LEN_BYTES] {
         let mut bytes = [0u8; NOTE_LEN_BYTES];
-        bytes[0..48].copy_from_slice(&note.address.to_vec());
-        bytes[48..64].copy_from_slice(&note.value.amount.to_le_bytes());
-        bytes[64..96].copy_from_slice(&note.value.asset_id.0.to_bytes());
-        bytes[96..128].copy_from_slice(&note.rseed.to_bytes());
-        bytes[128..160].copy_from_slice(&note.recovery_commitment.0.to_bytes());
+        bytes[0..49].copy_from_slice(&note.address.to_vec());
+        bytes[49..65].copy_from_slice(&note.value.amount.to_le_bytes());
+        bytes[65..97].copy_from_slice(&note.value.asset_id.0.to_bytes());
+        bytes[97..129].copy_from_slice(&note.rseed.to_bytes());
+        bytes[129..161].copy_from_slice(&note.recovery_commitment.0.to_bytes());
         bytes
     }
 }
@@ -557,33 +543,33 @@ impl TryFrom<&[u8]> for Note {
             return Err(Error::NoteDeserializationError);
         }
 
-        let amount_bytes: [u8; 16] = bytes[48..64]
+        let amount_bytes: [u8; 16] = bytes[49..65]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
-        let asset_id_bytes: [u8; 32] = bytes[64..96]
+        let asset_id_bytes: [u8; 32] = bytes[65..97]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
-        let rseed_bytes: [u8; 32] = bytes[96..128]
+        let rseed_bytes: [u8; 32] = bytes[97..129]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
-        let recovery_commitment_bytes: [u8; 32] = bytes[128..160]
+        let recovery_commitment_bytes: [u8; 32] = bytes[129..161]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
 
         Note::from_parts(
-            bytes[0..48]
+            bytes[0..49]
                 .try_into()
                 .map_err(|_| Error::NoteDeserializationError)?,
             Value {
                 amount: Amount::from_le_bytes(amount_bytes),
                 asset_id: asset::Id(
-                    Fq::from_bytes_checked(&asset_id_bytes)
+                    shieldd_sdk_crypto::encoding::field(&asset_id_bytes)
                         .map_err(|_| Error::NoteDeserializationError)?,
                 ),
             },
             Rseed(rseed_bytes),
             RecoveryCommitment(
-                Fq::from_bytes_checked(&recovery_commitment_bytes)
+                shieldd_sdk_crypto::encoding::field(&recovery_commitment_bytes)
                     .map_err(|_| Error::NoteDeserializationError)?,
             ),
         )
@@ -625,8 +611,9 @@ impl From<NoteCiphertext> for pb::NoteCiphertext {
 
 #[cfg(test)]
 mod tests {
-    use decaf377::Fr;
+    use ff::Field;
     use rand_core::OsRng;
+    use shieldd_sdk_crypto::Fr;
 
     use super::*;
     use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
@@ -654,7 +641,9 @@ mod tests {
         let ciphertext = note.encrypt();
 
         let esk = note.ephemeral_secret_key();
-        let epk = esk.diversified_public(dest.diversified_generator());
+        let epk = esk
+            .diversified_public(dest.diversified_generator())
+            .expect("validated address");
         let plaintext = Note::decrypt(&ciphertext, ivk, &epk).expect("can decrypt note");
 
         assert_eq!(plaintext, note);
@@ -689,14 +678,16 @@ mod tests {
         };
         let note = Note::generate(&mut rng, &dest, value);
 
-        let value_blinding = Fr::rand(&mut rng);
+        let value_blinding = Fr::random(&mut rng);
         let cv = note.value.commit(value_blinding);
 
         let wrapped_ovk = note.encrypt_key(ovk, cv);
         let ciphertext = note.encrypt();
 
         let esk = note.ephemeral_secret_key();
-        let epk = esk.diversified_public(dest.diversified_generator());
+        let epk = esk
+            .diversified_public(dest.diversified_generator())
+            .expect("validated address");
         let plaintext =
             Note::decrypt_outgoing(&ciphertext, wrapped_ovk, note.commit(), cv, ovk, &epk)
                 .expect("can decrypt note");
@@ -727,7 +718,9 @@ mod tests {
         let ciphertext = note.encrypt();
 
         let wrong_esk = ka::Secret::new(&mut rng);
-        let wrong_epk = wrong_esk.diversified_public(dest.diversified_generator());
+        let wrong_epk = wrong_esk
+            .diversified_public(dest.diversified_generator())
+            .expect("validated address");
         let decryption_result = Note::decrypt(&ciphertext, ivk, &wrong_epk);
 
         assert!(decryption_result.is_err());

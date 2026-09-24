@@ -1,9 +1,9 @@
 use std::fmt::Display;
 use std::sync::Arc;
 
-use decaf377::Fq;
 use hash_hasher::HashedMap;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 
 use crate::error::epoch::*;
@@ -13,7 +13,7 @@ use crate::{prelude::*, Witness};
 pub(crate) mod block;
 
 /// A sparse merkle tree to witness up to 65,536 blocks, each witnessing up to 65,536
-/// [`Commitment`]s.
+/// [`crate::StateCommitment`]s.
 ///
 /// This is one epoch in a [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
@@ -102,7 +102,7 @@ impl TryFrom<pb::MerkleRoot> for Root {
 
     fn try_from(root: pb::MerkleRoot) -> Result<Root, Self::Error> {
         let bytes: [u8; 32] = (&root.inner[..]).try_into().map_err(|_| RootDecodeError)?;
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| RootDecodeError)?;
+        let inner = shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| RootDecodeError)?;
         Ok(Root(Hash::new(inner)))
     }
 }
@@ -137,7 +137,7 @@ impl Builder {
         Self::default()
     }
 
-    /// Add a new [`Commitment`] to the most recent block of this [`epoch::Builder`](Builder).
+    /// Add a new [`crate::StateCommitment`] to the most recent block of this [`epoch::Builder`](Builder).
     ///
     /// # Errors
     ///

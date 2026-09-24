@@ -97,7 +97,7 @@ pub mod frontier {
     //! contains no witnessed children.
     //!
     //! At the tip of the frontier, however deeply nested (perhaps within multiple [`Tier`]s), there
-    //! is a single [`Item`], which is either a [`Commitment`](crate::Commitment) or a hash of one.
+    //! is a single [`Item`], which is either a [`crate::StateCommitment`] or a hash of one.
     //! Commitments can be inserted either with the intent to remember them, or with the intent to
     //! immediately forget them; this determines whether the [`Item`] is a commitment or merely its
     //! hash.
@@ -139,7 +139,7 @@ pub mod complete {
     //!
     //! At the bottom of the bottom-most tier (perhaps at the bottom of multiple [`Tier`]s), there
     //! are [`Item`]s, each of which is merely a wrapper for a single
-    //! [`Commitment`](crate::Commitment).
+    //! [`crate::StateCommitment`].
     pub(crate) use super::interface::OutOfOrderOwned;
     #[doc(inline)]
     pub use super::interface::{Complete, ForgetOwned};

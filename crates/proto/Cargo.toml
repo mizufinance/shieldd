@@ -17,7 +17,8 @@ async-trait = {workspace = true}
 bech32 = {workspace = true}
 bytes = {workspace = true, features = ["serde"]}
 cnidarium = {workspace = true, optional = true, default-features = true}
-decaf377-rdsa = {workspace = true}
+reddsa.workspace = true
+shieldd-sdk-crypto.workspace = true
 futures = {workspace = true}
 hex = {workspace = true}
 ics23 = {workspace = true}

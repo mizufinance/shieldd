@@ -1,0 +1,758 @@
+//! Core traits for encoding and decoding.
+
+use crate::error::Error;
+#[cfg(not(feature = "std"))]
+use alloc::{sync::Arc, vec::Vec};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+#[cfg(feature = "std")]
+use std::{sync::Arc, vec::Vec};
+
+/// Trait for types with a known, fixed encoded size.
+///
+/// Implementing this trait signifies that the encoded representation of this type *always* has the
+/// same byte length, regardless of the specific value.
+///
+/// This automatically provides an implementation of [EncodeSize].
+pub trait FixedSize {
+    /// The size of the encoded value (in bytes).
+    const SIZE: usize;
+}
+
+/// Trait for types that can provide their encoded size in bytes.
+///
+/// This must be implemented by all encodable types. For types implementing [FixedSize], this
+/// trait is implemented automatically. For variable-size types, this requires calculating the size
+/// based on the value.
+pub trait EncodeSize {
+    /// Returns the encoded size of this value (in bytes).
+    fn encode_size(&self) -> usize;
+
+    /// Returns the total encoded size of a sequence, excluding any container-specific length
+    /// prefix.
+    ///
+    /// Container implementations call this hook so element types can provide a more efficient
+    /// aggregate size calculation. The default preserves normal element-by-element sizing.
+    /// Fixed-size implementations compute `SIZE * len`, which avoids an O(n) sizing prepass
+    /// before containers such as `Vec<T>` allocate their output buffer.
+    ///
+    /// This hook exists because stable Rust cannot express the overlapping specialized
+    /// container impls that would otherwise provide this aggregate path directly.
+    ///
+    /// This is hidden from generated documentation because it is an implementation hook for
+    /// codec's container types, not part of the intended user-facing API. Most users should
+    /// implement [EncodeSize::encode_size] or [FixedSize] instead.
+    #[doc(hidden)]
+    #[inline]
+    fn encode_size_slice(values: &[Self]) -> usize
+    where
+        Self: Sized,
+    {
+        values.iter().map(EncodeSize::encode_size).sum()
+    }
+
+    /// Returns the encoded size excluding bytes passed to [`BufsMut::push`]
+    /// during [`Write::write_bufs`]. Used to size the working buffer for inline
+    /// writes. Override alongside [`Write::write_bufs`] for types where large
+    /// [`Bytes`] fields go via push; failing to do so will over-allocate.
+    #[inline]
+    fn encode_inline_size(&self) -> usize {
+        self.encode_size()
+    }
+
+    /// Returns the total inline encoded size of a sequence, excluding any container-specific
+    /// length prefix.
+    ///
+    /// This hidden hook is the slice equivalent of [EncodeSize::encode_inline_size]. The
+    /// default preserves normal element-by-element sizing. Fixed-size implementations override
+    /// this to compute `SIZE * len`, matching [EncodeSize::encode_size_slice] for the
+    /// [`Write::write_bufs`] path.
+    ///
+    /// This hook exists because stable Rust cannot express the overlapping specialized
+    /// container impls that would otherwise provide this aggregate path directly.
+    ///
+    /// This is hidden from generated documentation for the same reason as
+    /// [EncodeSize::encode_size_slice].
+    #[doc(hidden)]
+    #[inline]
+    fn encode_inline_size_slice(values: &[Self]) -> usize
+    where
+        Self: Sized,
+    {
+        values
+            .iter()
+            .map(EncodeSize::encode_inline_size)
+            .sum::<usize>()
+    }
+}
+
+// Automatically implement `EncodeSize` for types that are `FixedSize`.
+impl<T: FixedSize> EncodeSize for T {
+    #[inline]
+    fn encode_size(&self) -> usize {
+        Self::SIZE
+    }
+
+    #[inline]
+    fn encode_size_slice(values: &[Self]) -> usize
+    where
+        Self: Sized,
+    {
+        Self::SIZE * values.len()
+    }
+
+    #[inline]
+    fn encode_inline_size_slice(values: &[Self]) -> usize
+    where
+        Self: Sized,
+    {
+        Self::encode_size_slice(values)
+    }
+}
+
+/// Trait for types that can be written (encoded) to a byte buffer.
+pub trait Write {
+    /// Writes the binary representation of `self` to the provided buffer `buf`.
+    ///
+    /// Implementations should panic if the buffer doesn't have enough capacity.
+    fn write(&self, buf: &mut impl BufMut);
+
+    /// Writes the encoded payload for a sequence, excluding any container-specific length
+    /// prefix.
+    ///
+    /// Container implementations call this hook so element types can provide a more efficient
+    /// aggregate write path. The default preserves normal element-by-element encoding.
+    ///
+    /// This hook exists because stable Rust cannot express the overlapping specialized
+    /// container impls that would otherwise provide this aggregate path directly.
+    ///
+    /// This is hidden from generated documentation because it is an implementation hook for
+    /// codec's container types, not part of the intended user-facing API. Most users should
+    /// implement [Write::write] instead.
+    #[doc(hidden)]
+    #[inline]
+    fn write_slice(values: &[Self], buf: &mut impl BufMut)
+    where
+        Self: Sized,
+    {
+        for item in values {
+            item.write(buf);
+        }
+    }
+
+    /// Writes to a [`BufsMut`], allowing existing [`Bytes`] chunks to be
+    /// appended via [`BufsMut::push`] instead of written inline. Must encode
+    /// to the same format as [`Write::write`]. Defaults to [`Write::write`].
+    #[inline]
+    fn write_bufs(&self, buf: &mut impl BufsMut) {
+        self.write(buf);
+    }
+
+    /// Writes the encoded payload for a sequence to a [`BufsMut`], excluding any
+    /// container-specific length prefix.
+    ///
+    /// This hidden hook is the slice equivalent of [Write::write_bufs]. The default preserves
+    /// normal element-by-element encoding.
+    ///
+    /// This hook exists because stable Rust cannot express the overlapping specialized
+    /// container impls that would otherwise provide this aggregate path directly.
+    ///
+    /// This is hidden from generated documentation for the same reason as [Write::write_slice].
+    #[doc(hidden)]
+    #[inline]
+    fn write_slice_bufs(values: &[Self], buf: &mut impl BufsMut)
+    where
+        Self: Sized,
+    {
+        for item in values {
+            item.write_bufs(buf);
+        }
+    }
+}
+
+impl<T: EncodeSize + ?Sized> EncodeSize for Arc<T> {
+    #[inline]
+    fn encode_size(&self) -> usize {
+        self.as_ref().encode_size()
+    }
+
+    #[inline]
+    fn encode_inline_size(&self) -> usize {
+        self.as_ref().encode_inline_size()
+    }
+}
+
+impl<T: Write + ?Sized> Write for Arc<T> {
+    #[inline]
+    fn write(&self, buf: &mut impl BufMut) {
+        self.as_ref().write(buf);
+    }
+
+    #[inline]
+    fn write_bufs(&self, buf: &mut impl BufsMut) {
+        self.as_ref().write_bufs(buf);
+    }
+}
+
+/// Trait for types that can be read (decoded) from a byte buffer.
+pub trait Read: Sized {
+    /// The `Cfg` type parameter allows passing configuration during the read process. This is
+    /// crucial for safely decoding untrusted data, for example, by providing size limits for
+    /// collections or strings.
+    ///
+    /// Use `Cfg = ()` if no configuration is needed for a specific type.
+    type Cfg: Clone + Send + Sync + 'static;
+
+    /// Reads a value from the buffer using the provided configuration `cfg`.
+    ///
+    /// Implementations should consume the exact number of bytes required from `buf` to reconstruct
+    /// the value.
+    ///
+    /// Implementations must return [Error] if decoding fails due to invalid data, insufficient
+    /// bytes in the buffer, or violation of constraints imposed by the `cfg`.
+    ///
+    /// # Warning
+    ///
+    /// Parsing a message (often untrusted) should never result in a panic.
+    fn read_cfg(buf: &mut impl Buf, cfg: &Self::Cfg) -> Result<Self, Error>;
+
+    /// Reads `len` values from the buffer into a vector.
+    ///
+    /// Container implementations call this hook so element types can provide a more efficient
+    /// vector read path. The default preserves normal element-by-element decoding.
+    ///
+    /// This hook exists because stable Rust cannot express the overlapping specialized
+    /// container impls that would otherwise provide this aggregate path directly.
+    ///
+    /// This is hidden from generated documentation because it is an implementation hook for
+    /// codec's container types, not part of the intended user-facing API. Most users should
+    /// implement [Read::read_cfg] instead.
+    #[doc(hidden)]
+    #[inline]
+    fn read_vec(buf: &mut impl Buf, len: usize, cfg: &Self::Cfg) -> Result<Vec<Self>, Error> {
+        let mut values = Vec::with_capacity(len.min(buf.remaining()));
+        for _ in 0..len {
+            values.push(Self::read_cfg(buf, cfg)?);
+        }
+        Ok(values)
+    }
+
+    /// Reads exactly `N` values from the buffer into an array.
+    ///
+    /// This hidden hook is the array equivalent of [Read::read_vec]. The default preserves
+    /// normal element-by-element decoding.
+    ///
+    /// This hook exists because stable Rust cannot express the overlapping specialized array
+    /// impls that would otherwise provide this aggregate path directly.
+    ///
+    /// This is hidden from generated documentation for the same reason as [Read::read_vec].
+    #[doc(hidden)]
+    #[inline]
+    fn read_array<const N: usize>(buf: &mut impl Buf, cfg: &Self::Cfg) -> Result<[Self; N], Error> {
+        Ok(Self::read_vec(buf, N, cfg)?
+            .try_into()
+            .unwrap_or_else(|_| unreachable!("array length should match capacity")))
+    }
+}
+
+/// Trait combining [Write] and [EncodeSize] for types that can be fully encoded.
+///
+/// This trait provides the convenience [Encode::encode] method which handles
+/// buffer allocation, writing, and size assertion in one go.
+pub trait Encode: Write + EncodeSize {
+    /// Encodes `self` into a new [Bytes] buffer.
+    ///
+    /// This method calculates the required size using [EncodeSize::encode_size], allocates a
+    /// buffer of that exact capacity, writes the value using [Write::write], and performs a
+    /// sanity check assertion.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `encode_size()` does not return the same number of bytes actually written by
+    /// `write()`
+    fn encode(&self) -> Bytes {
+        self.encode_mut().freeze()
+    }
+
+    /// Encodes `self` into a new [BytesMut] buffer.
+    ///
+    /// This method calculates the required size using [EncodeSize::encode_size], allocates a
+    /// buffer of that exact capacity, writes the value using [Write::write], and performs a
+    /// sanity check assertion.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `encode_size()` does not return the same number of bytes actually written by
+    /// `write()`
+    fn encode_mut(&self) -> BytesMut {
+        let len = self.encode_size();
+        let mut buffer = BytesMut::with_capacity(len);
+        self.write(&mut buffer);
+        assert_eq!(buffer.len(), len, "write() did not write expected bytes");
+        buffer
+    }
+}
+
+// Automatically implement `Encode` for types that implement `Write` and `EncodeSize`.
+impl<T: Write + EncodeSize> Encode for T {}
+
+/// Convenience trait combining `Encode` with thread-safety bounds.
+///
+/// Represents types that can be fully encoded and safely shared across threads.
+pub trait EncodeShared: Encode + Send + Sync {}
+
+// Automatically implement `EncodeShared` for types that meet all bounds.
+impl<T: Encode + Send + Sync> EncodeShared for T {}
+
+/// Trait combining [Read] with a check for remaining bytes.
+///
+/// Ensures that *all* bytes from the input buffer were consumed during decoding.
+pub trait Decode: Read {
+    /// Decodes a value from `buf` using `cfg`, ensuring the entire buffer is consumed.
+    ///
+    /// Returns [Error] if decoding fails via [Read::read_cfg] or if there are leftover bytes in
+    /// `buf` after reading.
+    fn decode_cfg(mut buf: impl Buf, cfg: &Self::Cfg) -> Result<Self, Error> {
+        let result = Self::read_cfg(&mut buf, cfg)?;
+
+        // Check that the buffer is fully consumed.
+        let remaining = buf.remaining();
+        if remaining > 0 {
+            return Err(Error::ExtraData(remaining));
+        }
+
+        Ok(result)
+    }
+}
+
+// Automatically implement `Decode` for types that implement `Read`.
+impl<T: Read> Decode for T {}
+
+/// Convenience trait combining [Encode] and [Decode].
+///
+/// Represents types that can be both fully encoded and decoded.
+pub trait Codec: Encode + Decode {}
+
+/// Automatically implement `Codec` for types that implement `Encode` and `Decode`.
+impl<T: Encode + Decode> Codec for T {}
+
+/// Convenience trait for [FixedSize] types that can be encoded directly into a fixed-size array.
+pub trait EncodeFixed: Write + FixedSize {
+    /// Encodes `self` into a fixed-size byte array `[u8; N]`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `N` is not equal to `<Self as FixedSize>::SIZE`.
+    /// Also panics if the `write()` implementation does not write exactly `N` bytes.
+    fn encode_fixed<const N: usize>(&self) -> [u8; N] {
+        // Ideally this is a compile-time check, but we can't do that in the current Rust version
+        // without adding a new generic parameter to the trait.
+        assert_eq!(
+            N,
+            Self::SIZE,
+            "Can't encode {} bytes into {} bytes",
+            Self::SIZE,
+            N
+        );
+
+        let mut array = [0u8; N];
+        let mut buf = &mut array[..];
+        self.write(&mut buf);
+        assert_eq!(buf.len(), 0);
+        array
+    }
+}
+
+// Automatically implement `EncodeFixed` for types that implement `Write` and `FixedSize`.
+impl<T: Write + FixedSize> EncodeFixed for T {}
+
+/// Convenience trait for [FixedSize] types that can be decoded directly from a fixed-size array.
+pub trait DecodeFixed: Read<Cfg = ()> + FixedSize {
+    /// Decodes a value from a fixed-size byte array `[u8; N]`, ensuring all bytes are consumed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `N` is not equal to `<Self as FixedSize>::SIZE`.
+    fn decode_fixed<const N: usize>(bytes: [u8; N]) -> Result<Self, Error> {
+        assert_eq!(
+            N,
+            Self::SIZE,
+            "Can't decode {} bytes into {} bytes",
+            N,
+            Self::SIZE
+        );
+
+        Self::decode_cfg(bytes.as_ref(), &())
+    }
+}
+
+// Automatically implement `DecodeFixed` for types that implement `Read<Cfg = ()>` and `FixedSize`.
+impl<T: Read<Cfg = ()> + FixedSize> DecodeFixed for T {}
+
+/// Convenience trait combining `FixedSize` and `Codec`.
+///
+/// Represents types that can be both fully encoded and decoded from a fixed-size byte sequence.
+pub trait CodecFixed: Codec + FixedSize {}
+
+// Automatically implement `CodecFixed` for types that implement `Codec` and `FixedSize`.
+impl<T: Codec + FixedSize> CodecFixed for T {}
+
+/// Convenience trait combining `Codec` with thread-safety bounds.
+///
+/// Represents types that can be fully encoded/decoded and safely shared across threads.
+pub trait CodecShared: Codec + Send + Sync {}
+
+// Automatically implement `CodecShared` for types that meet all bounds.
+impl<T: Codec + Send + Sync> CodecShared for T {}
+
+/// Convenience trait combining `CodecFixed` with thread-safety bounds and unit config.
+///
+/// Represents fixed-size types that can be fully encoded/decoded, require no configuration,
+/// and can be safely shared across threads.
+pub trait CodecFixedShared: CodecFixed<Cfg = ()> + Send + Sync {}
+
+// Automatically implement `CodecFixedShared` for types that meet all bounds.
+impl<T: CodecFixed<Cfg = ()> + Send + Sync> CodecFixedShared for T {}
+
+/// A [`BufMut`] that can also append pre-existing [`Bytes`] chunks.
+pub trait BufsMut: BufMut {
+    /// Appends a [`Bytes`] chunk instead of writing its contents inline into
+    /// the destination buffer.
+    fn push(&mut self, bytes: impl Into<Bytes>);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        Error, FixedArray,
+        extensions::{DecodeExt, ReadExt},
+    };
+    use bytes::Bytes;
+    use core::marker::PhantomData;
+
+    #[test]
+    fn test_insufficient_buffer() {
+        let mut reader = Bytes::from_static(&[0x01, 0x02]);
+        assert!(matches!(u32::read(&mut reader), Err(Error::EndOfBuffer)));
+    }
+
+    #[test]
+    fn test_extra_data() {
+        let encoded = Bytes::from_static(&[0x01, 0x02]);
+        assert!(matches!(u8::decode(encoded), Err(Error::ExtraData(1))));
+    }
+
+    #[test]
+    fn test_encode_fixed() {
+        let value = 42u32;
+        let encoded: [u8; 4] = value.encode_fixed();
+        let decoded = <u32>::decode(&encoded[..]).unwrap();
+        assert_eq!(value, decoded);
+    }
+
+    #[test]
+    fn test_arc_encode() {
+        let value = Arc::new(vec![1u8, 2, 3]);
+
+        assert_eq!(value.encode(), value.as_ref().encode());
+        assert_eq!(value.encode_size(), value.as_ref().encode_size());
+    }
+
+    #[test]
+    #[should_panic(expected = "Can't encode 4 bytes into 5 bytes")]
+    fn test_encode_fixed_panic() {
+        let _: [u8; 5] = 42u32.encode_fixed();
+    }
+
+    #[derive(Debug, Eq, PartialEq, FixedArray)]
+    struct FixedBytes([u8; 2]);
+
+    impl Write for FixedBytes {
+        fn write(&self, buf: &mut impl BufMut) {
+            self.0.write(buf);
+        }
+    }
+
+    impl Read for FixedBytes {
+        type Cfg = ();
+
+        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
+            Ok(Self(<[u8; Self::SIZE]>::read(buf)?))
+        }
+    }
+
+    impl FixedSize for FixedBytes {
+        const SIZE: usize = 2;
+    }
+
+    #[test]
+    fn test_fixed_array() {
+        let value = FixedBytes([1, 2]);
+        let encoded: [u8; FixedBytes::SIZE] = (&value).into();
+        assert_eq!(encoded, [1, 2]);
+        assert_eq!(<[u8; FixedBytes::SIZE]>::from(value), encoded);
+        assert_eq!(FixedBytes::try_from(encoded).unwrap(), FixedBytes([1, 2]));
+        assert_eq!(FixedBytes::try_from(&encoded).unwrap(), FixedBytes([1, 2]));
+        assert_eq!(
+            FixedBytes::try_from([1u8, 2].as_slice()).unwrap(),
+            FixedBytes([1, 2])
+        );
+        assert!(matches!(
+            FixedBytes::try_from([1u8].as_slice()),
+            Err(Error::EndOfBuffer)
+        ));
+        assert!(matches!(
+            FixedBytes::try_from([1u8, 2, 3].as_slice()),
+            Err(Error::ExtraData(1))
+        ));
+    }
+
+    #[test]
+    fn test_decode_fixed() {
+        assert_eq!(
+            FixedBytes::decode_fixed([1, 2]).unwrap(),
+            FixedBytes([1, 2])
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Can't decode 3 bytes into 2 bytes")]
+    fn test_decode_fixed_panic() {
+        let _ = FixedBytes::decode_fixed([1, 2, 3]);
+    }
+
+    #[derive(Debug, Eq, PartialEq, FixedArray)]
+    #[fixed_array(infallible)]
+    struct InfallibleFixedBytes([u8; 2]);
+
+    impl Write for InfallibleFixedBytes {
+        fn write(&self, buf: &mut impl BufMut) {
+            self.0.write(buf);
+        }
+    }
+
+    impl Read for InfallibleFixedBytes {
+        type Cfg = ();
+
+        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
+            Ok(Self(<[u8; Self::SIZE]>::read(buf)?))
+        }
+    }
+
+    impl FixedSize for InfallibleFixedBytes {
+        const SIZE: usize = 2;
+    }
+
+    #[test]
+    fn test_fixed_array_infallible() {
+        let value = InfallibleFixedBytes([1, 2]);
+        let encoded: [u8; InfallibleFixedBytes::SIZE] = (&value).into();
+        assert_eq!(encoded, [1, 2]);
+        assert_eq!(<[u8; InfallibleFixedBytes::SIZE]>::from(value), encoded);
+        assert_eq!(
+            InfallibleFixedBytes::from(encoded),
+            InfallibleFixedBytes([1, 2])
+        );
+        assert_eq!(
+            InfallibleFixedBytes::from(&encoded),
+            InfallibleFixedBytes([1, 2])
+        );
+        assert_eq!(
+            InfallibleFixedBytes::try_from([1u8, 2].as_slice()).unwrap(),
+            InfallibleFixedBytes([1, 2])
+        );
+        assert!(matches!(
+            InfallibleFixedBytes::try_from([1u8, 2, 3].as_slice()),
+            Err(Error::ExtraData(1))
+        ));
+    }
+
+    #[derive(Debug, Eq, PartialEq, FixedArray)]
+    #[fixed_array(bytes([u8; N]))]
+    struct GenericFixed<const N: usize>([u8; N]);
+
+    impl<const N: usize> Write for GenericFixed<N> {
+        fn write(&self, buf: &mut impl BufMut) {
+            self.0.write(buf);
+        }
+    }
+
+    impl<const N: usize> Read for GenericFixed<N> {
+        type Cfg = ();
+
+        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
+            Ok(Self(<[u8; N]>::read(buf)?))
+        }
+    }
+
+    impl<const N: usize> FixedSize for GenericFixed<N> {
+        const SIZE: usize = N;
+    }
+
+    #[test]
+    fn test_fixed_array_generic() {
+        let value = GenericFixed::<3>([1, 2, 3]);
+        let encoded: [u8; 3] = (&value).into();
+        assert_eq!(encoded, [1, 2, 3]);
+        assert_eq!(<[u8; 3]>::from(value), encoded);
+        assert_eq!(
+            GenericFixed::<3>::try_from(encoded).unwrap(),
+            GenericFixed([1, 2, 3])
+        );
+        assert_eq!(
+            GenericFixed::<3>::try_from(&encoded).unwrap(),
+            GenericFixed([1, 2, 3])
+        );
+        assert_eq!(
+            GenericFixed::<3>::try_from([1u8, 2, 3].as_slice()).unwrap(),
+            GenericFixed([1, 2, 3])
+        );
+    }
+
+    #[derive(Debug, Eq, PartialEq, FixedArray)]
+    #[fixed_array(infallible, bytes([u8; N]))]
+    struct GenericInfallible<const N: usize>([u8; N]);
+
+    impl<const N: usize> Write for GenericInfallible<N> {
+        fn write(&self, buf: &mut impl BufMut) {
+            self.0.write(buf);
+        }
+    }
+
+    impl<const N: usize> Read for GenericInfallible<N> {
+        type Cfg = ();
+
+        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
+            Ok(Self(<[u8; N]>::read(buf)?))
+        }
+    }
+
+    impl<const N: usize> FixedSize for GenericInfallible<N> {
+        const SIZE: usize = N;
+    }
+
+    #[test]
+    fn test_fixed_array_generic_infallible() {
+        let value = GenericInfallible::<3>([1, 2, 3]);
+        let encoded: [u8; 3] = (&value).into();
+        assert_eq!(encoded, [1, 2, 3]);
+        assert_eq!(<[u8; 3]>::from(value), encoded);
+        assert_eq!(
+            GenericInfallible::<3>::from(encoded),
+            GenericInfallible([1, 2, 3])
+        );
+        assert_eq!(
+            GenericInfallible::<3>::from(&encoded),
+            GenericInfallible([1, 2, 3])
+        );
+        assert_eq!(
+            GenericInfallible::<3>::try_from([1u8, 2, 3].as_slice()).unwrap(),
+            GenericInfallible([1, 2, 3])
+        );
+    }
+
+    trait FixedArrayBound {}
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct Bounded;
+
+    impl FixedArrayBound for Bounded {}
+
+    #[derive(Debug, Eq, PartialEq, FixedArray)]
+    #[fixed_array(bytes([u8; 2]))]
+    struct BoundedGeneric<T> {
+        marker: PhantomData<T>,
+        raw: [u8; 2],
+    }
+
+    impl<T: FixedArrayBound> Write for BoundedGeneric<T> {
+        fn write(&self, buf: &mut impl BufMut) {
+            self.raw.write(buf);
+        }
+    }
+
+    impl<T: FixedArrayBound> Read for BoundedGeneric<T> {
+        type Cfg = ();
+
+        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
+            Ok(Self {
+                marker: PhantomData,
+                raw: <[u8; 2]>::read(buf)?,
+            })
+        }
+    }
+
+    impl<T: FixedArrayBound> FixedSize for BoundedGeneric<T> {
+        const SIZE: usize = 2;
+    }
+
+    #[test]
+    fn test_fixed_array_bounded_generic() {
+        let value = BoundedGeneric::<Bounded> {
+            marker: PhantomData,
+            raw: [1, 2],
+        };
+        let encoded: [u8; 2] = (&value).into();
+        assert_eq!(encoded, [1, 2]);
+        assert_eq!(<[u8; 2]>::from(value).as_ref(), &[1, 2]);
+        assert_eq!(
+            BoundedGeneric::<Bounded>::try_from(encoded).unwrap().raw,
+            [1, 2]
+        );
+        assert_eq!(
+            BoundedGeneric::<Bounded>::try_from(&encoded).unwrap().raw,
+            [1, 2]
+        );
+        assert_eq!(
+            BoundedGeneric::<Bounded>::try_from([1u8, 2].as_slice())
+                .unwrap()
+                .raw,
+            [1, 2]
+        );
+    }
+
+    #[derive(Debug, Eq, PartialEq, FixedArray)]
+    #[fixed_array(bytes([u8; 2]))]
+    struct LifetimeFixed<'a> {
+        marker: PhantomData<&'a ()>,
+        raw: [u8; 2],
+    }
+
+    impl Write for LifetimeFixed<'_> {
+        fn write(&self, buf: &mut impl BufMut) {
+            self.raw.write(buf);
+        }
+    }
+
+    impl Read for LifetimeFixed<'_> {
+        type Cfg = ();
+
+        fn read_cfg(buf: &mut impl Buf, _: &()) -> Result<Self, Error> {
+            Ok(Self {
+                marker: PhantomData,
+                raw: <[u8; 2]>::read(buf)?,
+            })
+        }
+    }
+
+    impl FixedSize for LifetimeFixed<'_> {
+        const SIZE: usize = 2;
+    }
+
+    #[test]
+    fn test_fixed_array_lifetime() {
+        let value = LifetimeFixed {
+            marker: PhantomData,
+            raw: [1, 2],
+        };
+        let encoded: [u8; LifetimeFixed::SIZE] = (&value).into();
+        assert_eq!(encoded, [1, 2]);
+        assert_eq!(<[u8; LifetimeFixed::SIZE]>::from(value).as_ref(), &[1, 2]);
+        assert_eq!(LifetimeFixed::try_from(encoded).unwrap().raw, [1, 2]);
+        assert_eq!(LifetimeFixed::try_from(&encoded).unwrap().raw, [1, 2]);
+        assert_eq!(
+            LifetimeFixed::try_from([1u8, 2].as_slice()).unwrap().raw,
+            [1, 2]
+        );
+    }
+}

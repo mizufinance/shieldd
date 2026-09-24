@@ -68,7 +68,6 @@ pub mod validate;
 pub use {
     commitment::StateCommitment,
     internal::hash::Forgotten,
-    internal::hash::DOMAIN_SEPARATOR,
     proof::Proof,
     tree::{Position, Root, Tree},
     witness::Witness,
@@ -106,7 +105,7 @@ mod prelude {
                 self, Focus, Forget, Frontier, Full, GetPosition, Insert, InsertMut, Item,
                 OutOfOrder,
             },
-            hash::{CachedHash, Forgotten, GetHash, Hash, OptionHash},
+            hash::{CachedHash, Forgotten, GetHash, Hash},
             height::{Height, IsHeight, Succ, Zero},
             interface::Witness,
             path::{self, AuthPath, Path, WhichWay},
@@ -131,7 +130,7 @@ mod prelude {
 }
 
 #[cfg(feature = "arbitrary")]
-/// Generation of random [`Commitment`]s for testing.
+/// Generation of random [`crate::StateCommitment`]s for testing.
 pub mod proptest {
     #[doc(inline)]
     pub use super::commitment::FqStrategy;

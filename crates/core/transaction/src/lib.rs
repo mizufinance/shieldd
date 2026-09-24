@@ -3,7 +3,7 @@
 //! This crate defines data structures that provide modeling of shielded
 //! transactions through their entire lifecycle:
 //!
-//! * the [`TransactionPlan`](TransactionPlan) type completely describes a
+//! * the [`TransactionPlan`] type completely describes a
 //! planned transaction before it is created;
 //!
 //! * the [`Transaction`] type represents the shielded transaction itself;

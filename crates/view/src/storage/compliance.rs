@@ -27,7 +27,6 @@ pub struct IndexedLeafData {
 #[derive(Debug, Clone)]
 pub struct UserLeafData {
     pub position: u64,
-    pub capk: [u8; 32],
     pub rnk_dh_pk: [u8; 32],
     pub rnk_commitment: [u8; 32],
     pub status: shieldd_sdk_compliance::UserAssetStatus,
@@ -116,61 +115,6 @@ impl ComplianceTreeStore<'_, '_> {
             .context("failed to prepare user position insert")?
             .execute((&position, &commitment))
             .context("failed to insert user position")?;
-
-        Ok(())
-    }
-
-    /// Get a user tree internal hash.
-    pub fn get_user_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-    ) -> anyhow::Result<Option<StateCommitment>> {
-        let position = position_to_i64(position)?;
-
-        let mut stmt = self
-            .0
-            .prepare_cached(
-                "SELECT hash FROM compliance_user_hashes WHERE position = ?1 AND height = ?2",
-            )
-            .context("failed to prepare user hash query")?;
-
-        let bytes = stmt
-            .query_row::<Vec<u8>, _, _>((&position, &height), |row| row.get("hash"))
-            .optional()
-            .context("failed to query user hash")?;
-
-        bytes
-            .map(|bytes| {
-                <[u8; 32]>::try_from(bytes)
-                    .map_err(|b: Vec<u8>| {
-                        anyhow::anyhow!(
-                            "user tree hash must be 32 bytes, got {} (database may be corrupted)",
-                            b.len()
-                        )
-                    })
-                    .and_then(|array| StateCommitment::try_from(array).map_err(Into::into))
-            })
-            .transpose()
-    }
-
-    /// Add a user tree internal hash.
-    pub fn add_user_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-        hash: StateCommitment,
-    ) -> anyhow::Result<()> {
-        let position = position_to_i64(position)?;
-        let hash = <[u8; 32]>::from(hash).to_vec();
-
-        self.0
-            .prepare_cached(
-                "INSERT INTO compliance_user_hashes (position, height, hash) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING",
-            )
-            .context("failed to prepare user hash insert")?
-            .execute((&position, &height, &hash))
-            .context("failed to insert user hash")?;
 
         Ok(())
     }
@@ -323,61 +267,6 @@ impl ComplianceTreeStore<'_, '_> {
         Ok(())
     }
 
-    /// Get an asset tree internal hash.
-    pub fn get_asset_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-    ) -> anyhow::Result<Option<StateCommitment>> {
-        let position = position_to_i64(position)?;
-
-        let mut stmt = self
-            .0
-            .prepare_cached(
-                "SELECT hash FROM compliance_asset_hashes WHERE position = ?1 AND height = ?2",
-            )
-            .context("failed to prepare asset hash query")?;
-
-        let bytes = stmt
-            .query_row::<Vec<u8>, _, _>((&position, &height), |row| row.get("hash"))
-            .optional()
-            .context("failed to query asset hash")?;
-
-        bytes
-            .map(|bytes| {
-                <[u8; 32]>::try_from(bytes)
-                    .map_err(|b: Vec<u8>| {
-                        anyhow::anyhow!(
-                            "asset tree hash must be 32 bytes, got {} (database may be corrupted)",
-                            b.len()
-                        )
-                    })
-                    .and_then(|array| StateCommitment::try_from(array).map_err(Into::into))
-            })
-            .transpose()
-    }
-
-    /// Add an asset tree internal hash.
-    pub fn add_asset_hash(
-        &mut self,
-        position: u64,
-        height: u8,
-        hash: StateCommitment,
-    ) -> anyhow::Result<()> {
-        let position = position_to_i64(position)?;
-        let hash = <[u8; 32]>::from(hash).to_vec();
-
-        self.0
-            .prepare_cached(
-                "INSERT INTO compliance_asset_hashes (position, height, hash) VALUES (?1, ?2, ?3) ON CONFLICT DO NOTHING",
-            )
-            .context("failed to prepare asset hash insert")?
-            .execute((&position, &height, &hash))
-            .context("failed to insert asset hash")?;
-
-        Ok(())
-    }
-
     // ========== Anchor Operations ==========
 
     /// Get compliance anchors at a specific height.
@@ -510,7 +399,6 @@ impl ComplianceTreeStore<'_, '_> {
         address: &[u8],
         asset_id: &[u8],
         position: u64,
-        capk: &[u8],
         rnk_dh_pk: &[u8],
         rnk_commitment: &[u8],
         status: shieldd_sdk_compliance::UserAssetStatus,
@@ -526,15 +414,14 @@ impl ComplianceTreeStore<'_, '_> {
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_user_leaf_data \
-                 (address, asset_id, position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                 (address, asset_id, position, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             )
             .context("failed to prepare leaf data insert")?
             .execute((
                 address,
                 asset_id,
                 &position,
-                capk,
                 rnk_dh_pk,
                 rnk_commitment,
                 &(shieldd_sdk_proto::core::component::compliance::v1::UserAssetStatus::from(status)
@@ -568,7 +455,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT position, capk, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment \
+                "SELECT position, rnk_dh_pk, rnk_commitment, status, freeze_generation, frozen_since_height, commitment \
                  FROM compliance_user_leaf_data \
                  WHERE address = ?1 AND asset_id = ?2",
             )
@@ -577,7 +464,6 @@ impl ComplianceTreeStore<'_, '_> {
         let result = stmt
             .query_row((address, asset_id), |row| {
                 let position: i64 = row.get("position")?;
-                let capk: Vec<u8> = row.get("capk")?;
                 let rnk_dh_pk: Vec<u8> = row.get("rnk_dh_pk")?;
                 let rnk_commitment: Vec<u8> = row.get("rnk_commitment")?;
                 let status: i32 = row.get("status")?;
@@ -586,7 +472,6 @@ impl ComplianceTreeStore<'_, '_> {
                 let commitment: Vec<u8> = row.get("commitment")?;
                 Ok((
                     position,
-                    capk,
                     rnk_dh_pk,
                     rnk_commitment,
                     status,
@@ -601,7 +486,6 @@ impl ComplianceTreeStore<'_, '_> {
         match result {
             Some((
                 position,
-                capk,
                 rnk_dh_pk,
                 rnk_commitment,
                 status,
@@ -609,9 +493,6 @@ impl ComplianceTreeStore<'_, '_> {
                 frozen_since_height,
                 commitment,
             )) => {
-                let capk: [u8; 32] = capk.try_into().map_err(|v: Vec<u8>| {
-                    anyhow::anyhow!("leaf data capk must be 32 bytes, got {}", v.len())
-                })?;
                 let rnk_dh_pk: [u8; 32] = rnk_dh_pk.try_into().map_err(|v: Vec<u8>| {
                     anyhow::anyhow!("leaf data rnk_dh_pk must be 32 bytes, got {}", v.len())
                 })?;
@@ -630,7 +511,6 @@ impl ComplianceTreeStore<'_, '_> {
                 })?;
                 Ok(Some(UserLeafData {
                     position: position as u64,
-                    capk,
                     rnk_dh_pk,
                     rnk_commitment,
                     status: status.try_into()?,
@@ -760,12 +640,6 @@ mod tests {
         let retrieved = store.get_user_position(0).unwrap().unwrap();
         assert_eq!(<[u8; 32]>::from(retrieved), [1u8; 32]);
 
-        // Test user hash operations
-        let hash = StateCommitment::try_from([2u8; 32]).unwrap();
-        store.add_user_hash(0, 1, hash).unwrap();
-        let retrieved = store.get_user_hash(0, 1).unwrap().unwrap();
-        assert_eq!(<[u8; 32]>::from(retrieved), [2u8; 32]);
-
         // Test asset leaf operations
         let leaf = IndexedLeafData {
             value: [3u8; 32],
@@ -779,7 +653,7 @@ mod tests {
             policy_id_hash: [13u8; 32],
             permission_hash: [14u8; 32],
             resource_hash: [15u8; 32],
-            audit_keys: shieldd_sdk_compliance::AuditKeys::test_keys(),
+            audit_keys: shieldd_sdk_compliance::audit_keys::test_keys(),
         };
         store.add_asset_leaf(0, leaf).unwrap();
         let retrieved = store.get_asset_leaf(0).unwrap().unwrap();
@@ -820,7 +694,6 @@ mod tests {
                 &[8u8; 80],
                 &[9u8; 32],
                 3,
-                &[10u8; 32],
                 &[11u8; 32],
                 &[12u8; 32],
                 shieldd_sdk_compliance::UserAssetStatus::Frozen,

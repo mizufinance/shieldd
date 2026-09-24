@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use shieldd_sdk_transaction::Action;
@@ -18,9 +18,6 @@ impl AppActionHandler for Action {
             Action::ShieldedHostWithdrawal(action) => action.check_historical(state).await,
             Action::ComplianceRegisterAsset(action) => action.check_historical(state).await,
             Action::ComplianceRegisterUser(action) => action.check_historical(state).await,
-            Action::AggregateBundle(_) => bail!(
-                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
-            ),
         }
     }
 
@@ -32,9 +29,6 @@ impl AppActionHandler for Action {
             Action::ShieldedHostWithdrawal(action) => action.check_and_execute(state).await,
             Action::ComplianceRegisterAsset(action) => action.check_and_execute(state).await,
             Action::ComplianceRegisterUser(action) => action.check_and_execute(state).await,
-            Action::AggregateBundle(_) => bail!(
-                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
-            ),
         }
     }
 }

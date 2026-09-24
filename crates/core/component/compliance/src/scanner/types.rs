@@ -10,7 +10,7 @@ pub use crate::audit_status::{
 pub use crate::{ActionRef, BlockRef, ComplianceRecordRef, OutputRef, TxRef};
 use crate::{TransferComplianceCiphertext, WithdrawalComplianceCiphertext};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ComplianceCiphertextKind {
     Transfer,
     Withdrawal,
@@ -39,7 +39,7 @@ pub struct PublicWithdrawalData {
     pub destination: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ExtractedComplianceCiphertext {
     pub record_ref: ComplianceRecordRef,
     pub kind: ComplianceCiphertextKind,
@@ -54,7 +54,7 @@ pub struct DetectionEvent {
     pub record_ref: ComplianceRecordRef,
     pub asset_id: asset::Id,
     pub is_flagged: bool,
-    pub salt: decaf377::Fq,
+    pub salt: shieldd_sdk_crypto::Fq,
     pub routing_tags: [u32; 2],
     pub ciphertext: ComplianceCiphertext,
     pub raw_bytes: Vec<u8>,
@@ -101,12 +101,14 @@ pub struct AuditLedgerRow {
 }
 
 /// A block's classified results, committed together with their evidence outcomes.
+#[cfg(test)]
 #[derive(Clone, Debug)]
 pub struct ScannedBlock {
     pub block: BlockRef,
     pub outputs: Vec<ScannedOutput>,
 }
 
+#[cfg(test)]
 impl ScannedBlock {
     pub fn new(block: BlockRef) -> Self {
         Self {

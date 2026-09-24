@@ -1,6 +1,8 @@
 # Code and documentation map
 
-Runtime code and protocol records define the current implementation. Read only
+Runtime code and protocol records establish implemented behavior; current
+specifications describe intended contracts. Investigate disagreements rather than
+silently treating either as correct. Read only
 the area relevant to the task; each topic has one authoritative document.
 
 | Task | Code entry point | Documentation |
@@ -9,14 +11,23 @@ the area relevant to the task; each topic has one authoritative document.
 | Keys, notes, signing, withdrawals | [core](../crates/core), [transaction](../crates/core/transaction/src) | [Protocol](protocol.md) |
 | Voluntary disclosure | [disclosure](../crates/disclosure/src/lib.rs) | [Disclosure](disclosure.md) |
 | Wallet planning, scanning, history | [view](../crates/view/src) | [Wallet](wallet.md) |
-| Registration, detection, audit | [compliance](../crates/core/component/compliance/src) | [Flow](compliance/flow.md), [reference](compliance/reference.md) |
+| Registration, detection, audit | [compliance](../crates/core/component/compliance/src) | [Compliance](compliance/flow.md) |
 | Freeze, unfreeze, seizure | [host](../crates/core/app/src/app/host.rs) | [Enforcement and seizure](compliance/enforcement-and-seizure.md) |
-| Circuit relations and coverage | [gnark](../tools/gnark/internal/circuits) | [Compliance checklist](compliance/constraint-checklist.md), [Transfer checklist](transfer-circuit/constraint-checklist.md) |
+| Circuit relations and constraints | [native circuits](../crates/crypto/circuits/src) | [Circuits](circuits.md) |
+| Jubjub/Pari primitives and circuit library | [primitives](../crates/crypto/primitives/src), [circuits](../crates/crypto/circuits/src) | [Interoperability contract](jubjub-external-contract.md), [Commonware source policy](../third_party/commonware-patches/README.md) |
 | Authenticated trees and persistence | [SCT](../crates/core/component/sct/src), [registry](../crates/core/component/compliance/src/registry.rs) | [State](state.md), [nullifier history](nullifier-history.md) |
 | Routing and privacy | [routing](../crates/core/component/shielded-pool/src) | [Routing](routing.md) |
-| Aggregation | [proof aggregation](../crates/crypto/proof-aggregation) | [Design](snarkpack/design.md), [verification](snarkpack/verification.md) |
+| Proving, batching, registry | [proof registry](../crates/crypto/proof-params/src/pari.rs) | [Proof system](proof-system.md) |
+| Proof performance | [benchmarks](../crates/bench) | [Native benchmarks](benchmarks.md) |
 | Builds, tests, features, codegen | [justfile](../justfile), [scripts](../scripts) | [Development](development.md) |
+| Test design, regressions and suite cleanup | Affected component's tests | [Testing](testing.md) |
 | C ABI and relocatable artifacts | [header](../crates/bin/shieldd/include/shieldd.h), [staging](../scripts/stage_artifacts.py) | [Embedded artifacts](embedded-artifacts.md) |
+
+Repository workflows: [investigate](../.agents/skills/shieldd-investigate/SKILL.md),
+[plan](../.agents/skills/shieldd-plan/SKILL.md),
+[test](../.agents/skills/shieldd-test/SKILL.md), and
+[review](../.agents/skills/shieldd-review/SKILL.md). Use the relevant skill for
+substantial work; routine edits do not require every workflow.
 
 Formal specifications and certification evidence live in
 [shieldd-security](https://github.com/mizufinance/shieldd-security), pinned to an

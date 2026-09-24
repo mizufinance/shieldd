@@ -836,7 +836,19 @@ pub trait SctManager: StateWrite {
                         "nullifier generation changed before block materialization"
                     );
                 }
+                let height = self.get_block_height().await?;
+                let first_position = nullifier_tree::current_leaf_count(self).await?;
                 nullifier_tree::insert_batch(self, ordered.iter().copied()).await?;
+                nullifier_tree::record_block_insertions(
+                    self,
+                    nullifier_tree::InsertionInterval {
+                        height,
+                        generation: before.current_generation,
+                        first_position,
+                        count: ordered.len() as u64,
+                    },
+                )
+                .await?;
                 self.object_put(
                     state_key::nullifier_generations::pending_block(),
                     PendingNullifierBlock::Materialized { ordered },
@@ -1161,12 +1173,16 @@ mod tests {
     async fn nullifiers_are_visible_before_one_shot_materialization() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_proto(
+            crate::state_key::block_manager::block_height().to_owned(),
+            1u64,
+        );
         nullifier_tree::initialize(&mut state).await?;
         let starting = nullifier_tree::generation_state(&state).await?;
         let nullifiers = [
-            Nullifier(decaf377::Fq::from(7u64)),
-            Nullifier(decaf377::Fq::from(3u64)),
-            Nullifier(decaf377::Fq::from(11u64)),
+            Nullifier(shieldd_sdk_crypto::Fq::from(7u64)),
+            Nullifier(shieldd_sdk_crypto::Fq::from(3u64)),
+            Nullifier(shieldd_sdk_crypto::Fq::from(11u64)),
         ];
         let source = CommitmentSource::Transaction {
             id: Some([9u8; 32]),
@@ -1220,7 +1236,7 @@ mod tests {
         );
 
         let commitments = (1..=257u64)
-            .map(|value| tct::StateCommitment(decaf377::Fq::from(value)))
+            .map(|value| tct::StateCommitment(shieldd_sdk_crypto::Fq::from(value)))
             .collect::<Vec<_>>();
         let mut reference = tct::Tree::new();
         let mut entries = Vec::new();
@@ -1254,7 +1270,7 @@ mod tests {
         );
         let mut second_entries = Vec::new();
         for value in 1_000..1_064u64 {
-            let commitment = tct::StateCommitment(decaf377::Fq::from(value));
+            let commitment = tct::StateCommitment(shieldd_sdk_crypto::Fq::from(value));
             let position = reference.insert(tct::Witness::Forget, commitment)?;
             second_entries.push((position, commitment));
         }
@@ -1274,7 +1290,7 @@ mod tests {
         );
         let mut third_entries = Vec::new();
         for value in 2_000..2_063u64 {
-            let commitment = tct::StateCommitment(decaf377::Fq::from(value));
+            let commitment = tct::StateCommitment(shieldd_sdk_crypto::Fq::from(value));
             let position = reference.insert(tct::Witness::Forget, commitment)?;
             third_entries.push((position, commitment));
         }
@@ -1336,11 +1352,17 @@ mod tests {
             .await
             .unwrap();
         writer
-            .add_commitment(inside, tct::StateCommitment(decaf377::Fq::from(7u64)))
+            .add_commitment(
+                inside,
+                tct::StateCommitment(shieldd_sdk_crypto::Fq::from(7u64)),
+            )
             .await
             .unwrap();
         writer
-            .add_commitment(outside, tct::StateCommitment(decaf377::Fq::from(9u64)))
+            .add_commitment(
+                outside,
+                tct::StateCommitment(shieldd_sdk_crypto::Fq::from(9u64)),
+            )
             .await
             .unwrap();
         writer

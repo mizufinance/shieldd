@@ -3,8 +3,6 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-#[cfg(feature = "ledger")]
-use shieldd_sdk_custody_ledger_usb::Config as LedgerConfig;
 
 use shieldd_sdk_custody::{
     encrypted::Config as EncryptedConfig, soft_kms::Config as SoftKmsConfig,
@@ -55,9 +53,6 @@ pub enum CustodyConfig {
     Threshold(ThresholdConfig),
     /// An encrypted custody service.
     Encrypted(EncryptedConfig),
-    /// A custody service using an external ledger device.
-    #[cfg(feature = "ledger")]
-    Ledger(LedgerConfig),
 }
 
 impl Default for CustodyConfig {
@@ -81,6 +76,10 @@ fn is_default<T: Default + Eq>(value: &T) -> bool {
 mod tests {
     use super::*;
 
+    #[test]
+    fn unavailable_hardware_backend_is_rejected() {
+        assert!(serde_json::from_str::<CustodyConfig>(r#"{"backend":"Ledger"}"#).is_err());
+    }
     #[test]
     fn toml_config() {
         let config = PcliConfig {

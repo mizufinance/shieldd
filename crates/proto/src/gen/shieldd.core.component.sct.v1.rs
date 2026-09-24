@@ -213,7 +213,7 @@ impl ::prost::Name for NullifierWindow {
         "/shieldd.core.component.sct.v1.NullifierWindow".into()
     }
 }
-/// One BLS12-377 proof of nonmembership in a retired generation.
+/// One suite-identified Pari proof of nonmembership in a retired generation.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerationNonmembershipProof {
     #[prost(uint64, tag = "1")]
@@ -225,7 +225,7 @@ pub struct GenerationNonmembershipProof {
     #[prost(uint64, tag = "4")]
     pub generation_end_position: u64,
     #[prost(bytes = "vec", tag = "5")]
-    pub groth16_proof: ::prost::alloc::vec::Vec<u8>,
+    pub proof: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for GenerationNonmembershipProof {
     const NAME: &'static str = "GenerationNonmembershipProof";
@@ -237,7 +237,7 @@ impl ::prost::Name for GenerationNonmembershipProof {
         "/shieldd.core.component.sct.v1.GenerationNonmembershipProof".into()
     }
 }
-/// One BW6-761 proof covering a canonical fixed-width history chunk.
+/// One Pari proof covering ten raw generation nonmembership witnesses.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HistoricalChunkProof {
     #[prost(uint64, tag = "1")]
@@ -245,7 +245,7 @@ pub struct HistoricalChunkProof {
     #[prost(bytes = "vec", tag = "2")]
     pub end_history_head: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "3")]
-    pub groth16_proof: ::prost::alloc::vec::Vec<u8>,
+    pub proof: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for HistoricalChunkProof {
     const NAME: &'static str = "HistoricalChunkProof";
@@ -743,6 +743,72 @@ impl ::prost::Name for ArchivedNullifierProofResponse {
         "/shieldd.core.component.sct.v1.ArchivedNullifierProofResponse".into()
     }
 }
+/// Trusted-provider spend discovery; absence is not a completeness proof.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpendStatusPageRequest {
+    #[prost(message, repeated, tag = "1")]
+    pub nullifiers: ::prost::alloc::vec::Vec<Nullifier>,
+    #[prost(uint64, tag = "2")]
+    pub start_height: u64,
+    #[prost(uint64, tag = "3")]
+    pub end_height: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub cursor: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for SpendStatusPageRequest {
+    const NAME: &'static str = "SpendStatusPageRequest";
+    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.sct.v1.SpendStatusPageRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.sct.v1.SpendStatusPageRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpentNullifier {
+    #[prost(message, optional, tag = "1")]
+    pub nullifier: ::core::option::Option<Nullifier>,
+    #[prost(uint64, tag = "2")]
+    pub height: u64,
+    #[prost(uint64, tag = "3")]
+    pub generation: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub generation_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "5")]
+    pub witness: ::core::option::Option<IndexedNullifierWitness>,
+}
+impl ::prost::Name for SpentNullifier {
+    const NAME: &'static str = "SpentNullifier";
+    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.sct.v1.SpentNullifier".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.sct.v1.SpentNullifier".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpendStatusPageResponse {
+    #[prost(string, tag = "1")]
+    pub chain_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub anchor_height: u64,
+    #[prost(message, repeated, tag = "3")]
+    pub spends: ::prost::alloc::vec::Vec<SpentNullifier>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub next_cursor: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for SpendStatusPageResponse {
+    const NAME: &'static str = "SpendStatusPageResponse";
+    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.sct.v1.SpendStatusPageResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.sct.v1.SpendStatusPageResponse".into()
+    }
+}
 /// Generated client implementations.
 #[cfg(feature = "rpc")]
 pub mod query_service_client {
@@ -835,6 +901,35 @@ pub mod query_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn spend_status_page(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SpendStatusPageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SpendStatusPageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.core.component.sct.v1.QueryService/SpendStatusPage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.core.component.sct.v1.QueryService",
+                        "SpendStatusPage",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn anchor_by_height(
             &mut self,

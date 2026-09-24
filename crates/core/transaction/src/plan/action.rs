@@ -3,11 +3,10 @@ use crate::{Action, WitnessData};
 use anyhow::anyhow;
 #[cfg(all(feature = "prover", any(unix, windows)))]
 use anyhow::{Context, Result};
-use ark_ff::Zero;
-use decaf377::Fr;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::{symmetric::PayloadKey, FullViewingKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb_t, DomainType};
 use shieldd_sdk_shielded_pool::{
@@ -51,6 +50,7 @@ impl ActionPlan {
         witness_data: &WitnessData,
         memo_key: Option<PayloadKey>,
         recent_position_floor: u64,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Action> {
         use ActionPlan::*;
 
@@ -89,6 +89,7 @@ impl ActionPlan {
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
                             recent_position_floor,
+                            registry,
                         )
                         .map_err(|e| anyhow::anyhow!("transfer proof generation failed: {}", e))?,
                 )
@@ -117,6 +118,7 @@ impl ActionPlan {
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
                             recent_position_floor,
+                            registry,
                         )
                         .map_err(|e| {
                             anyhow::anyhow!("note reshape proof generation failed: {}", e)
@@ -155,6 +157,7 @@ impl ActionPlan {
                         witness_data.anchor,
                         memo_key.as_ref().unwrap_or(&dummy_payload_key),
                         recent_position_floor,
+                        registry,
                     )
                     .map_err(|e| {
                         anyhow::anyhow!("shielded host withdrawal proof generation failed: {}", e)

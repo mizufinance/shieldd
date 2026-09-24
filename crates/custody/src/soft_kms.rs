@@ -38,7 +38,7 @@ impl SoftKms {
                 .any(|c| c.reference == public.reference && c.spending_control),
             "output does not request authority control"
         );
-        let randomizer = decaf377::Fr::from_bytes_checked(&randomizer)
+        let randomizer = shieldd_sdk_crypto::encoding::scalar(&randomizer)
             .map_err(|_| anyhow::anyhow!("invalid authorization randomizer"))?;
         let key = self
             .config
@@ -52,7 +52,7 @@ impl SoftKms {
             .spend_verification_key()
             .randomize(&randomizer);
         anyhow::ensure!(
-            !verification_key.is_identity(),
+            shieldd_sdk_crypto::encoding::nonidentity(&verification_key.into()).is_ok(),
             "identity authority cannot prove secret control"
         );
         let expected: [u8; 32] = verification_key.into();

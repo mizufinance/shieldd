@@ -150,7 +150,7 @@ pub async fn dkg(t: u16, n: u16, terminal: &impl Terminal) -> Result<Config> {
         }
         acc
     };
-    dkg::round3(&mut OsRng, state, round2_replies)
+    dkg::round3(state, round2_replies)
 }
 
 /// A custody backend using threshold signing.
@@ -284,6 +284,7 @@ impl<T: Terminal + Sync + Send + 'static> pb::custody_service_server::CustodySer
 
 #[cfg(test)]
 mod test {
+    use ff::Field;
     use std::collections::HashMap;
 
     use shieldd_sdk_transaction::TransactionPlan;
@@ -489,7 +490,7 @@ mod test {
         let transfer = shieldd_sdk_shielded_pool::test_plan_helpers::transfer(
             vec![spend],
             vec![output],
-            decaf377::Fr::rand(&mut OsRng),
+            shieldd_sdk_crypto::Fr::random(&mut OsRng),
         )?;
         let plan = TransactionPlan {
             actions: vec![shieldd_sdk_transaction::ActionPlan::Transfer(transfer)],

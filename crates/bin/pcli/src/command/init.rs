@@ -7,8 +7,6 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use rand_core::OsRng;
 use shieldd_sdk_custody::threshold;
-#[cfg(feature = "ledger")]
-use shieldd_sdk_custody_ledger_usb as ledger;
 use shieldd_sdk_keys::keys::{Bip44Path, SeedPhrase, SpendKey};
 use termion::screen::IntoAlternateScreen;
 
@@ -51,10 +49,6 @@ pub enum InitSubCmd {
     // This is selected by the top-level view-only command.
     #[clap(skip, display_order = 200)]
     ViewOnly,
-    /// Initialize using a ledger hardware wallet.
-    #[cfg(feature = "ledger")]
-    #[clap(display_order = 250)]
-    Ledger,
     /// If relevant, change the current config to an encrypted config, with a password.
     #[clap(display_order = 800)]
     ReEncrypt,
@@ -307,22 +301,11 @@ impl InitCmd {
                             shieldd_sdk_custody::encrypted::InnerConfig::Threshold(c),
                         )?)
                     }
-                    #[cfg(feature = "ledger")]
-                    CustodyConfig::Ledger(_config) => {
-                        anyhow::bail!("An additional layer of password encryption is not (currently) possible for hardware wallets.");
-                    }
                 };
                 (fvk, custody)
             }
             (InitSubCmd::ReEncrypt, false) => {
                 anyhow::bail!("re-encrypt requires existing config to exist",);
-            }
-            #[cfg(feature = "ledger")]
-            (InitSubCmd::Ledger, false) => {
-                let config = ledger::Config::initialize(ledger::InitOptions::default()).await?;
-                let service = ledger::Service::new(config.clone());
-                let fvk = service.impl_export_full_viewing_key().await?;
-                (fvk, CustodyConfig::Ledger(config))
             }
             (_, true) => {
                 anyhow::bail!(

@@ -1,27 +1,27 @@
 use anyhow::{ensure, Context};
-use decaf377::Fq;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{domains, poseidon, Fq};
 use shieldd_sdk_proto::{shieldd::core::component::sct::v1 as pb, DomainType};
 
 use crate::{indexed_nullifier_tree::IndexedNullifierWitness, Nullifier};
 
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 pub const GENERATION_EPOCHS: u64 = 30;
 pub const CHUNK_WIDTH: u64 = 10;
-pub const BLS12_377_PROOF_BYTES: usize = 192;
-pub const BW6_761_PROOF_BYTES: usize = 480;
+pub const PROOF_BYTES: usize = shieldd_sdk_circuits::proof::ENCODED_LEN;
+
+#[derive(Debug)]
+pub struct ArchivedNullifierSpent;
+
+impl std::fmt::Display for ArchivedNullifierSpent {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("nullifier was spent in archived generation")
+    }
+}
+
+impl std::error::Error for ArchivedNullifierSpent {}
 
 const MAX_SCT_POSITION: u64 = (1u64 << 48) - 1;
-
-static EMPTY_HISTORY_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"shieldd.nullifier.history.empty").as_bytes(),
-    )
-});
-static HISTORY_NODE_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.nullifier.history.node").as_bytes())
-});
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ArchivedNullifierProof {
@@ -202,7 +202,7 @@ pub struct GenerationNonmembershipProof {
     pub generation_root: [u8; 32],
     pub generation_start_position: u64,
     pub generation_end_position: u64,
-    pub groth16_proof: Vec<u8>,
+    pub proof: Vec<u8>,
 }
 
 impl DomainType for GenerationNonmembershipProof {
@@ -217,9 +217,13 @@ impl GenerationNonmembershipProof {
             "generation position range is invalid"
         );
         ensure!(
-            self.groth16_proof.len() == BLS12_377_PROOF_BYTES,
-            "BLS12-377 proof must be exactly {BLS12_377_PROOF_BYTES} bytes"
+            self.proof.len() == PROOF_BYTES,
+            "Pari proof must be exactly {PROOF_BYTES} bytes"
         );
+        validate_envelope(
+            &self.proof,
+            shieldd_sdk_circuits::proof::Family::HistoryGeneration,
+        )?;
         canonical_fq(self.generation_root, "generation root")?;
         Ok(())
     }
@@ -232,7 +236,7 @@ impl From<GenerationNonmembershipProof> for pb::GenerationNonmembershipProof {
             generation_root: value.generation_root.to_vec(),
             generation_start_position: value.generation_start_position,
             generation_end_position: value.generation_end_position,
-            groth16_proof: value.groth16_proof,
+            proof: value.proof,
         }
     }
 }
@@ -246,7 +250,7 @@ impl TryFrom<pb::GenerationNonmembershipProof> for GenerationNonmembershipProof 
             generation_root: decode32(value.generation_root, "generation root")?,
             generation_start_position: value.generation_start_position,
             generation_end_position: value.generation_end_position,
-            groth16_proof: value.groth16_proof,
+            proof: value.proof,
         };
         proof.validate()?;
         Ok(proof)
@@ -261,7 +265,7 @@ impl TryFrom<pb::GenerationNonmembershipProof> for GenerationNonmembershipProof 
 pub struct HistoricalChunkProof {
     pub chunk_index: u64,
     pub end_history_head: [u8; 32],
-    pub groth16_proof: Vec<u8>,
+    pub proof: Vec<u8>,
 }
 
 impl DomainType for HistoricalChunkProof {
@@ -271,9 +275,13 @@ impl DomainType for HistoricalChunkProof {
 impl HistoricalChunkProof {
     pub fn validate(&self) -> anyhow::Result<()> {
         ensure!(
-            self.groth16_proof.len() == BW6_761_PROOF_BYTES,
-            "BW6-761 proof must be exactly {BW6_761_PROOF_BYTES} bytes"
+            self.proof.len() == PROOF_BYTES,
+            "Pari proof must be exactly {PROOF_BYTES} bytes"
         );
+        validate_envelope(
+            &self.proof,
+            shieldd_sdk_circuits::proof::Family::HistoryChunk,
+        )?;
         canonical_fq(self.end_history_head, "chunk end history head")?;
         Ok(())
     }
@@ -284,7 +292,7 @@ impl From<HistoricalChunkProof> for pb::HistoricalChunkProof {
         Self {
             chunk_index: value.chunk_index,
             end_history_head: value.end_history_head.to_vec(),
-            groth16_proof: value.groth16_proof,
+            proof: value.proof,
         }
     }
 }
@@ -296,7 +304,7 @@ impl TryFrom<pb::HistoricalChunkProof> for HistoricalChunkProof {
         let proof = Self {
             chunk_index: value.chunk_index,
             end_history_head: decode32(value.end_history_head, "chunk end history head")?,
-            groth16_proof: value.groth16_proof,
+            proof: value.proof,
         };
         proof.validate()?;
         Ok(proof)
@@ -781,6 +789,16 @@ pub struct NullifierGenerationPackReceipt {
 }
 
 impl NullifierGenerationPackReceipt {
+    pub fn archive_byte_length(count: u64) -> u64 {
+        let mut length = count * 74 + (count - 1) * 40;
+        let mut nodes = count;
+        for _ in 0..=crate::indexed_nullifier_tree::DEPTH {
+            length += nodes * 32;
+            nodes = nodes.div_ceil(4);
+        }
+        length
+    }
+
     pub fn validate(&self) -> anyhow::Result<()> {
         ensure!(
             self.protocol_version == PROTOCOL_VERSION,
@@ -796,16 +814,7 @@ impl NullifierGenerationPackReceipt {
             "packed generation leaf count is invalid"
         );
         ensure!(
-            self.byte_length
-                == 108u64
-                    .checked_add(
-                        self.leaf_count
-                            .checked_sub(1)
-                            .context("generation pack omits its sentinel")?
-                            .checked_mul(32)
-                            .context("generation pack byte length overflow")?,
-                    )
-                    .context("generation pack byte length overflow")?,
+            self.byte_length == Self::archive_byte_length(self.leaf_count),
             "generation pack byte length does not match its leaf count"
         );
         Ok(())
@@ -850,7 +859,7 @@ impl TryFrom<pb::EventNullifierGenerationArchived> for NullifierGenerationArchiv
 }
 
 pub fn empty_history_head() -> [u8; 32] {
-    poseidon377::hash_1(&EMPTY_HISTORY_DOMAIN, Fq::from(0u64)).to_bytes()
+    poseidon::hash(domains::HISTORY_EMPTY, &[Fq::from(0u64)]).to_bytes()
 }
 
 pub fn append_history(
@@ -867,15 +876,15 @@ pub fn append_history(
     );
     let previous = canonical_fq(previous, "previous history head")?;
     let root = canonical_fq(root, "generation root")?;
-    Ok(poseidon377::hash_5(
-        &HISTORY_NODE_DOMAIN,
-        (
+    Ok(poseidon::hash(
+        domains::HISTORY_NODE,
+        &[
             previous,
             Fq::from(generation),
             root,
             Fq::from(generation_start_position),
             Fq::from(generation_end_position),
-        ),
+        ],
     )
     .to_bytes())
 }
@@ -888,6 +897,15 @@ pub fn is_old(note_position: u64, recent_position_floor: u64) -> anyhow::Result<
     Ok(note_position < recent_position_floor)
 }
 
+fn validate_envelope(
+    bytes: &[u8],
+    family: shieldd_sdk_circuits::proof::Family,
+) -> anyhow::Result<()> {
+    let proof = shieldd_sdk_circuits::proof::Envelope::from_bytes(bytes)?;
+    ensure!(proof.family() == family, "incorrect history proof family");
+    Ok(())
+}
+
 fn decode32(bytes: Vec<u8>, label: &str) -> anyhow::Result<[u8; 32]> {
     bytes
         .try_into()
@@ -895,13 +913,14 @@ fn decode32(bytes: Vec<u8>, label: &str) -> anyhow::Result<[u8; 32]> {
 }
 
 fn canonical_fq(bytes: [u8; 32], label: &str) -> anyhow::Result<Fq> {
-    Fq::from_bytes_checked(&bytes).map_err(|_| anyhow::anyhow!("{label} is not a canonical Fq"))
+    shieldd_sdk_crypto::encoding::field(&bytes)
+        .map_err(|_| anyhow::anyhow!("{label} is not a canonical Fq"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use decaf377::Fq;
+    use shieldd_sdk_crypto::Fq;
 
     fn root(value: u64) -> [u8; 32] {
         Fq::from(value).to_bytes()
@@ -990,6 +1009,21 @@ mod tests {
         Ok(())
     }
 
+    // Syntactically canonical envelopes for structural tests; not valid proofs.
+    fn encoded_envelope(family: shieldd_sdk_circuits::proof::Family) -> Vec<u8> {
+        let mut bytes = vec![0; PROOF_BYTES];
+        bytes[0] = shieldd_sdk_crypto::SUITE;
+        bytes[1] = family as u8;
+        bytes[34] = 1;
+        bytes[67] = 1;
+        let generator = hex::decode("97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb").unwrap();
+        for offset in [68, 116, 164] {
+            bytes[offset..offset + 48].copy_from_slice(&generator);
+        }
+        shieldd_sdk_circuits::proof::Envelope::from_bytes(&bytes).expect("canonical envelope");
+        bytes
+    }
+
     fn historical_bundle(
         count: u64,
     ) -> anyhow::Result<(NullifierWindow, HistoricalNullifierProof)> {
@@ -1007,7 +1041,7 @@ mod tests {
             .map(|chunk_index| HistoricalChunkProof {
                 chunk_index,
                 end_history_head: heads[((chunk_index + 1) * CHUNK_WIDTH) as usize],
-                groth16_proof: vec![7; BW6_761_PROOF_BYTES],
+                proof: encoded_envelope(shieldd_sdk_circuits::proof::Family::HistoryChunk),
             })
             .collect();
         let tail = (count / CHUNK_WIDTH * CHUNK_WIDTH..count)
@@ -1016,7 +1050,7 @@ mod tests {
                 generation_root: root(generation_index + 1),
                 generation_start_position: generation_index << 32,
                 generation_end_position: (generation_index + 1) << 32,
-                groth16_proof: vec![9; BLS12_377_PROOF_BYTES],
+                proof: encoded_envelope(shieldd_sdk_circuits::proof::Family::HistoryGeneration),
             })
             .collect();
         Ok((
@@ -1065,7 +1099,7 @@ mod tests {
         assert!(bad_root.validate_structure(window).is_err());
 
         let mut bad_encoding = proof;
-        bad_encoding.tail[0].groth16_proof.pop();
+        bad_encoding.tail[0].proof.pop();
         assert!(bad_encoding.validate_structure(window).is_err());
         Ok(())
     }
@@ -1083,14 +1117,14 @@ mod tests {
             generation_root: invalid,
             generation_start_position: 0,
             generation_end_position: 1,
-            groth16_proof: vec![0; BLS12_377_PROOF_BYTES],
+            proof: encoded_envelope(shieldd_sdk_circuits::proof::Family::HistoryGeneration),
         };
         assert!(generation.validate().is_err());
 
         let chunk = HistoricalChunkProof {
             chunk_index: 0,
             end_history_head: invalid,
-            groth16_proof: vec![0; BW6_761_PROOF_BYTES],
+            proof: encoded_envelope(shieldd_sdk_circuits::proof::Family::HistoryChunk),
         };
         assert!(chunk.validate().is_err());
 

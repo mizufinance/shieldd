@@ -1,13 +1,12 @@
-use decaf377::Fq;
-use poseidon377::hash_3;
+use shieldd_sdk_crypto::Fq;
+use shieldd_sdk_crypto::{domains, poseidon};
 use shieldd_sdk_tct::StateCommitment;
 
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::sct::v1 as pb, DomainType};
 
-#[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 #[serde(try_from = "pb::Nullifier", into = "pb::Nullifier")]
 pub struct Nullifier(pub Fq);
 
@@ -37,10 +36,24 @@ impl TryFrom<pb::Nullifier> for Nullifier {
     }
 }
 
-/// The domain separator used to derive nullifiers.
-pub static NULLIFIER_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.nullifier").as_bytes())
-});
+impl std::hash::Hash for Nullifier {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::hash::Hash::hash(&self.to_bytes(), state);
+    }
+}
+impl PartialOrd for Nullifier {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for Nullifier {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.to_bytes()
+            .iter()
+            .rev()
+            .cmp(other.to_bytes().iter().rev())
+    }
+}
 
 impl std::fmt::Display for Nullifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -61,16 +74,15 @@ impl Nullifier {
         self.0.to_bytes()
     }
 
-    /// Derive the [`Nullifier`] for a positioned note or swap given its [`merkle::Position`]
-    /// and [`Commitment`].
+    /// Derive a note nullifier from its [`shieldd_sdk_tct::Position`] and [`StateCommitment`].
     pub fn derive(
         nk: &NullifierKey,
         pos: shieldd_sdk_tct::Position,
         state_commitment: &StateCommitment,
     ) -> Nullifier {
-        Nullifier(hash_3(
-            &NULLIFIER_DOMAIN_SEP,
-            (nk.0, state_commitment.0, (u64::from(pos)).into()),
+        Nullifier(poseidon::hash(
+            domains::NOTE_NULLIFIER,
+            &[nk.0, state_commitment.0, (u64::from(pos)).into()],
         ))
     }
 }
@@ -86,7 +98,7 @@ impl TryFrom<&[u8]> for Nullifier {
 
     fn try_from(slice: &[u8]) -> Result<Nullifier, Self::Error> {
         let bytes: [u8; 32] = slice[..].try_into()?;
-        let inner = Fq::from_bytes_checked(&bytes)
+        let inner = shieldd_sdk_crypto::encoding::field(&bytes)
             .map_err(|_| anyhow::anyhow!("invalid nullifier field encoding"))?;
         Ok(Nullifier(inner))
     }

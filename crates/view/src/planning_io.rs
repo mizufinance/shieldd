@@ -14,7 +14,7 @@ pub trait PlanningIo: Send {
     async fn latest_block_timestamp(&mut self) -> Result<u64>;
     async fn volume_accumulator_recovery(
         &mut self,
-        subject: decaf377::Fq,
+        subject: shieldd_sdk_crypto::Fq,
         day_start: u64,
     ) -> Result<crate::storage::VolumeAccumulatorRecovery>;
     async fn chain_id(&mut self) -> Result<String>;

@@ -1,23 +1,18 @@
 mod proof_acceptance_tests;
 
-use std::collections::BTreeMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
 use crate::test_support::{TestHost, TEST_CHAIN_ID};
 use anyhow::{anyhow, Context, Result};
-use ark_ff::Zero;
-use ark_serialize::CanonicalSerialize;
 use cnidarium::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
-use decaf377::{Fq, Fr};
-use decaf377_rdsa as rdsa;
 use futures::StreamExt as _;
-use proptest::prelude::*;
+use group::GroupEncoding;
 use prost::bytes::Bytes;
 use rand_core::OsRng;
+use reddsa as rdsa;
 use sha2::Digest as _;
 use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
-use shieldd_sdk_compact_block::StatePayload;
 use shieldd_sdk_compliance::genesis::{GenesisUserRegistration, NativeAssetRegistration};
 use shieldd_sdk_compliance::registry::ComplianceRegistryWrite as _;
 use shieldd_sdk_compliance::structs::{
@@ -26,20 +21,13 @@ use shieldd_sdk_compliance::structs::{
 use shieldd_sdk_compliance::{
     derive_regulated_nullifier_key, AssetPolicy, ComplianceLeaf, MsgRegisterUser,
 };
-use shieldd_sdk_fee::Fee;
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::{test_keys, Address};
 use shieldd_sdk_mock_client::MockClient;
 use shieldd_sdk_num::Amount;
-#[cfg(feature = "orbis-dev-srs")]
-use shieldd_sdk_proof_aggregation::srs_id;
-use shieldd_sdk_proof_aggregation::{
-    app_verify_family_code, AggregateBundle, AppVerifyCallId, DevSrs, FamilyAggregate,
-    ProofFamilyId, AGGREGATE_PROTOCOL_VERSION, DEFAULT_DEV_SRS_ID,
-};
-use shieldd_sdk_proof_params::batch::BatchItem;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::component::clock::{EpochManager as _, EpochRead as _};
-use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _};
+use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _, VerificationExt as _};
 use shieldd_sdk_sct::component::StateWriteExt as _;
 use shieldd_sdk_sct::epoch::Epoch;
 use shieldd_sdk_sct::nullifier_generation::{
@@ -59,24 +47,30 @@ use shieldd_sdk_transaction::{
 use shieldd_sdk_txhash::AuthorizingData;
 use tendermint::Time;
 
-use super::{BatchCandidate, BatchPreparation, BatchVerdict, PrepareBlockLocalState};
-use crate::action_handler::transaction::{
-    prepare_candidate_read, prepare_candidate_read_blocking, supports_parallel_prepare,
-    HistoricalCheckContext,
-};
+use super::{BatchCandidate, BatchPreparation, BatchVerdict};
 
-use crate::action_handler::AppActionHandler;
-use crate::app::CheckTxSharedContext;
-use crate::app::ProposalArtifactSidecar;
-use crate::app::{candidate_digest_from_hashes, CandidateEnvelope};
+use crate::app::CandidateEnvelope;
 use crate::genesis::{AppState, Content};
-use crate::stateless_cache::{CacheEntry, StatelessCache, TxArtifact};
+use crate::stateless_cache::{CacheEntry, StatelessCache};
 use crate::SUBSTORE_PREFIXES;
 
-use super::{
-    AggregateBundleFamilyEstimate, App, BlockSctAppendLog, BlockTxIndexingMode, StateReadExt,
-    AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES, AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-};
+use super::{App, BlockTxIndexingMode, StateReadExt};
+
+pub(super) fn registry() -> Arc<shieldd_sdk_proof_params::pari::Registry> {
+    static REGISTRY: std::sync::OnceLock<Arc<shieldd_sdk_proof_params::pari::Registry>> =
+        std::sync::OnceLock::new();
+    REGISTRY
+        .get_or_init(|| {
+            Arc::new(
+                shieldd_sdk_proof_params::pari::Registry::load(
+                    std::env::var("SHIELDD_PARI_KEYS")
+                        .expect("app tests require SHIELDD_PARI_KEYS"),
+                )
+                .expect("valid test registry"),
+            )
+        })
+        .clone()
+}
 
 fn test_nullifier_window() -> NullifierWindow {
     NullifierWindow {
@@ -88,37 +82,46 @@ fn test_nullifier_window() -> NullifierWindow {
     }
 }
 
-const SRS_ID_MISMATCH: &str = if cfg!(feature = "orbis-dev-srs") {
-    "Orbis integration SnarkPack SRS id mismatch"
-} else {
-    "test/fuzz SnarkPack SRS id mismatch"
-};
-
-#[cfg(feature = "orbis-dev-srs")]
-#[test]
-fn orbis_dev_srs_selects_only_the_insecure_integration_fixture() -> Result<()> {
-    let srs = super::shipping_srs()?;
-    assert!(!srs.is_registered());
-    assert_eq!(srs_id(&srs), DEFAULT_DEV_SRS_ID);
-
-    let selected = super::shipping_srs_for_id(&DEFAULT_DEV_SRS_ID)?;
-    assert!(!selected.is_registered());
-    assert_eq!(srs_id(&selected), DEFAULT_DEV_SRS_ID);
-
-    let error = super::shipping_srs_for_id(&[0u8; 32])
-        .expect_err("integration fixture must reject every other SRS id");
-    assert!(error
-        .to_string()
-        .contains("Orbis integration SnarkPack SRS id mismatch"));
-
+#[tokio::test]
+async fn maintenance_error_keeps_pending_app_state_for_retry() -> Result<()> {
+    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let mut app = App::from_snapshot(storage.latest_snapshot(), registry());
+    app.init_chain(&AppState::Content(
+        Content::default().with_chain_id(TEST_CHAIN_ID.to_owned()),
+    ))
+    .await;
+    let cursor = shieldd_sdk_sct::state_key::nullifier_generations::prune_cursor();
+    let state = Arc::get_mut(&mut app.state).context("app state is shared")?;
+    state.put_raw(
+        "test/pending_maintenance_retry".to_owned(),
+        b"kept".to_vec(),
+    );
+    state.nonverifiable_put_raw(cursor.to_vec(), b"invalid cursor".to_vec());
+    let directory = tempfile::tempdir()?;
+    let repository = shieldd_sdk_sct::generation_pack::GenerationPackRepository::new(
+        directory.path().to_path_buf(),
+        0,
+    )?;
+    assert!(app
+        .commit(storage.as_ref().clone(), Some(&repository))
+        .await
+        .is_err());
+    let state = Arc::get_mut(&mut app.state).context("pending state was lost")?;
+    assert_eq!(
+        state.get_raw("test/pending_maintenance_retry").await?,
+        Some(b"kept".to_vec())
+    );
+    state.nonverifiable_delete(cursor.to_vec());
+    app.commit(storage.as_ref().clone(), Some(&repository))
+        .await?;
+    assert_eq!(
+        storage
+            .latest_snapshot()
+            .get_raw("test/pending_maintenance_retry")
+            .await?,
+        Some(b"kept".to_vec())
+    );
     Ok(())
-}
-
-fn rolled_up_payload(value: u64) -> StatePayload {
-    StatePayload::RolledUp {
-        source: CommitmentSource::transaction(),
-        commitment: tct::StateCommitment(Fq::from(value)),
-    }
 }
 
 #[tokio::test]
@@ -145,7 +148,7 @@ async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
         state_tx
             .nullify_all(std::slice::from_ref(&nullifier), source.clone())
             .await?;
-        state_tx.add_note_payload(payload, source).await;
+        state_tx.add_note_payload(payload, source).await?;
         state_tx.put_raw(unrelated_effect_key.clone(), vec![1u8]);
 
         assert_eq!(
@@ -229,39 +232,10 @@ fn proposal_transaction_size_policy_is_fixed_at_boundary() {
     ));
 }
 
-#[test]
-fn proof_worker_concurrency_is_bounded_for_all_hardware_sizes() {
-    assert_eq!(App::proof_family_ids().len(), 4);
-    assert_eq!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS, 2);
-    assert_eq!(super::MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS, 4);
-    assert!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS * App::proof_family_ids().len() <= 8);
-}
-
-#[tokio::test]
-async fn structured_join_drain_waits_for_siblings_after_error() {
-    let sibling_finished = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let sibling_finished_for_task = sibling_finished.clone();
-    let mut tasks = tokio::task::JoinSet::new();
-    tasks.spawn(async { Err::<(), anyhow::Error>(anyhow!("injected early failure")) });
-    tasks.spawn_blocking(move || {
-        std::thread::sleep(std::time::Duration::from_millis(25));
-        sibling_finished_for_task.store(true, std::sync::atomic::Ordering::SeqCst);
-        Ok::<(), anyhow::Error>(())
-    });
-
-    let result = super::drain_joinset_results(&mut tasks, "injected task panic").await;
-    assert!(result.is_err());
-    assert!(
-        sibling_finished.load(std::sync::atomic::Ordering::SeqCst),
-        "drain must await sibling work before returning the first error"
-    );
-    assert!(tasks.is_empty());
-}
-
 #[tokio::test]
 async fn oversized_checktx_bytes_reject_before_decode_or_cache() -> Result<()> {
     let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut app = App::new(storage.latest_snapshot());
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
     let cache = StatelessCache::new();
     let maximum_transaction_size = super::MAX_TRANSACTION_SIZE_BYTES;
     let oversized = vec![
@@ -294,9 +268,12 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
     let inputs = (0..8)
         .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
             nullifier: Nullifier(Fq::from(10u64 + index)),
-            rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(Fr::from(
-                20u64 + index,
-            ))),
+            rk: rdsa::VerificationKey::from(
+                &rdsa::SigningKey::<rdsa::sapling::SpendAuth>::try_from(
+                    Fr::from(20u64 + index).to_bytes(),
+                )
+                .unwrap(),
+            ),
             encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
                 [u8::try_from(index + 1).expect("small index"); 48],
             )
@@ -336,9 +313,10 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
         anchor: action_anchor,
         ..Default::default()
     };
-    let binding_signing_key = rdsa::SigningKey::<rdsa::Binding>::from(Fr::from(1u64));
+    let binding_signing_key =
+        rdsa::SigningKey::<rdsa::sapling::Binding>::try_from(Fr::from(1u64).to_bytes()).unwrap();
     invalid_auth.binding_sig =
-        binding_signing_key.sign_deterministic(invalid_auth.auth_hash().as_bytes());
+        binding_signing_key.sign(rand_core::OsRng, invalid_auth.auth_hash().as_bytes());
 
     let mut mismatched_anchor = invalid_auth.clone();
     mismatched_anchor.anchor = tct::Root(tct::structure::Hash::new(Fq::from(987_654u64)));
@@ -379,11 +357,12 @@ fn fee_funding_extraction_rejects_identity_randomized_key() {
     transfer.body.proof_context = shieldd_sdk_shielded_pool::TransferProofContext::FeeFunding;
     transfer.body.volume_accumulator =
         shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding();
-    let identity_sk = rdsa::SigningKey::<rdsa::SpendAuth>::from(Fr::from(0u64));
-    transfer.body.inputs[0].rk = rdsa::VerificationKey::from(identity_sk.clone());
+    let identity_sk =
+        rdsa::SigningKey::<rdsa::sapling::SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap();
+    transfer.body.inputs[0].rk = rdsa::VerificationKey::from(&identity_sk);
     let different_message = b"different fee funding authorization hash";
     assert_ne!(&different_message[..], context.effect_hash.as_ref());
-    transfer.auth_sigs[0] = identity_sk.sign_deterministic(different_message);
+    transfer.auth_sigs[0] = identity_sk.sign(rand_core::OsRng, different_message);
     transfer.body.inputs[0]
         .rk
         .verify(context.effect_hash.as_ref(), &transfer.auth_sigs[0])
@@ -395,7 +374,7 @@ fn fee_funding_extraction_rejects_identity_randomized_key() {
         Err(error) => error,
     };
     assert!(
-        format!("{error:#}").contains("randomized spend key 0 must not be identity"),
+        format!("{error:#}").contains("identity Jubjub key"),
         "unexpected rejection reason: {error:#}"
     );
 }
@@ -444,6 +423,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
         storage.as_ref().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         initial_time,
+        registry(),
     )
     .await?;
     test_node.execute(Vec::new()).await?;
@@ -516,6 +496,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
                 &client
                     .complete_intent(intent, storage.latest_snapshot())
                     .await?,
+                registry(),
             )
             .await?;
         txs.push(tx.encode_to_vec());
@@ -531,13 +512,13 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     let regulated_denom = "wregulated_usd";
     let regulated_asset_id = asset::REGISTRY.parse_unit(regulated_denom).id();
     let native_asset = NativeAssetRegistration {
-        audit_keys: Some(shieldd_sdk_compliance::AuditKeys::test_keys()),
+        audit_keys: Some(shieldd_sdk_compliance::audit_keys::test_keys()),
         asset_id: regulated_asset_id,
         is_regulated: true,
-        dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+        dk_pub: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
         registration_authority_vk: Some(authority_vk),
         seizure_authority_vk: Some(authority_vk),
-        ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+        ring_pk: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
         ring_id: "test-ring".to_owned(),
         policy_id: "test-policy".to_owned(),
         permission: "read".to_owned(),
@@ -550,16 +531,10 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
             test_keys::FULL_VIEWING_KEY.incoming(),
             &address,
             regulated_asset_id,
-            decaf377::Element::GENERATOR,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
             rnk_dh_pk,
         )?;
-        ComplianceLeaf::registered_from_rnk(
-            address,
-            regulated_asset_id,
-            decaf377::Element::GENERATOR,
-            rnk_dh_pk,
-            rnk,
-        )
+        ComplianceLeaf::registered_from_rnk(address, regulated_asset_id, rnk_dh_pk, rnk)
     };
     let genesis_leaf = make_leaf(test_keys::ADDRESS_0.deref().clone())?;
     let runtime_leaf = make_leaf(test_keys::ADDRESS_1.deref().clone())?;
@@ -572,7 +547,7 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
                     TEST_CHAIN_ID,
                     &genesis_leaf,
                     &policy,
-                    decaf377::Fr::from(1u64),
+                    shieldd_sdk_crypto::Fr::from(1u64),
                 )?,
                 leaf: genesis_leaf,
             }],
@@ -600,6 +575,7 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         storage.as_ref().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+        registry(),
     )
     .await?;
     test_node.execute(Vec::new()).await?;
@@ -619,7 +595,7 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
             TEST_CHAIN_ID,
             &runtime_leaf,
             &policy,
-            decaf377::Fr::from(1u64),
+            shieldd_sdk_crypto::Fr::from(1u64),
         )?),
         grant: Some(UserRegistrationGrant {
             signature: test_keys::SPEND_KEY
@@ -638,11 +614,13 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         },
         nullifier_window: None,
     };
-    let registration_tx = client.witness_auth_build(&registration_plan).await?;
+    let registration_tx = client
+        .witness_auth_build(&registration_plan, registry())
+        .await?;
+    let before_registration = storage.latest_snapshot();
     test_node
         .execute(vec![registration_tx.encode_to_vec()])
         .await?;
-    client.sync_to_latest(storage.latest_snapshot()).await?;
     let note = client
         .notes
         .values()
@@ -721,21 +699,79 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     let plan = client
         .complete_intent(intent, storage.latest_snapshot())
         .await?;
-    let tx_bytes = client.witness_auth_build(&plan).await?.encode_to_vec();
+    let tx_bytes = client
+        .witness_auth_build(&plan, registry())
+        .await?
+        .encode_to_vec();
     eprintln!(
         "PET-ready regulated host transaction: {} bytes",
         tx_bytes.len()
     );
 
+    before_registration
+        .check_claimed_anchor(Transaction::decode_canonical(&tx_bytes)?.anchor)
+        .await?;
+    // Registration changes compliance witnesses while the SCT anchor is already committed.
+    let ordered = vec![
+        Bytes::from(registration_tx.encode_to_vec()),
+        Bytes::from(tx_bytes.clone()),
+    ];
+    let mut ordered_prepare = App::new(before_registration.clone(), registry()).await?;
+    let prepared_ordered = ordered_prepare
+        .prepare_batch(
+            BatchPreparation {
+                txs: ordered.clone(),
+                max_tx_bytes: 1024 * 1024,
+                height: 2,
+            },
+            None,
+            false,
+        )
+        .await;
+    assert_eq!(
+        prepared_ordered.txs, ordered,
+        "registration must admit a transfer under its new root"
+    );
+    let mut ordered_validate = App::new(before_registration.clone(), registry()).await?;
+    assert!(matches!(
+        ordered_validate
+            .validate_batch(
+                BatchCandidate {
+                    txs: ordered.clone(),
+                    height: 2,
+                },
+                None,
+                false
+            )
+            .await,
+        BatchVerdict::Accept
+    ));
+    let mut reversed = ordered.clone();
+    reversed.reverse();
+    let mut reverse_validate = App::new(before_registration, registry()).await?;
+    assert!(matches!(
+        reverse_validate
+            .validate_batch(
+                BatchCandidate {
+                    txs: reversed,
+                    height: 2,
+                },
+                None,
+                false
+            )
+            .await,
+        BatchVerdict::Reject
+    ));
+
     let cache = StatelessCache::new();
-    let mut mempool_app = App::new(storage.latest_snapshot());
+    let mut mempool_app = App::new(storage.latest_snapshot(), registry()).await?;
     mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     mempool_app
         .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
         .await?;
 
     test_node.execute(Vec::new()).await?;
-    let mut recheck_app = App::new(storage.latest_snapshot());
+    let mut recheck_app = App::new(storage.latest_snapshot(), registry()).await?;
     recheck_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     recheck_app
         .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
@@ -747,14 +783,14 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         max_tx_bytes: 1024 * 1024,
         height: 4,
     };
-    let mut batch_app = App::new(storage.latest_snapshot());
-    let (prepared, sidecar) = batch_app.prepare_batch(proposal, Some(&cache), false).await;
+    let mut batch_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let prepared = batch_app.prepare_batch(proposal, Some(&cache), false).await;
     assert_eq!(
         prepared.txs.len(),
-        2,
-        "proposal must include the regulated transfer and aggregate bundle"
+        1,
+        "proposal must include the regulated transfer"
     );
-    let mut validator = App::new(storage.latest_snapshot());
+    let mut validator = App::new(storage.latest_snapshot(), registry()).await?;
     let verdict = validator
         .validate_batch(
             BatchCandidate {
@@ -762,7 +798,6 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
                 height: 4,
             },
             Some(&cache),
-            sidecar.as_ref(),
             false,
         )
         .await;
@@ -787,740 +822,17 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
 }
 
 async fn candidate_envelope_from_fixture_txs(
-    storage: &TempStorage,
+    _storage: &TempStorage,
     txs: &[Vec<u8>],
 ) -> Result<CandidateEnvelope> {
-    let decoded = txs
-        .iter()
-        .enumerate()
-        .map(|(index, tx_bytes)| {
-            Transaction::decode(tx_bytes.as_slice())
-                .map(Arc::new)
-                .with_context(|| format!("decoding fixture tx ordinal {index}"))
-        })
-        .collect::<Result<Vec<_>>>()?;
-    let verified_artifacts = App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
-    let artifacts = verified_artifacts
-        .iter()
-        .map(|artifact| artifact.extracted())
-        .collect::<Vec<_>>();
-    let segment_tx_counts = vec![decoded.len()];
-    let (bundle, _segment_tx_counts) =
-        App::build_exact_segmented_aggregate_bundle_for_artifacts_public(
-            &artifacts,
-            &segment_tx_counts,
-        )
-        .await?;
-    let sidecar =
-        ProposalArtifactSidecar::build(&artifacts, decoded.len(), segment_tx_counts.clone())?;
-    let bundle_tx =
-        App::build_aggregate_bundle_tx_for_snapshot_public(storage.latest_snapshot(), bundle)
-            .await?;
-    let tx_hashes = txs
-        .iter()
-        .map(|tx_bytes| sha2::Sha256::digest(tx_bytes).into())
-        .collect::<Vec<[u8; 32]>>();
-
-    Ok(CandidateEnvelope {
-        txs: txs.to_vec(),
-        tx_hashes: tx_hashes.clone(),
-        aggregate_bundle_tx_bytes: Some(bundle_tx.encode_to_vec()),
-        sidecar: sidecar.to_record(),
-        segment_tx_counts,
-        block_tx_count: txs.len(),
-        total_payload_bytes: txs.iter().map(Vec::len).sum(),
-        candidate_digest: candidate_digest_from_hashes(&tx_hashes),
-        source_builder_label: "app_test".to_string(),
-    })
-}
-
-async fn aggregate_fixture(
-    tx_count: usize,
-) -> Result<(
-    TempStorage,
-    Vec<Arc<TxArtifact>>,
-    AggregateBundle,
-    Transaction,
-)> {
-    let (storage, _node, txs) = setup_test_txs(tx_count).await?;
-    let decoded = txs
-        .iter()
-        .map(|tx_bytes| Transaction::decode(tx_bytes.as_slice()).map(Arc::new))
-        .collect::<Result<Vec<_>, _>>()?;
-    let verified_artifacts = App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
-    let artifacts = verified_artifacts
-        .iter()
-        .map(|artifact| artifact.extracted())
-        .collect::<Vec<_>>();
-    let segment_tx_counts = vec![decoded.len()];
-    let (bundle, _) = App::build_exact_segmented_aggregate_bundle_for_artifacts_public(
-        &artifacts,
-        &segment_tx_counts,
-    )
-    .await?;
-    let bundle_tx = App::build_aggregate_bundle_tx_for_snapshot_public(
-        storage.latest_snapshot(),
-        bundle.clone(),
-    )
-    .await?;
-
-    Ok((storage, artifacts, bundle, bundle_tx))
-}
-
-fn aggregate_verify_test_item(family_id: ProofFamilyId, value: u64) -> BatchItem {
-    let arity = super::proof_verification_key_for_family(family_id)
-        .vk
-        .gamma_abc_g1
-        .len()
-        - 1;
-    BatchItem {
-        proof: ark_groth16::Proof {
-            a: Default::default(),
-            b: Default::default(),
-            c: Default::default(),
-        },
-        public_inputs: vec![Fq::from(value); arity],
-    }
-}
-
-fn aggregate_verify_test_artifact(entries: Vec<(ProofFamilyId, BatchItem)>) -> Arc<TxArtifact> {
-    let bundle = AggregateBundle {
-        version: AGGREGATE_PROTOCOL_VERSION,
-        srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
-        families: Vec::new(),
-    };
-    let total_proof_count = entries.len();
-    let mut proof_items = BTreeMap::new();
-    for (family_id, item) in entries {
-        proof_items
-            .entry(family_id)
-            .or_insert_with(Vec::new)
-            .push(item);
-    }
-    Arc::new(TxArtifact {
-        tx: Arc::new(aggregate_bundle_shape_test_tx(bundle, 5)),
-        proof_items,
-        spend_nullifiers: Vec::new(),
-        anchor_pairs: Vec::new(),
-        total_proof_count,
-        historical_validation: None,
-    })
-}
-
-#[test]
-fn aggregate_expected_segments_preserve_segment_and_family_order() {
-    let transfer = ProofFamilyId::Transfer;
-    let note_reshape =
-        ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne);
-    let artifacts = vec![
-        aggregate_verify_test_artifact(vec![
-            (note_reshape, aggregate_verify_test_item(note_reshape, 11)),
-            (transfer, aggregate_verify_test_item(transfer, 12)),
-        ]),
-        aggregate_verify_test_artifact(vec![
-            (transfer, aggregate_verify_test_item(transfer, 21)),
-            (note_reshape, aggregate_verify_test_item(note_reshape, 22)),
-        ]),
-    ];
-
-    let segments = App::expected_aggregate_verify_segments(
-        &artifacts,
-        &[
-            shieldd_sdk_proof_aggregation::AppVerifySegmentRange {
-                segment_index: 0,
-                start: 0,
-                end: 1,
-            },
-            shieldd_sdk_proof_aggregation::AppVerifySegmentRange {
-                segment_index: 1,
-                start: 1,
-                end: 2,
-            },
-        ],
-    );
-    let ids = segments
-        .iter()
-        .enumerate()
-        .map(|(order_index, segment)| super::AggregateVerifyCallId {
-            order_index,
-            segment_index: segment.segment_index,
-            family_index: segment.family_index,
-            family_id: segment.family_id,
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(
-        ids,
-        vec![
-            super::AggregateVerifyCallId {
-                order_index: 0,
-                segment_index: 0,
-                family_index: 0,
-                family_id: transfer,
-            },
-            super::AggregateVerifyCallId {
-                order_index: 1,
-                segment_index: 0,
-                family_index: 1,
-                family_id: note_reshape,
-            },
-            super::AggregateVerifyCallId {
-                order_index: 2,
-                segment_index: 1,
-                family_index: 0,
-                family_id: transfer,
-            },
-            super::AggregateVerifyCallId {
-                order_index: 3,
-                segment_index: 1,
-                family_index: 1,
-                family_id: note_reshape,
-            },
-        ]
-    );
-    assert_eq!(segments[0].items[0].public_inputs[0], Fq::from(12u64));
-    assert_eq!(segments[1].items[0].public_inputs[0], Fq::from(11u64));
-    assert_eq!(segments[2].items[0].public_inputs[0], Fq::from(21u64));
-    assert_eq!(segments[3].items[0].public_inputs[0], Fq::from(22u64));
-}
-
-#[test]
-fn aggregate_verify_planner_preserves_segment_order_and_checks_counts() -> Result<()> {
-    let family_id = ProofFamilyId::Transfer;
-    let expected_segments = vec![
-        super::AggregateExpectedVerifySegment {
-            segment_index: 0,
-            family_index: 0,
-            family_id,
-            items: vec![aggregate_verify_test_item(family_id, 1)],
-            debug_rows: Vec::new(),
-        },
-        super::AggregateExpectedVerifySegment {
-            segment_index: 1,
-            family_index: 0,
-            family_id,
-            items: vec![aggregate_verify_test_item(family_id, 2)],
-            debug_rows: Vec::new(),
-        },
-    ];
-    let bundle = AggregateBundle {
-        version: AGGREGATE_PROTOCOL_VERSION,
-        srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
-        families: vec![
-            FamilyAggregate {
-                family_id,
-                real_count: 1,
-                padded_count: 1,
-                aggregate_proof: vec![1],
-            },
-            FamilyAggregate {
-                family_id,
-                real_count: 1,
-                padded_count: 1,
-                aggregate_proof: vec![2],
-            },
-        ],
-    };
-
-    let plan = App::plan_aggregate_bundle_verification(
-        &bundle,
-        expected_segments.clone(),
-        shieldd_sdk_proof_aggregation::DevSrs::default(),
-    )?;
-    assert_eq!(
-        plan.calls.iter().map(|call| call.id).collect::<Vec<_>>(),
-        vec![
-            super::AggregateVerifyCallId {
-                order_index: 0,
-                segment_index: 0,
-                family_index: 0,
-                family_id,
-            },
-            super::AggregateVerifyCallId {
-                order_index: 1,
-                segment_index: 1,
-                family_index: 0,
-                family_id,
-            },
-        ]
-    );
-    assert_eq!(plan.calls[0].padded_public_inputs[0][0], Fq::from(1u64));
-    assert_eq!(plan.calls[1].padded_public_inputs[0][0], Fq::from(2u64));
-    assert_eq!(
-        plan.calls[0].shipping_call,
-        shieldd_sdk_proof_aggregation::AppVerifyShippingCall {
-            id: AppVerifyCallId {
-                order_index: 0,
-                segment_index: 0,
-                family_index: 0,
-                family: app_verify_family_code(family_id),
-            },
-            bundle_family: app_verify_family_code(family_id),
-            expected_real_count: 1,
-            bundle_real_count: 1,
-            expected_padded_count: 1,
-            bundle_padded_count: 1
-        }
-    );
-
-    let mut missing_family = bundle.clone();
-    missing_family.families.pop();
-    let family_count_error = App::plan_aggregate_bundle_verification(
-        &missing_family,
-        expected_segments.clone(),
-        shieldd_sdk_proof_aggregation::DevSrs::default(),
-    )
-    .err()
-    .expect("missing family must reject");
-    assert!(family_count_error
-        .to_string()
-        .contains("aggregate bundle family count mismatch"));
-
-    let mut wrong_order = bundle.clone();
-    wrong_order.families[0].family_id =
-        ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne);
-    let order_error = App::plan_aggregate_bundle_verification(
-        &wrong_order,
-        expected_segments.clone(),
-        shieldd_sdk_proof_aggregation::DevSrs::default(),
-    )
-    .err()
-    .expect("wrong family order must reject");
-    assert!(order_error
-        .to_string()
-        .contains("aggregate family ordering mismatch"));
-
-    let mut wrong_real_count = bundle.clone();
-    wrong_real_count.families[0].real_count = 2;
-    let real_count_error = App::plan_aggregate_bundle_verification(
-        &wrong_real_count,
-        expected_segments.clone(),
-        shieldd_sdk_proof_aggregation::DevSrs::default(),
-    )
-    .err()
-    .expect("wrong real count must reject");
-    assert!(real_count_error
-        .to_string()
-        .contains("aggregate real_count mismatch"));
-
-    let mut wrong_padded_count = bundle;
-    wrong_padded_count.families[1].padded_count = 2;
-    let padded_count_error = App::plan_aggregate_bundle_verification(
-        &wrong_padded_count,
-        expected_segments,
-        shieldd_sdk_proof_aggregation::DevSrs::default(),
-    )
-    .err()
-    .expect("wrong padded count must reject");
-    assert!(padded_count_error
-        .to_string()
-        .contains("aggregate padded_count mismatch"));
-
-    Ok(())
-}
-
-#[test]
-fn aggregate_verify_plan_header_rejects_incomplete_segment_coverage() {
-    let bundle = AggregateBundle {
-        version: AGGREGATE_PROTOCOL_VERSION,
-        srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
-        families: Vec::new(),
-    };
-    let tx = aggregate_bundle_shape_test_tx(bundle.clone(), 5);
-    let artifact = Arc::new(TxArtifact {
-        tx: Arc::new(tx),
-        proof_items: BTreeMap::new(),
-        spend_nullifiers: Vec::new(),
-        anchor_pairs: Vec::new(),
-        total_proof_count: 1,
-        historical_validation: None,
-    });
-
-    let error = App::validate_aggregate_verify_plan_inputs(
-        &[artifact],
-        &bundle,
-        Some(&[0]),
-        &DevSrs::default(),
-    )
-    .expect_err("incomplete segment coverage must reject");
-    assert!(error
-        .to_string()
-        .contains("aggregate segment coverage mismatch"));
-}
-
-#[test]
-fn aggregate_verify_reducer_is_order_independent_and_rejects_exact_calls() -> Result<()> {
-    let family_id = ProofFamilyId::Transfer;
-    let expected = vec![
-        super::AggregateVerifyCallId {
-            order_index: 0,
-            segment_index: 0,
-            family_index: 0,
-            family_id,
-        },
-        super::AggregateVerifyCallId {
-            order_index: 1,
-            segment_index: 1,
-            family_index: 0,
-            family_id,
-        },
-    ];
-
-    let reduction = App::reduce_aggregate_verify_outcomes(
-        &expected,
-        vec![
-            super::AggregateVerifyCallResult {
-                id: expected[1],
-                accepted: true,
-            },
-            super::AggregateVerifyCallResult {
-                id: expected[0],
-                accepted: true,
-            },
-        ],
-    )?;
-    reduction.acceptance_result()?;
-
-    let rejected = App::reduce_aggregate_verify_outcomes(
-        &expected,
-        vec![
-            super::AggregateVerifyCallResult {
-                id: expected[0],
-                accepted: true,
-            },
-            super::AggregateVerifyCallResult {
-                id: expected[1],
-                accepted: false,
-            },
-        ],
-    )?;
-    let rejection = rejected
-        .acceptance_result()
-        .expect_err("one rejected call must reject the bundle");
-    assert!(rejection
-        .to_string()
-        .contains("segment=1 family_index=0 family=Transfer"));
-
-    let duplicate_error = App::reduce_aggregate_verify_outcomes(
-        &expected,
-        vec![
-            super::AggregateVerifyCallResult {
-                id: expected[0],
-                accepted: true,
-            },
-            super::AggregateVerifyCallResult {
-                id: expected[0],
-                accepted: true,
-            },
-        ],
-    )
-    .expect_err("duplicate outcomes must reject");
-    assert!(duplicate_error
-        .to_string()
-        .contains("aggregate verification outcome identity mismatch"));
-
-    let missing_error = App::reduce_aggregate_verify_outcomes(
-        &expected,
-        vec![super::AggregateVerifyCallResult {
-            id: expected[0],
-            accepted: true,
-        }],
-    )
-    .expect_err("missing outcomes must reject");
-    assert!(missing_error
-        .to_string()
-        .contains("aggregate verification outcome count mismatch"));
-
-    Ok(())
-}
-
-#[test]
-fn aggregate_verify_join_rejection_guard_is_fail_closed() -> Result<()> {
-    super::require_no_rejected_joined_calls(Vec::new())?;
-
-    let rejected = AppVerifyCallId {
-        order_index: 3,
-        segment_index: 5,
-        family_index: 7,
-        family: app_verify_family_code(ProofFamilyId::Transfer),
-    };
-    let error = super::require_no_rejected_joined_calls(vec![rejected])
-        .expect_err("a retained rejected join must fail after reducer acceptance");
-    assert!(error
-        .to_string()
-        .contains("join retained 1 rejected call(s)"));
-    Ok(())
-}
-
-#[tokio::test]
-async fn aggregate_bundle_rejects_wrong_real_count() -> Result<()> {
-    let (_storage, artifacts, mut bundle, _bundle_tx) = aggregate_fixture(1).await?;
-    App::verify_aggregate_bundle_for_artifacts_raw(&artifacts, &bundle, Some(&[1])).await?;
-    bundle.families[0].real_count += 1;
-    assert!(
-        App::verify_aggregate_bundle_for_artifacts_raw(&artifacts, &bundle, Some(&[1]))
-            .await
-            .is_err()
-    );
-    Ok(())
-}
-
-#[tokio::test]
-async fn async_verifier_outcome_retains_its_exact_shipping_input() -> Result<()> {
-    let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
-    let ranges = App::validate_aggregate_verify_plan_inputs(
-        &artifacts,
-        &bundle,
-        Some(&[1]),
-        &DevSrs::default(),
-    )?;
-    let expected_segments = App::expected_aggregate_verify_segments(&artifacts, &ranges);
-    let mut plan = App::plan_aggregate_bundle_verification(
-        &bundle,
-        expected_segments,
-        shieldd_sdk_proof_aggregation::DevSrs::default(),
-    )?;
-    let call = plan.calls.remove(0);
-    let expected_id = call.id;
-    let expected_shipping_call = call.shipping_call;
-    let expected_statement = call.statement.clone();
-    let expected_wrapped_proof = call.aggregate.aggregate_proof.clone();
-    let mut expected_padded_public_inputs =
-        Vec::with_capacity(expected_statement.padded_public_inputs().len());
-    for row in expected_statement.padded_public_inputs() {
-        let mut serialized_row = Vec::with_capacity(row.len());
-        for field in row {
-            let mut bytes = Vec::new();
-            field.serialize_compressed(&mut bytes)?;
-            serialized_row.push(bytes);
-        }
-        expected_padded_public_inputs.push(serialized_row);
-    }
-    let expected_public_input_arity = u32::try_from(
-        expected_padded_public_inputs
-            .first()
-            .context("aggregate statement must retain one padded public-input row")?
-            .len(),
-    )?;
-
-    let outcome = App::execute_aggregate_verify_call(call)?;
-    let shipping_result = outcome.shipping_verification.shipping_result();
-
-    assert_eq!(outcome.id, expected_id);
-    assert_eq!(shipping_result.input.call, expected_shipping_call);
-    assert_eq!(
-        shipping_result.input.protocol_version,
-        AGGREGATE_PROTOCOL_VERSION
-    );
-    assert_eq!(
-        shipping_result.input.family,
-        app_verify_family_code(expected_id.family_id)
-    );
-    assert_eq!(shipping_result.input.srs_id, expected_statement.srs_id());
-    assert_eq!(
-        shipping_result.input.vk_digest,
-        expected_statement.vk_digest()
-    );
-    assert_eq!(
-        shipping_result.input.real_count,
-        expected_statement.real_count()
-    );
-    assert_eq!(
-        shipping_result.input.padded_count,
-        expected_statement.padded_count()
-    );
-    assert_eq!(
-        shipping_result.input.public_input_arity,
-        expected_public_input_arity
-    );
-    assert_eq!(
-        shipping_result.input.padded_public_inputs,
-        expected_padded_public_inputs
-    );
-    assert_eq!(
-        shipping_result.input.canonical_statement_bytes,
-        expected_statement.canonical_bytes()
-    );
-    assert_eq!(
-        shipping_result.input.statement_digest,
-        expected_statement.statement_digest()
-    );
-    assert_eq!(
-        shipping_result.input.wrapped_proof_bytes,
-        expected_wrapped_proof
-    );
-    assert_eq!(
-        shipping_result.input.challenge_context,
-        expected_statement.challenge_context().as_bytes()
-    );
-    assert_eq!(
-        shipping_result.result.accepted,
-        outcome
-            .shipping_verification
-            .shipping_result()
-            .result
-            .accepted
-    );
-    assert_eq!(
-        outcome.result()?.accepted,
-        outcome
-            .shipping_verification
-            .shipping_result()
-            .result
-            .accepted
-    );
-    Ok(())
-}
-
-#[tokio::test]
-async fn latest_snapshot_supports_parallel_reads() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let snapshot = storage.latest_snapshot();
-    let mut tasks = tokio::task::JoinSet::new();
-
-    for _ in 0..4 {
-        let snapshot = snapshot.clone();
-        tasks.spawn(async move {
-            let _ = snapshot.get_raw("parallel.snapshot.read").await?;
-            Ok::<(), anyhow::Error>(())
-        });
-    }
-
-    while let Some(result) = tasks.join_next().await {
-        result??;
-    }
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn prepare_candidate_read_supports_unregulated_fixture_txs() -> Result<()> {
-    let (storage, _node, txs) = setup_test_txs(2).await?;
-    let snapshot = Arc::new(storage.latest_snapshot());
-    let historical_context = HistoricalCheckContext::load(Arc::as_ref(&snapshot)).await?;
-
-    for tx_bytes in txs {
-        let tx = Arc::new(Transaction::decode(tx_bytes.as_slice())?);
-        assert!(
-            supports_parallel_prepare(Arc::as_ref(&tx)),
-            "fixture tx should stay on the supported transfer fast path"
-        );
-
-        let prepared = prepare_candidate_read(
-            tx.clone(),
-            snapshot.clone(),
-            historical_context.clone(),
-            false,
-        )
-        .await?;
-
-        assert_eq!(prepared.spend_nullifiers.len(), 2);
-        assert_eq!(
-            prepared.sct_payloads.len(),
-            3,
-            "fixture transfer should create receiver, change, and accumulator payloads",
-        );
-    }
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn prepare_candidate_read_blocking_matches_async_fast_path() -> Result<()> {
-    let (storage, _node, txs) = setup_test_txs(2).await?;
-    let snapshot = Arc::new(storage.latest_snapshot());
-    let historical_context = HistoricalCheckContext::load(Arc::as_ref(&snapshot)).await?;
-
-    for tx_bytes in txs {
-        let tx = Arc::new(Transaction::decode(tx_bytes.as_slice())?);
-        assert!(supports_parallel_prepare(Arc::as_ref(&tx)));
-
-        let prepared_async = prepare_candidate_read(
-            tx.clone(),
-            snapshot.clone(),
-            historical_context.clone(),
-            false,
-        )
-        .await?;
-        let tx_for_blocking = tx;
-        let snapshot_for_blocking = Arc::as_ref(&snapshot).clone();
-        let context_for_blocking = historical_context.clone();
-        let handle = tokio::runtime::Handle::current();
-        let prepared_blocking = tokio::task::spawn_blocking(move || {
-            prepare_candidate_read_blocking(
-                tx_for_blocking,
-                snapshot_for_blocking,
-                context_for_blocking,
-                false,
-                handle,
-            )
-        })
-        .await??;
-
-        assert_eq!(
-            prepared_async.spend_nullifiers,
-            prepared_blocking.spend_nullifiers
-        );
-        assert_eq!(
-            prepared_async.sct_payloads.len(),
-            prepared_blocking.sct_payloads.len()
-        );
-        assert_eq!(
-            prepared_async
-                .sct_payloads
-                .iter()
-                .map(|payload| *payload.commitment())
-                .collect::<Vec<_>>(),
-            prepared_blocking
-                .sct_payloads
-                .iter()
-                .map(|payload| *payload.commitment())
-                .collect::<Vec<_>>()
-        );
-    }
-
-    Ok(())
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn checktx_fast_path_matches_standard_path() -> Result<()> {
-    let (storage, _node, txs) = setup_test_txs(1).await?;
-    let tx = Arc::new(Transaction::decode(
-        txs.first().expect("fixture transaction").as_slice(),
-    )?);
-    let artifact = App::build_tx_artifact_for_stage("app_test", tx.clone()).await?;
-    assert!(supports_parallel_prepare(Arc::as_ref(&tx)));
-    let shared_context = Arc::new(CheckTxSharedContext::load(&storage.latest_snapshot()).await?);
-
-    let mut standard_app = App::new(storage.latest_snapshot());
-    tx.check_historical(standard_app.state.clone()).await?;
-    let standard_events = standard_app
-        .execute_tx_checked_historical(artifact.clone())
-        .await?;
-
-    let mut fast_app = App::new(storage.latest_snapshot());
-    fast_app.set_checktx_shared_context(shared_context);
-    let fast_events = fast_app.execute_checktx_fast(artifact, false).await?;
-
-    let mut standard_rendered = standard_events
-        .iter()
-        .map(|event| format!("{event:?}"))
-        .collect::<Vec<_>>();
-    standard_rendered.sort();
-    let mut fast_rendered = fast_events
-        .iter()
-        .map(|event| format!("{event:?}"))
-        .collect::<Vec<_>>();
-    fast_rendered.sort();
-    assert_eq!(standard_rendered, fast_rendered);
-
-    Ok(())
+    CandidateEnvelope::new(txs.to_vec(), "app_test".into())
 }
 
 #[tokio::test]
 async fn process_candidate_envelope_accepts_valid_fixture() -> Result<()> {
     let (storage, _node, txs) = setup_test_txs(2).await?;
     let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
-    let mut app = App::new(storage.latest_snapshot());
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
     let starting_generation =
         shieldd_sdk_sct::nullifier_tree::generation_state(Arc::as_ref(&app.state)).await?;
 
@@ -1540,230 +852,14 @@ async fn process_candidate_envelope_accepts_valid_fixture() -> Result<()> {
 }
 
 #[tokio::test]
-async fn ensure_aggregate_bundle_tx_shape_rejects_memo_fee_and_extra_action() -> Result<()> {
-    let (_storage, _artifacts, bundle, bundle_tx) = aggregate_fixture(1).await?;
-
-    let mut with_memo = bundle_tx.clone();
-    with_memo.transaction_body.memo = Some(MemoCiphertext([0; MEMO_CIPHERTEXT_LEN_BYTES]));
-    let memo_error =
-        App::ensure_aggregate_bundle_tx_shape(&with_memo).expect_err("memo must be rejected");
-    assert!(memo_error
-        .to_string()
-        .contains("aggregate bundle tx must not contain a memo"));
-
-    let mut with_fee = bundle_tx.clone();
-    with_fee.transaction_body.transaction_parameters.fee =
-        Fee::from_staking_token_amount(1u64.into());
-    let fee_error =
-        App::ensure_aggregate_bundle_tx_shape(&with_fee).expect_err("nonzero fee must fail");
-    assert!(fee_error
-        .to_string()
-        .contains("aggregate bundle tx must have zero fee"));
-
-    let mut with_extra_action = bundle_tx.clone();
-    with_extra_action
-        .transaction_body
-        .actions
-        .push(Action::AggregateBundle(bundle));
-    let shape_error = App::ensure_aggregate_bundle_tx_shape(&with_extra_action)
-        .expect_err("multiple actions must fail aggregate bundle shape validation");
-    assert!(shape_error
-        .to_string()
-        .contains("aggregate bundle tx must contain exactly one aggregate bundle action"));
-
-    Ok(())
-}
-
-fn aggregate_bundle_shape_test_tx(bundle: AggregateBundle, mode: u8) -> Transaction {
-    let mut tx = Transaction {
-        transaction_body: shieldd_sdk_transaction::TransactionBody {
-            actions: vec![Action::AggregateBundle(bundle.clone())],
-            transaction_parameters: TransactionParameters {
-                expiry_height: 0,
-                chain_id: "shieldd-test-chain".to_owned(),
-                fee: Fee::default(),
-            },
-            fee_funding: None,
-            memo: None,
-            nullifier_window: None,
-            historical_nullifier_proofs: Vec::new(),
-        },
-        binding_sig: [0; 64].into(),
-        anchor: shieldd_sdk_tct::Root(shieldd_sdk_tct::structure::Hash::zero()),
-    };
-
-    match mode % 5 {
-        0 => tx.transaction_body.actions.clear(),
-        1 => {
-            tx.transaction_body.memo = Some(MemoCiphertext([0; MEMO_CIPHERTEXT_LEN_BYTES]));
-        }
-        2 => {
-            tx.transaction_body.transaction_parameters.fee =
-                Fee::from_staking_token_amount(1u64.into());
-        }
-        3 => tx
-            .transaction_body
-            .actions
-            .push(Action::AggregateBundle(bundle)),
-        _ => {
-            let binding_signing_key = rdsa::SigningKey::from(Fr::zero());
-            let auth_hash = tx.transaction_body.auth_hash();
-            tx.binding_sig = binding_signing_key.sign_deterministic(auth_hash.as_bytes());
-        }
-    }
-
-    tx
-}
-
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(32))]
-
-    #[test]
-    fn ensure_aggregate_bundle_tx_shape_do_not_panic(
-        mode in 0u8..5,
-        version in any::<u32>(),
-        srs_id in prop::collection::vec(any::<u8>(), 0usize..=64),
-        aggregate_proof in prop::collection::vec(any::<u8>(), 0usize..=1024),
-        real_count in any::<u32>(),
-        padded_count in any::<u32>(),
-    ) {
-        let bundle = AggregateBundle {
-            version,
-            srs_id,
-            families: vec![shieldd_sdk_proof_aggregation::FamilyAggregate {
-                family_id: ProofFamilyId::Transfer,
-                real_count,
-                padded_count,
-                aggregate_proof,
-            }],
-        };
-        let tx = aggregate_bundle_shape_test_tx(bundle, mode);
-        let result = App::ensure_aggregate_bundle_tx_shape(&tx);
-
-        match mode % 5 {
-            0 | 3 => prop_assert!(
-                result
-                    .expect_err("aggregate action shape mutation must reject")
-                    .to_string()
-                    .contains("exactly one aggregate bundle action")
-            ),
-            1 => prop_assert!(
-                result
-                    .expect_err("memo mutation must reject")
-                    .to_string()
-                    .contains("must not contain a memo")
-            ),
-            2 => prop_assert!(
-                result
-                    .expect_err("fee mutation must reject")
-                    .to_string()
-                    .contains("must have zero fee")
-            ),
-            _ => {
-                let _ = result;
-            }
-        }
-    }
-}
-
-#[tokio::test]
-async fn aggregate_bundle_verification_rejects_bad_version_srs_and_family_count() -> Result<()> {
-    let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
-
-    let mut bad_version = bundle.clone();
-    bad_version.version += 1;
-    let version_error =
-        App::verify_aggregate_bundle_for_artifacts_raw_public(&artifacts, &bad_version, None)
-            .await
-            .expect_err("bad version must fail verification");
-    assert!(version_error
-        .to_string()
-        .contains("unsupported aggregate bundle version"));
-
-    let mut bad_srs = bundle.clone();
-    bad_srs.srs_id[0] ^= 0x01;
-    let srs_error =
-        App::verify_aggregate_bundle_for_artifacts_raw_public(&artifacts, &bad_srs, None)
-            .await
-            .expect_err("bad SRS id must fail verification");
-    assert!(srs_error.to_string().contains(SRS_ID_MISMATCH));
-
-    let mut empty_families = bundle.clone();
-    empty_families.families.clear();
-    let empty_error =
-        App::verify_aggregate_bundle_for_artifacts_raw_public(&artifacts, &empty_families, None)
-            .await
-            .expect_err("empty family list must fail verification");
-    assert!(empty_error
-        .to_string()
-        .contains("aggregate bundle family count mismatch"));
-
-    let mut extra_family = bundle.clone();
-    extra_family.families.push(extra_family.families[0].clone());
-    let family_count_error =
-        App::verify_aggregate_bundle_for_artifacts_raw_public(&artifacts, &extra_family, None)
-            .await
-            .expect_err("extra family entries must fail verification");
-    assert!(family_count_error
-        .to_string()
-        .contains("aggregate bundle family count mismatch"));
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup() -> Result<()> {
-    let mut wrong_full_length_srs_id = DEFAULT_DEV_SRS_ID.to_vec();
-    wrong_full_length_srs_id[0] ^= 0x01;
-
-    for (srs_id, expected_error) in [
-        (vec![0; 3], SRS_ID_MISMATCH),
-        (wrong_full_length_srs_id, SRS_ID_MISMATCH),
-    ] {
-        let bundle = AggregateBundle {
-            version: AGGREGATE_PROTOCOL_VERSION,
-            srs_id,
-            families: vec![FamilyAggregate {
-                family_id: ProofFamilyId::Transfer,
-                real_count: 1,
-                padded_count: 1,
-                aggregate_proof: vec![0xaa, 0xbb],
-            }],
-        };
-        let tx = aggregate_bundle_shape_test_tx(bundle.clone(), 5);
-        let artifact = Arc::new(TxArtifact {
-            tx: Arc::new(tx),
-            proof_items: BTreeMap::new(),
-            spend_nullifiers: Vec::new(),
-            anchor_pairs: Vec::new(),
-            total_proof_count: 1,
-            historical_validation: None,
-        });
-
-        let started = std::time::Instant::now();
-        let result =
-            App::verify_aggregate_bundle_for_artifacts_raw(&[artifact], &bundle, None).await;
-        let elapsed = started.elapsed();
-        let error = result.err().expect("bad SRS id must fail before SRS setup");
-
-        assert!(error.to_string().contains(expected_error));
-        assert!(
-            elapsed < std::time::Duration::from_millis(500),
-            "bad SRS id rejection took {elapsed:?}"
-        );
-    }
-    Ok(())
-}
-
-#[tokio::test]
-async fn execute_validated_candidate_envelope_profiled_skips_proposal_validation() -> Result<()> {
+async fn execute_validated_candidate_envelope_rechecks_metadata() -> Result<()> {
     let (storage, _node, txs) = setup_test_txs(1).await?;
     let spent_nullifiers = Transaction::decode(txs[0].as_slice())?
         .spent_nullifiers()
         .collect::<Vec<_>>();
     let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
 
-    let mut preflight_app = App::new(storage.latest_snapshot());
+    let mut preflight_app = App::new(storage.latest_snapshot(), registry()).await?;
     let verdict = preflight_app
         .process_candidate_envelope(&envelope, None)
         .await?;
@@ -1773,58 +869,16 @@ async fn execute_validated_candidate_envelope_profiled_skips_proposal_validation
     execution_only.tx_hashes.clear();
     execution_only.candidate_digest = [0; 32];
 
-    let mut app = App::new(storage.latest_snapshot());
-    let profile = app
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    assert!(app
         .execute_validated_candidate_envelope_profiled(&execution_only, storage.as_ref().clone())
-        .await?;
-    assert_eq!(profile.block_tx_count, 1);
-    assert!(profile.deliver_txs_wall_ms > 0.0);
+        .await
+        .is_err());
     let committed = storage.latest_snapshot();
     for nullifier in spent_nullifiers {
-        assert!(shieldd_sdk_sct::nullifier_tree::is_spent(&committed, nullifier).await?);
+        assert!(!shieldd_sdk_sct::nullifier_tree::is_spent(&committed, nullifier).await?);
     }
     shieldd_sdk_sct::nullifier_tree::verify_committed_roots(&committed).await?;
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn checktx_shared_context_caches_historical_context_for_snapshot() -> Result<()> {
-    let (storage, _node, _txs) = setup_test_txs(1).await?;
-    let snapshot = storage.latest_snapshot();
-    let shared_context = CheckTxSharedContext::load(&snapshot).await?;
-    let direct_context = HistoricalCheckContext::load(&snapshot).await?;
-
-    assert_eq!(
-        shared_context.historical_check_context.chain_id,
-        direct_context.chain_id
-    );
-    assert_eq!(
-        shared_context.historical_check_context.block_height,
-        direct_context.block_height
-    );
-    assert_eq!(
-        shared_context.historical_check_context.block_timestamp,
-        direct_context.block_timestamp
-    );
-    assert_eq!(
-        shared_context
-            .historical_check_context
-            .discovery_grace_period_blocks,
-        direct_context.discovery_grace_period_blocks
-    );
-    assert_eq!(
-        shared_context
-            .historical_check_context
-            .previous_discovery_parameters,
-        direct_context.previous_discovery_parameters
-    );
-    assert_eq!(
-        shared_context
-            .historical_check_context
-            .current_discovery_parameters,
-        direct_context.current_discovery_parameters
-    );
 
     Ok(())
 }
@@ -1834,22 +888,19 @@ async fn checktx_cache_hit_and_miss_match_for_supported_tx() -> Result<()> {
     let (storage, _node, txs) = setup_test_txs(1).await?;
     let tx_bytes = txs.first().expect("fixture transaction").clone();
     let cache = StatelessCache::new();
-    let shared_context = Arc::new(CheckTxSharedContext::load(&storage.latest_snapshot()).await?);
 
-    let mut miss_app = App::new(storage.latest_snapshot());
-    miss_app.set_checktx_shared_context(shared_context.clone());
+    let mut miss_app = App::new(storage.latest_snapshot(), registry()).await?;
     let miss_events = miss_app.deliver_tx_bytes(&tx_bytes, Some(&cache)).await?;
     let hash: [u8; 32] = sha2::Sha256::digest(&tx_bytes).into();
     assert!(matches!(
-        cache.get(&hash, &tx_bytes),
+        cache.get(registry().id(), &hash, &tx_bytes),
         Some(CacheEntry::FullyVerified(_))
     ));
 
-    let mut hit_app = App::new(storage.latest_snapshot());
-    hit_app.set_checktx_shared_context(shared_context);
+    let mut hit_app = App::new(storage.latest_snapshot(), registry()).await?;
     let hit_events = hit_app.deliver_tx_bytes(&tx_bytes, Some(&cache)).await?;
     assert!(matches!(
-        cache.get(&hash, &tx_bytes),
+        cache.get(registry().id(), &hash, &tx_bytes),
         Some(CacheEntry::FullyVerified(_))
     ));
     assert_eq!(miss_events, hit_events);
@@ -1858,58 +909,19 @@ async fn checktx_cache_hit_and_miss_match_for_supported_tx() -> Result<()> {
 }
 
 #[tokio::test]
-async fn prepared_reads_are_blind_to_same_block_nullifier_conflicts() -> Result<()> {
+async fn canonical_execution_rejects_same_block_nullifier_conflicts() -> Result<()> {
     let (storage, _node, txs) = setup_test_txs(1).await?;
-    let tx = Arc::new(Transaction::decode(
-        txs.first().expect("fixture transaction").as_slice(),
-    )?);
-    let artifact = App::build_tx_artifact_for_stage("app_test", tx.clone()).await?;
-    let snapshot = Arc::new(storage.latest_snapshot());
-    let historical_context = HistoricalCheckContext::load(Arc::as_ref(&snapshot)).await?;
-
-    let prepared_first = prepare_candidate_read(
-        tx.clone(),
-        snapshot.clone(),
-        historical_context.clone(),
-        false,
-    )
-    .await?;
-    let prepared_second =
-        prepare_candidate_read(tx.clone(), snapshot, historical_context, false).await?;
-
-    anyhow::ensure!(
-        !prepared_first.spend_nullifiers.is_empty(),
-        "fixture tx should exercise committed nullifier checks"
-    );
-    anyhow::ensure!(
-        !prepared_second.spend_nullifiers.is_empty(),
-        "fixture tx should exercise committed nullifier checks"
-    );
-
-    let mut app = App::new(storage.latest_snapshot());
-    let mut block_state = PrepareBlockLocalState::default();
-
-    let first_nullifier_count = prepared_first
-        .spend_nullifiers
-        .len()
-        .saturating_add(prepared_first.volume_nullifiers.len());
-    app.apply_prepared_prepare_candidate(artifact.clone(), prepared_first, &mut block_state)
-        .await?;
-    assert_eq!(
-        block_state.remaining_nullifier_capacity,
-        super::MAX_BLOCK_NULLIFIER_COUNT - first_nullifier_count
-    );
+    let bytes = txs.first().context("fixture transaction")?;
+    let cache = StatelessCache::new();
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    app.deliver_tx_bytes(bytes, Some(&cache)).await?;
+    let notes_before = pending_note_records(&app);
     let err = app
-        .apply_prepared_prepare_candidate(artifact, prepared_second, &mut block_state)
+        .deliver_tx_bytes(bytes, Some(&cache))
         .await
-        .expect_err("serial apply should resolve duplicate nullifiers in the same proposal");
-
-    assert!(
-        err.to_string()
-            .contains("already spent earlier in this proposal"),
-        "unexpected error: {err:#}"
-    );
-
+        .expect_err("duplicate spend rejected");
+    assert!(format!("{err:#}").contains("spent"), "{err:#}");
+    assert_eq!(pending_note_records(&app), notes_before);
     Ok(())
 }
 
@@ -2067,9 +1079,9 @@ async fn app_readiness_fails_on_corrupted_compliance_nv() -> Result<()> {
         .test_only_register_asset(
             asset::Id(Fq::from(456u64)),
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
             true,
         )
@@ -2091,76 +1103,6 @@ async fn app_readiness_fails_on_corrupted_compliance_nv() -> Result<()> {
 }
 
 #[tokio::test]
-async fn deferred_sct_log_reserves_contiguous_positions() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let snapshot = storage.latest_snapshot();
-    let mut log = BlockSctAppendLog::default();
-
-    let first = log
-        .reserve_positions(&snapshot, vec![rolled_up_payload(1), rolled_up_payload(2)])
-        .await?;
-    let second = log
-        .reserve_positions(&snapshot, vec![rolled_up_payload(3)])
-        .await?;
-
-    assert_eq!(first[0].0, tct::Position::from(0u64));
-    assert_eq!(first[1].0, tct::Position::from(1u64));
-    assert_eq!(second[0].0, tct::Position::from(2u64));
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn deferred_sct_log_materializes_into_tree_and_pending_payloads() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut app = App::new(storage.latest_snapshot());
-    let mut state_tx = StateDelta::new(app.state.clone());
-
-    app.pending_sct_append_log.append_positioned(vec![
-        (tct::Position::from(0u64), rolled_up_payload(10)),
-        (tct::Position::from(1u64), rolled_up_payload(11)),
-    ]);
-
-    app.materialize_pending_sct_append_log(&mut state_tx)
-        .await?;
-
-    let pending = state_tx.pending_rolled_up_payloads();
-    assert_eq!(pending.len(), 2);
-    assert_eq!(pending[0].0, tct::Position::from(0u64));
-    assert_eq!(pending[1].0, tct::Position::from(1u64));
-    assert_eq!(
-        state_tx.get_sct().await.position(),
-        Some(tct::Position::from(2u64))
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn deferred_sct_log_returns_error_on_position_drift() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut app = App::new(storage.latest_snapshot());
-    let mut state_tx = StateDelta::new(app.state.clone());
-
-    state_tx
-        .add_sct_commitment(
-            tct::StateCommitment(Fq::from(99u64)),
-            CommitmentSource::transaction(),
-        )
-        .await?;
-    app.pending_sct_append_log
-        .append_positioned(vec![(tct::Position::from(0u64), rolled_up_payload(100))]);
-
-    let err = app
-        .materialize_pending_sct_append_log(&mut state_tx)
-        .await
-        .expect_err("position drift should return an explicit error");
-    assert!(err.to_string().contains("position drifted"));
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn checktx_no_index_does_not_record_tx_log_entries_on_app_fork() -> Result<()> {
     let (storage, _node, txs) = setup_test_txs(1).await?;
     let tx_bytes = txs
@@ -2168,7 +1110,7 @@ async fn checktx_no_index_does_not_record_tx_log_entries_on_app_fork() -> Result
         .next()
         .expect("fixture should return one tx");
 
-    let mut app = App::new(storage.latest_snapshot());
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
     app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     let cache = StatelessCache::new();
     app.deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
@@ -2227,27 +1169,18 @@ async fn prepare_proposal_reuses_fully_verified_checktx_cache_entries() -> Resul
     let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_slice()).into();
     let cache = StatelessCache::new();
 
-    let mut mempool_app = App::new(storage.latest_snapshot());
+    let mut mempool_app = App::new(storage.latest_snapshot(), registry()).await?;
     mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     mempool_app
         .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
         .await?;
 
-    let extracted = match cache.get(&tx_hash, &tx_bytes) {
+    let extracted = match cache.get(registry().id(), &tx_hash, &tx_bytes) {
         Some(CacheEntry::FullyVerified(artifact)) => artifact.extracted(),
         _ => anyhow::bail!("expected fully verified cache entry after CheckTx"),
     };
     assert!(!extracted.proof_items.is_empty());
-    assert!(extracted.has_matching_historical_validation(storage.latest_snapshot().version()));
-    assert_eq!(
-        extracted
-            .historical_validation
-            .map(|stamp| stamp.snapshot_version),
-        Some(storage.latest_snapshot().version()),
-        "CheckTx should stamp the cache entry with the validated snapshot version"
-    );
-
-    let mut proposer = App::new(storage.latest_snapshot());
+    let mut proposer = App::new(storage.latest_snapshot(), registry()).await?;
     proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
     let proposal = BatchPreparation {
         txs: vec![tx_bytes.clone().into()],
@@ -2255,14 +1188,14 @@ async fn prepare_proposal_reuses_fully_verified_checktx_cache_entries() -> Resul
         height: 1,
     };
 
-    let (prepared, _) = proposer.prepare_batch(proposal, Some(&cache), false).await;
+    let prepared = proposer.prepare_batch(proposal, Some(&cache), false).await;
     assert_eq!(
         prepared.txs.len(),
-        2,
-        "proposal should include user tx plus aggregate bundle"
+        1,
+        "proposal should include the user transaction"
     );
 
-    match cache.get(&tx_hash, &tx_bytes) {
+    match cache.get(registry().id(), &tx_hash, &tx_bytes) {
         Some(CacheEntry::FullyVerified(_)) => {}
         _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
     }
@@ -2271,219 +1204,74 @@ async fn prepare_proposal_reuses_fully_verified_checktx_cache_entries() -> Resul
 }
 
 #[tokio::test]
-async fn prepare_proposal_verifies_and_upgrades_extracted_cache_entry() -> Result<()> {
-    let (storage, _node, txs) = setup_test_txs(1).await?;
-    let tx_bytes = txs
-        .into_iter()
-        .next()
-        .expect("fixture should return one tx");
-    let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_slice()).into();
-    let cache = StatelessCache::new();
-
-    let tx = Arc::new(Transaction::decode_canonical(tx_bytes.as_slice())?);
-    let mut extracted = App::build_tx_artifacts_extracted_for_stage_public(
-        "test_extracted_seed",
-        std::slice::from_ref(&tx),
-    )
-    .await?;
-    let extracted = extracted
-        .pop()
-        .context("single extracted transaction artifact missing")?;
-    cache.insert_extracted(tx_bytes.as_slice(), extracted.clone())?;
-    assert!(!extracted.proof_items.is_empty());
-
-    let mut proposer = App::new(storage.latest_snapshot());
-    proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-    let proposal = BatchPreparation {
-        txs: vec![tx_bytes.clone().into()],
-        max_tx_bytes: 1024 * 1024,
-        height: 1,
-    };
-
-    let (prepared, _) = proposer.prepare_batch(proposal, Some(&cache), false).await;
-    assert_eq!(
-        prepared.txs.len(),
-        2,
-        "proposal should include the user transaction and aggregate bundle"
-    );
-
-    match cache.get(&tx_hash, tx_bytes.as_slice()) {
-        Some(CacheEntry::FullyVerified(_)) => {}
-        _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
-    }
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn prepare_proposal_does_not_reuse_stale_historical_validation_stamp() -> Result<()> {
+async fn prepare_proposal_rechecks_spends_after_snapshot_changes() -> Result<()> {
     let (storage, mut node, txs) = setup_test_txs(1).await?;
-    let tx_bytes = txs
-        .into_iter()
-        .next()
-        .expect("fixture should return one tx");
+    let tx_bytes = txs[0].clone();
     let cache = StatelessCache::new();
-
-    let mut mempool_app = App::new(storage.latest_snapshot());
-    mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
-    mempool_app
-        .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
-        .await?;
-
-    let hash: [u8; 32] = sha2::Sha256::digest(&tx_bytes).into();
-    let cached = match cache.get(&hash, &tx_bytes) {
-        Some(CacheEntry::FullyVerified(artifact)) => artifact.extracted(),
-        _ => anyhow::bail!("CheckTx must cache the verified transaction"),
-    };
-    assert!(cached.has_matching_historical_validation(storage.latest_snapshot().version()));
-    node.execute(Vec::new()).await?;
-    assert!(!cached.has_matching_historical_validation(storage.latest_snapshot().version()));
-
-    let mut proposer = App::new(storage.latest_snapshot());
-    proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-    let proposal = BatchPreparation {
-        txs: vec![tx_bytes.into()],
-        max_tx_bytes: 1024 * 1024,
-        height: 2,
-    };
-
-    let (prepared, _) = proposer.prepare_batch(proposal, Some(&cache), false).await;
-    assert_eq!(
-        prepared.txs.len(),
-        2,
-        "proposal should still include the user tx and aggregate bundle after re-validation"
-    );
-
+    let mut mempool = App::new(storage.latest_snapshot(), registry()).await?;
+    mempool.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
+    mempool.deliver_tx_bytes(&tx_bytes, Some(&cache)).await?;
+    node.execute(txs).await?;
+    let mut proposer = App::new(storage.latest_snapshot(), registry()).await?;
+    let prepared = proposer
+        .prepare_batch(
+            BatchPreparation {
+                txs: vec![tx_bytes.into()],
+                max_tx_bytes: 1024 * 1024,
+                height: 2,
+            },
+            Some(&cache),
+            false,
+        )
+        .await;
+    assert!(prepared.txs.is_empty());
     Ok(())
-}
-
-#[test]
-fn aggregate_bundle_size_estimate_is_monotonic() {
-    let chain_id = "shieldd-test";
-    let small = vec![
-        AggregateBundleFamilyEstimate {
-            family_id: ProofFamilyId::Transfer,
-            real_count: 8,
-            padded_count: 8,
-            aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-        },
-        AggregateBundleFamilyEstimate {
-            family_id: ProofFamilyId::NoteReshape(
-                shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id,
-            ),
-            real_count: 8,
-            padded_count: 8,
-            aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-        },
-    ];
-    let large = vec![
-        AggregateBundleFamilyEstimate {
-            family_id: ProofFamilyId::Transfer,
-            real_count: 256,
-            padded_count: 256,
-            aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-        },
-        AggregateBundleFamilyEstimate {
-            family_id: ProofFamilyId::NoteReshape(
-                shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id,
-            ),
-            real_count: 256,
-            padded_count: 256,
-            aggregate_proof_bytes: AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
-        },
-    ];
-
-    let small_size = App::estimate_aggregate_bundle_tx_size_bytes(chain_id, &small);
-    let large_size = App::estimate_aggregate_bundle_tx_size_bytes(chain_id, &large);
-    assert!(
-        large_size >= small_size,
-        "larger family counts should not estimate a smaller bundle"
-    );
-}
-
-#[test]
-fn selected_prefix_respects_reduced_target_size() {
-    let prefix_payload_bytes = vec![100_000, 250_000, 400_000, 550_000];
-    let bundle_bytes = 96_000usize;
-    let prefix_len = App::select_prefix_len_with_bundle_budget(
-        &prefix_payload_bytes,
-        600_000,
-        AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES,
-        bundle_bytes,
-    );
-
-    assert_eq!(prefix_len, 3);
-    assert!(
-        prefix_payload_bytes[prefix_len - 1] + bundle_bytes as u64
-            <= 600_000 - AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES
-    );
-}
-
-#[test]
-fn fallback_prefix_drops_tail_after_exact_bundle_miss() {
-    let prefix_payload_bytes = vec![300_000, 600_000, 900_000];
-    let initial_prefix_len = App::select_prefix_len_with_bundle_budget(
-        &prefix_payload_bytes,
-        1_000_000,
-        AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES,
-        80_000,
-    );
-    assert_eq!(initial_prefix_len, 3);
-
-    let fallback_prefix_len = App::select_prefix_len_with_bundle_budget(
-        &prefix_payload_bytes,
-        1_000_000,
-        AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES,
-        140_000,
-    )
-    .min(initial_prefix_len.saturating_sub(1));
-
-    assert_eq!(fallback_prefix_len, 2);
 }
 
 #[tokio::test]
 async fn committed_transaction_query_is_bounded_for_large_logs() -> Result<()> {
+    use crate::app::StateWriteExt as _;
     use prost::Message as _;
-    use shieldd_sdk_proto::core::app::v1::{
-        TransactionsByHeightResponse, MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES,
-    };
-    // Synthetic stored log exercises selection/framing, not proof or host admission.
+    use shieldd_sdk_proto::core::app::v1::MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES;
     let storage = TempStorage::new().await?;
     let mut state = StateDelta::new(storage.latest_snapshot());
-    let mut tx = Transaction::default();
-    tx.transaction_body.transaction_parameters.chain_id =
-        "x".repeat(super::MAX_TRANSACTION_SIZE_BYTES - 1024);
-    let padding = super::MAX_TRANSACTION_SIZE_BYTES - tx.encode_to_vec().len();
-    tx.transaction_body
-        .transaction_parameters
-        .chain_id
-        .push_str(&"x".repeat(padding));
-    assert_eq!(tx.encode_to_vec().len(), super::MAX_TRANSACTION_SIZE_BYTES);
-    let id: [u8; 32] = tx.id().as_ref().try_into()?;
-    let encoded: shieldd_sdk_proto::core::transaction::v1::Transaction = tx.into();
-    for target in [4 * 1024 * 1024, 22_020_096] {
-        let log = TransactionsByHeightResponse {
-            block_height: 7,
-            transactions: vec![encoded.clone(); target / encoded.encoded_len() + 1],
-        };
-        assert!(log.encoded_len() > target);
-        state.nonverifiable_put_raw(
-            super::state_key::block_data::transactions_by_height(7).into(),
-            log.encode_to_vec(),
+    let mut selected = None;
+    for ordinal in 0..256 {
+        let mut tx = Transaction::default();
+        tx.transaction_body.transaction_parameters.chain_id = format!(
+            "{ordinal:08}{}",
+            "x".repeat(super::MAX_TRANSACTION_SIZE_BYTES - 1024)
         );
-        let response = state.committed_transaction(7, id).await?;
-        assert_eq!(response.transaction.as_ref(), Some(&encoded));
-        assert!(response.encoded_len() <= MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES);
-        assert!(state
-            .committed_transaction(7, [0; 32])
-            .await?
-            .transaction
-            .is_none());
-        assert!(state
-            .committed_transaction(8, id)
-            .await?
-            .transaction
-            .is_none());
+        let id = tx.id().0;
+        let encoded: shieldd_sdk_proto::core::transaction::v1::Transaction = tx.into();
+        state.put_block_transaction(7, encoded.clone()).await?;
+        selected = Some((id, encoded));
     }
+    let (id, encoded) = selected.unwrap();
+    assert_eq!(state.block_transaction_count(7).await?, 256);
+    assert!(state.transactions_by_height(7).await?.encoded_len() > 22_020_096);
+    let response = state.committed_transaction(7, id).await?;
+    assert_eq!(response.transaction.as_ref(), Some(&encoded));
+    assert!(response.encoded_len() <= MAX_COMMITTED_TRANSACTION_RESPONSE_BYTES);
+    assert!(state
+        .committed_transaction(7, [0; 32])
+        .await?
+        .transaction
+        .is_none());
+    assert!(state
+        .committed_transaction(8, id)
+        .await?
+        .transaction
+        .is_none());
+    assert!(state.put_block_transaction(7, encoded).await.is_err());
+    assert_eq!(state.block_transaction_count(7).await?, 256);
     Ok(())
+}
+
+fn pending_note_records(app: &App) -> Vec<(tct::Position, Vec<u8>, CommitmentSource)> {
+    app.state
+        .pending_note_payloads()
+        .iter()
+        .map(|(position, note, source)| (*position, note.encode_to_vec(), source.clone()))
+        .collect()
 }

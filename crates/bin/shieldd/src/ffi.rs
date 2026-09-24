@@ -10,7 +10,11 @@ use tokio::runtime::{Builder, Runtime};
 
 use crate::{ErrorKind, ExecutionService, ServiceError};
 
-const ABI_VERSION: u32 = 1;
+const ABI_VERSION: u32 = 3;
+const STATUS_OVERLOADED: i32 = 6;
+const STATUS_SNAPSHOT_EXPIRED: i32 = 7;
+const STATUS_UNAVAILABLE: i32 = 8;
+const METHOD_PUBLISH_COMMITTED: u32 = 13;
 const STATUS_OK: i32 = 0;
 const STATUS_INVALID_ARGUMENT: i32 = 1;
 const STATUS_FAILED_PRECONDITION: i32 = 2;
@@ -38,13 +42,16 @@ const METHOD_QUERY_COMPLIANCE_ASSET_STATUS: u32 = 1_000_002;
 const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
 const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
-const METHOD_QUERY_COMPACT_BLOCK_RANGE: u32 = 1_000_006;
 const METHOD_QUERY_NULLIFIER_WINDOW: u32 = 1_000_007;
 const METHOD_QUERY_COMMITTED_TRANSACTION: u32 = 1_000_008;
 const METHOD_QUERY_TRANSACTIONS_BY_HEIGHT: u32 = 1_000_009;
+const METHOD_QUERY_COMPACT_BLOCK_PAGE: u32 = 1_000_010;
+const METHOD_QUERY_FILTERED_BLOCK_PAGE: u32 = 1_000_011;
+const METHOD_QUERY_SPEND_STATUS_PAGE: u32 = 1_000_012;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Method {
+    PublishCommitted,
     InitGenesis,
     BeginBlock,
     Deposit,
@@ -63,10 +70,12 @@ enum Method {
     QueryComplianceBatchMerkleProofs,
     QueryComplianceUserLeaf,
     QueryKeyValue,
-    QueryCompactBlockRange,
     QueryNullifierWindow,
     QueryCommittedTransaction,
     QueryTransactionsByHeight,
+    QueryCompactBlockPage,
+    QueryFilteredBlockPage,
+    QuerySpendStatusPage,
 }
 
 #[repr(C)]
@@ -77,12 +86,17 @@ pub struct ShielddHandle {
 struct Handle {
     runtime: Runtime,
     service: tokio::sync::Mutex<ExecutionService>,
+    queries: std::sync::Arc<crate::QueryService>,
+    read_slots: std::sync::Arc<tokio::sync::Semaphore>,
+    query_bytes: std::sync::Arc<tokio::sync::Semaphore>,
+    check_bytes: std::sync::Arc<tokio::sync::Semaphore>,
 }
 
 #[repr(C)]
 pub struct ShielddBuffer {
     pub data: *mut u8,
     pub len: usize,
+    pub owner: *mut std::ffi::c_void,
 }
 
 impl ShielddBuffer {
@@ -90,22 +104,32 @@ impl ShielddBuffer {
         Self {
             data: ptr::null_mut(),
             len: 0,
+            owner: ptr::null_mut(),
         }
     }
 
     fn from_vec(data: Vec<u8>) -> Self {
+        Self::owned(data, None)
+    }
+
+    fn owned(data: Vec<u8>, permit: Option<tokio::sync::OwnedSemaphorePermit>) -> Self {
         if data.is_empty() {
             return Self::empty();
         }
-
-        let mut data = data.into_boxed_slice();
-        let buffer = Self {
-            data: data.as_mut_ptr(),
-            len: data.len(),
-        };
-        std::mem::forget(data);
-        buffer
+        let mut owner = Box::new(OwnedBuffer {
+            bytes: data.into_boxed_slice(),
+            _permit: permit,
+        });
+        Self {
+            data: owner.bytes.as_mut_ptr(),
+            len: owner.bytes.len(),
+            owner: Box::into_raw(owner).cast(),
+        }
     }
+}
+struct OwnedBuffer {
+    bytes: Box<[u8]>,
+    _permit: Option<tokio::sync::OwnedSemaphorePermit>,
 }
 
 #[repr(C)]
@@ -159,6 +183,9 @@ impl FfiError {
             ErrorKind::FailedPrecondition => STATUS_FAILED_PRECONDITION,
             ErrorKind::NotFound => STATUS_NOT_FOUND,
             ErrorKind::Internal => STATUS_INTERNAL,
+            ErrorKind::Overloaded => STATUS_OVERLOADED,
+            ErrorKind::SnapshotExpired => STATUS_SNAPSHOT_EXPIRED,
+            ErrorKind::Unavailable => STATUS_UNAVAILABLE,
         };
         Self {
             status,
@@ -172,6 +199,7 @@ impl TryFrom<u32> for Method {
 
     fn try_from(method: u32) -> std::result::Result<Self, Self::Error> {
         match method {
+            METHOD_PUBLISH_COMMITTED => Ok(Self::PublishCommitted),
             METHOD_INIT_GENESIS => Ok(Self::InitGenesis),
             METHOD_BEGIN_BLOCK => Ok(Self::BeginBlock),
             METHOD_DEPOSIT => Ok(Self::Deposit),
@@ -192,9 +220,11 @@ impl TryFrom<u32> for Method {
             }
             METHOD_QUERY_COMPLIANCE_USER_LEAF => Ok(Self::QueryComplianceUserLeaf),
             METHOD_QUERY_KEY_VALUE => Ok(Self::QueryKeyValue),
-            METHOD_QUERY_COMPACT_BLOCK_RANGE => Ok(Self::QueryCompactBlockRange),
             METHOD_QUERY_NULLIFIER_WINDOW => Ok(Self::QueryNullifierWindow),
             METHOD_QUERY_COMMITTED_TRANSACTION => Ok(Self::QueryCommittedTransaction),
+            METHOD_QUERY_COMPACT_BLOCK_PAGE => Ok(Self::QueryCompactBlockPage),
+            METHOD_QUERY_FILTERED_BLOCK_PAGE => Ok(Self::QueryFilteredBlockPage),
+            METHOD_QUERY_SPEND_STATUS_PAGE => Ok(Self::QuerySpendStatusPage),
             METHOD_QUERY_TRANSACTIONS_BY_HEIGHT => Ok(Self::QueryTransactionsByHeight),
             _ => Err(FfiError::invalid_argument(format!(
                 "unknown Shieldd method {method}"
@@ -212,23 +242,12 @@ pub extern "C" fn shieldd_abi_version() -> u32 {
 pub extern "C" fn shieldd_open(
     db_path: *const u8,
     db_path_len: usize,
-    out_handle: *mut *mut ShielddHandle,
-) -> ShielddResult {
-    boundary(|| {
-        let db_path = unsafe { input_bytes(db_path, db_path_len)? };
-        open_handle(db_path, None, out_handle)
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn shieldd_open_with_generation_packs(
-    db_path: *const u8,
-    db_path_len: usize,
     generation_pack_path: *const u8,
     generation_pack_path_len: usize,
     out_handle: *mut *mut ShielddHandle,
 ) -> ShielddResult {
     boundary(|| {
+        clear_output_handle(out_handle)?;
         let db_path = unsafe { input_bytes(db_path, db_path_len)? };
         let generation_pack_path =
             unsafe { input_bytes(generation_pack_path, generation_pack_path_len)? };
@@ -236,18 +255,21 @@ pub extern "C" fn shieldd_open_with_generation_packs(
     })
 }
 
-fn open_handle(
-    db_path: &[u8],
-    generation_pack_path: Option<&[u8]>,
-    out_handle: *mut *mut ShielddHandle,
-) -> std::result::Result<Vec<u8>, FfiError> {
+fn clear_output_handle(out_handle: *mut *mut ShielddHandle) -> std::result::Result<(), FfiError> {
     if out_handle.is_null() {
         return Err(FfiError::invalid_argument("out_handle must not be null"));
     }
     unsafe {
         out_handle.write(ptr::null_mut());
     }
+    Ok(())
+}
 
+fn open_handle(
+    db_path: &[u8],
+    generation_pack_path: Option<&[u8]>,
+    out_handle: *mut *mut ShielddHandle,
+) -> std::result::Result<Vec<u8>, FfiError> {
     let path = |value: &[u8], name: &str| {
         let value = str::from_utf8(value).map_err(|error| {
             FfiError::invalid_argument(format!("{name} must be UTF-8: {error}"))
@@ -264,6 +286,14 @@ fn open_handle(
         .map(|value| path(value, "generation_pack_path"))
         .transpose()?;
 
+    let key_directory = std::env::var_os("SHIELDD_PARI_KEYS").ok_or_else(|| {
+        FfiError::invalid_argument("SHIELDD_PARI_KEYS must name a trusted local Pari registry")
+    })?;
+    let registry = std::sync::Arc::new(
+        shieldd_sdk_proof_params::pari::Registry::load(key_directory).map_err(|error| {
+            FfiError::invalid_argument(format!("invalid Pari registry: {error:#}"))
+        })?,
+    );
     let runtime = Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -272,12 +302,22 @@ fn open_handle(
         })?;
     let service = match generation_pack_path {
         Some(directory) => runtime.block_on(ExecutionService::open_with_generation_packs(
-            db_path, directory,
+            db_path, directory, registry,
         )),
-        None => runtime.block_on(ExecutionService::open(db_path)),
+        None => runtime.block_on(ExecutionService::open(db_path, registry)),
     }
     .map_err(FfiError::service)?;
     let handle = Box::into_raw(Box::new(Handle {
+        queries: service.queries().clone(),
+        read_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(
+            service.queries().limits.read_workers,
+        )),
+        query_bytes: std::sync::Arc::new(tokio::sync::Semaphore::new(
+            service.queries().limits.read_memory_bytes(),
+        )),
+        check_bytes: std::sync::Arc::new(tokio::sync::Semaphore::new(
+            service.queries().limits.check_tx_reservation_bytes(),
+        )),
         runtime,
         service: tokio::sync::Mutex::new(service),
     })) as *mut ShielddHandle;
@@ -295,18 +335,103 @@ pub extern "C" fn shieldd_call(
     request: *const u8,
     request_len: usize,
 ) -> ShielddResult {
-    boundary(|| {
+    let mut query_budget = None;
+    let result = catch_unwind(AssertUnwindSafe(|| {
         if handle.is_null() {
             return Err(FfiError::invalid_argument("handle must not be null"));
         }
         let method = Method::try_from(method)?;
-        let request = unsafe { input_bytes(request, request_len)? };
         let handle = unsafe { &*(handle.cast::<Handle>()) };
-        handle.runtime.block_on(async {
-            let mut service = handle.service.lock().await;
-            dispatch(&mut service, method, request).await
-        })
-    })
+        let is_query = method.is_query();
+        if is_query {
+            query_budget = Some(if method == Method::CheckTx {
+                handle.check_bytes.clone()
+            } else {
+                handle.query_bytes.clone()
+            });
+        }
+        if is_query && request_len > handle.queries.limits.request_bytes {
+            return Err(FfiError::invalid_argument(
+                "query request exceeds configured budget",
+            ));
+        }
+        let request = unsafe { input_bytes(request, request_len)? };
+        if is_query {
+            let _slot = if method == Method::CheckTx {
+                None
+            } else {
+                Some(
+                    handle
+                        .read_slots
+                        .clone()
+                        .try_acquire_owned()
+                        .map_err(|_| FfiError::service(ServiceError::overloaded()))?,
+                )
+            };
+            // A reservation covers construction/encoding and remains attached to the returned buffer.
+            let memory = query_budget
+                .as_ref()
+                .expect("query budget")
+                .clone()
+                .try_acquire_many_owned(handle.queries.limits.reservation_bytes())
+                .map_err(|_| FfiError::service(ServiceError::overloaded()))?;
+            let response =
+                handle
+                    .runtime
+                    .block_on(dispatch_query(&handle.queries, method, request))?;
+            if response.len() > handle.queries.limits.response_page_bytes {
+                return Err(FfiError::service(ServiceError::overloaded()));
+            }
+            Ok(ShielddBuffer::owned(response, Some(memory)))
+        } else {
+            let response = handle.runtime.block_on(async {
+                let mut service = handle.service.lock().await;
+                dispatch(&mut service, method, request).await
+            })?;
+            Ok(ShielddBuffer::from_vec(response))
+        }
+    }));
+    match result {
+        Ok(Ok(response)) => ShielddResult {
+            status: STATUS_OK,
+            response,
+            error: ShielddBuffer::empty(),
+        },
+        Ok(Err(error)) => budgeted_failure(error.status, error.message, query_budget),
+        Err(payload) => budgeted_failure(STATUS_PANIC, panic_message(payload), query_budget),
+    }
+}
+
+fn budgeted_failure(
+    status: i32,
+    message: String,
+    budget: Option<std::sync::Arc<tokio::sync::Semaphore>>,
+) -> ShielddResult {
+    let Some(budget) = budget else {
+        return ShielddResult::failure(status, message);
+    };
+    let bytes = if message.len() <= 4096 {
+        message.into_bytes()
+    } else {
+        b"query failed; error details exceed local budget".to_vec()
+    };
+    let error = match budget.try_acquire_many_owned(bytes.len() as u32) {
+        Ok(permit) => ShielddBuffer::owned(bytes, Some(permit)),
+        Err(_) => {
+            // Immutable static storage needs no reservation and remains valid after shutdown.
+            let text = b"query memory budget exhausted; free outstanding buffers and retry";
+            ShielddBuffer {
+                data: text.as_ptr().cast_mut(),
+                len: text.len(),
+                owner: ptr::null_mut(),
+            }
+        }
+    };
+    ShielddResult {
+        status,
+        response: ShielddBuffer::empty(),
+        error,
+    }
 }
 
 #[no_mangle]
@@ -317,7 +442,18 @@ pub extern "C" fn shieldd_close(handle: *mut ShielddHandle) -> ShielddResult {
         }
 
         let handle = unsafe { Box::from_raw(handle.cast::<Handle>()) };
-        let Handle { runtime, service } = *handle;
+        let Handle {
+            runtime,
+            service,
+            queries,
+            read_slots,
+            query_bytes,
+            check_bytes,
+        } = *handle;
+        read_slots.close();
+        query_bytes.close();
+        check_bytes.close();
+        drop(queries);
         let mut service = service.into_inner();
         runtime
             .block_on(service.close())
@@ -334,12 +470,12 @@ pub extern "C" fn shieldd_buffer_free(buffer: *mut ShielddBuffer) {
         }
 
         let buffer = unsafe { &mut *buffer };
-        if !buffer.data.is_null() {
-            let data = ptr::slice_from_raw_parts_mut(buffer.data, buffer.len);
+        if !buffer.owner.is_null() {
             unsafe {
-                drop(Box::from_raw(data));
+                drop(Box::from_raw(buffer.owner.cast::<OwnedBuffer>()));
             }
         }
+        buffer.owner = ptr::null_mut();
         buffer.data = ptr::null_mut();
         buffer.len = 0;
     }));
@@ -368,69 +504,56 @@ unsafe fn input_bytes<'a>(data: *const u8, len: usize) -> std::result::Result<&'
     Ok(slice::from_raw_parts(data, len))
 }
 
-async fn dispatch(
-    service: &mut ExecutionService,
+impl Method {
+    fn is_query(self) -> bool {
+        matches!(
+            self,
+            Self::CheckTx
+                | Self::ArchivedNullifierProof
+                | Self::QueryTransactionsByHeight
+                | Self::QueryCompactBlockPage
+                | Self::QueryFilteredBlockPage
+                | Self::QuerySpendStatusPage
+                | Self::QueryCommittedTransaction
+                | Self::QueryAppParameters
+                | Self::QueryAssetMetadataById
+                | Self::QueryComplianceAssetStatus
+                | Self::QueryComplianceBatchMerkleProofs
+                | Self::QueryComplianceUserLeaf
+                | Self::QueryKeyValue
+                | Self::QueryNullifierWindow
+        )
+    }
+}
+
+async fn dispatch_query(
+    service: &crate::QueryService,
     method: Method,
     request: &[u8],
 ) -> std::result::Result<Vec<u8>, FfiError> {
     match method {
-        Method::InitGenesis => service
-            .init_genesis(decode(request)?)
+        Method::QuerySpendStatusPage => service
+            .spend_status_page(decode(request)?)
             .await
-            .map(|response| response.encode_to_vec())
+            .map(|r| r.encode_to_vec())
             .map_err(FfiError::service),
-        Method::BeginBlock => service
-            .begin_block(decode(request)?)
+        Method::QueryFilteredBlockPage => service
+            .filtered_block_page(decode(request)?)
             .await
-            .map(|response| response.encode_to_vec())
+            .map(|r| r.encode_to_vec())
             .map_err(FfiError::service),
-        Method::Deposit => service
-            .deposit(decode(request)?)
+        Method::QueryCompactBlockPage => service
+            .compact_block_page(decode(request)?)
             .await
-            .map(|response| response.encode_to_vec())
+            .map(|r| r.encode_to_vec())
             .map_err(FfiError::service),
         Method::CheckTx => service
             .check_tx(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        Method::DeliverTx => service
-            .deliver_tx(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
-        Method::EndBlock => service
-            .end_block(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
-        Method::Commit => service
-            .commit(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
-        Method::GetCommittedState => service
-            .get_committed_state(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
-        Method::Rollback => service
-            .rollback(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
-        Method::ExportGenesis => service
-            .export_genesis(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
         Method::ArchivedNullifierProof => service
             .archived_nullifier_proof(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
-        Method::ApplyComplianceAction => service
-            .apply_compliance_action(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -474,18 +597,81 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        Method::QueryCompactBlockRange => {
-            let responses = service
-                .compact_block_range(decode(request)?)
-                .await
-                .map_err(FfiError::service)?;
-            encode_delimited(responses)
-        }
         Method::QueryNullifierWindow => service
             .nullifier_window(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        _ => Err(FfiError::internal("execution dispatched to query")),
+    }
+}
+
+async fn dispatch(
+    service: &mut ExecutionService,
+    method: Method,
+    request: &[u8],
+) -> std::result::Result<Vec<u8>, FfiError> {
+    match method {
+        Method::PublishCommitted => {
+            service
+                .queries()
+                .publish_committed(decode(request)?)
+                .await
+                .map_err(FfiError::service)?;
+            Ok(Vec::new())
+        }
+        Method::InitGenesis => service
+            .init_genesis(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::BeginBlock => service
+            .begin_block(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::Deposit => service
+            .deposit(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::DeliverTx => service
+            .deliver_tx(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::EndBlock => service
+            .end_block(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::Commit => service
+            .commit(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::GetCommittedState => service
+            .get_committed_state(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::Rollback => service
+            .rollback(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::ExportGenesis => service
+            .export_genesis(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::ApplyComplianceAction => service
+            .apply_compliance_action(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+
+        _ => Err(FfiError::internal("query dispatched to execution")),
     }
 }
 
@@ -495,22 +681,6 @@ where
 {
     M::decode(request)
         .map_err(|error| FfiError::invalid_argument(format!("invalid protobuf request: {error}")))
-}
-
-fn encode_delimited<M: Message>(
-    messages: impl IntoIterator<Item = M>,
-) -> std::result::Result<Vec<u8>, FfiError> {
-    let mut encoded = Vec::new();
-    for message in messages {
-        message
-            .encode_length_delimited(&mut encoded)
-            .map_err(|error| {
-                FfiError::internal(format!(
-                    "encode length-delimited protobuf response: {error}"
-                ))
-            })?;
-    }
-    Ok(encoded)
 }
 
 fn panic_message(payload: Box<dyn Any + Send>) -> String {
@@ -532,7 +702,7 @@ mod tests {
     use shieldd_sdk_proto::cnidarium::v1::{KeyValueRequest, KeyValueResponse};
     use shieldd_sdk_proto::core::app::v1::{AppParametersRequest, AppParametersResponse};
     use shieldd_sdk_proto::core::component::compact_block::v1::{
-        CompactBlockRangeRequest, CompactBlockRangeResponse,
+        CompactBlockPageRequest, CompactBlockPageResponse,
     };
     use shieldd_sdk_proto::core::component::compliance::v1::{
         ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
@@ -558,11 +728,29 @@ mod tests {
             .expect("temporary directory path is UTF-8")
             .as_bytes();
         let mut handle = ptr::null_mut();
-        let result = shieldd_open(path.as_ptr(), path.len(), &mut handle);
+        let packs = directory.join("archives");
+        let packs = packs.to_str().expect("UTF-8 archive path").as_bytes();
+        let result = shieldd_open(
+            path.as_ptr(),
+            path.len(),
+            packs.as_ptr(),
+            packs.len(),
+            &mut handle,
+        );
         assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
         free_result(result);
         assert!(!handle.is_null());
         handle
+    }
+
+    fn publish(handle: *mut ShielddHandle) {
+        let state: GetCommittedStateResponse = call(
+            handle,
+            METHOD_GET_COMMITTED_STATE,
+            GetCommittedStateRequest {},
+        );
+        let _: shieldd_sdk_proto::execution_client::v1::CommitRequest =
+            call(handle, METHOD_PUBLISH_COMMITTED, state);
     }
 
     fn close(handle: *mut ShielddHandle) {
@@ -582,6 +770,71 @@ mod tests {
     fn free_result(mut result: ShielddResult) {
         shieldd_buffer_free(&mut result.response);
         shieldd_buffer_free(&mut result.error);
+    }
+
+    #[test]
+    fn readers_bypass_execution_lock_and_buffers_hold_admission_until_freed() {
+        let directory = tempfile::tempdir().unwrap();
+        let handle = open(directory.path());
+        initialize(handle);
+        let raw = unsafe { &*handle.cast::<Handle>() };
+        let guard = raw.service.try_lock().unwrap();
+        // A query must finish while the writer is locked, rather than queue behind it.
+        let address = handle as usize;
+        let (send, receive) = std::sync::mpsc::channel();
+        let reader = std::thread::spawn(move || {
+            let response = shieldd_call(
+                address as *mut ShielddHandle,
+                METHOD_QUERY_APP_PARAMETERS,
+                ptr::null(),
+                0,
+            );
+            let status = response.status;
+            free_result(response);
+            send.send(status).unwrap();
+        });
+        let result = receive.recv_timeout(std::time::Duration::from_secs(5));
+        drop(guard);
+        reader.join().unwrap();
+        assert_eq!(result.unwrap(), STATUS_OK);
+        // Admission stays available even while callers retain every read response.
+        let baseline = shieldd_call(handle, METHOD_CHECK_TX, ptr::null(), 0);
+        let expected_status = baseline.status;
+        let expected_error = error_text(&baseline);
+        assert_ne!(expected_status, STATUS_OVERLOADED);
+        free_result(baseline);
+        let mut held = Vec::new();
+        for _ in 0..raw.queries.limits.read_memory_bytes()
+            / raw.queries.limits.reservation_bytes() as usize
+        {
+            let response = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
+            assert_eq!(response.status, STATUS_OK);
+            held.push(response);
+        }
+        let overloaded = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
+        assert_eq!(overloaded.status, STATUS_OVERLOADED);
+        free_result(overloaded);
+        let slots = raw
+            .read_slots
+            .clone()
+            .try_acquire_many_owned(raw.queries.limits.read_workers as u32)
+            .unwrap();
+        let check = shieldd_call(handle, METHOD_CHECK_TX, ptr::null(), 0);
+        assert_eq!(
+            check.status, expected_status,
+            "public reads starved CheckTx"
+        );
+        assert_eq!(error_text(&check), expected_error);
+        free_result(check);
+        drop(slots);
+        free_result(held.pop().unwrap());
+        let admitted = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
+        assert_eq!(admitted.status, STATUS_OK);
+        held.push(admitted);
+        close(handle);
+        for response in held {
+            free_result(response);
+        }
     }
 
     #[test]
@@ -623,10 +876,6 @@ mod tests {
                 Method::QueryComplianceUserLeaf,
             ),
             (METHOD_QUERY_KEY_VALUE, Method::QueryKeyValue),
-            (
-                METHOD_QUERY_COMPACT_BLOCK_RANGE,
-                Method::QueryCompactBlockRange,
-            ),
             (METHOD_QUERY_NULLIFIER_WINDOW, Method::QueryNullifierWindow),
             (
                 METHOD_QUERY_COMMITTED_TRANSACTION,
@@ -666,34 +915,6 @@ mod tests {
         response
     }
 
-    fn call_delimited<Request, Response>(
-        handle: *mut ShielddHandle,
-        method: u32,
-        request: Request,
-    ) -> Vec<Response>
-    where
-        Request: Message,
-        Response: Message + Default,
-    {
-        let request = request.encode_to_vec();
-        let result = shieldd_call(handle, method, request.as_ptr(), request.len());
-        assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
-        let mut response = if result.response.len == 0 {
-            &[][..]
-        } else {
-            unsafe { slice::from_raw_parts(result.response.data, result.response.len) }
-        };
-        let mut messages = Vec::new();
-        while !response.is_empty() {
-            messages.push(
-                Response::decode_length_delimited(&mut response)
-                    .expect("valid length-delimited protobuf response"),
-            );
-        }
-        free_result(result);
-        messages
-    }
-
     fn initialize(handle: *mut ShielddHandle) {
         let _: InitGenesisResponse = call(
             handle,
@@ -706,6 +927,7 @@ mod tests {
             },
         );
         let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+        publish(handle);
     }
 
     fn commit_empty_block(handle: *mut ShielddHandle, height: i64) {
@@ -721,6 +943,7 @@ mod tests {
         let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
         let _: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height });
         let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+        publish(handle);
     }
 
     #[test]
@@ -875,6 +1098,7 @@ mod tests {
             },
         );
         let commit: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+        publish(handle);
         let committed: GetCommittedStateResponse = call(
             handle,
             METHOD_GET_COMMITTED_STATE,
@@ -899,7 +1123,7 @@ mod tests {
             request.len(),
         );
         assert_eq!(uninitialized.status, STATUS_FAILED_PRECONDITION);
-        assert!(error_text(&uninitialized).contains("not initialized"));
+        assert!(error_text(&uninitialized).contains("no jointly committed state"));
         free_result(uninitialized);
 
         initialize(handle);
@@ -1008,57 +1232,42 @@ mod tests {
     }
 
     #[test]
-    fn compact_block_range_query_returns_length_delimited_blocks_in_order() {
-        let directory = tempfile::tempdir().expect("temporary database directory");
+    fn compact_pages_reject_future_heights_and_expose_committed_headers() {
+        let directory = tempfile::tempdir().expect("temporary directory");
         let handle = open(directory.path());
         initialize(handle);
         commit_empty_block(handle, 1);
-        commit_empty_block(handle, 2);
-
-        let responses: Vec<CompactBlockRangeResponse> = call_delimited(
-            handle,
-            METHOD_QUERY_COMPACT_BLOCK_RANGE,
-            CompactBlockRangeRequest {
-                start_height: 0,
-                end_height: 2,
-                keep_alive: false,
-            },
-        );
-
-        let heights = responses
-            .into_iter()
-            .map(|response| {
-                response
-                    .compact_block
-                    .expect("range response contains a compact block")
-                    .height
-            })
-            .collect::<Vec<_>>();
-        assert_eq!(heights, vec![0, 1, 2]);
-        close(handle);
-    }
-
-    #[test]
-    fn compact_block_range_query_rejects_keep_alive() {
-        let directory = tempfile::tempdir().expect("temporary database directory");
-        let handle = open(directory.path());
-        initialize(handle);
-
-        let request = CompactBlockRangeRequest {
-            start_height: 0,
-            end_height: 0,
-            keep_alive: true,
+        for height in [0, 1] {
+            let page: CompactBlockPageResponse = call(
+                handle,
+                METHOD_QUERY_COMPACT_BLOCK_PAGE,
+                CompactBlockPageRequest {
+                    height,
+                    cursor: Vec::new(),
+                },
+            );
+            let page = page.page.expect("compact page");
+            assert_eq!(page.height, height);
+            assert_eq!(
+                page.fragments[0].kind,
+                shieldd_sdk_proto::core::component::compact_block::v1::CompactRecordKind::Header
+                    as i32
+            );
+            assert_eq!(page.fragments[0].offset, 0);
+            assert!(!page.block_identity.is_empty());
+        }
+        let request = CompactBlockPageRequest {
+            height: 2,
+            cursor: Vec::new(),
         }
         .encode_to_vec();
         let result = shieldd_call(
             handle,
-            METHOD_QUERY_COMPACT_BLOCK_RANGE,
+            METHOD_QUERY_COMPACT_BLOCK_PAGE,
             request.as_ptr(),
             request.len(),
         );
-
-        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
-        assert!(error_text(&result).contains("must be bounded"));
+        assert_eq!(result.status, STATUS_FAILED_PRECONDITION);
         free_result(result);
         close(handle);
     }
@@ -1109,6 +1318,21 @@ mod tests {
         assert_eq!(response.code, 1);
         assert!(response.log.contains("decoding transaction"));
         close(handle);
+    }
+
+    #[test]
+    fn failed_open_clears_output_handle_before_validating_input() {
+        let mut handle = std::ptr::dangling_mut::<ShielddHandle>();
+        let result = shieldd_open(ptr::null(), 1, ptr::null(), 0, &mut handle);
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        free_result(result);
+        assert!(handle.is_null());
+
+        handle = std::ptr::dangling_mut::<ShielddHandle>();
+        let result = shieldd_open(b"db".as_ptr(), 2, ptr::null(), 1, &mut handle);
+        assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
+        free_result(result);
+        assert!(handle.is_null());
     }
 
     #[test]

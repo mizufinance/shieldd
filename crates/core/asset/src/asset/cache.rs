@@ -4,12 +4,11 @@ use super::{denom_metadata, Id, Metadata, REGISTRY};
 use crate::asset::denom_metadata::Unit;
 
 /// On-chain data structures only record a fixed-size [`Id`], so this type
-/// allows caching known [`BaseDenom`]s.
+/// allows caching known asset [`Metadata`].
 ///
 /// The cache is backed by a [`BTreeMap`] accessed through a [`Deref`] impl.
 ///
-/// For (de)serialization, [`From`] conversions are provided to a `BTreeMap<Id,
-/// String>` with the string representations of the base denominations.
+/// Converts to and from a `BTreeMap<Id, Metadata>`; loading checks each ID against its denomination.
 #[derive(Clone, Default, Debug)]
 pub struct Cache {
     cache: BTreeMap<Id, Metadata>,
@@ -210,7 +209,7 @@ impl TryFrom<BTreeMap<Id, Metadata>> for Cache {
     }
 }
 
-// BaseDenom already has a validated Id, so by implementing Extend<BaseDenom> we
+// Metadata already has a validated Id, so by implementing Extend<Metadata> we
 // can ensure we don't insert any invalid Ids
 impl Extend<Metadata> for Cache {
     fn extend<T>(&mut self, iter: T)

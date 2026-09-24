@@ -36,11 +36,14 @@ where
 // This should only be done here in cases where the domain type lives in a crate
 // that shouldn't depend on the Shieldd proto framework.
 
-use crate::shieldd::crypto::decaf377_rdsa::v1::{
+use crate::shieldd::crypto::redjubjub_rdsa::v1::{
     BindingSignature, SpendAuthSignature, SpendVerificationKey,
 };
 
-use decaf377_rdsa::{Binding, Signature, SpendAuth, VerificationKey};
+use reddsa::{
+    sapling::{Binding, SpendAuth},
+    Signature, VerificationKey,
+};
 
 impl DomainType for Signature<SpendAuth> {
     type Proto = SpendAuthSignature;
@@ -55,7 +58,7 @@ impl DomainType for VerificationKey<SpendAuth> {
 impl From<Signature<SpendAuth>> for SpendAuthSignature {
     fn from(sig: Signature<SpendAuth>) -> Self {
         Self {
-            inner: sig.to_bytes().to_vec(),
+            inner: <[u8; 64]>::from(sig).to_vec(),
         }
     }
 }
@@ -63,7 +66,7 @@ impl From<Signature<SpendAuth>> for SpendAuthSignature {
 impl From<Signature<Binding>> for BindingSignature {
     fn from(sig: Signature<Binding>) -> Self {
         Self {
-            inner: sig.to_bytes().to_vec(),
+            inner: <[u8; 64]>::from(sig).to_vec(),
         }
     }
 }
@@ -71,7 +74,7 @@ impl From<Signature<Binding>> for BindingSignature {
 impl From<VerificationKey<SpendAuth>> for SpendVerificationKey {
     fn from(key: VerificationKey<SpendAuth>) -> Self {
         Self {
-            inner: key.to_bytes().to_vec(),
+            inner: <[u8; 32]>::from(key).to_vec(),
         }
     }
 }
@@ -79,20 +82,26 @@ impl From<VerificationKey<SpendAuth>> for SpendVerificationKey {
 impl TryFrom<SpendAuthSignature> for Signature<SpendAuth> {
     type Error = anyhow::Error;
     fn try_from(value: SpendAuthSignature) -> Result<Self, Self::Error> {
-        Ok(value.inner.as_slice().try_into()?)
+        Ok(Signature::from(<[u8; 64]>::try_from(
+            value.inner.as_slice(),
+        )?))
     }
 }
 
 impl TryFrom<BindingSignature> for Signature<Binding> {
     type Error = anyhow::Error;
     fn try_from(value: BindingSignature) -> Result<Self, Self::Error> {
-        Ok(value.inner.as_slice().try_into()?)
+        Ok(Signature::from(<[u8; 64]>::try_from(
+            value.inner.as_slice(),
+        )?))
     }
 }
 
 impl TryFrom<SpendVerificationKey> for VerificationKey<SpendAuth> {
     type Error = anyhow::Error;
     fn try_from(value: SpendVerificationKey) -> Result<Self, Self::Error> {
-        Ok(value.inner.as_slice().try_into()?)
+        let bytes: [u8; 32] = value.inner.as_slice().try_into()?;
+        shieldd_sdk_crypto::encoding::nonidentity(&bytes)?;
+        Ok(VerificationKey::try_from(bytes)?)
     }
 }

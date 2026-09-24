@@ -1,4 +1,5 @@
 //! In-memory compliance trees with dirty-leaf SQLite persistence.
+use group::GroupEncoding;
 
 use anyhow::Result;
 use shieldd_sdk_compliance::{
@@ -76,12 +77,6 @@ impl ComplianceUserTree {
                 .ok_or_else(|| anyhow::anyhow!("missing user commitment at position {}", pos))?;
             tree.update(pos, commitment)?;
         }
-
-        // Load internal hashes (optimization to avoid recomputation)
-        // The QuadTree will compute hashes on demand, but loading them
-        // speeds up initial path queries
-        // Note: For simplicity, we rely on the tree to recompute hashes
-        // from the commitments. This is correct but could be optimized.
 
         Ok(Self {
             inner: tree,
@@ -164,13 +159,13 @@ impl Default for ComplianceUserTree {
 ///
 /// Syncs the full IMT for non-membership proofs.
 ///
-/// During sync, we store the raw asset IDs (Fq values) that have been inserted.
-/// On load, we replay the inserts to reconstruct the tree with correct structure.
+/// Sync persists full indexed leaves, including policy and linked-list positions.
+/// Loading restores those leaves and rebuilds internal hashes.
 #[derive(Debug, Clone)]
 pub struct ComplianceAssetTree {
     inner: IndexedMerkleTree,
     /// Ordered list of asset values that have been inserted (for persistence)
-    inserted_values: Vec<decaf377::Fq>,
+    inserted_values: Vec<shieldd_sdk_crypto::Fq>,
     dirty_positions: BTreeSet<u64>,
 }
 
@@ -217,32 +212,33 @@ impl ComplianceAssetTree {
                 .get_asset_leaf(pos)?
                 .ok_or_else(|| anyhow::anyhow!("missing asset leaf at position {}", pos))?;
 
-            let value = decaf377::Fq::from_bytes_checked(&leaf_data.value).map_err(|_| {
+            let value = shieldd_sdk_crypto::encoding::field(&leaf_data.value).map_err(|_| {
                 anyhow::anyhow!("invalid Fq bytes for asset leaf value at position {}", pos)
             })?;
             let next_value =
-                decaf377::Fq::from_bytes_checked(&leaf_data.next_value).map_err(|_| {
+                shieldd_sdk_crypto::encoding::field(&leaf_data.next_value).map_err(|_| {
                     anyhow::anyhow!(
                         "invalid Fq bytes for asset leaf next_value at position {}",
                         pos
                     )
                 })?;
-            let dk_pub = decaf377::Encoding(leaf_data.dk_pub)
-                .vartime_decompress()
+            let dk_pub = shieldd_sdk_crypto::encoding::point(&leaf_data.dk_pub)
                 .map_err(|_| anyhow::anyhow!("invalid dk_pub encoding at position {}", pos))?;
 
-            let route_policy_hash = decaf377::Fq::from_bytes_checked(&leaf_data.route_policy_hash)
-                .map_err(|_| anyhow::anyhow!("invalid route_policy_hash at position {}", pos))?;
-            let ring_pk = decaf377::Encoding(leaf_data.ring_pk)
-                .vartime_decompress()
+            let route_policy_hash = shieldd_sdk_crypto::encoding::field(
+                &leaf_data.route_policy_hash,
+            )
+            .map_err(|_| anyhow::anyhow!("invalid route_policy_hash at position {}", pos))?;
+            let ring_pk = shieldd_sdk_crypto::encoding::point(&leaf_data.ring_pk)
                 .map_err(|_| anyhow::anyhow!("invalid ring_pk encoding at position {}", pos))?;
-            let ring_id_hash = decaf377::Fq::from_bytes_checked(&leaf_data.ring_id_hash)
+            let ring_id_hash = shieldd_sdk_crypto::encoding::field(&leaf_data.ring_id_hash)
                 .map_err(|_| anyhow::anyhow!("invalid ring_id_hash at position {}", pos))?;
-            let policy_id_hash = decaf377::Fq::from_bytes_checked(&leaf_data.policy_id_hash)
+            let policy_id_hash = shieldd_sdk_crypto::encoding::field(&leaf_data.policy_id_hash)
                 .map_err(|_| anyhow::anyhow!("invalid policy_id_hash at position {}", pos))?;
-            let permission_hash = decaf377::Fq::from_bytes_checked(&leaf_data.permission_hash)
-                .map_err(|_| anyhow::anyhow!("invalid permission_hash at position {}", pos))?;
-            let resource_hash = decaf377::Fq::from_bytes_checked(&leaf_data.resource_hash)
+            let permission_hash =
+                shieldd_sdk_crypto::encoding::field(&leaf_data.permission_hash)
+                    .map_err(|_| anyhow::anyhow!("invalid permission_hash at position {}", pos))?;
+            let resource_hash = shieldd_sdk_crypto::encoding::field(&leaf_data.resource_hash)
                 .map_err(|_| anyhow::anyhow!("invalid resource_hash at position {}", pos))?;
 
             let leaf = IndexedLeaf {
@@ -336,7 +332,7 @@ impl ComplianceAssetTree {
     }
 
     /// Check if an asset value is in the tree.
-    pub fn contains(&self, value: decaf377::Fq) -> bool {
+    pub fn contains(&self, value: shieldd_sdk_crypto::Fq) -> bool {
         self.inner.contains(value)
     }
 
@@ -390,10 +386,10 @@ impl ComplianceAssetTree {
                     value: leaf.value.to_bytes(),
                     next_index: leaf.next_index,
                     next_value: leaf.next_value.to_bytes(),
-                    dk_pub: leaf.params.dk_pub.vartime_compress().0,
+                    dk_pub: leaf.params.dk_pub.to_bytes(),
                     daily_volume_limit: leaf.params.daily_volume_limit,
                     route_policy_hash: leaf.params.route_policy_hash.to_bytes(),
-                    ring_pk: leaf.ring.ring_pk.vartime_compress().0,
+                    ring_pk: leaf.ring.ring_pk.to_bytes(),
                     ring_id_hash: leaf.ring.ring_id_hash.to_bytes(),
                     policy_id_hash: leaf.ring.policy_id_hash.to_bytes(),
                     permission_hash: leaf.ring.permission_hash.to_bytes(),
@@ -444,9 +440,33 @@ mod tests {
         assert_eq!(pos2, 1);
         assert_eq!(tree.position(), 2);
 
-        // Witness should work
-        let _path = tree.witness(0).unwrap();
-        let _path = tree.witness(1).unwrap();
+        for (position, commitment) in [(pos1, c1), (pos2, c2)] {
+            let path = tree.witness(position).unwrap();
+            path.validate().unwrap();
+            let path: Vec<[StateCommitment; 3]> = path
+                .layers
+                .iter()
+                .map(|layer| {
+                    std::array::from_fn(|i| {
+                        StateCommitment::try_from(layer.siblings[i].as_slice()).unwrap()
+                    })
+                })
+                .collect();
+            assert!(QuadTree::verify_auth_path(
+                position,
+                commitment,
+                &path,
+                tree.root(),
+                shieldd_sdk_compliance::DEFAULT_DEPTH
+            ));
+            assert!(!QuadTree::verify_auth_path(
+                position,
+                StateCommitment(commitment.0 + shieldd_sdk_crypto::Fq::from(1u64)),
+                &path,
+                tree.root(),
+                shieldd_sdk_compliance::DEFAULT_DEPTH
+            ));
+        }
     }
 
     #[test]
@@ -483,13 +503,13 @@ mod tests {
 
     #[test]
     fn asset_tree_sync_preserves_policy() {
-        use decaf377::Fq;
         use shieldd_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
+        use shieldd_sdk_crypto::Fq;
 
         let mut tree = ComplianceAssetTree::new();
 
         // Create a leaf with non-default policy (simulating a regulated asset)
-        let dk_pub = decaf377::Element::GENERATOR; // Non-identity element
+        let dk_pub = *shieldd_sdk_crypto::generators::SPEND_AUTH; // Non-identity element
         let daily_volume_limit = 1000u128;
 
         let new_leaf = IndexedLeaf {
@@ -527,15 +547,14 @@ mod tests {
 
         assert_eq!(position, 1);
         assert!(is_regulated);
-        assert_eq!(retrieved_leaf.params.dk_pub, dk_pub);
-        assert_eq!(retrieved_leaf.params.daily_volume_limit, daily_volume_limit);
+        assert_eq!(retrieved_leaf, new_leaf);
     }
 
     #[test]
     fn asset_tree_persist_writes_only_dirty_positions_and_reloads_root() {
-        use decaf377::Fq;
         use r2d2_sqlite::rusqlite::Connection;
         use shieldd_sdk_compliance::indexed_tree::{LeafParams, LeafRing, FQ_MAX};
+        use shieldd_sdk_crypto::Fq;
 
         let mut db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("storage/schema.sql"))

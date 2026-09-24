@@ -393,11 +393,19 @@ mod tests {
     }
 
     #[test]
-    fn repo_discovery_prefers_the_shieldd_checkout_over_a_bankd_parent() {
-        let shieldd = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .canonicalize()
-            .expect("Shieldd checkout should exist");
-        assert_eq!(find_repo_root(shieldd.clone()), Some(shieldd));
+    fn repo_discovery_prefers_shieldd_markers_and_falls_back_to_host_checkout() {
+        let directory = tempfile::tempdir().unwrap();
+        let host = directory.path().join("host");
+        let shieldd = host.join("shieldd");
+        let nested = shieldd.join("crates/tool");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::create_dir_all(host.join("infra")).unwrap();
+        std::fs::create_dir_all(shieldd.join("deployments/orbis")).unwrap();
+        std::fs::write(host.join("infra/docker-compose.yml"), "").unwrap();
+        let marker = shieldd.join("deployments/orbis/docker-compose.yml");
+        std::fs::write(&marker, "").unwrap();
+        assert_eq!(find_repo_root(nested.clone()), Some(shieldd));
+        std::fs::remove_file(marker).unwrap();
+        assert_eq!(find_repo_root(nested), Some(host));
     }
 }

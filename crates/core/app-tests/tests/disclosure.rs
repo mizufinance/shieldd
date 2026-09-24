@@ -1,7 +1,6 @@
 #![cfg(feature = "disclosure-e2e")]
 use anyhow::{ensure, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use decaf377::Fr;
 use rand_core::OsRng;
 use shieldd_sdk_app::{
     app::StateReadExt,
@@ -9,6 +8,7 @@ use shieldd_sdk_app::{
     test_support::{TestHost, TEST_CHAIN_ID},
 };
 use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_disclosure as disclosure;
 use shieldd_sdk_keys::test_keys;
 use shieldd_sdk_mock_client::MockClient;
@@ -129,18 +129,6 @@ async fn cli(binary: &str, home: &Utf8Path, arguments: &[&str]) -> Result<Vec<u8
     Ok(output.stdout)
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "builds an accepted payment and generates a real local Groth16 disclosure"]
-async fn export_import_between_wallet_directories() -> Result<()> {
-    run_disclosure(true).await
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "builds an accepted payment and verifies its commitment opening without proving"]
-async fn accepted_disclosure_opening() -> Result<()> {
-    run_disclosure(false).await
-}
-
 async fn machine(
     binary: &str,
     home: &Utf8Path,
@@ -178,20 +166,10 @@ async fn machine(
     Ok(serde_json::from_slice(&output.stdout)?)
 }
 
-async fn run_disclosure(prove: bool) -> Result<()> {
-    if prove {
-        for name in ["SHIELDD_DISCLOSURE_ARTIFACTS", "SHIELDD_DISCLOSURE_BACKEND"] {
-            let path =
-                std::env::var(name).with_context(|| format!("{name} required for proving"))?;
-            ensure!(
-                std::path::Path::new(&path).exists(),
-                "{name} does not exist"
-            );
-        }
-    }
-    shieldd_sdk_shielded_pool::gnark::require_proof_test_runtime(
-        shieldd_sdk_shielded_pool::gnark::ProofTestFamily::Transfer,
-    )?;
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "builds an accepted payment and checks opening and real Pari disclosure through the CLI"]
+async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()> {
+    let _ = shieldd_sdk_app_tests::registry();
     let directory = tempfile::tempdir()?;
     let root = Utf8PathBuf::from_path_buf(directory.path().to_owned())
         .map_err(|_| anyhow::anyhow!("non-UTF8 temporary path"))?;
@@ -204,6 +182,7 @@ async fn run_disclosure(prove: bool) -> Result<()> {
         chain.as_ref().clone(),
         AppState::Content(genesis::Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+        shieldd_sdk_app_tests::registry(),
     )
     .await?;
     host.execute(vec![]).await?;
@@ -280,6 +259,7 @@ async fn run_disclosure(prove: bool) -> Result<()> {
             plan.clone(),
             &client.witness_plan(&plan)?,
             &client.authorize_plan(&plan)?,
+            shieldd_sdk_app_tests::registry(),
         )
         .await?;
     let authority = wallet.disclosure_authority(&tx.id().to_string(), 0).await?;
@@ -352,14 +332,14 @@ async fn run_disclosure(prove: bool) -> Result<()> {
         disclosure::confirm_acceptance(&changed_reference, TEST_CHAIN_ID, &[block]).is_err(),
         "altered output reference accepted"
     );
-    if !prove {
+    {
         let mut full = witness.clone();
         let claim = &mut full.request.outputs[0];
         claim.amount = true;
         claim.asset = true;
         claim.recipient = true;
         let package = disclosure::export_openings(&full)?;
-        disclosure::verify(&package)?;
+        disclosure::verify(&package, Some(&shieldd_sdk_app_tests::registry()))?;
         let binary = std::env::var("SHIELDD_PCLI_BIN").context("set SHIELDD_PCLI_BIN")?;
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
         let endpoint = format!("http://{}", listener.local_addr()?);
@@ -369,7 +349,7 @@ async fn run_disclosure(prove: bool) -> Result<()> {
                     parameters: pb::AppParametersResponse {
                         app_parameters: Some(snapshot.get_app_params().await?.into()),
                     },
-                    block: accepted,
+                    block: accepted.clone(),
                 })
                 .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener)),
         );
@@ -402,7 +382,6 @@ async fn run_disclosure(prove: bool) -> Result<()> {
             result["status"] == "unresolved",
             "node outage not unresolved: {result}"
         );
-        return Ok(());
     }
     let binary = std::env::var("SHIELDD_PCLI_BIN")
         .context("set SHIELDD_PCLI_BIN to pcli built with disclosure-prover")?;
@@ -430,7 +409,7 @@ async fn run_disclosure(prove: bool) -> Result<()> {
     .await?;
     let bytes = std::fs::read(&proof_path)?;
     let package = disclosure::decode_package(&bytes)?;
-    let disclosure::Evidence::Groth16 {
+    let disclosure::Evidence::Pari {
         proof: receipt_bytes,
         ..
     } = &package.evidence

@@ -44,7 +44,7 @@ fn fixture_with_seed(seed: u8) -> DisclosureWitness {
     let public = PublicOutput {
         reference: reference.clone(),
         commitment: hex::encode(note.commit().0.to_bytes()),
-        ephemeral_key: note.ephemeral_public_key().0.to_vec(),
+        ephemeral_key: note.ephemeral_public_key().to_bytes().to_vec(),
         encrypted_note: note.encrypt().0.to_vec(),
         wrapped_memo_key: wrapped.0.to_vec(),
         memo_ciphertext: Some(ciphertext.0.to_vec()),
@@ -138,7 +138,7 @@ fn selection_and_opening_integrity() {
     assert!(!serde_json::to_string(&s).unwrap().contains("PRIVATE-MEMO"));
 }
 #[test]
-fn totals_can_span_transactions_but_reject_duplicates() {
+fn totals_can_span_transactions() {
     let mut w = fixture();
     let mut c = w.request.outputs[0].clone();
     c.reference.transaction_id = "cd".repeat(32);
@@ -163,18 +163,18 @@ fn full_openings_and_payload_exports() {
     c.asset = true;
     c.recipient = true;
     let p = export_openings(&w).unwrap();
-    assert!(verify(&p).unwrap().cryptography_verified);
-    assert!(!verify(&p).unwrap().fully_verified());
+    assert!(verify(&p, None).unwrap().cryptography_verified);
+    assert!(!verify(&p, None).unwrap().fully_verified());
     let bytes = serde_json::to_string(&p).unwrap();
     assert!(!bytes.contains("note_seed") && !bytes.contains("PRIVATE-MEMO"));
     let mut bad = p.clone();
     bad.statement.outputs[0].amount = Some("43".into());
-    assert!(verify(&bad).is_err());
+    assert!(verify(&bad, None).is_err());
     let mut bad = p.clone();
     if let Evidence::Openings { openings, .. } = &mut bad.evidence {
         openings[0].blinding = "00".repeat(32)
     }
-    assert!(verify(&bad).is_err());
+    assert!(verify(&bad, None).is_err());
     w.request.outputs[0].memo = true;
     let p = export_payload_keys(&w).unwrap();
     assert_eq!(
@@ -188,14 +188,14 @@ fn full_openings_and_payload_exports() {
         .memo_ciphertext
         .as_mut()
         .unwrap()[0] ^= 1;
-    assert!(verify(&bad).is_err());
+    assert!(verify(&bad, None).is_err());
 }
 #[cfg(feature = "prover")]
 #[test]
-#[ignore = "requires local development circuit artifacts and backend"]
-fn real_proofs() {
+#[ignore = "requires local Pari keys and actual proof generation"]
+fn native_proofs_bind_claims_context_and_family_at_both_capacities() {
     let mut w = fixture();
-    for count in [1, 8, 32] {
+    for count in [1, 32] {
         while w.outputs.len() < count {
             let mut c = w.request.outputs[0].clone();
             c.reference.transaction_id = format!("{:064x}", w.outputs.len());
@@ -215,13 +215,14 @@ fn real_proofs() {
             predicate: Some(AmountPredicate::GreaterThan((42 * count).to_string())),
         });
         let started = std::time::Instant::now();
-        let p = prove(&w).unwrap();
+        let registry = registry();
+        let p = prove(&w, &registry).unwrap();
         eprintln!(
             "outputs={count} elapsed={:?} bytes={}",
             started.elapsed(),
             serde_json::to_vec(&p).unwrap().len()
         );
-        assert!(verify(&p).unwrap().cryptography_verified);
+        assert!(verify(&p, Some(&registry)).unwrap().cryptography_verified);
         assert_eq!(
             p.statement
                 .selected_output_total
@@ -232,45 +233,69 @@ fn real_proofs() {
         );
         let mut bad = p.clone();
         bad.version += 1;
-        assert!(verify(&bad).is_err());
+        assert!(verify(&bad, Some(&registry)).is_err());
         let mut bad = p.clone();
-        if let Evidence::Groth16 { circuit, .. } = &mut bad.evidence {
+        if let Evidence::Pari { circuit, .. } = &mut bad.evidence {
             circuit.push('x');
         }
-        assert!(verify(&bad).is_err());
+        assert!(verify(&bad, Some(&registry)).is_err());
         let mut bad = p.clone();
-        if let Evidence::Groth16 {
-            verification_key_sha256,
+        if let Evidence::Pari {
+            verification_key_digest,
             ..
         } = &mut bad.evidence
         {
-            *verification_key_sha256 = "00".repeat(32);
+            *verification_key_digest = "00".repeat(32);
         }
-        assert!(verify(&bad).is_err());
+        assert!(verify(&bad, Some(&registry)).is_err());
+        let mut bad = p.clone();
+        bad.statement.request.challenge = Some("different context".into());
+        assert!(verify(&bad, Some(&registry)).is_err());
+        let mut bad = p.clone();
+        bad.statement.outputs.clear();
+        assert!(verify(&bad, Some(&registry)).is_err());
+        if count == 1 {
+            let mut bad = p.clone();
+            if let Evidence::Pari { circuit, .. } = &mut bad.evidence {
+                *circuit = CIRCUIT_ID_MANY.into();
+            }
+            assert!(verify(&bad, Some(&registry)).is_err());
+            let mut bad = p.clone();
+            if let Evidence::Pari { proof, .. } = &mut bad.evidence {
+                proof[1] = shieldd_sdk_circuits::proof::Family::Disclosure as u8;
+            }
+            assert!(verify(&bad, Some(&registry)).is_err());
+            let mut bad = p.clone();
+            let mut extra = bad.statement.request.outputs[0].clone();
+            extra.reference.transaction_id = "ff".repeat(32);
+            bad.statement.request.outputs.push(extra);
+            assert!(verify(&bad, Some(&registry)).is_err());
+        }
         let mut bad = p.clone();
         bad.statement.request.chain_id.push('x');
-        assert!(verify(&bad).is_err());
+        assert!(verify(&bad, Some(&registry)).is_err());
         let mut bad = p.clone();
         bad.statement.outputs[0].predicate_result = Some(false);
-        assert!(verify(&bad).is_err());
+        assert!(verify(&bad, Some(&registry)).is_err());
         let mut bad = p.clone();
-        if let Evidence::Groth16 { proof, .. } = &mut bad.evidence {
+        if let Evidence::Pari { proof, .. } = &mut bad.evidence {
             proof[0] ^= 1
         }
-        assert!(verify(&bad).is_err());
+        assert!(verify(&bad, Some(&registry)).is_err());
     }
 }
 
 #[test]
 fn control_signatures_bind_fresh_requests() {
-    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+    use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
     let mut w = fixture();
     w.request.challenge = Some("fresh-challenge".into());
     w.request.recipient = Some("auditor".into());
     w.request.outputs[0].spending_control = true;
-    let key = SigningKey::<SpendAuth>::from(decaf377::Fr::from(5u64));
+    let key =
+        SigningKey::<SpendAuth>::try_from(shieldd_sdk_crypto::Fr::from(5u64).to_bytes()).unwrap();
     let vk = VerificationKey::from(&key);
-    w.outputs[0].public.spend_verification_key = Some(vk.to_bytes().to_vec());
+    w.outputs[0].public.spend_verification_key = Some(<[u8; 32]>::from(vk).to_vec());
     let signature: [u8; 64] = key
         .sign(rand::rngs::OsRng, &control_message(&w.request).unwrap())
         .into();
@@ -320,104 +345,31 @@ fn sum_overflow_is_rejected_without_limiting_independent_notes() {
     assert!(evaluate(&w).is_err());
 }
 
-#[cfg(all(feature = "prover", not(debug_assertions)))]
 #[test]
-#[ignore = "requires configured development artifacts"]
-fn release_rejects_development_artifacts() {
-    let witness = fixture();
-    let error = prove(&witness).unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("no approved production disclosure setup"));
+fn missing_registry_is_unavailable() {
     let package = DisclosurePackage {
         version: VERSION,
-        statement: evaluate(&witness).unwrap(),
-        evidence: Evidence::Groth16 {
-            circuit: CIRCUIT_ID.into(),
-            verification_key_sha256: "00".repeat(32),
-            proof: vec![],
-            control_signatures: vec![None],
-        },
-    };
-    let error = verify(&package).unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("no approved production disclosure setup"));
-}
-
-#[cfg(all(
-    feature = "proof",
-    feature = "development-artifacts",
-    debug_assertions,
-    unix
-))]
-#[test]
-fn backend_failures_are_not_invalid_proofs() {
-    use std::os::unix::fs::PermissionsExt;
-    let root = std::env::temp_dir().join(format!("disclosure-backend-{}", std::process::id()));
-    std::fs::create_dir_all(&root).unwrap();
-    let old_artifacts = std::env::var_os("SHIELDD_DISCLOSURE_ARTIFACTS");
-    let old_backend = std::env::var_os("SHIELDD_DISCLOSURE_BACKEND");
-    let mut package = DisclosurePackage {
-        version: VERSION,
         statement: evaluate(&fixture()).unwrap(),
-        evidence: Evidence::Groth16 {
-            circuit: CIRCUIT_ID.into(),
-            verification_key_sha256: "00".repeat(32),
+        evidence: Evidence::Pari {
+            circuit: CIRCUIT_ID_ONE.into(),
+            verification_key_digest: "00".repeat(32),
             proof: vec![],
             control_signatures: vec![None],
         },
     };
-    std::env::set_var("SHIELDD_DISCLOSURE_ARTIFACTS", root.join("absent"));
-    assert!(verify(&package)
+    assert!(verify(&package, None)
         .unwrap_err()
         .is::<VerificationUnavailable>());
-    std::fs::write(root.join("manifest.json"), serde_json::to_vec(&serde_json::json!({"circuit":CIRCUIT_ID,"development":true,"vk_sha256":"00".repeat(32),"pk_sha256":"00".repeat(32)})).unwrap()).unwrap();
-    std::env::set_var("SHIELDD_DISCLOSURE_ARTIFACTS", &root);
-    std::env::set_var("SHIELDD_DISCLOSURE_BACKEND", root.join("missing"));
-    assert!(verify(&package)
-        .unwrap_err()
-        .is::<VerificationUnavailable>());
-    let backend = root.join("backend");
-    std::env::set_var("SHIELDD_DISCLOSURE_BACKEND", &backend);
-    for output in [
-        "exit 2",
-        "printf 'not json'",
-        "printf '{\"verified\":false}'",
-    ] {
-        std::fs::write(&backend, format!("#!/bin/sh\ncat >/dev/null\n{output}\n")).unwrap();
-        std::fs::set_permissions(&backend, std::fs::Permissions::from_mode(0o700)).unwrap();
-        let error = verify(&package).unwrap_err();
-        assert_eq!(
-            error.is::<VerificationUnavailable>(),
-            !output.contains("false")
-        );
-    }
-    if let Evidence::Groth16 { circuit, .. } = &mut package.evidence {
-        *circuit = "wrong".into();
-    }
-    assert!(!verify(&package)
-        .unwrap_err()
-        .is::<VerificationUnavailable>());
-    for (name, value) in [
-        ("SHIELDD_DISCLOSURE_ARTIFACTS", old_artifacts),
-        ("SHIELDD_DISCLOSURE_BACKEND", old_backend),
-    ] {
-        match value {
-            Some(v) => std::env::set_var(name, v),
-            None => std::env::remove_var(name),
-        }
-    }
-    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[cfg(feature = "prover")]
 #[test]
-#[ignore = "requires development artifacts, backend and pcli; generates one real proof"]
+#[ignore = "requires local Pari keys and pcli; generates one real proof"]
 fn real_machine_verification_outcomes() {
     use std::io::Write;
     use std::process::{Command, Stdio};
-    let mut package = prove(&fixture()).unwrap();
+    let registry = registry();
+    let mut package = prove(&fixture(), &registry).unwrap();
     let binary = std::env::var("SHIELDD_PCLI_BIN").unwrap();
     let check = |package: &DisclosurePackage, missing: bool| {
         let mut command = Command::new(&binary);
@@ -432,10 +384,7 @@ fn real_machine_verification_outcomes() {
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
         if missing {
-            command.env(
-                "SHIELDD_DISCLOSURE_BACKEND",
-                "/nonexistent/disclosure-backend",
-            );
+            command.env("SHIELDD_PARI_KEYS", "/nonexistent/pari-keys");
         }
         let mut child = command.spawn().unwrap();
         let input =
@@ -445,14 +394,24 @@ fn real_machine_verification_outcomes() {
         assert!(output.status.success());
         serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
     };
-    assert!(verify(&package).unwrap().cryptography_verified);
+    assert!(
+        verify(&package, Some(&registry))
+            .unwrap()
+            .cryptography_verified
+    );
     assert_eq!(check(&package, false)["status"], "unresolved");
     assert_eq!(check(&package, true)["status"], "unavailable");
-    if let Evidence::Groth16 { proof, .. } = &mut package.evidence {
+    if let Evidence::Pari { proof, .. } = &mut package.evidence {
         proof.truncate(3);
     }
-    assert!(!verify(&package)
+    assert!(!verify(&package, Some(&registry))
         .unwrap_err()
         .is::<VerificationUnavailable>());
     assert_eq!(check(&package, false)["status"], "rejected");
+}
+
+#[cfg(feature = "prover")]
+fn registry() -> shieldd_sdk_proof_params::pari::Registry {
+    shieldd_sdk_proof_params::pari::Registry::load(std::env::var("SHIELDD_PARI_KEYS").unwrap())
+        .unwrap()
 }

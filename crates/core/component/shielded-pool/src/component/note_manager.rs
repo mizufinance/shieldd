@@ -2,12 +2,11 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use shieldd_sdk_asset::Value;
-use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, UserAssetStatus};
+use shieldd_sdk_compliance::{ComplianceRegistryRead, UserAssetStatus};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::component::tree::SctManager;
 use shieldd_sdk_sct::CommitmentSource;
 use shieldd_sdk_tct as tct;
-use tct::StateCommitment;
 use tracing::instrument;
 
 use super::StateReadExt;
@@ -32,7 +31,7 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
         source: CommitmentSource,
     ) -> Result<()> {
         tracing::debug!(?value, ?address, "minting tokens");
-        let recovery_capk = if self.is_asset_regulated(value.asset_id).await? {
+        let payload_key = if self.is_asset_regulated(value.asset_id).await? {
             let leaf = self
                 .get_user_leaf(address, value.asset_id)
                 .await?
@@ -41,9 +40,14 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
                 leaf.status == UserAssetStatus::Active,
                 "regulated mint recipient is not active"
             );
-            leaf.capk
+            self.get_asset_policy(value.asset_id)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("regulated mint asset policy is missing"))?
+                .ring
+                .audit_keys
+                .payload
         } else {
-            ComplianceLeaf::synthetic_unregulated(address.clone(), value.asset_id).capk
+            *shieldd_sdk_compliance::UNREGULATED_RING
         };
         // These notes are public, so we don't need a blinding factor for
         // privacy, but since the note commitments are determined by the note
@@ -58,7 +62,7 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
         let (position, note_payload) = self
             .add_sct_commitment_from_position(source_for_append, |position| {
                 let note_payload =
-                    build_position_derived_mint_payload(value, address, position, recovery_capk)?;
+                    build_position_derived_mint_payload(value, address, position, payload_key)?;
 
                 Ok((note_payload.note_commitment, note_payload))
             })
@@ -72,68 +76,46 @@ pub trait NoteManager: StateWrite + StateReadExt + ComplianceRegistryRead {
     }
 
     #[instrument(skip(self, note_payload, source), fields(commitment = ?note_payload.note_commitment))]
-    async fn add_note_payload(&mut self, note_payload: NotePayload, source: CommitmentSource) {
+    async fn add_note_payload(
+        &mut self,
+        note_payload: NotePayload,
+        source: CommitmentSource,
+    ) -> Result<()> {
         tracing::debug!(source = ?source);
 
         // Action handlers emit semantic note-created/nullifier-spent events.
         // NoteManager only stages SCT and compact-block state.
 
-        let position = self.add_sct_commitment(note_payload.note_commitment, source.clone())
-            .await
-            // TODO: why? can't we exceed the number of state commitments in a block?
-            .expect("inserting into the state commitment tree should not fail because we should budget commitments per block (currently unimplemented)");
+        let position = self
+            .add_sct_commitment(note_payload.note_commitment, source.clone())
+            .await?;
 
         // Queue the payload for compact-block emission after SCT insertion.
 
         let mut payloads = self.pending_note_payloads();
         payloads.push_back((position, note_payload, source));
         self.object_put(state_key::pending_notes(), payloads);
-    }
-
-    #[instrument(skip(self, note_commitment))]
-    async fn add_rolled_up_payload(
-        &mut self,
-        note_commitment: StateCommitment,
-        source: CommitmentSource,
-    ) {
-        tracing::debug!(?note_commitment);
-
-        // Rolled-up payloads are synchronization artifacts only; semantic events
-        // are emitted by the action handlers that created them.
-        let position = self.add_sct_commitment(note_commitment, source)
-            .await
-            // TODO: why? can't we exceed the number of state commitments in a block?
-            .expect("inserting into the state commitment tree should not fail because we should budget commitments per block (currently unimplemented)");
-
-        // Queue the rolled-up commitment for compact-block emission.
-        let mut payloads = self.pending_rolled_up_payloads();
-        payloads.push_back((position, note_commitment));
-        self.object_put(state_key::pending_rolled_up_payloads(), payloads);
+        Ok(())
     }
 
     async fn add_volume_accumulator_payload(
         &mut self,
         payload: VolumeAccumulatorPayload,
         source: CommitmentSource,
-    ) {
+    ) -> Result<()> {
         let position = self
             .add_sct_commitment(payload.commitment, source.clone())
-            .await
-            .expect("volume accumulator SCT insertion must fit in the block");
+            .await?;
         let mut payloads = self.pending_volume_accumulator_payloads();
         payloads.push_back((position, payload, source));
         self.object_put(state_key::pending_volume_accumulator_payloads(), payloads);
+        Ok(())
     }
 
     fn pending_note_payloads(
         &self,
     ) -> imbl::Vector<(tct::Position, NotePayload, CommitmentSource)> {
         self.object_get(state_key::pending_notes())
-            .unwrap_or_default()
-    }
-
-    fn pending_rolled_up_payloads(&self) -> imbl::Vector<(tct::Position, StateCommitment)> {
-        self.object_get(state_key::pending_rolled_up_payloads())
             .unwrap_or_default()
     }
 
@@ -151,14 +133,10 @@ pub fn build_position_derived_mint_payload(
     value: Value,
     address: &Address,
     position: tct::Position,
-    recovery_capk: decaf377::Element,
+    payload_key: shieldd_sdk_crypto::SubgroupPoint,
 ) -> Result<NotePayload> {
-    let (note, capsule) = Note::from_parts_with_recovery(
-        address.clone(),
-        value,
-        mint_rseed(position)?,
-        recovery_capk,
-    )?;
+    let (note, capsule) =
+        Note::from_parts_with_recovery(address.clone(), value, mint_rseed(position)?, payload_key)?;
     Ok(note.payload(capsule))
 }
 
@@ -185,6 +163,100 @@ mod tests {
     use std::ops::Deref as _;
 
     #[tokio::test]
+    async fn exhausted_sct_returns_without_panicking_or_staging_payloads() -> Result<()> {
+        use futures::FutureExt;
+        let storage = TempStorage::new().await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let tree = tct::Tree::load(
+            tct::storage::StoredPosition::Full,
+            tct::Forgotten::default(),
+        )
+        .load_hashes()
+        .finish();
+        state.write_sct_cache(tree);
+        let result = std::panic::AssertUnwindSafe(async {
+            assert!(state
+                .add_note_payload(NotePayload::dummy(), CommitmentSource::Genesis)
+                .await
+                .is_err());
+        })
+        .catch_unwind()
+        .await;
+        assert!(
+            result.is_ok(),
+            "capacity rejection must return to the caller"
+        );
+        assert!(state.pending_note_payloads().is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn regulated_mint_uses_asset_payload_and_requires_active_registration() -> Result<()> {
+        use shieldd_sdk_compliance::{
+            AssetPolicy, ComplianceLeaf, ComplianceRegistryWrite, UserAssetStatusAction,
+        };
+        use shieldd_sdk_crypto::{generators::SPEND_AUTH, Fq, Fr};
+        let storage = TempStorage::new().await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        use cnidarium_component::Component;
+        shieldd_sdk_compliance::Compliance::init_chain(
+            &mut state,
+            Some(&shieldd_sdk_compliance::GenesisContent::default()),
+        )
+        .await;
+        state.put_current_discovery_parameters(discovery::Parameters::default());
+        let address = test_keys::ADDRESS_0.clone();
+        let value = Value {
+            amount: 42u64.into(),
+            asset_id: shieldd_sdk_asset::asset::Id(Fq::from(77u64)),
+        };
+        let policy = AssetPolicy::for_test(
+            *SPEND_AUTH * Fr::from(3u64),
+            100,
+            *SPEND_AUTH * Fr::from(5u64),
+        );
+        state
+            .test_only_register_asset(value.asset_id, policy.clone(), true)
+            .await?;
+        assert!(state
+            .mint_note(value, &address, CommitmentSource::Genesis)
+            .await
+            .is_err());
+        assert!(state.pending_note_payloads().is_empty());
+        state
+            .test_only_add_compliance_leaf(ComplianceLeaf::registered_for_test(
+                address.clone(),
+                value.asset_id,
+            ))
+            .await?;
+        state
+            .mint_note(value, &address, CommitmentSource::Genesis)
+            .await?;
+        let payloads = state.pending_note_payloads();
+        let (position, actual, _) = &payloads[0];
+        let expected = build_position_derived_mint_payload(
+            value,
+            &address,
+            *position,
+            policy.ring.audit_keys.payload,
+        )?;
+        assert_eq!(actual.note_commitment, expected.note_commitment);
+        assert_eq!(actual.recovery_capsule, expected.recovery_capsule);
+        let wrong =
+            build_position_derived_mint_payload(value, &address, *position, policy.ring.ring_pk)?;
+        assert_ne!(actual.note_commitment, wrong.note_commitment);
+        state
+            .apply_user_status_action(&address, value.asset_id, UserAssetStatusAction::Freeze, 1)
+            .await?;
+        assert!(state
+            .mint_note(value, &address, CommitmentSource::Genesis)
+            .await
+            .is_err());
+        assert_eq!(state.pending_note_payloads().len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn mint_note_stages_position_derived_payloads() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
@@ -194,7 +266,7 @@ mod tests {
             amount: Amount::from(1u64),
             asset_id: *BASE_ASSET_ID,
         };
-        let capk = ComplianceLeaf::synthetic_unregulated(address.clone(), value.asset_id).capk;
+        let payload_key = *shieldd_sdk_compliance::UNREGULATED_RING;
 
         state
             .mint_note(value, &address, CommitmentSource::Genesis)
@@ -215,11 +287,14 @@ mod tests {
                 address.clone(),
                 value,
                 mint_rseed(position)?,
-                capk,
+                payload_key,
             )?;
             let expected_payload = expected_note.payload(capsule);
             assert_eq!(payload.note_commitment, expected_payload.note_commitment);
-            assert_eq!(payload.ephemeral_key.0, expected_payload.ephemeral_key.0);
+            assert_eq!(
+                payload.ephemeral_key.to_bytes(),
+                expected_payload.ephemeral_key.to_bytes()
+            );
             assert_eq!(payload.encrypted_note.0, expected_payload.encrypted_note.0);
             assert_eq!(source, CommitmentSource::Genesis);
         }
@@ -237,7 +312,7 @@ mod tests {
             amount: Amount::from(1u64),
             asset_id: *BASE_ASSET_ID,
         };
-        let capk = ComplianceLeaf::synthetic_unregulated(address.clone(), value.asset_id).capk;
+        let payload_key = *shieldd_sdk_compliance::UNREGULATED_RING;
 
         state
             .mint_note(value, &address, CommitmentSource::Genesis)
@@ -246,15 +321,15 @@ mod tests {
         let (position, immediate_payload, _) = &payloads[0];
 
         let rebuilt_payload =
-            build_position_derived_mint_payload(value, &address, *position, capk)?;
+            build_position_derived_mint_payload(value, &address, *position, payload_key)?;
 
         assert_eq!(
             immediate_payload.note_commitment,
             rebuilt_payload.note_commitment
         );
         assert_eq!(
-            immediate_payload.ephemeral_key.0,
-            rebuilt_payload.ephemeral_key.0
+            immediate_payload.ephemeral_key.to_bytes(),
+            rebuilt_payload.ephemeral_key.to_bytes()
         );
         assert_eq!(
             immediate_payload.encrypted_note.0,

@@ -1,7 +1,8 @@
 use anyhow::{ensure, Context, Result};
+use ark_std_04::UniformRand;
 use orbis_authn::JwtSigner;
 use orbis_common::blockchain::{ChainConfig, TxSigner, VeraClient, TEST_ACCOUNT_HEX_KEY};
-use orbis_crypto::ScalarField;
+use orbis_crypto::{CryptoSerialize, ScalarField};
 use serde::{Deserialize, Serialize};
 use shieldd_orbis_client::{AcpObjectRef, EncryptedDocument, OrbisClient};
 use shieldd_sdk_disclosure::{
@@ -105,12 +106,7 @@ pub(super) async fn execute(bytes: &[u8], node: &str, register: bool) -> Result<
             );
         }
         ensure!(
-            rings[&document.ring_id]
-                .ring_pk
-                .vartime_compress()
-                .0
-                .as_slice()
-                == document.context.ring_pk,
+            rings[&document.ring_id].ring_pk.to_bytes()?.as_slice() == document.context.ring_pk,
             "delivery DKG key mismatch"
         );
     }

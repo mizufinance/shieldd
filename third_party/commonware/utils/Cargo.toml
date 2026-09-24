@@ -1,0 +1,128 @@
+[package]
+name = "commonware-utils"
+edition.workspace = true
+publish = true
+version.workspace = true
+license.workspace = true
+description = "Leverage common functionality across multiple primitives."
+readme = "README.md"
+homepage.workspace = true
+repository = "https://github.com/commonwarexyz/monorepo/tree/main/utils"
+documentation = "https://docs.rs/commonware-utils"
+
+[lints]
+workspace = true
+
+[dependencies]
+ahash = { workspace = true, features = ["no-rng"] }
+arbitrary = { workspace = true, optional = true, features = ["derive"] }
+bytes.workspace = true
+commonware-codec = { workspace = true, default-features = false }
+commonware-formatting = { workspace = true, default-features = false }
+commonware-macros.workspace = true
+futures = { workspace = true, optional = true }
+hashbrown.workspace = true
+num-bigint = { workspace = true, optional = true }
+num-integer = { workspace = true, optional = true }
+num-rational = { workspace = true, optional = true }
+num-traits.workspace = true
+parking_lot = { workspace = true, optional = true }
+pin-project.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["sync"], optional = true }
+tracing = { workspace = true, optional = true }
+zeroize.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]
+# Enable the JS backend for transitive dependencies that use getrandom on WASM.
+version = "0.4.3"
+features = ["wasm_js"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom_v2]
+# Enable the JS backend for transitive dependencies that still use getrandom 0.2 on WASM.
+package = "getrandom"
+version = "0.2"
+features = ["js"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom_v3]
+# Enable the wasm_js backend for ahash's getrandom 0.3 dependency on WASM
+package = "getrandom"
+version = "0.3"
+features = ["wasm_js"]
+
+[dev-dependencies]
+arbitrary = { workspace = true, features = ["derive"] }
+commonware-conformance.workspace = true
+commonware-invariants.workspace = true
+commonware-macros.workspace = true
+criterion.workspace = true
+num-bigint = { workspace = true, default-features = false }
+proptest.workspace = true
+roaring = "0.11.4"
+rstest.workspace = true
+
+[features]
+default = [ "std" ]
+std = [
+	"ahash/runtime-rng",
+	"ahash/std",
+	"bytes/std",
+	"commonware-codec/std",
+	"commonware-formatting/std",
+	"commonware-macros/std",
+	"futures",
+	"getrandom/std",
+	"getrandom_v2/std",
+	"getrandom_v3/std",
+	"num-bigint",
+	"num-bigint?/std",
+	"num-integer",
+	"num-rational",
+	"num-traits/std",
+	"parking_lot",
+	"rand/std",
+	"rand/std_rng",
+	"rand/sys_rng",
+	"thiserror/std",
+	"tokio",
+	"tracing",
+	"zeroize/std",
+]
+arbitrary = [
+	"commonware-codec/arbitrary",
+	"dep:arbitrary",
+	"num-bigint?/arbitrary",
+	"std",
+]
+# Enables analytical helpers used by roaring analysis benchmarks.
+# Off by default; tests turn it on automatically via `cfg(test)`.
+analysis = []
+# Exposes the `pub mod fuzz` Plan + run harness used by both `cargo fuzz` and the
+# in-test `minifuzz`-driven property test. Off by default. Tests pick it up via the
+# `arbitrary` dev-dependency path; the `cargo-fuzz` target opts in via `--features fuzz`.
+fuzz = [ "arbitrary", "arbitrary/derive", "dep:arbitrary", "std" ]
+
+[lib]
+bench = false
+
+[[bench]]
+name = "cache"
+harness = false
+path = "src/cache/benches/bench.rs"
+
+[[bench]]
+name = "bitmap"
+harness = false
+path = "src/bitmap/benches/bench.rs"
+
+[[bench]]
+name = "roaring_memory"
+harness = false
+path = "src/bitmap/benches/roaring_memory.rs"
+required-features = ["analysis"]
+
+[[bench]]
+name = "rational"
+harness = false
+path = "src/rational/benches/bench.rs"

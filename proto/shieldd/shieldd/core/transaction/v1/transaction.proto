@@ -9,14 +9,14 @@ import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
 import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/core/txhash/v1/txhash.proto";
-import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
+import "shieldd/crypto/redjubjub_rdsa/v1/redjubjub_rdsa.proto";
 import "shieldd/crypto/tct/v1/tct.proto";
 
 // A Shieldd transaction.
 message Transaction {
   TransactionBody body = 1;
   // The binding signature is stored separately from the transaction body that it signs.
-  crypto.decaf377_rdsa.v1.BindingSignature binding_sig = 2;
+  crypto.redjubjub_rdsa.v1.BindingSignature binding_sig = 2;
   // The root of some previous state of the state commitment tree, used as an anchor for all
   // ZK state transition proofs.
   crypto.tct.v1.MerkleRoot anchor = 3;
@@ -63,29 +63,6 @@ message TransactionSummary {
   repeated Effects effects = 1;
 }
 
-enum ProofFamilyId {
-  PROOF_FAMILY_ID_UNSPECIFIED = 0;
-  PROOF_FAMILY_ID_TRANSFER = 7;
-  PROOF_FAMILY_ID_NOTE_RESHAPE = 8;
-  PROOF_FAMILY_ID_SHIELDED_WITHDRAWAL = 10;
-}
-
-message FamilyAggregate {
-  ProofFamilyId family_id = 1;
-  uint32 real_count = 3;
-  uint32 padded_count = 4;
-  bytes aggregate_proof = 5;
-  uint32 note_reshape_family_id = 6;
-  reserved 7;
-  uint32 shielded_withdrawal_family_id = 8;
-}
-
-message AggregateBundle {
-  uint32 version = 1;
-  bytes srs_id = 2;
-  repeated FamilyAggregate families = 3;
-}
-
 // A state change performed by a transaction.
 message Action {
   reserved 7, 16, 17, 18, 20, 200;
@@ -98,7 +75,6 @@ message Action {
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;
     component.compliance.v1.MsgRegisterUser compliance_register_user = 81;
-    AggregateBundle aggregate_bundle = 82;
 
     component.shielded_pool.v1.ShieldedHostWithdrawal shielded_host_withdrawal = 201;
   }
@@ -167,7 +143,7 @@ message TransactionView {
   // View of the transaction body
   TransactionBodyView body_view = 1;
   // The binding signature is stored separately from the transaction body that it signs.
-  crypto.decaf377_rdsa.v1.BindingSignature binding_sig = 2;
+  crypto.redjubjub_rdsa.v1.BindingSignature binding_sig = 2;
   // The root of some previous state of the state commitment tree, used as an anchor for all
   // ZK state transition proofs.
   crypto.tct.v1.MerkleRoot anchor = 3;
@@ -201,7 +177,6 @@ message ActionView {
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;
     component.compliance.v1.MsgRegisterUser compliance_register_user = 81;
-    AggregateBundle aggregate_bundle = 82;
 
     component.shielded_pool.v1.ShieldedHostWithdrawalView shielded_host_withdrawal = 201;
   }
@@ -213,7 +188,7 @@ message AuthorizationData {
   core.txhash.v1.EffectHash effect_hash = 1;
   // The required spend authorizations, returned in the same order as the
   // shielded spends in the original request.
-  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature spend_auths = 2;
+  repeated crypto.redjubjub_rdsa.v1.SpendAuthSignature spend_auths = 2;
 }
 
 // The data required for proving when building a transaction from a plan.

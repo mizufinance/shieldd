@@ -1,11 +1,11 @@
 use std::fmt::Display;
 use std::sync::Arc;
 
-use decaf377::Fq;
 use hash_hasher::HashedMap;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 
 use crate::error::block::*;
@@ -73,7 +73,7 @@ fn hash_level(level: &[Hash], height: u8) -> Vec<Hash> {
         .collect()
 }
 
-/// A sparse merkle tree to witness up to 65,536 individual [`Commitment`]s.
+/// A sparse merkle tree to witness up to 65,536 individual [`crate::StateCommitment`]s.
 ///
 /// This is one block in an [`epoch`](crate::builder::epoch), which is one epoch in a [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
@@ -163,7 +163,7 @@ impl TryFrom<pb::MerkleRoot> for Root {
 
     fn try_from(root: pb::MerkleRoot) -> Result<Root, Self::Error> {
         let bytes: [u8; 32] = (&root.inner[..]).try_into().map_err(|_| RootDecodeError)?;
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| RootDecodeError)?;
+        let inner = shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| RootDecodeError)?;
         Ok(Root(Hash::new(inner)))
     }
 }
@@ -192,7 +192,7 @@ impl Builder {
         Self::default()
     }
 
-    /// Add a new [`Commitment`] to this [`block::Builder`](Builder).
+    /// Add a new [`crate::StateCommitment`] to this [`block::Builder`](Builder).
     ///
     /// # Errors
     ///
@@ -277,6 +277,223 @@ mod test {
 
         let oversized = vec![StateCommitment(Fq::from(1u64)); 65_537];
         assert_eq!(finalized_forget_root(&oversized), Err(InsertError));
+        Ok(())
+    }
+}
+
+/// One positional inclusion path in a finalized block, ordered from leaf to root.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LeafProof {
+    /// Actual index within the SCT block.
+    pub position: u16,
+    /// Canonical payload commitment at this position.
+    pub commitment: StateCommitment,
+    /// The other three children at each of the eight levels.
+    pub siblings: [[[u8; 32]; 3]; 8],
+}
+
+/// Bounded historical block tree used to construct selective synchronization proofs.
+#[derive(Clone, Debug)]
+pub struct ProofTree {
+    levels: Vec<Vec<Hash>>,
+    commitments: Vec<StateCommitment>,
+}
+impl ProofTree {
+    /// Reconstruct the finalized block using its canonical commitment order and padding.
+    pub fn new(commitments: Vec<StateCommitment>, expected: Root) -> anyhow::Result<Self> {
+        anyhow::ensure!(commitments.len() <= 65536, "SCT block capacity exceeded");
+        let mut levels: Vec<Vec<Hash>> = vec![commitments.iter().copied().map(Hash::of).collect()];
+        for height in 1..=8 {
+            levels.push(hash_level(&levels[height as usize - 1], height));
+        }
+        let root = levels[8].first().copied().unwrap_or_else(Hash::one);
+        anyhow::ensure!(
+            root == expected.0,
+            "historical block commitments disagree with root"
+        );
+        Ok(Self {
+            levels,
+            commitments,
+        })
+    }
+    /// Heap payload retained by this cache entry.
+    pub fn cached_bytes(&self) -> usize {
+        self.commitments.capacity() * std::mem::size_of::<StateCommitment>()
+            + self
+                .levels
+                .iter()
+                .map(|v| v.capacity() * std::mem::size_of::<Hash>())
+                .sum::<usize>()
+    }
+    /// Produce one path without touching unrelated ciphertexts.
+    pub fn proof(&self, position: u16) -> anyhow::Result<LeafProof> {
+        let commitment = *self
+            .commitments
+            .get(position as usize)
+            .ok_or_else(|| anyhow::anyhow!("payload position outside historical block"))?;
+        let mut siblings = [[[0; 32]; 3]; 8];
+        let mut index = position as usize;
+        for (height, path) in siblings.iter_mut().enumerate() {
+            let mut slot = 0;
+            for child in 0..4 {
+                if child == index % 4 {
+                    continue;
+                }
+                let hash = self.levels[height]
+                    .get(index / 4 * 4 + child)
+                    .copied()
+                    .unwrap_or_else(Hash::one);
+                path[slot] = Fq::from(hash).to_bytes();
+                slot += 1;
+            }
+            index /= 4;
+        }
+        Ok(LeafProof {
+            position,
+            commitment,
+            siblings,
+        })
+    }
+}
+
+impl Finalized {
+    /// Construct a sparse block only after validating paths, padding and every shared node.
+    /// `expected` must ultimately be bound to the host's independently supplied SCT root.
+    pub fn checked_sparse(
+        expected: Root,
+        count: u32,
+        proofs: &[LeafProof],
+    ) -> anyhow::Result<Self> {
+        use std::collections::{BTreeMap, BTreeSet};
+        anyhow::ensure!(count <= 65536, "SCT block capacity exceeded");
+        if count == 0 {
+            anyhow::ensure!(
+                proofs.is_empty() && expected.is_empty_finalized(),
+                "invalid empty SCT block"
+            );
+        }
+        let mut nodes = BTreeMap::<(u8, u64), Hash>::new();
+        let mut positions = BTreeSet::new();
+        let mut insert = |height: u8, index: u64, hash: Hash| -> anyhow::Result<()> {
+            anyhow::ensure!(
+                (index << (2 * height as u32)) < count as u64 || hash == Hash::one(),
+                "invalid finalized padding"
+            );
+            if let Some(previous) = nodes.insert((height, index), hash) {
+                anyhow::ensure!(previous == hash, "inconsistent shared SCT node");
+            }
+            Ok(())
+        };
+        for proof in proofs {
+            anyhow::ensure!(
+                (proof.position as u32) < count && positions.insert(proof.position),
+                "duplicate or out-of-range SCT position"
+            );
+            let mut index = proof.position as u64;
+            let mut hash = Hash::of(proof.commitment);
+            insert(0, index, hash)?;
+            for (height, path) in proof.siblings.iter().enumerate() {
+                let mut children = [hash; 4];
+                let mut slot = 0;
+                for child in 0..4 {
+                    if child == index % 4 {
+                        continue;
+                    }
+                    let field = shieldd_sdk_crypto::encoding::field(&path[slot])
+                        .map_err(|_| anyhow::anyhow!("noncanonical SCT sibling"))?;
+                    let sibling = Hash::new(field);
+                    children[child as usize] = sibling;
+                    insert(height as u8, index / 4 * 4 + child, sibling)?;
+                    slot += 1;
+                }
+                hash = Hash::node(
+                    height as u8 + 1,
+                    children[0],
+                    children[1],
+                    children[2],
+                    children[3],
+                );
+                index /= 4;
+                insert(height as u8 + 1, index, hash)?;
+            }
+            anyhow::ensure!(hash == expected.0, "sparse block path root mismatch");
+        }
+        let mut inner: Insert<complete::Top<complete::Item>> = Insert::Hash(expected.0);
+        let mut index = HashedMap::default();
+        for proof in proofs {
+            inner = Insert::Keep(
+                complete::Top::uninitialized_out_of_order_insert_commitment_owned(
+                    inner,
+                    proof.position as u64,
+                    proof.commitment,
+                ),
+            );
+            index.insert(proof.commitment, index::within::Block::from(proof.position));
+        }
+        if let Insert::Keep(tree) = &mut inner {
+            for ((height, index), hash) in nodes {
+                tree.unchecked_set_hash(index << (2 * height as u32), height, hash);
+            }
+            tree.finish_initialize();
+        }
+        let block = Self { index, inner };
+        anyhow::ensure!(
+            block.root() == expected,
+            "sparse block construction changed root"
+        );
+        Ok(block)
+    }
+}
+
+#[cfg(test)]
+mod sparse_tests {
+    use super::*;
+    #[test]
+    fn checked_sparse_preserves_witnesses_across_blocks_and_rejects_forged_paths(
+    ) -> anyhow::Result<()> {
+        let commitments = (1..=17u64)
+            .map(|value| StateCommitment(Fq::from(value)))
+            .collect::<Vec<_>>();
+        let mut full = Builder::default();
+        for commitment in &commitments {
+            full.insert(Witness::Keep, *commitment)?;
+        }
+        let full = full.finalize();
+        let proofs = ProofTree::new(commitments.clone(), full.root())?;
+        let selected = [proofs.proof(0)?, proofs.proof(5)?, proofs.proof(16)?];
+        let sparse = Finalized::checked_sparse(full.root(), 17, &selected)?;
+        let mut a = crate::Tree::new();
+        let mut b = crate::Tree::new();
+        a.insert_block(full.clone())?;
+        b.insert_block(sparse)?;
+        for position in [0, 5, 16] {
+            assert_eq!(
+                a.witness(commitments[position]),
+                b.witness(commitments[position])
+            );
+        }
+        a.insert_block(Root(Hash::one()))?;
+        b.insert_block(Root(Hash::one()))?;
+        a.end_epoch()?;
+        b.end_epoch()?;
+        assert_eq!(a.root(), b.root());
+        for position in [0, 5, 16] {
+            assert_eq!(
+                a.witness(commitments[position]),
+                b.witness(commitments[position])
+            );
+        }
+        let mut bad = selected.clone();
+        bad[1].siblings[0][0] = Fq::from(99u64).to_bytes();
+        assert!(Finalized::checked_sparse(full.root(), 17, &bad).is_err());
+        assert!(Finalized::checked_sparse(full.root(), 16, &selected).is_err());
+        assert!(Finalized::checked_sparse(
+            full.root(),
+            17,
+            &[selected[0].clone(), selected[0].clone()]
+        )
+        .is_err());
+        assert!(Finalized::checked_sparse(full.root(), 0, &[]).is_err());
         Ok(())
     }
 }

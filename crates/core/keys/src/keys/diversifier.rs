@@ -11,7 +11,7 @@ use rand::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::core::keys::v1 as pb, DomainType};
 
-use decaf377::Fq;
+use shieldd_sdk_crypto::{Fq, SubgroupPoint};
 
 pub const DIVERSIFIER_LEN_BYTES: usize = 16;
 
@@ -23,17 +23,12 @@ pub struct Diversifier(
 );
 
 impl Diversifier {
-    /// Generate the diversified basepoint associated to this diversifier.
-    ///
-    /// Protocol assumption `ZK-ASSUME-DIVERSIFIER-HASH-TO-GENERATOR-NONIDENTITY`:
-    /// no 16-byte input maps to the Decaf377 identity through this personalized
-    /// BLAKE2b-to-field-to-Elligator construction.
-    pub fn diversified_generator(&self) -> decaf377::Element {
+    /// Derives the diversified Jubjub subgroup base from the full diversifier.
+    pub fn diversified_generator(&self) -> SubgroupPoint {
         let hash = blake2b_simd::Params::new()
             .personal(b"Shieldd_Divrsfy")
             .hash(&self.0);
-
-        decaf377::Element::encode_to_curve(&Fq::from_le_bytes_mod_order(hash.as_bytes()))
+        shieldd_sdk_crypto::map::to_subgroup(&Fq::from_bytes_wide(hash.as_array()))
     }
 }
 

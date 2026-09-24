@@ -1,8 +1,9 @@
-use decaf377::Fr;
-use decaf377_rdsa::{SpendAuth, VerificationKey};
+use ff::Field;
 use rand_core::{CryptoRng, RngCore};
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{Balance, Value};
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_keys::{keys::IncomingViewingKey, Address, FullViewingKey};
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
@@ -30,8 +31,8 @@ impl ShieldedInputPlan {
         ShieldedInputPlan {
             note,
             position,
-            randomizer: Fr::rand(rng),
-            value_blinding: Fr::rand(rng),
+            randomizer: Fr::random(&mut *rng),
+            value_blinding: Fr::random(&mut *rng),
         }
     }
 
@@ -89,7 +90,7 @@ impl ShieldedOutputPlan {
         dest_address: Address,
     ) -> ShieldedOutputPlan {
         let rseed = Rseed::generate(rng);
-        let value_blinding = Fr::rand(rng);
+        let value_blinding = Fr::random(&mut *rng);
         ShieldedOutputPlan {
             value,
             dest_address,
@@ -98,13 +99,21 @@ impl ShieldedOutputPlan {
         }
     }
 
-    pub fn output_note_and_capsule(&self, capk: decaf377::Element) -> (Note, RecoveryCapsule) {
-        Note::from_parts_with_recovery(self.dest_address.clone(), self.value, self.rseed, capk)
-            .expect("validated output note and compliance capability")
+    pub fn output_note_and_capsule(
+        &self,
+        payload_key: shieldd_sdk_crypto::SubgroupPoint,
+    ) -> (Note, RecoveryCapsule) {
+        Note::from_parts_with_recovery(
+            self.dest_address.clone(),
+            self.value,
+            self.rseed,
+            payload_key,
+        )
+        .expect("validated output note and payload key")
     }
 
-    pub fn output_note(&self, capk: decaf377::Element) -> Note {
-        self.output_note_and_capsule(capk).0
+    pub fn output_note(&self, payload_key: shieldd_sdk_crypto::SubgroupPoint) -> Note {
+        self.output_note_and_capsule(payload_key).0
     }
 
     pub fn is_viewed_by(&self, ivk: &IncomingViewingKey) -> bool {
@@ -172,5 +181,6 @@ impl TryFrom<pb::ShieldedOutputPlan> for ShieldedOutputPlan {
 }
 
 fn parse_fr(bytes: &[u8]) -> anyhow::Result<Fr> {
-    Fr::from_bytes_checked(bytes.try_into()?).map_err(|_| anyhow::anyhow!("noncanonical scalar"))
+    shieldd_sdk_crypto::encoding::scalar(bytes.try_into()?)
+        .map_err(|_| anyhow::anyhow!("noncanonical scalar"))
 }

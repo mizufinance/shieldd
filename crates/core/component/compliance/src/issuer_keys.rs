@@ -1,25 +1,11 @@
-//! Issuer Compliance Key Hierarchy
-//!
-//! This module implements the issuer-side key hierarchy for per-asset compliance.
-//!
-//! - `MCK`: Master Compliance Key (Orbis secret, per-issuer, for future signature verification)
-//! - `DK`: Detection Key (per-asset, generated and held by the issuer for scanning and decryption)
-//!
-//! DK is standalone (not derived from MCK or any Orbis key). The issuer registers dk_pub on-chain.
+//! Standalone issuer detection keys for per-asset scanning and flagged decryption.
 
-use decaf377::{Element, Fq, Fr};
-use once_cell::sync::Lazy;
+use ff::Field;
+use group::Group;
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 
 use crate::crypto::compliance_stream_block;
-
-/// Domain separator for detection tier encryption seed derivation.
-/// Must match ISSUER_DETECTION_DOMAIN in crypto.rs for encryption/decryption compatibility.
-static DETECTION_TIER_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"shieldd.compliance.issuer_detection").as_bytes(),
-    )
-});
 
 /// Fixed detection tier: asset ID, salt, flagged bit, and reserved zero padding.
 pub const DETECTION_TIER_BYTES: usize = 128;
@@ -36,92 +22,39 @@ pub(crate) fn detection_flag_from_fq(value: Fq) -> anyhow::Result<bool> {
     Ok(value == Fq::from(1u64))
 }
 
-/// Master Compliance Key (Orbis Secret).
-///
-/// Per-issuer master secret key held by Orbis. Used for:
-/// - Future signature verification of policy updates
-/// - Deriving asset-specific keys (if needed)
-///
-/// Note: MCK is NOT currently used for detection. Detection uses DK directly.
-/// MCK_pub is stored in the asset leaf for future signature verification.
-/// The issuer never sees MCK - only Orbis holds this secret.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MasterComplianceKey(pub Fr);
+/// Issuer-held detection scalar; owned storage is erased on drop.
+#[derive(Clone, PartialEq, Eq)]
+pub struct DetectionKey(zeroize::Zeroizing<DetectionScalar>);
 
-impl MasterComplianceKey {
-    pub fn new(scalar: Fr) -> Self {
-        Self(scalar)
-    }
+// Jubjub does not implement Zeroize; zeroize's default overwrite is volatile.
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+struct DetectionScalar {
+    value: Fr,
+}
+impl zeroize::DefaultIsZeroes for DetectionScalar {}
 
-    /// Generate a deterministic demo MCK for testing.
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn demo() -> Self {
-        Self::new(Fr::from(99999u64))
-    }
-
-    /// Derive MCK from a seed (for deterministic testing).
-    #[cfg(any(test, feature = "test-helpers"))]
-    pub fn from_seed(seed: &[u8; 32]) -> Self {
-        let personal = b"shieldd_mck_der";
-        let hash = blake2b_simd::Params::new()
-            .hash_length(64)
-            .personal(personal)
-            .hash(seed);
-        let scalar = Fr::from_le_bytes_mod_order(hash.as_bytes());
-        Self::new(scalar)
-    }
-
-    /// Derive the public key (MCK_pub = MCK * G).
-    ///
-    /// This is stored in the asset leaf for future signature verification.
-    pub fn public_key(&self) -> Element {
-        Element::GENERATOR * self.0
-    }
-
-    /// Access the inner scalar (use with caution - this is secret material).
-    pub fn inner(&self) -> &Fr {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.to_bytes()
-    }
-
-    pub fn from_bytes(bytes: &[u8; 32]) -> Self {
-        let scalar = Fr::from_le_bytes_mod_order(bytes);
-        Self::new(scalar)
+impl std::fmt::Debug for DetectionKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("DetectionKey([REDACTED])")
     }
 }
 
-/// Detection Key (Per-Asset Secret, Held by Issuer).
-///
-/// Per-asset secret key generated and held by the issuer. Used for:
-/// - Scanning: Decrypting the detection tier to identify transfers of this asset
-/// - Flagged decryption: Decrypting core+extension data for flagged transactions
-///
-/// **Important**: DK is standalone (not derived from MCK or any Orbis key).
-/// The issuer registers dk_pub on-chain; the private scalar never leaves the issuer.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DetectionKey(pub Fr);
-
 /// Decode detection data using a shared point authenticated by issuer DLEQ evidence.
 pub fn decrypt_detection(
-    shared_secret: &Element,
-    epk: &Element,
+    shared_secret: &SubgroupPoint,
+    epk: &SubgroupPoint,
     detection_ciphertext: &[u8; DETECTION_TIER_BYTES],
     expected_asset_id: &asset::Id,
 ) -> anyhow::Result<(asset::Id, bool, Fq)> {
     anyhow::ensure!(
-        !shared_secret.is_identity() && !epk.is_identity(),
+        !bool::from(shared_secret.is_identity()) && !bool::from(epk.is_identity()),
         "identity detection point"
     );
-    let shared_secret_fq = shared_secret.vartime_compress_to_field();
-    let epk_fq = epk.vartime_compress_to_field();
-    let seed = poseidon377::hash_2(&*DETECTION_TIER_DOMAIN, (shared_secret_fq, epk_fq));
+    let seed = crate::crypto::detection_seed(shared_secret, epk);
 
     // Detection tier layout:
     // [asset_id, salt, is_flagged, reserved_zero]
-    let ct_fq = Fq::from_le_bytes_mod_order(&detection_ciphertext[..32]);
+    let ct_fq = shieldd_sdk_crypto::encoding::field(detection_ciphertext[..32].try_into()?)?;
     let keystream = compliance_stream_block(seed, 0);
     let decrypted_asset_id = ct_fq - keystream;
     anyhow::ensure!(
@@ -129,13 +62,14 @@ pub fn decrypt_detection(
         "detection tier does not match expected asset"
     );
 
-    let ct_salt_fq = Fq::from_le_bytes_mod_order(&detection_ciphertext[32..64]);
+    let ct_salt_fq = shieldd_sdk_crypto::encoding::field(detection_ciphertext[32..64].try_into()?)?;
     let keystream_salt = compliance_stream_block(seed, 1);
     let salt = ct_salt_fq - keystream_salt;
 
-    let ct_flag = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
+    let ct_flag = shieldd_sdk_crypto::encoding::field(detection_ciphertext[64..96].try_into()?)?;
     let is_flagged = detection_flag_from_fq(ct_flag - compliance_stream_block(seed, 2))?;
-    let ct_reserved = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
+    let ct_reserved =
+        shieldd_sdk_crypto::encoding::field(detection_ciphertext[96..128].try_into()?)?;
     anyhow::ensure!(
         ct_reserved - compliance_stream_block(seed, 3) == Fq::from(0u64),
         "detection reserved word is nonzero"
@@ -147,7 +81,7 @@ pub fn decrypt_detection(
 impl DetectionKey {
     /// Create a new detection key from a scalar.
     pub fn new(scalar: Fr) -> Self {
-        Self(scalar)
+        Self(zeroize::Zeroizing::new(DetectionScalar { value: scalar }))
     }
 
     /// Generate a deterministic demo DK for testing.
@@ -166,7 +100,7 @@ impl DetectionKey {
             .hash_length(64)
             .personal(personal)
             .hash(&asset_id.0.to_bytes());
-        let scalar = Fr::from_le_bytes_mod_order(hash.as_bytes());
+        let scalar = Fr::from_bytes_wide(hash.as_array());
         Self::new(scalar)
     }
 
@@ -178,29 +112,30 @@ impl DetectionKey {
             .hash_length(64)
             .personal(personal)
             .hash(seed);
-        let scalar = Fr::from_le_bytes_mod_order(hash.as_bytes());
+        let scalar = Fr::from_bytes_wide(hash.as_array());
         Self::new(scalar)
     }
 
     /// Derive the public key (DK_pub = DK * G).
     ///
     /// This is stored in the asset leaf for encryption.
-    pub fn public_key(&self) -> Element {
-        Element::GENERATOR * self.0
+    pub fn public_key(&self) -> SubgroupPoint {
+        (*shieldd_sdk_crypto::generators::SPEND_AUTH) * *self.inner()
     }
 
     /// Access the inner scalar (use with caution - this is secret material).
     pub fn inner(&self) -> &Fr {
-        &self.0
+        &self.0.value
     }
 
     pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.to_bytes()
+        self.inner().to_bytes()
     }
 
-    pub fn from_bytes(bytes: &[u8; 32]) -> Self {
-        let scalar = Fr::from_le_bytes_mod_order(bytes);
-        Self::new(scalar)
+    pub fn from_bytes(bytes: &[u8; 32]) -> anyhow::Result<Self> {
+        let scalar = shieldd_sdk_crypto::encoding::scalar(bytes)?;
+        anyhow::ensure!(!bool::from(scalar.is_zero()), "zero issuer secret key");
+        Ok(Self::new(scalar))
     }
 
     /// Try to decrypt the detection tier of a compliance ciphertext.
@@ -213,12 +148,12 @@ impl DetectionKey {
     /// or `Err(_)` if decryption doesn't match (wrong key or wrong asset).
     pub fn try_decrypt_detection(
         &self,
-        epk: &Element,
+        epk: &SubgroupPoint,
         detection_ciphertext: &[u8; DETECTION_TIER_BYTES],
         expected_asset_id: &asset::Id,
     ) -> anyhow::Result<(asset::Id, bool, Fq)> {
         decrypt_detection(
-            &(*epk * self.0),
+            &(*epk * *self.inner()),
             epk,
             detection_ciphertext,
             expected_asset_id,
@@ -232,7 +167,7 @@ impl DetectionKey {
         rng: &mut R,
         asset_id: &asset::Id,
         is_flagged: bool,
-    ) -> ([u8; DETECTION_TIER_BYTES], Element) {
+    ) -> ([u8; DETECTION_TIER_BYTES], SubgroupPoint) {
         Self::encrypt_to_dk_pub(rng, &self.public_key(), asset_id, is_flagged)
     }
 
@@ -242,20 +177,18 @@ impl DetectionKey {
     #[cfg(test)]
     fn encrypt_to_dk_pub<R: rand_core::RngCore + rand_core::CryptoRng>(
         rng: &mut R,
-        dk_pub: &Element,
+        dk_pub: &SubgroupPoint,
         asset_id: &asset::Id,
         is_flagged: bool,
-    ) -> ([u8; DETECTION_TIER_BYTES], Element) {
-        let ephemeral_secret = Fr::rand(rng);
-        let epk = Element::GENERATOR * ephemeral_secret;
+    ) -> ([u8; DETECTION_TIER_BYTES], SubgroupPoint) {
+        let ephemeral_secret = Fr::random(rng);
+        let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * ephemeral_secret;
 
         // Compute shared secret: S = r * DK_pub
         let shared_secret = *dk_pub * ephemeral_secret;
 
         // Derive seed
-        let shared_secret_fq = shared_secret.vartime_compress_to_field();
-        let epk_fq = epk.vartime_compress_to_field();
-        let seed = poseidon377::hash_2(&*DETECTION_TIER_DOMAIN, (shared_secret_fq, epk_fq));
+        let seed = crate::crypto::detection_seed(&shared_secret, &epk);
 
         let mut detection_bytes = [0u8; DETECTION_TIER_BYTES];
         let plaintext = [
@@ -276,100 +209,26 @@ impl DetectionKey {
     }
 }
 
-/// Detection Key Public (Point).
-///
-/// The public component of the detection key, stored in the asset leaf.
-/// This is what senders encrypt the detection tier to.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DetectionKeyPublic(pub Element);
-
-impl DetectionKeyPublic {
-    pub fn new(point: Element) -> Self {
-        Self(point)
-    }
-
-    pub fn from_dk(dk: &DetectionKey) -> Self {
-        Self(dk.public_key())
-    }
-
-    pub fn inner(&self) -> &Element {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.vartime_compress().0
-    }
-
-    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
-        let point = decaf377::Encoding(bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("invalid detection key public bytes"))?;
-        Ok(Self(point))
-    }
-}
-
-/// Master Compliance Key Public (Point).
-///
-/// The public component of the master compliance key, stored in the asset leaf.
-/// Used for future signature verification of policy updates.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MasterComplianceKeyPublic(pub Element);
-
-impl MasterComplianceKeyPublic {
-    pub fn new(point: Element) -> Self {
-        Self(point)
-    }
-
-    pub fn from_mck(mck: &MasterComplianceKey) -> Self {
-        Self(mck.public_key())
-    }
-
-    pub fn inner(&self) -> &Element {
-        &self.0
-    }
-
-    pub fn to_bytes(&self) -> [u8; 32] {
-        self.0.vartime_compress().0
-    }
-
-    pub fn from_bytes(bytes: [u8; 32]) -> anyhow::Result<Self> {
-        let point = decaf377::Encoding(bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("invalid master compliance key public bytes"))?;
-        Ok(Self(point))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand_core::OsRng;
 
     #[test]
-    fn test_mck_basic() {
-        let mck = MasterComplianceKey::demo();
-        let mck_pub = mck.public_key();
-
-        // Verify public key is derived correctly
-        assert_eq!(mck_pub, Element::GENERATOR * mck.0);
-
-        // Round-trip through bytes
-        let bytes = mck.to_bytes();
-        let recovered = MasterComplianceKey::from_bytes(&bytes);
-        assert_eq!(mck, recovered);
-    }
-
-    #[test]
     fn test_dk_basic() {
         let dk = DetectionKey::demo();
+        assert_eq!(format!("{dk:?}"), "DetectionKey([REDACTED])");
         let dk_pub = dk.public_key();
 
         // Verify public key is derived correctly
-        assert_eq!(dk_pub, Element::GENERATOR * dk.0);
+        assert_eq!(
+            dk_pub,
+            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * *dk.inner()
+        );
 
         // Round-trip through bytes
         let bytes = dk.to_bytes();
-        let recovered = DetectionKey::from_bytes(&bytes);
+        let recovered = DetectionKey::from_bytes(&bytes).unwrap();
         assert_eq!(dk, recovered);
     }
 
@@ -387,24 +246,6 @@ mod tests {
         // Same asset gets same DK (deterministic)
         let dk1_again = DetectionKey::demo_for_asset(&asset1);
         assert_eq!(dk1, dk1_again);
-    }
-
-    #[test]
-    fn test_encrypt_to_dk_pub_without_dk() {
-        let mut rng = OsRng;
-        let dk = DetectionKey::demo();
-        let dk_pub = dk.public_key();
-        let asset_id = asset::Id(Fq::from(55555u64));
-
-        let (ciphertext, epk) =
-            DetectionKey::encrypt_to_dk_pub(&mut rng, &dk_pub, &asset_id, false);
-
-        let (decrypted_asset, decrypted_flag, _salt) = dk
-            .try_decrypt_detection(&epk, &ciphertext, &asset_id)
-            .expect("decryption should succeed");
-
-        assert_eq!(decrypted_asset, asset_id);
-        assert!(!decrypted_flag);
     }
 
     #[test]
@@ -432,36 +273,6 @@ mod tests {
     }
 
     #[test]
-    fn test_detection_key_public_roundtrip() {
-        let dk = DetectionKey::demo();
-        let dk_pub = DetectionKeyPublic::from_dk(&dk);
-
-        let bytes = dk_pub.to_bytes();
-        let recovered = DetectionKeyPublic::from_bytes(bytes).unwrap();
-
-        assert_eq!(dk_pub, recovered);
-    }
-
-    #[test]
-    fn test_mck_public_roundtrip() {
-        let mck = MasterComplianceKey::demo();
-        let mck_pub = MasterComplianceKeyPublic::from_mck(&mck);
-
-        let bytes = mck_pub.to_bytes();
-        let recovered = MasterComplianceKeyPublic::from_bytes(bytes).unwrap();
-
-        assert_eq!(mck_pub, recovered);
-    }
-
-    #[test]
-    fn test_mck_and_dk_are_independent() {
-        let mck = MasterComplianceKey::demo();
-        let dk = DetectionKey::demo();
-        assert_ne!(mck.0, dk.0);
-        assert_ne!(mck.public_key(), dk.public_key());
-    }
-
-    #[test]
     fn detection_flags_roundtrip_across_asset_bits() {
         let mut realistic = [0u8; 32];
         realistic[0] = 0x42;
@@ -474,15 +285,22 @@ mod tests {
             ("zero", Fq::from(0u64)),
             ("one", Fq::from(1u64)),
             ("u64_max", Fq::from(u64::MAX)),
-            ("large", Fq::from(12345678901234567890u128)),
+            ("large", Fq::from(12345678901234567890u64)),
             ("roundtrip", Fq::from(12345u64)),
             ("flagged", Fq::from(99999u64)),
-            ("realistic", Fq::from_le_bytes_mod_order(&realistic)),
-            ("high_byte", Fq::from_le_bytes_mod_order(&high_byte)),
+            (
+                "realistic",
+                shieldd_sdk_crypto::encoding::field(&realistic).unwrap(),
+            ),
+            (
+                "high_byte",
+                shieldd_sdk_crypto::encoding::field(&high_byte).unwrap(),
+            ),
         ] {
             let asset_id = asset::Id(value);
             for flag in [false, true] {
-                let (ct, epk) = dk.encrypt_to_public(&mut OsRng, &asset_id, flag);
+                let (ct, epk) =
+                    DetectionKey::encrypt_to_dk_pub(&mut OsRng, &dk.public_key(), &asset_id, flag);
                 let (actual_id, actual_flag, _) =
                     dk.try_decrypt_detection(&epk, &ct, &asset_id).unwrap();
                 assert_eq!((actual_id, actual_flag), (asset_id, flag), "{name}");
@@ -499,7 +317,8 @@ mod tests {
 
         let mut sentinel_bytes = [0u8; 32];
         sentinel_bytes[31] = 1 << 5;
-        let alias = asset::Id(asset_id.0 + Fq::from_le_bytes_mod_order(&sentinel_bytes));
+        let alias =
+            asset::Id(asset_id.0 + shieldd_sdk_crypto::encoding::field(&sentinel_bytes).unwrap());
 
         assert!(
             dk.try_decrypt_detection(&epk, &ciphertext, &alias).is_err(),

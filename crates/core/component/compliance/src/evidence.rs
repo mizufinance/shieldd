@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail, ensure, Context, Result};
-use decaf377::Fq;
 use sha2::{Digest, Sha256};
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_crypto::Fq;
 
 use crate::{
     ActionRef, BlockRef, ComplianceRecordRef, OutputRef, TransferComplianceCiphertext,
@@ -215,11 +215,11 @@ impl ComplianceEvidenceObject {
         let action_index = reader.read_u32()?;
         let output_index = reader.read_u32()?;
         let asset_id = asset::Id(
-            Fq::from_bytes_checked(&reader.read_array::<32>()?)
+            shieldd_sdk_crypto::encoding::field(&reader.read_array::<32>()?)
                 .map_err(|_| anyhow!("invalid evidence asset_id"))?,
         );
         let is_flagged = reader.read_bool("is_flagged")?;
-        let detection_salt = Fq::from_bytes_checked(&reader.read_array::<32>()?)
+        let detection_salt = shieldd_sdk_crypto::encoding::field(&reader.read_array::<32>()?)
             .map_err(|_| anyhow!("invalid evidence detection_salt"))?;
         let (ciphertext, metadata, withdrawal) = match object_type {
             EvidenceObjectType::Transfer => (
@@ -447,7 +447,7 @@ pub(crate) mod tests {
         let detection_salt = Fq::from(77u64);
         let encrypted = crate::encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
+            &crate::audit_keys::test_keys(),
             &dk_pub,
             &receiver,
             &sender,
@@ -564,7 +564,8 @@ pub(crate) mod tests {
         let original = evidence.object_hash();
 
         fn increment(bytes: &mut [u8; 32]) {
-            let value = Fq::from_bytes_checked(bytes).expect("fixture field is canonical");
+            let value =
+                shieldd_sdk_crypto::encoding::field(bytes).expect("fixture field is canonical");
             *bytes = (value + Fq::from(1u64)).to_bytes();
         }
         let mutations: [fn(&mut TransferComplianceMetadata); 9] = [
@@ -608,7 +609,7 @@ pub(crate) mod tests {
         .expect("flagged sender should decrypt");
         assert_eq!(
             decrypted.sender_address.transmission_key,
-            sender.transmission_key().0
+            sender.transmission_key().to_bytes()
         );
     }
 

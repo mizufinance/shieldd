@@ -1,0 +1,186 @@
+[package]
+name = "commonware-cryptography"
+edition.workspace = true
+publish = true
+version.workspace = true
+license.workspace = true
+description = "Generate keys, sign arbitrary messages, and deterministically verify signatures."
+readme = "README.md"
+homepage.workspace = true
+repository = "https://github.com/commonwarexyz/monorepo/tree/main/cryptography"
+documentation = "https://docs.rs/commonware-cryptography"
+
+[lints]
+workspace = true
+
+[dependencies]
+ahash = { workspace = true, features = ["no-rng"] }
+anyhow = { workspace = true, optional = true }
+arbitrary = { workspace = true, optional = true, features = ["derive"] }
+blake3 = { workspace = true, features = ["zeroize"] }
+blst = { workspace = true, optional = true, features = ["no-threads"] }
+bytes.workspace = true
+cfg-if.workspace = true
+commonware-codec.workspace = true
+commonware-formatting.workspace = true
+commonware-macros.workspace = true
+commonware-math.workspace = true
+commonware-parallel.workspace = true
+commonware-utils.workspace = true
+crc-fast = { workspace = true, features = ["std"], optional = true }
+ctutils.workspace = true
+curve25519-dalek.workspace = true
+ecdsa.workspace = true
+fixedbitset.workspace = true
+hashbrown.workspace = true
+num-rational = { workspace = true, optional = true }
+num-traits = { workspace = true, optional = true }
+once_cell = { workspace = true, features = ["alloc", "race"] }
+p256 = { workspace = true, features = ["ecdsa"] }
+rand.workspace = true
+rand_chacha.workspace = true
+rand_core.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+x25519-dalek = { workspace = true, features = ["static_secrets", "zeroize"] }
+zeroize = { workspace = true, features = ["zeroize_derive"] }
+
+[target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
+# aws-lc-rs provides optimized P-256 verification and handshake cipher on x86_64 and aarch64.
+aws-lc-rs.workspace = true
+
+[target.'cfg(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
+cpufeatures.workspace = true
+
+[target.'cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies.chacha20poly1305]
+workspace = true
+default-features = false
+features = ["alloc"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]
+# Enable the JS backend for transitive dependencies that use getrandom on WASM.
+version = "0.4.3"
+features = ["wasm_js"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom_v2]
+# Enable the JS backend for transitive dependencies that still use getrandom 0.2 on WASM.
+package = "getrandom"
+version = "0.2"
+features = ["js"]
+
+[dev-dependencies]
+anyhow.workspace = true
+arbitrary.workspace = true
+commonware-conformance.workspace = true
+commonware-invariants.workspace = true
+commonware-math = { workspace = true, features = ["arbitrary"] }
+crc.workspace = true
+criterion.workspace = true
+rayon.workspace = true
+rstest.workspace = true
+
+[lib]
+bench = false
+
+[features]
+default = [ "std" ]
+bls12381 = [ "dep:blst" ]
+blake3-parallel = [ "blake3/rayon", "std" ]
+mocks = [ "std" ]
+arbitrary = [
+	"commonware-codec/arbitrary",
+	"commonware-math/arbitrary",
+	"commonware-utils/arbitrary",
+	"dep:anyhow",
+	"dep:arbitrary",
+	"std",
+]
+fuzz = [ "arbitrary", "std" ]
+std = [
+	"ahash/std",
+	"anyhow?/std",
+	"blake3/std",
+	"bls12381",
+	"bytes/std",
+	"chacha20poly1305/getrandom",
+	"commonware-codec/std",
+	"commonware-formatting/std",
+	"commonware-macros/std",
+	"commonware-math/std",
+	"commonware-parallel/std",
+	"commonware-utils/std",
+	"crc-fast",
+	"crc-fast?/std",
+	"ecdsa/std",
+	"fixedbitset/std",
+	"getrandom/std",
+	"getrandom_v2/std",
+	"num-rational",
+	"num-traits",
+	"num-traits?/std",
+	"once_cell/std",
+	"p256/std",
+	"rand/std",
+	"rand/std_rng",
+	"rand_chacha/std",
+	"thiserror/std",
+	"zeroize/std",
+]
+
+[[bench]]
+name = "bls12381"
+harness = false
+path = "src/bls12381/benches/bench.rs"
+required-features = [ "std" ]
+
+[[bench]]
+name = "ed25519"
+harness = false
+path = "src/ed25519/benches/bench.rs"
+
+[[bench]]
+name = "secp256r1"
+harness = false
+path = "src/secp256r1/benches/bench.rs"
+
+[[bench]]
+name = "sha256"
+harness = false
+path = "src/sha256/benches/bench.rs"
+
+[[bench]]
+name = "blake3"
+harness = false
+path = "src/blake3/benches/bench.rs"
+
+[[bench]]
+name = "lthash"
+harness = false
+path = "src/lthash/benches/bench.rs"
+
+[[bench]]
+name = "reed_solomon"
+harness = false
+path = "src/reed_solomon/benches/bench.rs"
+
+[[bench]]
+name = "handshake"
+harness = false
+path = "src/handshake/benches/bench.rs"
+
+[[bench]]
+name = "bloomfilter"
+harness = false
+path = "src/bloomfilter/benches/bench.rs"
+
+[[bench]]
+name = "bulletproofs"
+harness = false
+path = "src/zk/bulletproofs/benches/bench.rs"
+required-features = [ "std" ]
+
+[[bench]]
+name = "pari"
+harness = false
+path = "src/zk/pari/benches/bench.rs"
+required-features = [ "std" ]

@@ -7,7 +7,7 @@ use std::{
     iter::FusedIterator,
     mem,
     num::NonZeroU128,
-    ops::{Add, AddAssign, Deref, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Neg, Sub, SubAssign},
 };
 
 use crate::{asset::Id, Value};
@@ -17,9 +17,10 @@ pub use commitment::Commitment;
 
 mod imbalance;
 mod iter;
-use commitment::VALUE_BLINDING_GENERATOR;
-use decaf377::Fr;
+use group::Group;
 use imbalance::{Imbalance, Sign};
+use shieldd_sdk_crypto::Fr;
+use shieldd_sdk_crypto::{generators::VALUE_BLINDING, SubgroupPoint};
 
 use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, DomainType};
 
@@ -145,7 +146,7 @@ impl Balance {
     #[allow(non_snake_case)]
     pub fn commit(&self, blinding_factor: Fr) -> Commitment {
         // Accumulate all the elements for the values
-        let mut commitment = decaf377::Element::default();
+        let mut commitment = SubgroupPoint::identity();
         for imbalance in self.iter() {
             let (sign, value) = imbalance.into_inner();
             let G_v = value.asset_id.value_generator();
@@ -162,7 +163,7 @@ impl Balance {
         }
 
         // Add the blinding factor only once, after the accumulation
-        commitment += blinding_factor * VALUE_BLINDING_GENERATOR.deref();
+        commitment += *VALUE_BLINDING * blinding_factor;
         Commitment(commitment)
     }
 }
@@ -325,12 +326,12 @@ mod test {
         asset::{self, Metadata},
         BASE_ASSET_ID,
     };
-    use ark_ff::Zero;
-    use decaf377::Fq;
-    use decaf377::Fr;
+    use ff::Field;
     use once_cell::sync::Lazy;
     use proptest::prelude::*;
     use rand_core::OsRng;
+    use shieldd_sdk_crypto::Fq;
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_proto::core::num::v1::Amount as ProtoAmount;
 
     use super::*;
@@ -373,7 +374,7 @@ mod test {
     impl Expression {
         fn transparent_balance_commitment(&self) -> Commitment {
             match self {
-                Expression::Value(value) => value.commit(Fr::zero()),
+                Expression::Value(value) => value.commit(Fr::ZERO),
                 Expression::Neg(expr) => -expr.transparent_balance_commitment(),
                 Expression::Add(lhs, rhs) => {
                     lhs.transparent_balance_commitment() + rhs.transparent_balance_commitment()
@@ -456,10 +457,10 @@ mod test {
             // Compute the transparent commitment for the balance
             let mut balance_commitment = Commitment::default();
             for required in balance.required() {
-                balance_commitment = balance_commitment - required.commit(Fr::zero());
+                balance_commitment = balance_commitment - required.commit(Fr::ZERO);
             }
             for provided in balance.provided() {
-                balance_commitment = balance_commitment + provided.commit(Fr::zero());
+                balance_commitment = balance_commitment + provided.commit(Fr::ZERO);
             }
 
             assert_eq!(commitment, balance_commitment);
@@ -469,164 +470,48 @@ mod test {
     /// Implement fallible conversion (protobuf to domain type) for multiple entries
     /// with the same asset ID.
     #[test]
-    fn try_from_fallible_conversion_same_asset_id() {
-        let proto_balance_0 = pb::Balance {
-            values: vec![
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(100u128).into()),
-                    }),
-                    negated: true,
-                },
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(50u128).into()),
-                    }),
-                    negated: false,
-                },
-            ],
-        };
-
-        let proto_balance_1 = pb::Balance {
-            values: vec![
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(100u128).into()),
-                    }),
-                    negated: true,
-                },
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(200u128).into()),
-                    }),
-                    negated: false,
-                },
-            ],
-        };
-
-        let proto_balance_2 = pb::Balance {
-            values: vec![
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(100u128).into()),
-                    }),
-                    negated: true,
-                },
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(200u128).into()),
-                    }),
-                    negated: true,
-                },
-            ],
-        };
-
-        let proto_balance_3 = pb::Balance {
-            values: vec![
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(100u128).into()),
-                    }),
-                    negated: false,
-                },
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(50u128).into()),
-                    }),
-                    negated: true,
-                },
-            ],
-        };
-
-        let proto_balance_4 = pb::Balance {
-            values: vec![
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(100u128).into()),
-                    }),
-                    negated: false,
-                },
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(200u128).into()),
-                    }),
-                    negated: true,
-                },
-            ],
-        };
-
-        let proto_balance_5 = pb::Balance {
-            values: vec![
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(100u128).into()),
-                    }),
-                    negated: false,
-                },
-                pb::balance::SignedValue {
-                    value: Some(pb::Value {
-                        asset_id: Some((*BASE_ASSET_ID).into()),
-                        amount: Some(Amount::from(200u128).into()),
-                    }),
-                    negated: false,
-                },
-            ],
-        };
-
-        let balance_0 = Balance::try_from(proto_balance_0).expect("fallible conversion");
-        let balance_1 = Balance::try_from(proto_balance_1).expect("fallible conversion");
-        let balance_2 = Balance::try_from(proto_balance_2).expect("fallible conversion");
-        let balance_3 = Balance::try_from(proto_balance_3).expect("fallible conversion");
-        let balance_4 = Balance::try_from(proto_balance_4).expect("fallible conversion");
-        let balance_5 = Balance::try_from(proto_balance_5).expect("fallible conversion");
-
-        assert!(matches!(
-            balance_0.balance.get(&BASE_ASSET_ID),
-            Some(Imbalance::Required(amount)) if amount == &NonZeroU128::new(50).unwrap()
-        ));
-
-        assert!(matches!(
-            balance_1.balance.get(&BASE_ASSET_ID),
-            Some(Imbalance::Provided(amount)) if amount == &NonZeroU128::new(100).unwrap()
-        ));
-
-        assert!(matches!(
-            balance_2.balance.get(&BASE_ASSET_ID),
-            Some(Imbalance::Required(amount)) if amount == &NonZeroU128::new(300).unwrap()
-        ));
-
-        assert!(matches!(
-            balance_3.balance.get(&BASE_ASSET_ID),
-            Some(Imbalance::Provided(amount)) if amount == &NonZeroU128::new(50).unwrap()
-        ));
-
-        assert!(matches!(
-            balance_4.balance.get(&BASE_ASSET_ID),
-            Some(Imbalance::Required(amount)) if amount == &NonZeroU128::new(100).unwrap()
-        ));
-
-        assert!(matches!(
-            balance_5.balance.get(&BASE_ASSET_ID),
-            Some(Imbalance::Provided(amount)) if amount == &NonZeroU128::new(300).unwrap()
-        ));
+    fn balance_decode_combines_signed_entries_for_the_same_asset() {
+        for (entries, expected) in [
+            ([-100i128, 50], -50i128),
+            ([-100, 200], 100),
+            ([-100, -200], -300),
+            ([100, -50], 50),
+            ([100, -200], -100),
+            ([100, 200], 300),
+            ([100, -100], 0),
+        ] {
+            let proto = pb::Balance {
+                values: entries
+                    .into_iter()
+                    .map(|amount| pb::balance::SignedValue {
+                        value: Some(pb::Value {
+                            asset_id: Some((*BASE_ASSET_ID).into()),
+                            amount: Some(Amount::from(amount.unsigned_abs()).into()),
+                        }),
+                        negated: amount < 0,
+                    })
+                    .collect(),
+            };
+            let balance = Balance::try_from(proto).unwrap();
+            let actual = balance.balance.get(&BASE_ASSET_ID);
+            match (expected, actual) {
+                (0, None) => (),
+                (n, Some(Imbalance::Required(amount))) if n < 0 => {
+                    assert_eq!(amount.get(), n.unsigned_abs())
+                }
+                (n, Some(Imbalance::Provided(amount))) if n > 0 => {
+                    assert_eq!(amount.get(), n as u128)
+                }
+                _ => panic!("unexpected balance for {entries:?}: {actual:?}"),
+            }
+        }
     }
 
     /// Implement fallible conversion (protobuf to domain type) for multiple entries
     /// with different asset IDs.
     #[test]
     fn try_from_fallible_conversion_different_asset_id() {
-        let rand_asset_id = Id(Fq::rand(&mut OsRng));
+        let rand_asset_id = Id(Fq::random(&mut OsRng));
 
         let proto_balance = pb::Balance {
             values: vec![
@@ -676,7 +561,7 @@ mod test {
     /// Implement infallible conversion (domain type to protobuf).
     #[test]
     fn from_infallible_conversion() {
-        let rand_asset_id = Id(Fq::rand(&mut OsRng));
+        let rand_asset_id = Id(Fq::random(&mut OsRng));
 
         let balance = Balance {
             negated: false,
@@ -709,6 +594,8 @@ mod test {
             .expect("asset should exist");
 
         assert_eq!(proto_balance.values.len(), 2);
+        assert!(!first_value.negated);
+        assert!(second_value.negated);
 
         assert_eq!(
             first_value.value.as_ref().unwrap().asset_id,

@@ -1,11 +1,10 @@
-## Change
+## Goal
 
-<!-- Describe the concrete problem and resulting behavior. -->
+<!-- A few sentences about the high-level purpose. Link the related issue. -->
 
-## Verification
+## What changed
 
-<!-- Report checks actually run. Identify unrun prover/release/platform gates. -->
-
-## Integration impact
-
-<!-- Identify changed protocol/host boundaries and required Bankd consumer updates. -->
+<!-- Summarize the major changes across the full branch. For a broad PR, use a
+few descriptive subsections with short bullets. Omit minor fixes, implementation
+inventories and work history. Mention material integration requirements and
+verification limits briefly; detailed logs belong in the task or CI, not the repo. -->

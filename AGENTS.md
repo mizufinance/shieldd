@@ -1,9 +1,5 @@
 # Shieldd Engineering Instructions
 
-New prototype product, no stable contracts unless explicitly identified.
-Prefer the correct design over legacy shims.
-Delete obsolete paths; do not keep aliases, flags, or half-finished abstractions.
-
 ## Prototype Contract Policy
 
 Assume there are no stable contracts in this repository unless the user names
@@ -21,13 +17,19 @@ Schema versions are guardrails against accidentally opening stale local data.
 They are not migration promises.
 
 For task-specific code, ownership and commands, start at [docs/README.md](docs/README.md).
+Read the area relevant to the user's task, not every document.
+Repository skills for investigation, planning, testing and review are linked from that map.
 
 ## Workflow
 
 - Discuss goal, risks, and shape before writing a detailed plan.
-- Ask when design intent is unclear. Make scope explicit before refactors >5 files.
+- Explain scope and affected boundaries before changing cryptographic relations, authorization, persistence semantics, concurrency or external interfaces. Scale planning to consequences rather than file count.
+- Resolve unknown facts through code, tests, primary sources and bounded experiments. Ask a focused question when unresolved product intent changes the design; continue independent useful work while waiting.
+- Preserve existing user authorization. A plan or skill does not introduce another approval stage for work already authorized, or authorize unrelated external actions.
 - Follow impact through every affected layer: circuits, domain, storage, services, CLI, tests, docs.
-- If the same error hits twice, research 3-5 fixes and pick the best — do not flail.
+- After a repeated failure, stop repeating the approach. Record the observation, form a new hypothesis and choose a check that distinguishes it; research alternatives when needed.
+- Identify the branch and dirty baseline before editing or reviewing. Preserve unrelated work; distinguish current specifications from proposed changes.
+- Delegate only when requested or otherwise explicitly authorized. When independent reviewers are requested, give them the requirements and exact artifact, not a desired verdict; the coordinator schedules heavy verification.
 
 ## Architecture
 
@@ -45,9 +47,13 @@ For task-specific code, ownership and commands, start at [docs/README.md](docs/R
 ## Verification
 
 - Never mark work complete without proving it.
-- Bug fixes: reproducing test first, then fix.
+- Bug fixes: reproduce the behavioral failure first, then fix. A compile or setup failure is not a regression reproduction.
+- Curate tests against current requirements: extend existing coverage, consolidate overlap, and delete tests and unused helpers for discarded behavior. Historical regressions do not create product contracts.
+- Justify expected results independently of the behavior under test; check the intended failure boundary and relevant side effects. Follow [Testing](docs/testing.md), including selective fault-sensitivity checks for important changes.
+- Do not weaken assertions or regenerate expected outputs merely to make tests pass. Explain intentional changes in semantics.
 - Run focused tests after each meaningful section; relevant full checks before final handoff.
-- Say explicitly whether prover/release-gated tests were actually run.
+- Choose commands using [Development](docs/development.md). Run cheap checks before expensive compilation; reuse verification unless changes or failures justify rerunning it.
+- Report passed, failed, interrupted and unrun checks with relevant features, profile and source/registry identity. Say explicitly whether prover/release-gated tests were actually run; `ci` profile is not `--release`.
 
 ## Local Resource Limits
 
@@ -65,9 +71,17 @@ For task-specific code, ownership and commands, start at [docs/README.md](docs/R
 - Drop redundant module/crate names from function names.
 - Standard crypto abbreviations fine: `ss`, `ct`, `pt`, `esk`, `epk`, `dk`, `fq`.
 - Prefer clear code over comments. Document only non-obvious ownership, protocol or security invariants, and failure modes.
-- Describe the current design only. Never preserve migration notes, replaced behavior, or implementation history in code comments or docs.
-- Keep docs factual: module ≤8 lines, public type ≤3, function ≤2 unless protocol nuance requires more.
-- Define docs once; reference elsewhere.
+- Document the current design. Git preserves replaced designs and implementation history; do not maintain review histories, completed plans, agent transcripts, experiment snapshots or verification logs in the repository.
+- Keep working plans, review notes and logs in the conversation or task-local scratch space outside the repository unless the user explicitly asks to commit them. Move lasting requirements into their existing documentation owner, not a new report.
+- Keep docs concise without line quotas. Include non-obvious preconditions, trust sources, ownership, ordering, atomicity, cancellation and failure behavior; retain necessary cryptographic and storage invariants.
+- Define each contract once and link to it. Consolidate overlapping specs and checklists; source code owns exact field order and generated inventories.
+
+## Pull Request Descriptions
+
+- Use `Goal` for a few sentences explaining the high-level purpose, then `What changed` for the major changes across the full branch.
+- Keep bullets high-level. For a broad PR, group them under a few descriptive subsections. Omit minor fixes, symbol/field inventories, implementation chronology and exhaustive test counts.
+- Link the related issue. Use a closing keyword only when the PR actually completes that issue's scope.
+- State material integration requirements and verification limits briefly where relevant; put detailed execution evidence in task or CI logs outside the repository. Follow [the PR template](.github/pull_request_template.md).
 
 ## Formal Verification Boundary
 

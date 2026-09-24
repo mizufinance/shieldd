@@ -1,60 +1,39 @@
-use std::{fmt, path::Path};
+use shieldd_sdk_proof_params::pari::Registry;
+use std::{fmt, path::Path, sync::Arc};
 
 use anyhow::{Context as _, Result};
-use cnidarium::{StateRead as _, Storage};
-use futures::TryStreamExt as _;
-use prost::Message as _;
+use cnidarium::Storage;
 use shieldd_sdk_app::{
-    app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal, StateReadExt as _},
+    app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal},
     genesis::AppState,
     SUBSTORE_PREFIXES,
 };
-use shieldd_sdk_compact_block::component::StateReadExt as _;
-use shieldd_sdk_proto::core::component::{
-    compact_block::v1::{CompactBlockRangeRequest, CompactBlockRangeResponse},
-    compliance::v1::{
-        ComplianceAssetStatusRequest, ComplianceAssetStatusResponse,
-        ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
-        ComplianceUserLeafRequest, ComplianceUserLeafResponse,
-    },
-    sct::v1::{
-        ArchivedNullifierProofRequest, ArchivedNullifierProofResponse, NullifierWindowRequest,
-        NullifierWindowResponse,
-    },
-    shielded_pool::v1::{AssetMetadataByIdRequest, AssetMetadataByIdResponse},
-};
 use shieldd_sdk_proto::{
-    cnidarium::v1::{
-        key_value_response::Value as ProtoKeyValue, KeyValueRequest as ProtoKeyValueRequest,
-        KeyValueResponse as ProtoKeyValueResponse,
-    },
     core::app::v1 as proto_app,
     cosmos::base::v1beta1::Coin,
     execution_client::v1::{
         host_withdrawal::Destination as ProtoDestination, ApplyComplianceActionRequest,
-        ApplyComplianceActionResponse, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
-        CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
-        DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
+        ApplyComplianceActionResponse, BeginBlockRequest, BeginBlockResponse, CheckTxResponse,
+        CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest,
+        DepositResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
         EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
         GetCommittedStateRequest, GetCommittedStateResponse, HostWithdrawal as ProtoHostWithdrawal,
         InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
         SeizeNoteRequest, SeizeNoteResponse,
     },
 };
-use shieldd_sdk_sct::{
-    component::clock::EpochRead as _, generation_pack::GenerationPackRepository, nullifier_tree,
-    Nullifier,
-};
+use shieldd_sdk_sct::generation_pack::GenerationPackRepository;
 use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use tendermint::{abci, Time};
-
-const MAX_EMBEDDED_COMPACT_BLOCKS: u64 = 10_001;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     InvalidArgument,
     FailedPrecondition,
     NotFound,
+    Overloaded,
+    SnapshotExpired,
+    Unavailable,
     Internal,
 }
 
@@ -65,36 +44,58 @@ pub struct ServiceError {
 }
 
 impl ServiceError {
+    pub(crate) fn unavailable(source: anyhow::Error) -> Self {
+        Self {
+            kind: ErrorKind::Unavailable,
+            source,
+        }
+    }
+
+    pub(crate) fn overloaded() -> Self {
+        Self {
+            kind: ErrorKind::Overloaded,
+            source: anyhow::anyhow!("query capacity exhausted; retry later"),
+        }
+    }
+
     pub fn kind(&self) -> ErrorKind {
         self.kind
     }
 
-    fn invalid_argument(source: anyhow::Error) -> Self {
+    pub(crate) fn invalid_argument(source: anyhow::Error) -> Self {
         Self {
             kind: ErrorKind::InvalidArgument,
             source,
         }
     }
 
-    fn failed_precondition(source: anyhow::Error) -> Self {
+    pub(crate) fn failed_precondition(source: anyhow::Error) -> Self {
         Self {
             kind: ErrorKind::FailedPrecondition,
             source,
         }
     }
 
-    fn internal(source: anyhow::Error) -> Self {
+    pub(crate) fn internal(source: anyhow::Error) -> Self {
         Self {
             kind: ErrorKind::Internal,
             source,
         }
     }
 
-    fn closed() -> Self {
+    pub(crate) fn snapshot_expired() -> Self {
+        Self {
+            kind: ErrorKind::SnapshotExpired,
+            source: anyhow::anyhow!(
+                "query snapshot expired; discard incomplete results and restart"
+            ),
+        }
+    }
+    pub(crate) fn closed() -> Self {
         Self::failed_precondition(anyhow::anyhow!("Shieldd execution service is closed"))
     }
 
-    fn state_query(error: cnidarium_component::QueryError) -> Self {
+    pub(crate) fn state_query(error: cnidarium_component::QueryError) -> Self {
         let source = anyhow::anyhow!(error.to_string());
         match error.kind {
             cnidarium_component::QueryErrorKind::InvalidArgument => Self::invalid_argument(source),
@@ -117,32 +118,52 @@ impl std::error::Error for ServiceError {
 
 pub struct ExecutionService {
     execution: Option<HostExecution>,
+    queries: Arc<crate::query::QueryService>,
     storage: Option<Storage>,
-    generation_packs: Option<GenerationPackRepository>,
-    generation_pack_worker: Option<tokio::task::JoinHandle<()>>,
+    generation_pack_worker: Option<shieldd_sdk_app::nullifier_generation_packs::MaintenanceWorker>,
+}
+
+impl Drop for ExecutionService {
+    fn drop(&mut self) {
+        self.queries.close();
+        if let Some(worker) = &self.generation_pack_worker {
+            worker.abort();
+        }
+    }
 }
 
 impl ExecutionService {
-    pub async fn open(db: impl AsRef<Path>) -> std::result::Result<Self, ServiceError> {
-        Self::open_inner(db.as_ref(), None).await
+    pub fn queries(&self) -> &Arc<crate::query::QueryService> {
+        &self.queries
+    }
+
+    pub async fn open(
+        db: impl AsRef<Path>,
+        registry: Arc<Registry>,
+    ) -> std::result::Result<Self, ServiceError> {
+        Self::open_inner(db.as_ref(), None, registry).await
     }
 
     pub async fn open_with_generation_packs(
         db: impl AsRef<Path>,
         generation_pack_directory: impl AsRef<Path>,
+        registry: Arc<Registry>,
     ) -> std::result::Result<Self, ServiceError> {
-        let repository =
-            GenerationPackRepository::new(generation_pack_directory.as_ref().to_path_buf(), 1)
-                .map_err(ServiceError::internal)?;
-        Self::open_inner(db.as_ref(), Some(repository)).await
+        let repository = GenerationPackRepository::new(
+            generation_pack_directory.as_ref().to_path_buf(),
+            64 * 1024 * 1024,
+        )
+        .map_err(ServiceError::internal)?;
+        Self::open_inner(db.as_ref(), Some(repository), registry).await
     }
 
     async fn open_inner(
         db: &Path,
         generation_packs: Option<GenerationPackRepository>,
+        registry: Arc<Registry>,
     ) -> std::result::Result<Self, ServiceError> {
         let db = db.to_path_buf();
-        let mut storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
+        let storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
             .await
             .with_context(|| format!("failed to open Shieldd RocksDB at {}", db.display()))
             .map_err(ServiceError::internal)?;
@@ -152,6 +173,13 @@ impl ExecutionService {
             return Err(ServiceError::failed_precondition(error));
         }
 
+        if let Err(error) =
+            shieldd_sdk_app::registry_binding::check(&storage.latest_snapshot(), registry.id())
+                .await
+        {
+            storage.release().await;
+            return Err(ServiceError::failed_precondition(error));
+        }
         if storage.latest_version() == u64::MAX {
             tracing::info!("Shieldd app state is not initialized; waiting for InitGenesis");
         } else if App::is_ready(storage.latest_snapshot()).await {
@@ -163,50 +191,58 @@ impl ExecutionService {
             )));
         }
 
+        Self::new_with_generation_packs(storage, generation_packs, registry).await
+    }
+
+    pub async fn new(
+        storage: Storage,
+        registry: Arc<Registry>,
+    ) -> std::result::Result<Self, ServiceError> {
+        Self::new_with_generation_packs(storage, None, registry).await
+    }
+
+    async fn new_with_generation_packs(
+        storage: Storage,
+        generation_packs: Option<GenerationPackRepository>,
+        registry: Arc<Registry>,
+    ) -> std::result::Result<Self, ServiceError> {
+        shieldd_sdk_app::app_version::check_app_version(&storage)
+            .await
+            .map_err(ServiceError::failed_precondition)?;
+        let cache = Arc::new(shieldd_sdk_app::stateless_cache::StatelessCache::new());
+        let queries = Arc::new(crate::query::QueryService::new(
+            storage.clone(),
+            generation_packs.clone(),
+            registry.clone(),
+            cache.clone(),
+            crate::ServiceLimits::from_env().map_err(ServiceError::invalid_argument)?,
+        ));
+        let mut execution = HostExecution::with_cache(storage.clone(), cache, registry)
+            .await
+            .map_err(ServiceError::failed_precondition)?;
         if let Some(repository) = generation_packs.as_ref() {
-            let changed =
+            execution.set_generation_packs(repository.clone());
+        }
+        let generation_pack_worker = if let Some(repository) = generation_packs.as_ref() {
+            let prepared_generation_count =
                 shieldd_sdk_app::nullifier_generation_packs::prepare(&storage, repository)
                     .await
                     .context("prepare retired nullifier generation packs")
                     .map_err(ServiceError::internal)?;
-            if changed {
-                storage.release().await;
-                storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
-                    .await
-                    .with_context(|| {
-                        format!(
-                            "failed to reopen Shieldd RocksDB after pack maintenance at {}",
-                            db.display()
-                        )
-                    })
-                    .map_err(ServiceError::internal)?;
-            }
-        }
-
-        Ok(Self::new_with_generation_packs(storage, generation_packs))
-    }
-
-    /// Uses caller-validated storage; `open` checks persisted application compatibility.
-    pub fn new(storage: Storage) -> Self {
-        Self::new_with_generation_packs(storage, None)
-    }
-
-    fn new_with_generation_packs(
-        storage: Storage,
-        generation_packs: Option<GenerationPackRepository>,
-    ) -> Self {
-        let generation_pack_worker = generation_packs.as_ref().map(|repository| {
-            shieldd_sdk_app::nullifier_generation_packs::spawn_worker(
+            Some(shieldd_sdk_app::nullifier_generation_packs::spawn_worker(
                 storage.clone(),
                 repository.clone(),
-            )
-        });
-        Self {
-            execution: Some(HostExecution::new(storage.clone())),
+                prepared_generation_count,
+            ))
+        } else {
+            None
+        };
+        Ok(Self {
+            execution: Some(execution),
+            queries,
             storage: Some(storage),
-            generation_packs,
             generation_pack_worker,
-        }
+        })
     }
 
     pub async fn init_genesis(
@@ -289,19 +325,6 @@ impl ExecutionService {
         })
     }
 
-    pub async fn check_tx(
-        &self,
-        request: CheckTxRequest,
-    ) -> std::result::Result<CheckTxResponse, ServiceError> {
-        let execution = self.execution.as_ref().ok_or_else(ServiceError::closed)?;
-        let response = execution
-            .check_tx(&request.tx)
-            .await
-            .map_err(ServiceError::failed_precondition)?;
-
-        check_tx_response(response).map_err(ServiceError::internal)
-    }
-
     pub async fn deliver_tx(
         &mut self,
         request: DeliverTxRequest,
@@ -359,265 +382,15 @@ impl ExecutionService {
         })
     }
 
-    /// Returns only the transaction log of a committed block.
-    pub async fn transactions_by_height(
-        &self,
-        request: proto_app::TransactionsByHeightRequest,
-    ) -> std::result::Result<proto_app::TransactionsByHeightResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        if storage.latest_version() == u64::MAX {
-            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
-                "Shieldd app state is not initialized"
-            )));
-        }
-        let snapshot = storage.latest_snapshot();
-        let height = snapshot
-            .get_block_height()
-            .await
-            .map_err(ServiceError::internal)?;
-        if request.block_height > height {
-            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
-                "requested block is not committed"
-            )));
-        }
-        snapshot
-            .transactions_by_height(request.block_height)
-            .await
-            .map_err(ServiceError::internal)
-    }
-
-    /// Returns at most one bounded transaction from a committed block.
-    pub async fn committed_transaction(
-        &self,
-        request: proto_app::CommittedTransactionRequest,
-    ) -> std::result::Result<proto_app::CommittedTransactionResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        if storage.latest_version() == u64::MAX {
-            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
-                "Shieldd app state is not initialized"
-            )));
-        }
-        let snapshot = storage.latest_snapshot();
-        let height = snapshot
-            .get_block_height()
-            .await
-            .map_err(ServiceError::internal)?;
-        if request.block_height > height {
-            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
-                "requested block is not committed"
-            )));
-        }
-        let transaction_id = request.transaction_id.try_into().map_err(|_| {
-            ServiceError::invalid_argument(anyhow::anyhow!("transaction ID must be 32 bytes"))
-        })?;
-        snapshot
-            .committed_transaction(request.block_height, transaction_id)
-            .await
-            .map_err(ServiceError::internal)
-    }
-
-    pub async fn app_parameters(
-        &self,
-        _request: proto_app::AppParametersRequest,
-    ) -> std::result::Result<proto_app::AppParametersResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        if storage.latest_version() == u64::MAX {
-            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
-                "Shieldd app state is not initialized"
-            )));
-        }
-        let app_parameters = storage
-            .latest_snapshot()
-            .get_app_params()
-            .await
-            .context("read committed Shieldd app parameters")
-            .map_err(ServiceError::internal)?;
-
-        Ok(proto_app::AppParametersResponse {
-            app_parameters: Some(app_parameters.into()),
-        })
-    }
-
-    pub async fn asset_metadata_by_id(
-        &self,
-        request: AssetMetadataByIdRequest,
-    ) -> std::result::Result<AssetMetadataByIdResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        shieldd_sdk_shielded_pool::component::query::asset_metadata_by_id(
-            &storage.latest_snapshot(),
-            request,
-        )
-        .await
-        .map_err(ServiceError::state_query)
-    }
-
-    pub async fn compact_block_range(
-        &self,
-        request: CompactBlockRangeRequest,
-    ) -> std::result::Result<Vec<CompactBlockRangeResponse>, ServiceError> {
-        if request.keep_alive {
-            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
-                "embedded compact block ranges must be bounded"
-            )));
-        }
-
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        if storage.latest_version() == u64::MAX {
-            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
-                "Shieldd app state is not initialized"
-            )));
-        }
-
-        let snapshot = storage.latest_snapshot();
-        let current_height = snapshot
-            .get_block_height()
-            .await
-            .context("read committed Shieldd block height")
-            .map_err(ServiceError::internal)?;
-        let effective_end = if request.end_height == 0 {
-            current_height
-        } else {
-            request.end_height.min(current_height)
-        };
-        let block_count = effective_end
-            .checked_sub(request.start_height)
-            .map_or(0, |difference| difference.saturating_add(1));
-        if block_count > MAX_EMBEDDED_COMPACT_BLOCKS {
-            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
-                "embedded compact block range contains {block_count} blocks; maximum is {MAX_EMBEDDED_COMPACT_BLOCKS}"
-            )));
-        }
-
-        let mut blocks = snapshot.stream_compact_block(request.start_height);
-        let mut responses = Vec::with_capacity(block_count as usize);
-        let mut next_height = request.start_height;
-        while let Some(block) = blocks.try_next().await.map_err(|error| {
-            ServiceError::internal(anyhow::anyhow!("error streaming compact blocks: {error}"))
-        })? {
-            if block.height > effective_end {
-                break;
-            }
-            if block.height != next_height {
-                return Err(ServiceError::internal(anyhow::anyhow!(
-                    "block height mismatch while sending: expected {next_height}, got {}",
-                    block.height
-                )));
-            }
-            next_height = next_height.saturating_add(1);
-            responses.push(CompactBlockRangeResponse {
-                compact_block: Some(block),
-            });
-        }
-        Ok(responses)
-    }
-
-    pub async fn compliance_asset_status(
-        &self,
-        request: ComplianceAssetStatusRequest,
-    ) -> std::result::Result<ComplianceAssetStatusResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        shieldd_sdk_compliance::component::query::compliance_asset_status(
-            &storage.latest_snapshot(),
-            request,
-        )
-        .await
-        .map_err(ServiceError::state_query)
-    }
-
-    pub async fn compliance_batch_merkle_proofs(
-        &self,
-        request: ComplianceBatchMerkleProofsRequest,
-    ) -> std::result::Result<ComplianceBatchMerkleProofsResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        shieldd_sdk_compliance::component::query::compliance_batch_merkle_proofs(
-            &storage.latest_snapshot(),
-            request,
-        )
-        .await
-        .map_err(ServiceError::state_query)
-    }
-
-    pub async fn compliance_user_leaf(
-        &self,
-        request: ComplianceUserLeafRequest,
-    ) -> std::result::Result<ComplianceUserLeafResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        shieldd_sdk_compliance::component::query::compliance_user_leaf(
-            &storage.latest_snapshot(),
-            request,
-        )
-        .await
-        .map_err(ServiceError::state_query)
-    }
-
-    pub async fn key_value(
-        &self,
-        request: ProtoKeyValueRequest,
-    ) -> std::result::Result<ProtoKeyValueResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        if request.key.is_empty() {
-            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
-                "key is empty"
-            )));
-        }
-        let state = storage.latest_snapshot();
-        let (value, proof) = if request.proof {
-            let (value, proof) = state
-                .get_with_proof(request.key.into_bytes())
-                .await
-                .map_err(ServiceError::internal)?;
-            let proofs = proof
-                .proofs
-                .into_iter()
-                .map(|proof| {
-                    // Cnidarium and the host can select distinct ICS23 package versions.
-                    prost::Message::decode(proof.encode_to_vec().as_slice())
-                        .map_err(|error| ServiceError::internal(error.into()))
-                })
-                .collect::<std::result::Result<Vec<_>, _>>()?;
-            (
-                value,
-                Some(ibc_proto::ibc::core::commitment::v1::MerkleProof { proofs }),
-            )
-        } else {
-            (
-                state
-                    .get_raw(&request.key)
-                    .await
-                    .map_err(ServiceError::internal)?,
-                None,
-            )
-        };
-        Ok(ProtoKeyValueResponse {
-            value: value.map(|value| ProtoKeyValue { value }),
-            proof,
-        })
-    }
-
-    pub async fn nullifier_window(
-        &self,
-        _request: NullifierWindowRequest,
-    ) -> std::result::Result<NullifierWindowResponse, ServiceError> {
-        let storage = self.storage.as_ref().ok_or_else(ServiceError::closed)?;
-        let generation =
-            shieldd_sdk_sct::nullifier_tree::generation_state(&storage.latest_snapshot())
-                .await
-                .map_err(|error| {
-                    ServiceError::internal(anyhow::anyhow!(
-                        "could not read nullifier window: {error}"
-                    ))
-                })?;
-        Ok(NullifierWindowResponse {
-            window: Some(generation.window().into()),
-        })
-    }
-
     pub async fn rollback(
         &mut self,
         _request: RollbackRequest,
     ) -> std::result::Result<RollbackResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
-        execution.rollback();
+        execution
+            .rollback()
+            .await
+            .map_err(ServiceError::failed_precondition)?;
         Ok(RollbackResponse {})
     }
 
@@ -636,69 +409,12 @@ impl ExecutionService {
         })
     }
 
-    pub async fn archived_nullifier_proof(
-        &self,
-        request: ArchivedNullifierProofRequest,
-    ) -> std::result::Result<ArchivedNullifierProofResponse, ServiceError> {
-        let nullifier = request
-            .nullifier
-            .context("missing nullifier")
-            .and_then(Nullifier::try_from)
-            .map_err(ServiceError::invalid_argument)?;
-        let repository = self.generation_packs.clone().ok_or_else(|| {
-            ServiceError::failed_precondition(anyhow::anyhow!(
-                "historical witness storage is not configured"
-            ))
-        })?;
-        self.execution.as_ref().ok_or_else(ServiceError::closed)?;
-        let state = self
-            .storage
-            .as_ref()
-            .ok_or_else(ServiceError::closed)?
-            .latest_snapshot();
-        let archived = nullifier_tree::archived_generation(&state, request.generation_index)
-            .await
-            .map_err(ServiceError::failed_precondition)?;
-        let packed = if repository.contains(request.generation_index) {
-            Some(
-                tokio::task::spawn_blocking(move || {
-                    repository
-                        .nonmembership_proof(archived, nullifier)
-                        .map(|proof| *proof)
-                })
-                .await
-                .context("historical witness task failed")
-                .map_err(ServiceError::internal)?,
-            )
-        } else {
-            None
-        };
-        let proof = match packed {
-            Some(Ok(proof)) => proof,
-            Some(Err(pack_error)) => nullifier_tree::archived_nonmembership_proof(
-                &state,
-                request.generation_index,
-                nullifier,
-            )
-            .await
-            .with_context(|| format!("generation pack is also unavailable: {pack_error}"))
-            .map_err(ServiceError::failed_precondition)?,
-            None => nullifier_tree::archived_nonmembership_proof(
-                &state,
-                request.generation_index,
-                nullifier,
-            )
-            .await
-            .map_err(ServiceError::failed_precondition)?,
-        };
-        Ok(proof.into())
-    }
-
     pub async fn close(&mut self) -> std::result::Result<(), ServiceError> {
-        if let Some(worker) = self.generation_pack_worker.take() {
-            worker.abort();
-            let _ = worker.await;
+        if let Some(worker) = self.generation_pack_worker.as_mut() {
+            worker.shutdown().await;
         }
+        self.generation_pack_worker = None;
+        self.queries.close();
         drop(self.execution.take());
         if let Some(storage) = self.storage.take() {
             storage.release().await;
@@ -719,7 +435,7 @@ fn decode_host_block(request: BeginBlockRequest) -> Result<HostBlock> {
     })
 }
 
-fn check_tx_response(response: HostTxResponse) -> Result<CheckTxResponse> {
+pub(crate) fn check_tx_response(response: HostTxResponse) -> Result<CheckTxResponse> {
     Ok(CheckTxResponse {
         code: response.code,
         data: response.data,
@@ -795,8 +511,10 @@ fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
 mod tests {
     use super::*;
     use cnidarium::StateDelta;
-    use decaf377::Fq;
+    use cnidarium::StateWrite as _;
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_compact_block::CompactBlock;
+    use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
     use shieldd_sdk_sct::{nullifier_tree, Nullifier};
@@ -824,22 +542,88 @@ mod tests {
             SUBSTORE_PREFIXES.to_vec(),
         )
         .await?;
+        let mut initializer =
+            ExecutionService::new(storage.clone(), crate::test_registry()).await?;
+        initializer.init_genesis(init_genesis_request()).await?;
+        initializer.commit(CommitRequest {}).await?;
+        drop(initializer);
         let mut state = StateDelta::new(storage.latest_snapshot());
-        nullifier_tree::initialize(&mut state).await?;
         nullifier_tree::insert_batch(&mut state, [nullifier(7), nullifier(1)]).await?;
+        let initial_window = nullifier_tree::generation_state(&state).await?.window();
+        shieldd_sdk_compact_block::component::CompactBlockManager::put_compact_block(
+            &mut state,
+            CompactBlock {
+                height: 0,
+                nullifiers: vec![nullifier(7), nullifier(1)],
+                nullifier_window: Some(initial_window),
+                ..Default::default()
+            },
+        )?;
         nullifier_tree::rollover(&mut state, 30, 1 << 32).await?;
         nullifier_tree::rollover(&mut state, 60, 2 << 32).await?;
+        let retired_window = nullifier_tree::generation_state(&state).await?.window();
+        shieldd_sdk_compact_block::component::CompactBlockManager::put_compact_block(
+            &mut state,
+            CompactBlock {
+                height: 1,
+                nullifier_window: Some(retired_window),
+                ..Default::default()
+            },
+        )?;
         let archived = nullifier_tree::archived_generation(&state, 0).await?;
-        let pack = nullifier_tree::build_generation_pack(&state, 0).await?;
         let directory = tempfile::tempdir()?;
         let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
-        let receipt = repository.write(&pack)?;
+        let receipt = nullifier_tree::build_generation_archive(
+            &state,
+            &repository,
+            0,
+            shieldd_sdk_sct::generation_pack::ArchiveMaintenanceLease::acquire().await,
+        )
+        .await?;
+        let pack_path = repository.path(0);
         nullifier_tree::record_generation_pack_completion(&mut state, &receipt).await?;
-        nullifier_tree::prune_packed_generation(&mut state, &receipt).await?;
+        state.nonverifiable_put_raw(
+            shieldd_sdk_sct::state_key::nullifier_generations::insertion(0, 0),
+            serde_json::to_vec(&nullifier_tree::InsertionInterval {
+                height: 0,
+                generation: 0,
+                first_position: 1,
+                count: 2,
+            })?,
+        );
+        state.nonverifiable_put_raw(
+            shieldd_sdk_sct::state_key::nullifier_generations::block_range(0),
+            serde_json::to_vec(&nullifier_tree::GenerationBlockRange {
+                start_height: 0,
+                end_height: 0,
+            })?,
+        );
         storage.commit(state).await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let maintenance = shieldd_sdk_app::nullifier_generation_packs::maintain_one_generation(
+            &mut state,
+            &repository,
+        )
+        .await?;
+        let batch = storage.prepare_commit(state).await?;
+        storage.commit_batch(maintenance.attach(&storage, batch)?)?;
 
-        let mut service = ExecutionService::new_with_generation_packs(storage, Some(repository));
+        let mut service = ExecutionService::new_with_generation_packs(
+            storage,
+            Some(repository),
+            crate::test_registry(),
+        )
+        .await?;
+        service
+            .queries()
+            .publish_committed(
+                service
+                    .get_committed_state(GetCommittedStateRequest {})
+                    .await?,
+            )
+            .await?;
         let response = service
+            .queries()
             .archived_nullifier_proof(ArchivedNullifierProofRequest {
                 generation_index: 0,
                 nullifier: Some(nullifier(8).into()),
@@ -849,6 +633,46 @@ mod tests {
             response.try_into()?;
         proof.verify_for(nullifier(8))?;
         assert_eq!(proof.generation_root, archived.generation_root);
+        let spent = service
+            .queries()
+            .archived_nullifier_proof(ArchivedNullifierProofRequest {
+                generation_index: 0,
+                nullifier: Some(nullifier(7).into()),
+            })
+            .await
+            .expect_err("spent archived nullifier must not trigger pack repair");
+        assert_eq!(spent.kind(), ErrorKind::FailedPrecondition);
+        assert!(pack_path.is_file());
+        std::fs::remove_file(&pack_path)?;
+        let unavailable = service
+            .queries()
+            .archived_nullifier_proof(ArchivedNullifierProofRequest {
+                generation_index: 0,
+                nullifier: Some(nullifier(8).into()),
+            })
+            .await
+            .expect_err("missing archives fail closed while repair is queued");
+        assert_eq!(unavailable.kind(), ErrorKind::Unavailable);
+        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            loop {
+                if let Ok(response) = service
+                    .queries()
+                    .archived_nullifier_proof(ArchivedNullifierProofRequest {
+                        generation_index: 0,
+                        nullifier: Some(nullifier(8).into()),
+                    })
+                    .await
+                {
+                    let proof: shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof =
+                        response.try_into()?;
+                    proof.verify_for(nullifier(8))?;
+                    break Ok::<_, anyhow::Error>(());
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await??;
+        assert!(pack_path.is_file());
         service.close().await?;
         Ok(())
     }
@@ -949,7 +773,7 @@ mod tests {
     #[tokio::test]
     async fn close_releases_storage_and_rejects_later_operations() {
         let directory = tempfile::tempdir().expect("temporary database directory");
-        let mut service = ExecutionService::open(directory.path())
+        let mut service = ExecutionService::open(directory.path(), crate::test_registry())
             .await
             .expect("open execution service");
 
@@ -965,10 +789,63 @@ mod tests {
             .expect_err("closed service rejects calls");
         assert_eq!(error.kind(), ErrorKind::FailedPrecondition);
 
-        let mut reopened = ExecutionService::open(directory.path())
+        let mut reopened = ExecutionService::open(directory.path(), crate::test_registry())
             .await
             .expect("storage was released");
         reopened.close().await.expect("close reopened service");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancelled_close_can_be_retried_before_worker_abort_is_polled() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let db = directory.path().join("rocksdb");
+        let packs = directory.path().join("packs");
+        let mut service =
+            ExecutionService::open_with_generation_packs(&db, &packs, crate::test_registry())
+                .await?;
+        tokio::task::yield_now().await;
+
+        let mut closing = Box::pin(service.close());
+        assert!(futures::poll!(closing.as_mut()).is_pending());
+        drop(closing);
+        // Retry before the aborted worker can run and release its storage clone.
+        service.close().await?;
+
+        let mut reopened =
+            ExecutionService::open_with_generation_packs(&db, &packs, crate::test_registry())
+                .await?;
+        reopened.close().await?;
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn dropping_service_stops_generation_pack_worker() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let service = ExecutionService::open_with_generation_packs(
+            directory.path().join("rocksdb"),
+            directory.path().join("packs"),
+            crate::test_registry(),
+        )
+        .await?;
+        let worker = service
+            .generation_pack_worker
+            .as_ref()
+            .unwrap()
+            .abort_handle();
+        tokio::task::yield_now().await;
+        drop(service);
+        let stopped = tokio::time::timeout(std::time::Duration::from_secs(1), async {
+            while !worker.is_finished() {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await;
+        worker.abort();
+        anyhow::ensure!(
+            stopped.is_ok(),
+            "dropped service left its pack worker running"
+        );
+        Ok(())
     }
 
     #[tokio::test]
@@ -981,7 +858,8 @@ mod tests {
             (Some(shieldd_sdk_app::APP_VERSION - 1), true),
         ] {
             let directory = tempfile::tempdir()?;
-            let mut service = ExecutionService::open(directory.path()).await?;
+            let mut service =
+                ExecutionService::open(directory.path(), crate::test_registry()).await?;
             service.init_genesis(init_genesis_request()).await?;
             service.commit(CommitRequest {}).await?;
             let storage = service.storage.as_ref().expect("open storage");
@@ -1004,7 +882,7 @@ mod tests {
                 version
             );
             service.close().await?;
-            match ExecutionService::open(directory.path()).await {
+            match ExecutionService::open(directory.path(), crate::test_registry()).await {
                 Err(error) => assert_eq!(error.kind(), ErrorKind::FailedPrecondition),
                 Ok(mut reopened) => {
                     reopened.close().await?;
@@ -1036,7 +914,7 @@ mod tests {
     #[tokio::test]
     async fn committed_state_survives_reopening_the_service() {
         let directory = tempfile::tempdir().expect("temporary database directory");
-        let mut service = ExecutionService::open(directory.path())
+        let mut service = ExecutionService::open(directory.path(), crate::test_registry())
             .await
             .expect("open execution service");
 
@@ -1063,7 +941,7 @@ mod tests {
 
         service.close().await.expect("close execution service");
 
-        let mut reopened = ExecutionService::open(directory.path())
+        let mut reopened = ExecutionService::open(directory.path(), crate::test_registry())
             .await
             .expect("reopen execution service");
         let reopened_committed = reopened

@@ -11,9 +11,9 @@ pub use host_withdrawal::{
 pub mod discovery;
 pub mod event;
 pub mod genesis;
-pub mod gnark;
-mod groth16_proof;
 pub mod params;
+mod pari;
+mod proof;
 pub mod state_key;
 
 mod action_context;
@@ -98,3 +98,10 @@ pub mod test_proof_helpers;
 
 #[cfg(any(test, feature = "benchmark-helpers"))]
 pub mod test_plan_helpers;
+
+/// Explicit proof keys accompany transaction facts at stateless verification boundaries.
+#[derive(Clone)]
+pub struct ProofVerificationContext {
+    pub transaction: shieldd_sdk_txhash::TransactionContext,
+    pub registry: std::sync::Arc<shieldd_sdk_proof_params::pari::Registry>,
+}

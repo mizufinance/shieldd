@@ -5,6 +5,7 @@ use crate::{
     Storage,
 };
 use anyhow::Context;
+use group::GroupEncoding;
 use shieldd_sdk_compact_block::CompactBlock;
 use shieldd_sdk_compliance::EventUserAssetStatusChanged;
 use shieldd_sdk_keys::FullViewingKey;
@@ -67,22 +68,69 @@ pub struct WalletBlock {
 
 pub struct SyncWorker {
     storage: Storage,
+    snapshot_height: Option<u64>,
     sct: shieldd_sdk_tct::Tree,
     fvk: FullViewingKey,
     compliance_snapshot: Arc<ComplianceSnapshot>,
+    history_wake: Arc<tokio::sync::Notify>,
+    history_task: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for SyncWorker {
+    fn drop(&mut self) {
+        self.history_task.abort();
+    }
 }
 
 impl SyncWorker {
-    pub async fn new(storage: Storage) -> anyhow::Result<Self> {
+    pub async fn new(
+        storage: Storage,
+        registry: Arc<shieldd_sdk_proof_params::pari::Registry>,
+        witness_source: Arc<dyn crate::HistoricalWitnessSource>,
+    ) -> anyhow::Result<Self> {
+        let snapshot_height = storage.last_sync_height().await?;
+        let sct = storage.state_commitment_tree().await?;
+        let fvk = storage.full_viewing_key().await?;
+        let compliance_snapshot = Arc::new(ComplianceSnapshot {
+            user_tree: storage.compliance_user_tree().await?,
+            asset_tree: storage.compliance_asset_tree().await?,
+        });
+        let mut history =
+            crate::HistoricalProofWorker::new(storage.clone(), witness_source, registry).await?;
+        anyhow::ensure!(
+            storage.last_sync_height().await? == snapshot_height,
+            "wallet advanced while loading snapshot; recreate sync worker"
+        );
+        let history_wake = Arc::new(tokio::sync::Notify::new());
+        let wake = history_wake.clone();
+        let history_task = tokio::spawn(async move {
+            loop {
+                if let Err(error) = history.update().await {
+                    tracing::warn!(
+                        ?error,
+                        "history update deferred after committed wallet state"
+                    );
+                }
+                tokio::select! {
+                    _ = wake.notified() => {},
+                    _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {},
+                }
+            }
+        });
         Ok(Self {
-            sct: storage.state_commitment_tree().await?,
-            fvk: storage.full_viewing_key().await?,
-            compliance_snapshot: Arc::new(ComplianceSnapshot {
-                user_tree: storage.compliance_user_tree().await?,
-                asset_tree: storage.compliance_asset_tree().await?,
-            }),
             storage,
+            snapshot_height,
+            sct,
+            fvk,
+            compliance_snapshot,
+            history_wake,
+            history_task,
         })
+    }
+
+    /// Schedule deferred history work without waiting for external witnesses or proving.
+    pub fn request_history_update(&self) {
+        self.history_wake.notify_one();
     }
 
     async fn prepare_compliance_block(
@@ -152,13 +200,14 @@ impl SyncWorker {
 
         // Process asset registrations (sync full leaf data including policy)
         for event in &block.compliance_asset_registrations {
+            event.validate()?;
             // Debug: log each asset registration event
             tracing::debug!(
                 asset_id = ?event.asset_id,
                 position = event.position,
                 is_regulated = event.is_regulated,
                 daily_volume_limit = event.indexed_leaf.params.daily_volume_limit,
-                dk_pub_first_byte = event.indexed_leaf.params.dk_pub.vartime_compress().0[0],
+                dk_pub_first_byte = event.indexed_leaf.params.dk_pub.to_bytes()[0],
                 low_leaf_position = event.low_leaf_position,
                 "worker: syncing asset registration"
             );
@@ -223,20 +272,89 @@ impl SyncWorker {
         Ok((Some(plan), snapshot))
     }
 
+    /// Fetch every required page before committing one block. A failed/expired query leaves the
+    /// previous wallet height intact; callers restart this operation from the host anchor.
+    pub async fn sync_from_provider(
+        &mut self,
+        provider: &dyn crate::SyncProvider,
+        anchors: &dyn crate::GenerationAnchors,
+        mode: &crate::SyncMode,
+        host: crate::HostBlock,
+    ) -> anyhow::Result<()> {
+        let limits = provider.limits();
+        limits.validate()?;
+        let mut budget = shieldd_sdk_compact_block::pages::AssemblyBudget::new(limits.block)?;
+        let (block, sparse, transactions) = match mode {
+            crate::SyncMode::FullScan => (
+                crate::provider::full(provider, &host, &mut budget).await?,
+                None,
+                crate::provider::transactions(provider, host.height, &mut budget).await?,
+            ),
+            crate::SyncMode::RemoteFiltered { provider_id } => {
+                anyhow::ensure!(
+                    !provider_id.is_empty() && provider_id == provider.id(),
+                    "filtered synchronization is not authorized for this provider"
+                );
+                let sparse = crate::provider::sparse(
+                    provider,
+                    &host,
+                    self.storage.issued_addresses().await?,
+                    &mut budget,
+                )
+                .await?;
+                (sparse.block.clone(), Some(sparse), Vec::new())
+            }
+        };
+        let remote = sparse
+            .as_ref()
+            .map(|_| (provider, anchors, host.chain_id.as_str()));
+        self.scan_inner(
+            WalletBlock {
+                block,
+                expected_sct_root: host.expected_sct_root,
+                timestamp: host.timestamp,
+                transactions,
+                assets: host.assets,
+                updated_app_parameters: host.updated_app_parameters,
+            },
+            sparse,
+            remote,
+            &mut budget,
+        )
+        .await
+    }
+
     pub async fn scan(&mut self, input: WalletBlock) -> anyhow::Result<()> {
+        let mut budget = shieldd_sdk_compact_block::pages::AssemblyBudget::new(Default::default())?;
+        self.scan_inner(input, None, None, &mut budget).await
+    }
+
+    async fn scan_inner(
+        &mut self,
+        input: WalletBlock,
+        sparse: Option<shieldd_sdk_compact_block::pages::SparseCompactBlock>,
+        remote: Option<(
+            &dyn crate::SyncProvider,
+            &dyn crate::GenerationAnchors,
+            &str,
+        )>,
+        budget: &mut shieldd_sdk_compact_block::pages::AssemblyBudget,
+    ) -> anyhow::Result<()> {
         let WalletBlock {
             block,
             expected_sct_root,
             timestamp,
-            transactions,
+            mut transactions,
             assets,
             updated_app_parameters,
         } = input;
         let height = block.height;
+        anyhow::ensure!(
+            self.storage.last_sync_height().await? == self.snapshot_height,
+            "wallet snapshot is stale; recreate sync worker"
+        );
         let expected = self
-            .storage
-            .last_sync_height()
-            .await?
+            .snapshot_height
             .map(|h| h.checked_add(1).context("wallet height overflow"))
             .transpose()?
             .unwrap_or(0);
@@ -256,18 +374,65 @@ impl SyncWorker {
             root,
         });
         let mut counterparties = BTreeSet::new();
-        let mut filtered_block = scan_block(
-            &self.fvk,
-            &mut next_sct,
-            block,
-            &self.storage,
-            compliance_plan.as_ref(),
-        )
-        .await?;
+        let owners = sparse
+            .as_ref()
+            .map(|s| s.owners.clone())
+            .unwrap_or_default();
+        let mut filtered_block = if let Some(sparse) = sparse {
+            crate::sync::scan_sparse_block(
+                &self.fvk,
+                &mut next_sct,
+                sparse,
+                &self.storage,
+                compliance_plan.as_ref(),
+            )
+            .await?
+        } else {
+            scan_block(
+                &self.fvk,
+                &mut next_sct,
+                block,
+                &self.storage,
+                compliance_plan.as_ref(),
+            )
+            .await?
+        };
         anyhow::ensure!(
             next_sct.root() == expected_sct_root,
             "wallet SCT root does not match committed host anchor"
         );
+        if let Some((provider, anchors, chain)) = remote {
+            let mut nullifiers = self
+                .storage
+                .notes(false, None, None, None)
+                .await?
+                .into_iter()
+                .map(|n| n.nullifier)
+                .collect::<BTreeSet<_>>();
+            nullifiers.extend(filtered_block.new_notes.values().map(|n| n.nullifier));
+            // Include notes discovered in this block before advancing its catch-up interval.
+            filtered_block.spent_nullifiers =
+                crate::provider::spends(provider, anchors, chain, height, nullifiers).await?;
+            if !filtered_block.spent_nullifiers.is_empty() {
+                transactions = crate::provider::transactions(provider, height, budget).await?;
+            } else {
+                let ids = filtered_block
+                    .new_notes
+                    .values()
+                    .filter_map(|n| owners.get(&u64::from(n.position)).copied())
+                    .collect::<BTreeSet<_>>();
+                for id in ids {
+                    let transaction = provider.transaction(height, id).await?;
+                    anyhow::ensure!(
+                        transaction.id() == id,
+                        "provider returned the wrong canonical transaction"
+                    );
+                    use shieldd_sdk_proto::DomainType as _;
+                    budget.reserve_record(transaction.encode_to_vec().len())?;
+                    transactions.push(transaction);
+                }
+            }
+        }
         let transactions = relevant_transactions(&mut filtered_block, transactions);
         for transaction in &transactions {
             // Extract counterparties from outputs using OVK decryption
@@ -341,6 +506,8 @@ impl SyncWorker {
             .await?;
         self.sct = next_sct;
         self.compliance_snapshot = next_compliance_snapshot;
+        self.snapshot_height = Some(height);
+        self.request_history_update();
         Ok(())
     }
 }
@@ -394,6 +561,32 @@ fn relevant_transactions(
 }
 #[cfg(test)]
 mod compliance_projection_tests {
+    fn registry() -> Arc<shieldd_sdk_proof_params::pari::Registry> {
+        static REGISTRY: std::sync::OnceLock<Arc<shieldd_sdk_proof_params::pari::Registry>> =
+            std::sync::OnceLock::new();
+        REGISTRY
+            .get_or_init(|| {
+                Arc::new(
+                    shieldd_sdk_proof_params::pari::Registry::load(
+                        std::env::var("SHIELDD_PARI_KEYS").expect("SHIELDD_PARI_KEYS is required"),
+                    )
+                    .unwrap(),
+                )
+            })
+            .clone()
+    }
+    struct NoHistory;
+    #[async_trait::async_trait]
+    impl crate::HistoricalWitnessSource for NoHistory {
+        async fn nonmembership_proof(
+            &self,
+            _: shieldd_sdk_sct::Nullifier,
+            _: u64,
+        ) -> anyhow::Result<shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof> {
+            anyhow::bail!("fixture has no archived generations")
+        }
+    }
+
     use super::*;
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_compliance::{ComplianceLeaf, UserAssetStatus};
@@ -416,7 +609,7 @@ mod compliance_projection_tests {
         let mut rng = rand::thread_rng();
         let mut active = ComplianceLeaf::synthetic_unregulated(
             shieldd_sdk_keys::Address::dummy(&mut rng),
-            asset::Id(decaf377::Fq::from(7u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(7u64)),
         );
         let mut tree = ComplianceUserTree::new();
         let position = tree.insert(active.commit()).unwrap();
@@ -455,7 +648,9 @@ mod compliance_projection_tests {
         )
         .await
         .unwrap();
-        let worker = SyncWorker::new(storage).await.unwrap();
+        let worker = SyncWorker::new(storage, registry(), Arc::new(NoHistory))
+            .await
+            .unwrap();
         let before = worker.compliance_snapshot.clone();
         let block = CompactBlock {
             compliance_user_anchor: Some(before.user_tree.root()),
@@ -469,6 +664,122 @@ mod compliance_projection_tests {
         assert!(Arc::ptr_eq(&before, &after));
     }
     #[tokio::test]
+    async fn asset_registration_projection_rejects_unbound_policy() -> anyhow::Result<()> {
+        use shieldd_sdk_compliance::{
+            indexed_tree::{IndexedLeaf, FQ_MAX},
+            AssetPolicy, EventAssetRegistered,
+        };
+        use shieldd_sdk_crypto::{generators::SPEND_AUTH, Fq, Fr};
+        let storage = Storage::initialize(
+            None::<&camino::Utf8Path>,
+            (*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY).clone(),
+            Default::default(),
+        )
+        .await?;
+        let worker = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+        let policy =
+            AssetPolicy::for_test(*SPEND_AUTH * Fr::from(11), 1000, *SPEND_AUTH * Fr::from(12));
+        let mut event = EventAssetRegistered {
+            asset_id: asset::Id(Fq::from(7)),
+            is_regulated: true,
+            position: 1,
+            indexed_leaf: IndexedLeaf::from_policy(Fq::from(7), 0, FQ_MAX.clone(), &policy),
+            low_leaf_position: 0,
+            updated_low_leaf: IndexedLeaf::with_default_policy(Fq::from(0), 1, Fq::from(7)),
+            asset_policy: policy,
+        };
+        let mut expected = worker.compliance_snapshot.asset_tree.clone();
+        expected.sync_from_event(
+            event.indexed_leaf.clone(),
+            event.position,
+            event.updated_low_leaf.clone(),
+            event.low_leaf_position,
+        )?;
+        let mut block = CompactBlock {
+            compliance_user_anchor: Some(worker.compliance_snapshot.user_tree.root()),
+            compliance_asset_anchor: Some(expected.root()),
+            compliance_asset_registrations: vec![event.clone()],
+            ..Default::default()
+        };
+        assert!(worker.prepare_compliance_block(&block).await.is_ok());
+        event.asset_policy.params.daily_volume_limit += 1;
+        block.compliance_asset_registrations = vec![event];
+        assert!(
+            worker.prepare_compliance_block(&block).await.is_err(),
+            "matching tree roots cannot authenticate a conflicting side policy"
+        );
+        assert_eq!(storage.last_sync_height().await?, None);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn stale_worker_rejects_before_projecting_and_can_be_recreated() -> anyhow::Result<()> {
+        let storage = Storage::initialize(
+            None::<&camino::Utf8Path>,
+            (*shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY).clone(),
+            Default::default(),
+        )
+        .await?;
+        let mut first = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+        let mut stale = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+        let stale_root = stale.sct.root();
+        let block = CompactBlock {
+            height: 0,
+            compliance_user_anchor: Some(first.compliance_snapshot.user_tree.root()),
+            compliance_asset_anchor: Some(first.compliance_snapshot.asset_tree.root()),
+            ..Default::default()
+        };
+        let mut expected = first.sct.clone();
+        expected.insert_block(block.block_root)?;
+        first
+            .scan(WalletBlock {
+                block,
+                expected_sct_root: expected.root(),
+                timestamp: 11,
+                transactions: vec![],
+                assets: vec![],
+                updated_app_parameters: None,
+            })
+            .await?;
+        let next = CompactBlock {
+            height: 1,
+            compliance_user_anchor: Some(first.compliance_snapshot.user_tree.root()),
+            compliance_asset_anchor: Some(first.compliance_snapshot.asset_tree.root()),
+            ..Default::default()
+        };
+        let committed_root = expected.root();
+        expected.insert_block(next.block_root)?;
+        let input = || WalletBlock {
+            block: next.clone(),
+            expected_sct_root: expected.root(),
+            timestamp: 22,
+            transactions: vec![],
+            assets: vec![],
+            updated_app_parameters: None,
+        };
+        let error = stale.scan(input()).await.unwrap_err();
+        assert!(
+            error.to_string().contains("wallet snapshot is stale"),
+            "{error:#}"
+        );
+        assert_eq!(storage.last_sync_height().await?, Some(0));
+        assert_eq!(storage.block_timestamp().await?, 11);
+        assert_eq!(
+            storage.state_commitment_tree().await?.root(),
+            committed_root
+        );
+        assert_eq!(stale.sct.root(), stale_root);
+        let mut resumed = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+        resumed.scan(input()).await?;
+        assert_eq!(storage.last_sync_height().await?, Some(1));
+        assert_eq!(
+            storage.state_commitment_tree().await?.root(),
+            expected.root()
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn empty_blocks_survive_worker_restart() -> anyhow::Result<()> {
         let storage = Storage::initialize(
             None::<&camino::Utf8Path>,
@@ -476,7 +787,7 @@ mod compliance_projection_tests {
             Default::default(),
         )
         .await?;
-        let mut worker = SyncWorker::new(storage.clone()).await?;
+        let mut worker = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
         for height in 0..3 {
             let block = CompactBlock {
                 height,
@@ -489,9 +800,10 @@ mod compliance_projection_tests {
             let original_root = worker.sct.root();
             let wrong_root =
                 shieldd_sdk_tct::Root::try_from(shieldd_sdk_proto::crypto::tct::v1::MerkleRoot {
-                    inner: (decaf377::Fq::from(expected_sct.root()) + decaf377::Fq::from(1u64))
-                        .to_bytes()
-                        .to_vec(),
+                    inner: (shieldd_sdk_crypto::Fq::from(expected_sct.root())
+                        + shieldd_sdk_crypto::Fq::from(1u64))
+                    .to_bytes()
+                    .to_vec(),
                 })?;
             assert!(worker
                 .scan(WalletBlock {
@@ -517,7 +829,7 @@ mod compliance_projection_tests {
                     updated_app_parameters: None,
                 })
                 .await?;
-            let resumed = SyncWorker::new(storage.clone()).await?;
+            let resumed = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
             assert_eq!(resumed.sct.root(), worker.sct.root(), "height {height}");
             assert_eq!(
                 resumed.sct.position(),

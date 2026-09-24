@@ -280,9 +280,10 @@ impl TryFrom<pb::TransactionPlan> for TransactionPlan {
 mod tests {
     use super::*;
     use crate::{Transaction, TransactionBody};
-    use decaf377::Fr;
+    use ff::Field;
     use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_shielded_pool::{
@@ -423,7 +424,7 @@ mod tests {
             shieldd_sdk_shielded_pool::TransferPlan::new(
                 vec![spend],
                 vec![output],
-                Fr::rand(&mut rng),
+                Fr::random(&mut rng),
                 context.clone(),
                 shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(context.timestamp),
                 shieldd_sdk_shielded_pool::TransferProofContext::Ordinary,
@@ -452,173 +453,70 @@ mod tests {
     }
 
     #[test]
-    fn shielded_withdrawal_counts_change_output_for_routing() {
+    fn withdrawal_routing_counts_hidden_output_with_or_without_change() {
         let parameters =
             Parameters::new(Precision::new(12).unwrap(), Precision::new(18).unwrap(), 42).unwrap();
 
-        let spend_value = Value {
-            amount: 50_000u64.into(),
-            asset_id: *BASE_ASSET_ID,
-        };
-        let change_value = Value {
-            amount: 10_000u64.into(),
-            asset_id: *BASE_ASSET_ID,
-        };
-        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, spend_value);
-        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
-        let change = ShieldedOutputPlan::new(
-            &mut OsRng,
-            change_value,
-            test_keys::ADDRESS_0.deref().clone(),
-        );
-        let withdrawal = shieldd_sdk_shielded_pool::HostWithdrawal {
-            value: Value {
-                amount: 40_000u64.into(),
+        for change_amount in [0u64, 10_000] {
+            let spend_value = Value {
+                amount: (40_000 + change_amount).into(),
                 asset_id: *BASE_ASSET_ID,
-            },
-            destination: HostWithdrawalDestination::Transfer(HostTransfer {
-                recipient: "bank1destination".to_owned(),
-            }),
-        };
-
-        let withdrawal = {
-            let context = shieldd_sdk_shielded_pool::test_plan_helpers::withdrawal_context(&spend);
-            shieldd_sdk_shielded_pool::ShieldedHostWithdrawalPlan::new(
-                vec![spend],
-                Some(change),
-                withdrawal,
-                Fr::from(7u64),
-                context.clone(),
-                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(context.timestamp),
-                parameters.clone(),
-            )
-        }
-        .expect("plan should be valid");
-
-        let plan = TransactionPlan {
-            actions: vec![ActionPlan::ShieldedHostWithdrawal(withdrawal)],
-            transaction_parameters: Default::default(),
-            fee_funding: None,
-            memo: None,
-            nullifier_window: None,
-        };
-
-        assert_eq!(plan.num_outputs(), 1);
-        assert_eq!(
-            plan.dest_addresses(),
-            vec![test_keys::ADDRESS_0.deref().clone()]
-        );
-        assert!(matches!(
-            &plan.actions[0],
-            ActionPlan::ShieldedHostWithdrawal(withdrawal)
-                if withdrawal.routing_parameters == parameters
-        ));
-    }
-
-    #[test]
-    fn shielded_withdrawal_without_explicit_change_still_counts_hidden_routing_note() {
-        let parameters =
-            Parameters::new(Precision::new(10).unwrap(), Precision::new(14).unwrap(), 42).unwrap();
-
-        let spend_value = Value {
-            amount: 40_000u64.into(),
-            asset_id: *BASE_ASSET_ID,
-        };
-        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, spend_value);
-        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
-        let withdrawal = shieldd_sdk_shielded_pool::HostWithdrawal {
-            value: Value {
-                amount: 40_000u64.into(),
+            };
+            let change_value = Value {
+                amount: change_amount.into(),
                 asset_id: *BASE_ASSET_ID,
-            },
-            destination: HostWithdrawalDestination::Transfer(HostTransfer {
-                recipient: "bank1destination".to_owned(),
-            }),
-        };
+            };
+            let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, spend_value);
+            let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+            let change = ShieldedOutputPlan::new(
+                &mut OsRng,
+                change_value,
+                test_keys::ADDRESS_0.deref().clone(),
+            );
+            let withdrawal = shieldd_sdk_shielded_pool::HostWithdrawal {
+                value: Value {
+                    amount: 40_000u64.into(),
+                    asset_id: *BASE_ASSET_ID,
+                },
+                destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                    recipient: "bank1destination".to_owned(),
+                }),
+            };
 
-        let withdrawal = {
-            let context = shieldd_sdk_shielded_pool::test_plan_helpers::withdrawal_context(&spend);
-            shieldd_sdk_shielded_pool::ShieldedHostWithdrawalPlan::new(
-                vec![spend],
-                None,
-                withdrawal,
-                Fr::from(7u64),
-                context.clone(),
-                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(context.timestamp),
-                parameters.clone(),
-            )
+            let withdrawal = {
+                let context =
+                    shieldd_sdk_shielded_pool::test_plan_helpers::withdrawal_context(&spend);
+                shieldd_sdk_shielded_pool::ShieldedHostWithdrawalPlan::new(
+                    vec![spend],
+                    (change_amount != 0).then_some(change),
+                    withdrawal,
+                    Fr::from(7u64),
+                    context.clone(),
+                    shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(context.timestamp),
+                    parameters.clone(),
+                )
+            }
+            .expect("plan should be valid");
+
+            let plan = TransactionPlan {
+                actions: vec![ActionPlan::ShieldedHostWithdrawal(withdrawal)],
+                transaction_parameters: Default::default(),
+                fee_funding: None,
+                memo: None,
+                nullifier_window: None,
+            };
+
+            assert_eq!(plan.num_outputs(), 1);
+            assert_eq!(
+                plan.dest_addresses(),
+                vec![test_keys::ADDRESS_0.deref().clone()]
+            );
+            assert!(matches!(
+                &plan.actions[0],
+                ActionPlan::ShieldedHostWithdrawal(withdrawal)
+                    if withdrawal.routing_parameters == parameters
+            ));
         }
-        .expect("plan should be valid");
-
-        let plan = TransactionPlan {
-            actions: vec![ActionPlan::ShieldedHostWithdrawal(withdrawal)],
-            transaction_parameters: Default::default(),
-            fee_funding: None,
-            memo: None,
-            nullifier_window: None,
-        };
-
-        assert_eq!(plan.num_outputs(), 1);
-        assert_eq!(
-            plan.dest_addresses(),
-            vec![test_keys::ADDRESS_0.deref().clone()]
-        );
-        assert!(matches!(
-            &plan.actions[0],
-            ActionPlan::ShieldedHostWithdrawal(withdrawal)
-                if withdrawal.routing_parameters == parameters
-        ));
-    }
-
-    #[test]
-    fn shielded_host_withdrawal_uses_current_routing_parameters() {
-        let parameters =
-            Parameters::new(Precision::new(11).unwrap(), Precision::new(19).unwrap(), 42).unwrap();
-
-        let value = Value {
-            amount: 40_000u64.into(),
-            asset_id: *BASE_ASSET_ID,
-        };
-        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
-        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
-        let withdrawal = HostWithdrawal {
-            value,
-            destination: HostWithdrawalDestination::Transfer(HostTransfer {
-                recipient: "bank1destination".to_owned(),
-            }),
-        };
-        let withdrawal = {
-            let context = shieldd_sdk_shielded_pool::test_plan_helpers::withdrawal_context(&spend);
-            shieldd_sdk_shielded_pool::ShieldedHostWithdrawalPlan::new(
-                vec![spend],
-                None,
-                withdrawal,
-                Fr::from(7u64),
-                context.clone(),
-                shieldd_sdk_shielded_pool::VolumeAccumulatorPlan::padding(context.timestamp),
-                parameters.clone(),
-            )
-        }
-        .expect("plan should be valid");
-
-        let plan = TransactionPlan {
-            actions: vec![ActionPlan::ShieldedHostWithdrawal(withdrawal)],
-            transaction_parameters: Default::default(),
-            fee_funding: None,
-            memo: None,
-            nullifier_window: None,
-        };
-
-        assert_eq!(plan.num_outputs(), 1);
-        assert_eq!(
-            plan.dest_addresses(),
-            vec![test_keys::ADDRESS_0.deref().clone()]
-        );
-        assert!(matches!(
-            &plan.actions[0],
-            ActionPlan::ShieldedHostWithdrawal(withdrawal)
-                if withdrawal.routing_parameters == parameters
-        ));
     }
 
     #[test]
@@ -729,7 +627,14 @@ mod tests {
                 ShieldedInputPlan::new(&mut rng, note, 0u64.into())
             })
             .collect();
-        let output = ShieldedOutputPlan::new(&mut rng, value, test_keys::ADDRESS_0.deref().clone());
+        let output = ShieldedOutputPlan::new(
+            &mut rng,
+            Value {
+                amount: 2u64.into(),
+                ..value
+            },
+            test_keys::ADDRESS_0.deref().clone(),
+        );
         let note_reshape = shieldd_sdk_shielded_pool::test_plan_helpers::note_reshape(
             NoteReshapeFamilyId::EightByOne,
             spends,

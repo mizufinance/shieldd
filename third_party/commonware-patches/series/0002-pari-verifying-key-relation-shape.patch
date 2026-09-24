@@ -1,0 +1,147 @@
+--- a/cryptography/src/zk/pari/types.rs
++++ b/cryptography/src/zk/pari/types.rs
+@@ -383,6 +383,16 @@
+     /// Useful for binding the key into a transcript without re-encoding it.
+     pub const fn digest(&self) -> &[u8; 32] {
+         &self.digest
++    }
++
++    /// Check the encoded relation shape and public columns against a locally compiled relation.
++    /// This does not establish the trustworthiness of the setup ceremony.
++    pub fn matches_relation(&self, relation: &super::Relation) -> bool {
++        self.relation_digest == *relation.digest()
++            && self.domain_size as usize == relation.domain_size()
++            && self.public_inputs as usize == relation.public_inputs()
++            && self.blocks.iter().map(|n| *n as usize).eq(relation.blocks().iter().copied())
++            && matches!(super::setup::public_columns(relation), Ok(columns) if columns == self.public_columns)
+     }
+ 
+     /// Populate the cached digest from the other fields.
+@@ -742,3 +752,116 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod relation_shape_tests {
++    use super::*;
++    use crate::zk::{circuit::{build, Var}, pari::{self, InputLayout, Relation}};
++    use commonware_parallel::Sequential;
++
++    #[test]
++    fn verifying_key_checks_relation_shape_beyond_its_digest_label() {
++        let (circuit, selected) = build(|ctx| {
++            let x = Var::witness(ctx, |_| Scalar::from(3));
++            vec![x.clone() * &x, x]
++        });
++        let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
++        let relation = Relation::compile(&circuit, &layout).unwrap();
++        let (_, key) = pari::setup(&relation, &mut <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(0), &Sequential).unwrap();
++        assert!(key.matches_relation(&relation));
++        let mut changed = key.clone(); changed.domain_size *= 2;
++        assert!(!changed.matches_relation(&relation));
++        let mut changed = key.clone(); changed.blocks[0] += 1;
++        assert!(!changed.matches_relation(&relation));
++        let mut changed = key.clone(); changed.public_inputs += 1;
++        assert!(!changed.matches_relation(&relation));
++        let mut changed = key; changed.public_columns.swap(0, 1);
++        assert!(!changed.matches_relation(&relation));
++    }
++}
++
++#[cfg(test)]
++mod decoding_tests {
++    use super::*;
++    use commonware_codec::FixedSize;
++    use crate::zk::{
++        circuit::{Var, build},
++        pari::{InputLayout, Relation, setup},
++    };
++    use commonware_math::algebra::CryptoGroup;
++    use commonware_parallel::Sequential;
++    use rand::{SeedableRng, rngs::StdRng};
++
++    fn fixture() -> ProvingKey {
++        let (circuit, selected) = build(|ctx| {
++            let x = Var::witness(ctx, |_| Scalar::from(3));
++            let square = x.clone() * &x;
++            let fourth = square.clone() * &square;
++            vec![fourth, x]
++        });
++        let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
++        let relation = Relation::compile(&circuit, &layout).unwrap();
++        setup(&relation, &mut StdRng::seed_from_u64(91), &Sequential)
++            .unwrap()
++            .0
++    }
++
++    fn decode(bytes: &[u8]) -> Result<ProvingKey, commonware_codec::Error> {
++        let mut input = bytes;
++        let key = ProvingKey::read_cfg(
++            &mut input,
++            &(RangeCfg::exact(1), RangeCfg::exact(1)),
++        )?;
++        assert!(input.is_empty());
++        Ok(key)
++    }
++
++    fn encode_entries(key: &ProvingKey, entries: &[(u32, G1)]) -> Vec<u8> {
++        let mut bytes = Vec::new();
++        key.verifying_key.write(&mut bytes);
++        key.commitment_keys.write(&mut bytes);
++        entries.write(&mut bytes);
++        key.sigma_mask_constant.write(&mut bytes);
++        key.sigma_mask_linear.write(&mut bytes);
++        key.sigma_quotient.write(&mut bytes);
++        key.sigma_a.write(&mut bytes);
++        key.sigma_r.write(&mut bytes);
++        bytes
++    }
++
++    #[test]
++    fn native_key_decoding_rejects_truncation_and_malformed_points() {
++        let key = fixture();
++        let encoded = key.encode();
++        assert_eq!(decode(&encoded).unwrap(), key);
++        for length in [0, 1, encoded.len() / 2, encoded.len() - 1] {
++            assert!(decode(&encoded[..length]).is_err());
++        }
++        let mut identity = [0u8; G1::SIZE];
++        identity[0] = 0xc0;
++        // x=0, y=2 is on the curve but outside the prime-order subgroup.
++        let mut torsion = [0u8; G1::SIZE];
++        torsion[0] = 0x80;
++        for invalid in [[0u8; G1::SIZE], identity, torsion] {
++            let mut changed = encoded.to_vec();
++            let start = changed.len() - G1::SIZE;
++            changed[start..].copy_from_slice(&invalid);
++            assert!(decode(&changed).is_err());
++        }
++    }
++
++    #[test]
++    fn checked_key_decoding_rejects_noncanonical_sparse_indices() {
++        let key = fixture();
++        let point = G1::generator();
++        assert!(key.sigma_witness.len() >= 2);
++        for entries in [
++            vec![(0, point), (0, point)],
++            vec![(1, point), (0, point)],
++            vec![(key.sigma_witness.len() as u32, point)],
++        ] {
++            let encoded = encode_entries(&key, &entries);
++            assert!(decode(&encoded).is_err());
++        }
++    }
++}
+--- a/cryptography/src/zk/pari/setup.rs
++++ b/cryptography/src/zk/pari/setup.rs
+@@ -183,7 +183,7 @@
+ }
+ 
+ /// Extract the sparse public columns of `A` and `B` for the verifying key.
+-fn public_columns(relation: &Relation) -> Result<Vec<PublicColumn>, Error> {
++pub(super) fn public_columns(relation: &Relation) -> Result<Vec<PublicColumn>, Error> {
+     let columns = relation
+         .public_inputs()
+         .checked_add(1)

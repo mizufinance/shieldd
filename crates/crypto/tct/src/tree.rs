@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use decaf377::Fq;
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 
 use crate::error::*;
@@ -15,7 +15,7 @@ pub(crate) mod epoch;
 pub(crate) use epoch::block;
 
 /// A sparse merkle tree witnessing up to 65,536 epochs of up to 65,536 blocks of up to 65,536
-/// [`Commitment`]s.
+/// [`crate::StateCommitment`]s.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tree {
     index: HashedMap<StateCommitment, index::within::Tree>,
@@ -70,7 +70,7 @@ impl TryFrom<pb::MerkleRoot> for Root {
 
     fn try_from(root: pb::MerkleRoot) -> Result<Root, Self::Error> {
         let bytes: [u8; 32] = (&root.inner[..]).try_into().map_err(|_| RootDecodeError)?;
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| RootDecodeError)?;
+        let inner = shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| RootDecodeError)?;
         Ok(Root(Hash::new(inner)))
     }
 }
@@ -93,7 +93,7 @@ impl Display for Root {
     }
 }
 
-/// The index of a [`Commitment`] within a [`Tree`].
+/// The index of a [`crate::StateCommitment`] within a [`Tree`].
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
 )]
@@ -101,7 +101,7 @@ impl Display for Root {
 pub struct Position(index::within::Tree);
 
 impl Position {
-    /// The index of the [`Commitment`] to which this [`Position`] refers within its own block.
+    /// The index of the [`crate::StateCommitment`] to which this [`Position`] refers within its own block.
     pub fn commitment(&self) -> u16 {
         self.0.commitment.into()
     }
@@ -177,7 +177,7 @@ impl Tree {
         root
     }
 
-    /// Add a new [`Commitment`] to the most recent block of the most recent epoch of this [`Tree`].
+    /// Add a new [`crate::StateCommitment`] to the most recent block of the most recent epoch of this [`Tree`].
     ///
     /// If successful, returns the [`Position`] at which the commitment was inserted.
     ///
@@ -292,7 +292,7 @@ impl Tree {
         Some(proof)
     }
 
-    /// Forget about the witness for the given [`Commitment`].
+    /// Forget about the witness for the given [`crate::StateCommitment`].
     ///
     /// Returns `true` if the commitment was previously witnessed (and now is forgotten), and `false` if
     /// it was not witnessed.
@@ -314,7 +314,7 @@ impl Tree {
         forgotten
     }
 
-    /// Get the position in this [`Tree`] of the given [`Commitment`], if it is currently witnessed.
+    /// Get the position in this [`Tree`] of the given [`crate::StateCommitment`], if it is currently witnessed.
     #[instrument(level = "trace", skip(self))]
     pub fn position_of(&self, commitment: StateCommitment) -> Option<Position> {
         let position = self.index.get(&commitment).map(|index| Position(*index));
@@ -674,12 +674,12 @@ impl Tree {
         root
     }
 
-    /// The position in this [`Tree`] at which the next [`Commitment`] would be inserted.
+    /// The position in this [`Tree`] at which the next [`crate::StateCommitment`] would be inserted.
     ///
     /// If the [`Tree`] is full, returns `None`.
     ///
     /// The maximum capacity of a [`Tree`] is 281,474,976,710,656 = 65,536 epochs of 65,536
-    /// blocks of 65,536 [`Commitment`]s.
+    /// blocks of 65,536 [`crate::StateCommitment`]s.
     ///
     /// Note that [`forget`](Tree::forget)ting a commitment does not decrease this; it only
     /// decreases the [`witnessed_count`](Tree::witnessed_count).
@@ -706,10 +706,10 @@ impl Tree {
         forgotten
     }
 
-    /// The number of [`Commitment`]s currently witnessed in this [`Tree`].
+    /// The number of [`crate::StateCommitment`]s currently witnessed in this [`Tree`].
     ///
     /// Note that [`forget`](Tree::forget)ting a commitment decreases this count, but does not
-    /// decrease the [`position`](Tree::position) of the next inserted [`Commitment`].
+    /// decrease the [`position`](Tree::position) of the next inserted [`crate::StateCommitment`].
     #[instrument(level = "trace", skip(self))]
     pub fn witnessed_count(&self) -> usize {
         let count = self.index.len();

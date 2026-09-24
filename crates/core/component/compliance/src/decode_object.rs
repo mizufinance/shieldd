@@ -1,6 +1,6 @@
 use anyhow::{anyhow, ensure, Result};
-use decaf377::Fq;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::Fq;
 
 use crate::indexed_tree::string_to_fq;
 
@@ -177,7 +177,7 @@ impl TransferComplianceMetadata {
 }
 
 fn parse_fq(bytes: [u8; 32], label: &str) -> Result<Fq> {
-    Fq::from_bytes_checked(&bytes).map_err(|_| anyhow!("invalid {label}"))
+    shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| anyhow!("invalid {label}"))
 }
 
 struct MetadataReader<'a> {
@@ -240,35 +240,6 @@ mod tests {
     #[test]
     fn transfer_metadata_has_one_canonical_fixed_encoding() {
         let metadata = metadata();
-        let encoded = metadata.to_bytes().expect("metadata should encode");
-        assert_eq!(encoded.len(), TRANSFER_COMPLIANCE_METADATA_BYTES);
-        assert_eq!(
-            TransferComplianceMetadata::from_bytes(&encoded).expect("metadata should decode"),
-            metadata
-        );
-
-        let mut trailing = encoded.clone();
-        trailing.push(0);
-        assert!(TransferComplianceMetadata::from_bytes(&trailing).is_err());
-        assert!(TransferComplianceMetadata::from_bytes(&encoded[..encoded.len() - 1]).is_err());
-    }
-
-    #[test]
-    fn transfer_metadata_does_not_publish_subject_derivations() {
-        let encoded = metadata().to_bytes().expect("metadata should encode");
-        for derivation in [Fq::from(41u64), Fq::from(42u64)] {
-            assert!(
-                !encoded
-                    .windows(32)
-                    .any(|window| window == derivation.to_bytes()),
-                "subject derivations must not be serialized with transfer metadata"
-            );
-        }
-    }
-
-    #[test]
-    fn transfer_metadata_wire_is_exactly_the_factored_record() {
-        let metadata = metadata();
         let mut expected = Vec::with_capacity(TRANSFER_COMPLIANCE_METADATA_BYTES);
         expected.extend_from_slice(&metadata.ring_id_hash_bytes);
         expected.extend_from_slice(&metadata.policy_id_hash_bytes);
@@ -281,11 +252,18 @@ mod tests {
         expected.extend_from_slice(&metadata.output_core_salt_bytes);
         expected.extend_from_slice(&metadata.output_ext_salt_bytes);
 
-        assert_eq!(expected.len(), TRANSFER_COMPLIANCE_METADATA_BYTES);
+        let encoded = metadata.to_bytes().expect("metadata should encode");
+        assert_eq!(encoded, expected);
+        assert_eq!(encoded.len(), TRANSFER_COMPLIANCE_METADATA_BYTES);
         assert_eq!(
-            metadata.to_bytes().expect("metadata should encode"),
-            expected
+            TransferComplianceMetadata::from_bytes(&encoded).expect("metadata should decode"),
+            metadata
         );
+
+        let mut trailing = encoded.clone();
+        trailing.push(0);
+        assert!(TransferComplianceMetadata::from_bytes(&trailing).is_err());
+        assert!(TransferComplianceMetadata::from_bytes(&encoded[..encoded.len() - 1]).is_err());
     }
 
     #[test]

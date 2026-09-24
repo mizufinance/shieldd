@@ -12,3 +12,6 @@ anyhow = {workspace = true}
 async-trait = {workspace = true}
 cnidarium = {workspace = true, default-features = false}
 tendermint = {workspace = true}
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

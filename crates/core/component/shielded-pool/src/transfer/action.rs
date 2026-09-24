@@ -1,9 +1,9 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
-use decaf377::Fq;
-use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
+use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use shieldd_sdk_asset::balance;
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
@@ -295,7 +295,7 @@ impl TryFrom<pb::TransferBody> for TransferBody {
                 .ok_or_else(|| anyhow::anyhow!("missing transfer routing"))?
                 .try_into()
                 .context("malformed transfer routing")?,
-            routing_parameter_set_id: Fq::from_bytes_checked(
+            routing_parameter_set_id: shieldd_sdk_crypto::encoding::field(
                 &proto
                     .routing_parameter_set_id
                     .try_into()

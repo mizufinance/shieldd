@@ -2,19 +2,19 @@
 
 #[allow(dead_code)]
 pub mod proof_test_helpers {
-    use std::time::Instant;
+    use ff::Field;
 
     /// Test asset ID for regulated assets
     pub const REGULATED_ASSET_ID: u64 = 1;
     /// Test asset ID for unregulated assets
     pub const UNREGULATED_ASSET_ID: u64 = 2;
 
-    use decaf377::{Fq, Fr};
     use shieldd_sdk_asset::{asset, Balance, Value};
     use shieldd_sdk_compliance::{
         encrypt_withdrawal_with_material, withdrawal_encryption_key, IndexedLeaf,
         IndexedMerkleTree, MerklePath,
     };
+    use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_keys::{
         keys::{Bip44Path, SeedPhrase, SpendKey},
         Address, FullViewingKey, PayloadKey,
@@ -59,20 +59,20 @@ pub mod proof_test_helpers {
 
     /// Create valid IMT proof data for a regulated asset.
     ///
-    /// `ring_pk` and `dk_pub` must match the keys used for ACK derivation and encryption,
+    /// `ring_pk` and `dk_pub` must match the keys used for RNK derivation and detection encryption,
     /// since Policy-in-Leaf binds these into the leaf commitment verified by the circuit.
     pub fn create_imt_membership_proof(
         asset_id: Fq,
-        ring_pk: decaf377::Element,
-        dk_pub: decaf377::Element,
+        ring_pk: shieldd_sdk_crypto::SubgroupPoint,
+        dk_pub: shieldd_sdk_crypto::SubgroupPoint,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
         create_imt_membership_proof_with_daily_volume_limit(asset_id, ring_pk, dk_pub, u128::MAX)
     }
 
     pub fn create_imt_membership_proof_with_daily_volume_limit(
         asset_id: Fq,
-        ring_pk: decaf377::Element,
-        dk_pub: decaf377::Element,
+        ring_pk: shieldd_sdk_crypto::SubgroupPoint,
+        dk_pub: shieldd_sdk_crypto::SubgroupPoint,
         daily_volume_limit: u128,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
         let mut tree = IndexedMerkleTree::new();
@@ -86,7 +86,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
-            shieldd_sdk_compliance::AuditKeys::test_keys(),
+            shieldd_sdk_compliance::audit_keys::test_keys(),
         );
         tree.insert(asset_id, &policy)
             .expect("should be able to insert asset");
@@ -105,8 +105,8 @@ pub mod proof_test_helpers {
     pub fn create_imt_non_membership_proof_populated(
         asset_id: Fq,
         low_asset_id: Fq,
-        low_ring_pk: decaf377::Element,
-        low_dk_pub: decaf377::Element,
+        low_ring_pk: shieldd_sdk_crypto::SubgroupPoint,
+        low_dk_pub: shieldd_sdk_crypto::SubgroupPoint,
         low_daily_volume_limit: u128,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
         let mut tree = IndexedMerkleTree::new();
@@ -120,7 +120,7 @@ pub mod proof_test_helpers {
             "low-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
-            shieldd_sdk_compliance::AuditKeys::test_keys(),
+            shieldd_sdk_compliance::audit_keys::test_keys(),
         );
         tree.insert(low_asset_id, &policy)
             .expect("insert populated low asset");
@@ -130,12 +130,6 @@ pub mod proof_test_helpers {
         let merkle_path = MerklePath::from_auth_path(auth_path);
         let anchor = tct::StateCommitment(tree.root().0);
         (anchor, low_leaf, merkle_path, low_pos)
-    }
-
-    /// Circuit type for unified testing
-    #[derive(Debug, Clone, Copy)]
-    pub enum CircuitType {
-        Transfer,
     }
 
     /// Shared fixture layer used by all proof-family test builders.
@@ -149,10 +143,8 @@ pub mod proof_test_helpers {
         pub user_leaf: shieldd_sdk_compliance::ComplianceLeaf,
         pub sender_address: shieldd_sdk_keys::Address,
         pub counterparty_leaf: shieldd_sdk_compliance::ComplianceLeaf,
-        pub ring_pk: decaf377::Element,
-        pub dk_pub: decaf377::Element,
-        pub ack_receiver: decaf377::Element,
-        pub ack_sender: decaf377::Element,
+        pub ring_pk: shieldd_sdk_crypto::SubgroupPoint,
+        pub dk_pub: shieldd_sdk_crypto::SubgroupPoint,
         pub asset_anchor: tct::StateCommitment,
         pub asset_indexed_leaf: IndexedLeaf,
         pub asset_path: MerklePath,
@@ -245,17 +237,17 @@ pub mod proof_test_helpers {
         )
         .expect("can create note");
 
-        let balance_blinding = Fr::rand(&mut *rng);
+        let balance_blinding = Fr::random(&mut *rng);
 
         // Determine keys before IMT proof (Policy-in-Leaf binds ring_pk into the leaf)
         let (ring_pk, dk_pub) = if is_regulated {
             let ring_sk = Fr::from(1u64);
-            let ring_pk = decaf377::Element::GENERATOR * ring_sk;
-            (ring_pk, decaf377::Element::GENERATOR)
+            let ring_pk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * ring_sk;
+            (ring_pk, (*shieldd_sdk_crypto::generators::SPEND_AUTH))
         } else {
             (
-                *shieldd_sdk_compliance::UNREGULATED_SINK_RING_PK,
-                *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB,
+                *shieldd_sdk_compliance::UNREGULATED_RING,
+                *shieldd_sdk_compliance::UNREGULATED_DETECTION,
             )
         };
 
@@ -276,21 +268,11 @@ pub mod proof_test_helpers {
                 "test-policy-id".to_string(),
                 "read".to_string(),
                 "document".to_string(),
-                shieldd_sdk_compliance::AuditKeys::test_keys(),
+                shieldd_sdk_compliance::audit_keys::test_keys(),
             )
         } else {
             shieldd_sdk_compliance::AssetPolicy::default_unregulated()
         };
-
-        // Receiver ACK
-        let d = shieldd_sdk_compliance::derive_compliance_scalar(&address);
-        let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
-        let ack_receiver = ring_pk * d_fr;
-
-        // Sender ACK used by transfer-side compliance fixtures.
-        let sender_d = shieldd_sdk_compliance::derive_compliance_scalar(&sender_address);
-        let sender_d_fr = Fr::from_le_bytes_mod_order(&sender_d.to_bytes());
-        let ack_sender = ring_pk * sender_d_fr;
 
         let make_leaf = |address: Address, wallet_fvk: &FullViewingKey| {
             if is_regulated {
@@ -306,7 +288,6 @@ pub mod proof_test_helpers {
                 shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
                     address,
                     value.asset_id,
-                    ring_pk,
                     rnk_dh_pk,
                     rnk,
                 )
@@ -336,8 +317,6 @@ pub mod proof_test_helpers {
             counterparty_leaf,
             ring_pk,
             dk_pub,
-            ack_receiver,
-            ack_sender,
             asset_anchor,
             asset_indexed_leaf,
             asset_path,
@@ -345,7 +324,7 @@ pub mod proof_test_helpers {
             compliance_anchor,
             compliance_path,
             compliance_position,
-            salt: Fq::rand(&mut *rng),
+            salt: Fq::random(&mut *rng),
             target_timestamp: 1_700_000_000,
             asset_policy,
         }
@@ -416,7 +395,7 @@ pub mod proof_test_helpers {
             })
             .collect::<Vec<_>>();
 
-        let tx_blinding_nonce = Fr::rand(rng);
+        let tx_blinding_nonce = Fr::random(&mut *rng);
         let mut spends = Vec::with_capacity(notes.len());
         for (note, proof) in notes.iter().cloned().zip(state_commitment_proofs.iter()) {
             let spend = ShieldedInputPlan::new(rng, note, proof.position());
@@ -436,7 +415,7 @@ pub mod proof_test_helpers {
             outputs.push(output);
         }
 
-        let value_blinding = Fr::rand(rng);
+        let value_blinding = Fr::random(&mut *rng);
         let transfer = TransferPlan::new(
             spends.into_iter().map(Into::into).collect(),
             outputs.into_iter().map(Into::into).collect(),
@@ -512,7 +491,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
-            shieldd_sdk_compliance::AuditKeys::test_keys(),
+            shieldd_sdk_compliance::audit_keys::test_keys(),
         );
         build_transfer_hidden_arity_from_base(rng, base, asset_id, false, false, None)
     }
@@ -530,9 +509,9 @@ pub mod proof_test_helpers {
     ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
         let mut base = generate_base_test_data_for_asset(rng, asset_id, 100, false);
         // Real regulated predecessor leaf keys (distinct from the unregulated sink).
-        let low_ring_sk = Fr::rand(&mut *rng);
-        let low_ring_pk = decaf377::Element::GENERATOR * low_ring_sk;
-        let low_dk_pub = decaf377::Element::GENERATOR;
+        let low_ring_sk = Fr::random(&mut *rng);
+        let low_ring_pk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * low_ring_sk;
+        let low_dk_pub = *shieldd_sdk_crypto::generators::SPEND_AUTH;
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
             create_imt_non_membership_proof_populated(
                 asset_id.0,
@@ -575,7 +554,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
-            shieldd_sdk_compliance::AuditKeys::test_keys(),
+            shieldd_sdk_compliance::audit_keys::test_keys(),
         );
         build_transfer_hidden_arity_from_base(rng, base, asset_id, false, true, None)
     }
@@ -607,7 +586,7 @@ pub mod proof_test_helpers {
             "test-policy-id".to_string(),
             "read".to_string(),
             "document".to_string(),
-            shieldd_sdk_compliance::AuditKeys::test_keys(),
+            shieldd_sdk_compliance::audit_keys::test_keys(),
         );
         build_transfer_hidden_arity_from_base(rng, base, asset_id, false, true, Some(25))
     }
@@ -655,7 +634,7 @@ pub mod proof_test_helpers {
                 subject: accumulator_subject,
                 day_start,
                 undisclosed_volume,
-                blinding: Fq::rand(&mut *rng),
+                blinding: Fq::random(&mut *rng),
             });
 
         let mut sct = tct::Tree::new();
@@ -674,7 +653,7 @@ pub mod proof_test_helpers {
         });
         let anchor = sct.root();
 
-        let tx_blinding_nonce = Fr::rand(rng);
+        let tx_blinding_nonce = Fr::random(&mut *rng);
         let spend = ShieldedInputPlan::new(rng, note.clone(), state_commitment_proof.position());
 
         let recipient_leaf = if send_to_self {
@@ -683,7 +662,6 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::ComplianceLeaf::registered_from_rnk(
                 recipient_address.clone(),
                 asset_id,
-                base.ring_pk,
                 recipient_address.diversified_generator().clone(),
                 Fq::from(2u64),
             )
@@ -758,7 +736,7 @@ pub mod proof_test_helpers {
                 .as_ref()
                 .map(|state| state.undisclosed_volume)
                 .unwrap_or(0);
-            let successor_blinding = Fq::rand(rng);
+            let successor_blinding = Fq::random(&mut *rng);
             let accumulator = match accumulator_prior_state {
                 Some(prior) => crate::VolumeAccumulatorPlan::continuation(
                     prior.clone(),
@@ -786,7 +764,7 @@ pub mod proof_test_helpers {
         let transfer = TransferPlan::new(
             vec![spend],
             vec![output],
-            Fr::rand(rng),
+            Fr::random(&mut *rng),
             context,
             volume_accumulator,
             crate::TransferProofContext::Ordinary,
@@ -804,29 +782,8 @@ pub mod proof_test_helpers {
             .expect("derive hidden-arity transfer public/private inputs")
     }
 
-    pub(crate) fn build_transfer_action_and_public(
-        is_regulated: bool,
-    ) -> (
-        crate::Transfer,
-        crate::TransferProofPublic,
-        TransactionContext,
-    ) {
-        build_transfer_action_and_public_inner(is_regulated, true)
-    }
-
     pub fn build_transfer_action_and_public_without_proof(
         is_regulated: bool,
-    ) -> (
-        crate::Transfer,
-        crate::TransferProofPublic,
-        TransactionContext,
-    ) {
-        build_transfer_action_and_public_inner(is_regulated, false)
-    }
-
-    fn build_transfer_action_and_public_inner(
-        is_regulated: bool,
-        generate_proof: bool,
     ) -> (
         crate::Transfer,
         crate::TransferProofPublic,
@@ -887,7 +844,7 @@ pub mod proof_test_helpers {
             })
             .collect::<Vec<_>>();
 
-        let tx_blinding_nonce = Fr::rand(&mut rng);
+        let tx_blinding_nonce = Fr::random(&mut rng);
         let mut spends = Vec::with_capacity(notes.len());
         for (note, proof) in notes.iter().cloned().zip(state_commitment_proofs.iter()) {
             let spend = ShieldedInputPlan::new(&mut rng, note, proof.position());
@@ -907,7 +864,7 @@ pub mod proof_test_helpers {
             outputs.push(output);
         }
 
-        let value_blinding = Fr::rand(&mut rng);
+        let value_blinding = Fr::random(&mut rng);
         let transfer_plan = TransferPlan::new(
             spends.into_iter().map(Into::into).collect(),
             outputs.into_iter().map(Into::into).collect(),
@@ -931,29 +888,16 @@ pub mod proof_test_helpers {
             })
             .collect();
         let memo_key = PayloadKey::random_key(&mut rng);
-        let transfer = if generate_proof {
-            transfer_plan
-                .build_unauth_transfer(
-                    &base.fvk,
-                    auth_sigs,
-                    state_commitment_proofs,
-                    anchor,
-                    &memo_key,
-                    0,
-                )
-                .expect("build transfer action")
-        } else {
-            transfer_plan
-                .build_unauth_transfer_with_proof(
-                    &base.fvk,
-                    auth_sigs,
-                    anchor,
-                    &memo_key,
-                    crate::TransferProof::default(),
-                    0,
-                )
-                .expect("build transfer action without proof")
-        };
+        let transfer = transfer_plan
+            .build_unauth_transfer_with_proof(
+                &base.fvk,
+                auth_sigs,
+                anchor,
+                &memo_key,
+                crate::TransferProof::default(),
+                0,
+            )
+            .expect("build transfer action without proof");
 
         (
             transfer,
@@ -1028,7 +972,7 @@ pub mod proof_test_helpers {
             })
             .collect::<Vec<_>>();
 
-        let tx_blinding_nonce = Fr::rand(rng);
+        let tx_blinding_nonce = Fr::random(&mut *rng);
         let spends = notes
             .iter()
             .cloned()
@@ -1058,7 +1002,7 @@ pub mod proof_test_helpers {
             family_id,
             spends.into_iter().map(Into::into).collect(),
             outputs.into_iter().map(Into::into).collect(),
-            Fr::rand(rng),
+            Fr::random(&mut *rng),
             crate::NoteReshapeContext {
                 witness: base.action_witness(),
                 nonce: tx_blinding_nonce,
@@ -1138,7 +1082,7 @@ pub mod proof_test_helpers {
                     subject: accumulator_subject,
                     day_start,
                     undisclosed_volume: prior_volume,
-                    blinding: Fq::rand(&mut *rng),
+                    blinding: Fq::random(&mut *rng),
                 })
             }
             _ => None,
@@ -1169,7 +1113,7 @@ pub mod proof_test_helpers {
                 asset_id: base.value.asset_id,
             },
             crate::Rseed::generate(rng),
-            base.user_leaf.capk,
+            base.action_witness().asset.payload_key(),
         )
         .expect("create shielded withdrawal change note");
 
@@ -1178,8 +1122,8 @@ pub mod proof_test_helpers {
             first_spend_randomizer: spend_a.randomizer,
             sender_address: base.address.clone(),
             asset_id: base.value.asset_id,
-            capk: base.user_leaf.capk,
-            nullifier_domain_sep_label: b"shieldd.shielded_withdrawal.synthetic_dummy.nullifier",
+            payload_key: base.action_witness().asset.payload_key(),
+            nullifier_domain: shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
             nullifier_seed_label: b"shieldd.shielded_withdrawal.synthetic_dummy.nullifier_seed",
             spend_auth_key_label: b"shieldd.shielded_withdrawal.synthetic_dummy.spend_auth_key",
             spend_auth_randomizer_label:
@@ -1275,7 +1219,7 @@ pub mod proof_test_helpers {
                     subject: accumulator_subject,
                     day_start,
                     undisclosed_volume: outbound_amount,
-                    blinding: Fq::rand(&mut *rng),
+                    blinding: Fq::random(&mut *rng),
                 })
             }
             WithdrawalAccumulatorTestMode::Continuation { prior_volume } => {
@@ -1290,17 +1234,19 @@ pub mod proof_test_helpers {
                         .map(|proof| u64::from(proof.position()))
                         .expect("continuation has prior proof"),
                     prior_volume + outbound_amount,
-                    Fq::rand(&mut *rng),
+                    Fq::random(&mut *rng),
                 )
                 .expect("valid withdrawal continuation")
             }
         };
-        let volume_payload = volume_plan.selected_payload(
-            base.fvk.nullifier_key(),
-            base.fvk.outgoing(),
-            Fq::from_le_bytes_mod_order(&Fr::from(11u64).to_bytes()),
-            crate::TransferProofContext::Ordinary,
-        );
+        let volume_payload = volume_plan
+            .selected_payload(
+                base.fvk.nullifier_key(),
+                base.fvk.outgoing(),
+                Fq::from(11),
+                crate::TransferProofContext::Ordinary,
+            )
+            .expect("valid volume fixture");
 
         (
             ShieldedWithdrawalProofPublic {
@@ -1316,7 +1262,7 @@ pub mod proof_test_helpers {
                     recovery_commitment: change_note.recovery_commitment(),
                 },
                 outbound_asset_id: base.value.asset_id.0,
-                outbound_amount: Fq::from(outbound_amount),
+                outbound_amount: Fq::from(Amount::from(outbound_amount)),
                 withdrawal_effect_hash_limbs: [
                     Fq::from(21u64),
                     Fq::from(22u64),
@@ -1354,7 +1300,7 @@ pub mod proof_test_helpers {
                 change_output: ShieldedWithdrawalChangePrivate {
                     created_note: change_note,
                 },
-                volume_accumulator_seed: Fq::from_le_bytes_mod_order(&Fr::from(11u64).to_bytes()),
+                volume_accumulator_seed: Fq::from(11),
                 volume_accumulator: crate::VolumeAccumulatorPrivate {
                     prior_proof: accumulator_prior_proof.unwrap_or_else(|| {
                         dummy_state_commitment_proof(volume_plan.prior_commitment())
@@ -1426,60 +1372,14 @@ pub mod proof_test_helpers {
             .collect()
     }
 
-    fn test_transfer_proof_roundtrip(is_regulated: bool) {
-        let mode = if is_regulated {
-            "regulated"
-        } else {
-            "unregulated"
-        };
-        let started = Instant::now();
-        eprintln!("[transfer roundtrip] start mode={mode}");
-
-        let phase_started = Instant::now();
-        let expected_pvk = shieldd_sdk_proof_params::transfer_proof_verification_key();
-        let (public, private) = build_transfer_roundtrip_inputs(is_regulated);
-        eprintln!(
-            "[transfer roundtrip] mode={mode} built inputs in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-
-        let phase_started = Instant::now();
-        let proof = crate::TransferProof::prove(public.clone(), private).unwrap_or_else(|error| {
-            panic!("can generate transfer proof: {error}");
-        });
-        eprintln!(
-            "[transfer roundtrip] mode={mode} proved in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-
-        let phase_started = Instant::now();
-        let item = proof.to_batch_item(&public).unwrap_or_else(|error| {
-            panic!("can build transfer batch item: {error}");
-        });
-        assert_eq!(item.public_inputs.len(), 1);
-        eprintln!(
-            "[transfer roundtrip] mode={mode} built batch item in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-
-        let phase_started = Instant::now();
-        proof.verify(&public).expect("proof should verify");
-        shieldd_sdk_proof_params::batch::batch_verify(expected_pvk, std::slice::from_ref(&item))
-            .expect("single-item batch verification should succeed");
-        eprintln!(
-            "[transfer roundtrip] mode={mode} verified in {:.2}s",
-            phase_started.elapsed().as_secs_f64()
-        );
-        eprintln!(
-            "[transfer roundtrip] done mode={mode} total {:.2}s",
-            started.elapsed().as_secs_f64()
-        );
-    }
-
-    /// Unified proof roundtrip test function for the surviving shielded families.
-    pub fn full_proof_roundtrip(circuit_type: CircuitType, is_regulated: bool) {
-        match circuit_type {
-            CircuitType::Transfer => test_transfer_proof_roundtrip(is_regulated),
-        }
+    pub fn registry() -> &'static shieldd_sdk_proof_params::pari::Registry {
+        static KEYS: std::sync::OnceLock<shieldd_sdk_proof_params::pari::Registry> =
+            std::sync::OnceLock::new();
+        KEYS.get_or_init(|| {
+            shieldd_sdk_proof_params::pari::Registry::load(
+                std::env::var("SHIELDD_PARI_KEYS").expect("proof tests require SHIELDD_PARI_KEYS"),
+            )
+            .expect("valid local Pari keys")
+        })
     }
 }

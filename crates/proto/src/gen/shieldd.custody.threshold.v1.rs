@@ -78,7 +78,7 @@ pub mod coordinator_round2 {
         /// The commitments this person has produced for this round of signing.
         #[prost(message, optional, tag = "2")]
         pub commitments: ::core::option::Option<
-            super::super::super::super::crypto::decaf377_frost::v1::SigningCommitments,
+            super::super::super::super::crypto::redjubjub_frost::v1::SigningCommitments,
         >,
     }
     impl ::prost::Name for IdentifiedCommitments {
@@ -144,7 +144,7 @@ pub mod follower_round1 {
         /// One signing commitment pair for each signature requested by the plan, in order.
         #[prost(message, repeated, tag = "1")]
         pub commitments: ::prost::alloc::vec::Vec<
-            super::super::super::super::crypto::decaf377_frost::v1::SigningCommitments,
+            super::super::super::super::crypto::redjubjub_frost::v1::SigningCommitments,
         >,
     }
     impl ::prost::Name for Inner {
@@ -188,7 +188,7 @@ pub mod follower_round2 {
         /// One share for each signature requested by the plan, in order.
         #[prost(message, repeated, tag = "1")]
         pub shares: ::prost::alloc::vec::Vec<
-            super::super::super::super::crypto::decaf377_frost::v1::SignatureShare,
+            super::super::super::super::crypto::redjubjub_frost::v1::SignatureShare,
         >,
     }
     impl ::prost::Name for Inner {
@@ -218,7 +218,7 @@ pub struct DkgRound1 {
     /// The package we're sending to other people
     #[prost(message, optional, tag = "1")]
     pub pkg: ::core::option::Option<
-        super::super::super::crypto::decaf377_frost::v1::DkgRound1Package,
+        super::super::super::crypto::redjubjub_frost::v1::DkgRound1Package,
     >,
     /// A commitment to a share of the nullifier-deriving key
     #[prost(bytes = "vec", tag = "2")]

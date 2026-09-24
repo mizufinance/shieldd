@@ -10,19 +10,20 @@ edition = {workspace = true}
 [features]
 default = ["std", "parallel"]
 prover = ["shieldd-sdk-shielded-pool/prover"]
-std = ["ark-ff/std"]
+std = []
 parallel = [
     "tokio",
     "shieldd-sdk-shielded-pool/parallel",
 ]
 [dependencies]
+shieldd-sdk-crypto.workspace = true
+ff.workspace = true
+group.workspace = true
+reddsa.workspace = true
+shieldd-sdk-proof-params.workspace = true
 anyhow = {workspace = true}
-ark-ff = {workspace = true, default-features = false}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true}
-decaf377 = {workspace = true}
-decaf377-ka = {workspace = true}
-decaf377-rdsa = {workspace = true}
 hex = {workspace = true}
 pbjson-types = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
@@ -30,7 +31,6 @@ shieldd-sdk-compliance = {workspace = true, default-features = false}
 shieldd-sdk-fee = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = false}
 shieldd-sdk-num = {workspace = true, default-features = false}
-shieldd-sdk-proof-aggregation = {workspace = true, default-features = true}
 shieldd-sdk-proto = {workspace = true, default-features = true}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false}
@@ -46,9 +46,11 @@ tokio = {workspace = true, features = ["full"], optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+commonware-cryptography.workspace = true
+commonware-codec.workspace = true
+commonware-math.workspace = true
+shieldd-sdk-circuits.workspace = true
 shieldd-sdk-transaction = {path = ".", features = ["prover"]}
-ark-groth16 = { workspace = true }
-ark-serialize = { workspace = true }
 shieldd-sdk-shielded-pool = { workspace = true, default-features = false, features = ["benchmark-helpers"] }
 proptest = {workspace = true}
 serde_json = {workspace = true}

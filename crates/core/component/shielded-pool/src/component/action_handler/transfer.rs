@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
-use shieldd_sdk_proof_params::batch::{self, BatchItem, VerifiedBatchItem};
+use shieldd_sdk_proof_params::pari::{Verification, Verified};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext as _;
 use shieldd_sdk_txhash::TransactionContext;
@@ -79,7 +79,7 @@ pub(crate) fn transfer_extract_public(
         balance_commitment: transfer.body.balance_commitment,
         asset_anchor: transfer.body.asset_anchor,
         compliance_anchor: transfer.body.compliance_anchor,
-        target_timestamp: decaf377::Fq::from(transfer.body.target_timestamp),
+        target_timestamp: shieldd_sdk_crypto::Fq::from(transfer.body.target_timestamp),
         inputs,
         outputs,
         compliance: transfer_compliance_public_from_parts(&ciphertext, &metadata)?,
@@ -99,7 +99,10 @@ pub(crate) fn transfer_extract_public(
     Ok(public)
 }
 
-fn transfer_to_batch_item(transfer: &Transfer, public: TransferProofPublic) -> Result<BatchItem> {
+fn transfer_to_batch_item(
+    transfer: &Transfer,
+    public: TransferProofPublic,
+) -> Result<Verification> {
     transfer.proof.to_batch_item(&public)
 }
 
@@ -107,7 +110,7 @@ pub fn transfer_check_stateless_and_extract(
     transfer: &Transfer,
     context: &TransactionContext,
     expected_context: TransferProofContext,
-) -> Result<BatchItem> {
+) -> Result<Verification> {
     note_reshape::validate_action_anchor("transfer", transfer.body.anchor, context)?;
     transfer
         .body
@@ -125,7 +128,7 @@ pub fn transfer_check_stateless_and_extract(
 
 /// Evidence that an exact verified Transfer passed its state preconditions.
 pub struct ValidatedTransferExecution {
-    item: BatchItem,
+    item: Verification,
     proof_context: TransferProofContext,
 }
 
@@ -133,13 +136,13 @@ pub struct ValidatedTransferExecution {
 pub async fn transfer_validate_verified<S: StateWrite>(
     transfer: &Transfer,
     context: &TransactionContext,
-    verified_proof: &VerifiedBatchItem,
+    verified_proof: &Verified,
     expected_context: TransferProofContext,
     state: S,
 ) -> Result<ValidatedTransferExecution> {
     let item = transfer_check_stateless_and_extract(transfer, context, expected_context)?;
     verified_proof
-        .ensure_binds(shieldd_sdk_proof_params::DeployedProofKey::Transfer, &item)
+        .ensure_binds(shieldd_sdk_circuits::proof::Family::Transfer, &item)
         .context("transfer verified proof capability mismatch")?;
 
     state
@@ -204,7 +207,7 @@ pub async fn transfer_execute_validated<S: StateWrite>(
             .await?;
         state
             .add_volume_accumulator_payload(transfer.body.volume_accumulator.clone(), source.into())
-            .await;
+            .await?;
     }
     Ok(())
 }
@@ -213,7 +216,7 @@ pub async fn transfer_execute_validated<S: StateWrite>(
 pub async fn transfer_execute_verified<S: StateWrite>(
     transfer: &Transfer,
     context: &TransactionContext,
-    verified_proof: &VerifiedBatchItem,
+    verified_proof: &Verified,
     expected_context: TransferProofContext,
     mut state: S,
 ) -> Result<()> {
@@ -230,16 +233,13 @@ pub async fn transfer_execute_verified<S: StateWrite>(
 
 #[async_trait]
 impl ActionHandler for Transfer {
-    type CheckStatelessContext = TransactionContext;
+    type CheckStatelessContext = crate::ProofVerificationContext;
 
-    async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
+    async fn check_stateless(&self, proof_context: crate::ProofVerificationContext) -> Result<()> {
+        let context = proof_context.transaction;
         let item =
             transfer_check_stateless_and_extract(self, &context, TransferProofContext::Ordinary)?;
-        batch::verify_each(
-            shieldd_sdk_proof_params::transfer_proof_verification_key(),
-            std::slice::from_ref(&item),
-        )
-        .map_err(|e| anyhow::anyhow!("transfer proof did not verify: {e}"))?;
+        proof_context.registry.verify_item(&item)?;
         Ok(())
     }
 
@@ -250,9 +250,9 @@ impl ActionHandler for Transfer {
 
 #[cfg(test)]
 mod tests {
-    use decaf377::Fr;
-    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
     use rand_core::OsRng;
+    use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_sct::component::tree::SctRead as _;
 
     use super::*;
@@ -264,7 +264,7 @@ mod tests {
         transfer_verify_auth_sigs(&transfer, &context)
             .expect("fixture signatures must authenticate every fixed slot");
 
-        let wrong_key = SigningKey::<SpendAuth>::from(Fr::from(999u64));
+        let wrong_key = SigningKey::<SpendAuth>::try_from(Fr::from(999u64).to_bytes()).unwrap();
         transfer.auth_sigs[1] = wrong_key.sign(&mut OsRng, context.effect_hash.as_ref());
         let error = transfer_verify_auth_sigs(&transfer, &context)
             .expect_err("an unrelated fixed-slot signature must be rejected");
@@ -279,11 +279,11 @@ mod tests {
     #[test]
     fn transfer_auth_verification_rejects_identity_randomized_key() {
         let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
-        let identity_sk = SigningKey::<SpendAuth>::from(Fr::from(0u64));
-        transfer.body.inputs[0].rk = VerificationKey::from(identity_sk.clone());
+        let identity_sk = SigningKey::<SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap();
+        transfer.body.inputs[0].rk = VerificationKey::from(&identity_sk);
         let different_message = b"different transfer authorization hash";
         assert_ne!(&different_message[..], context.effect_hash.as_ref());
-        transfer.auth_sigs[0] = identity_sk.sign_deterministic(different_message);
+        transfer.auth_sigs[0] = identity_sk.sign(rand_core::OsRng, different_message);
 
         transfer.body.inputs[0]
             .rk
@@ -293,8 +293,8 @@ mod tests {
             .expect_err("Transfer must reject an identity randomized spend key");
         assert!(
             error
-                .to_string()
-                .contains("randomized spend key 0 must not be identity"),
+                .chain()
+                .any(|cause| cause.to_string().contains("identity Jubjub key")),
             "unexpected rejection reason: {error:#}"
         );
     }

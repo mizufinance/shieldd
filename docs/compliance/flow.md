@@ -1,280 +1,137 @@
-# Compliance Flow
+# Compliance
 
-Shieldd, embedded inside Bankd, gives issuers selective visibility into regulated-asset
-transfers while preserving the same fixed circuit shape for unregulated
-assets. Ledger safety remains a Bankd consensus and Shieldd circuit responsibility.
-External policy systems do not authorize spends or establish balance
-conservation.
+Shieldd proves asset policy and regulated-address eligibility and publishes
+ciphertexts for issuer detection and authorized audit. Bankd owns host
+admission and settlement; external policy services authorize disclosure.
+[Circuit constraints](../circuits.md) define what the proofs establish,
+[interoperability](../jubjub-external-contract.md) defines external crypto
+encodings, and [seizure](enforcement-and-seizure.md) defines privileged enforcement.
 
-Ordinary Shieldd user transactions exclude release proofs, DH shared points,
-and seed-opening material. The privileged `SeizeNote` host request carries a
-capsule-specific recovered point and DLEQ proof. See
-[`enforcement-and-seizure.md`](enforcement-and-seizure.md) for the release
-relation and the unimplemented ACP, Orbis, and Bankd boundaries.
+## Policy and registration
 
-For exact encodings and statement order, see `reference.md`.
+An `AssetPolicy` contains issuer detection parameters and a daily volume limit,
+IBC route policy, the RNK derivation ring, audit keys and epoch, policy identifiers,
+and registration/seizure authority keys. The [domain record](../../crates/core/component/compliance/src/structs.rs)
+owns its encoding; the [indexed leaf](../../crates/core/component/compliance/src/indexed_tree.rs)
+owns the authenticated projection. Issuer and ring projections enter the asset
+tree. Authority keys remain host-validated state; membership is not an authority grant.
 
-## Registration
+Registered assets prove membership; other assets prove a canonical nonmembership
+gap. Asset ID zero is the indexed-tree sentinel and cannot be registered or used
+as a Transfer or Withdrawal asset. Policy admission rejects identity detection
+and RNK ring keys. Audit-key separation and canonical encoding requirements are
+specified in [interoperability](../jubjub-external-contract.md#keys-and-encodings).
+Policies and registrations are immutable; route whitelists cover the first hop.
 
-An issuer creates its policy and ring configuration, then registers an
-`AssetPolicy` on Shieldd:
+Each regulated `(address, asset)` leaf commits both address points, the asset ID,
+RNK DH point, RNK commitment and lifecycle. Address and RNK DH points must be
+canonical nonidentity subgroup points; the RNK commitment must be nonzero.
+The registration certificate binds `rnk_dh_pk = ring_sk * G_d` and the commitment.
+The packed lifecycle contains status, freeze generation and frozen-since height.
+The user tree has arity four and depth sixteen.
 
-```text
-AssetPolicy {
-  dk_pub,
-  ring_pk,
-  daily_volume_limit,
-  allowed_ibc_routes,
-  ibc_origin,
-  ring_id,
-  policy_id,
-  permission,
-  resource
-}
-```
+Spending and receiving regulated assets require `Active` leaves under the exact
+current user root; policies use the exact current asset root. The same address
+may register independently for different assets. One live address per KYC identity
+is an external ACP requirement: Shieldd authenticates address-specific grants,
+but stores no KYC identity record that could enforce that uniqueness.
 
-Regulated assets are members of the indexed asset tree. An unregistered asset
-is proved unregulated with a valid non-membership gap. The asset proof must use
-the current mutable policy root. User compliance proofs must use the exact
-current mutable user tree because each leaf also commits authorization status.
+## Transfer visibility
 
-Policy admission rejects identity `dk_pub` and `ring_pk` values before
-registration can mutate durable state. This prevents a regulated asset from
-selecting a degenerate detection or audit key even if its membership witness is
-otherwise valid.
+Regulated transfers use the authenticated policy. Unregulated transfers use
+fixed sink keys and empty-string policy hashes, with the same circuit shape and
+unconditional encryption checks. A gap predecessor's daily limit cannot enable
+unregulated accumulation or disclosure.
 
-The asset policy authenticates four independent encryption keys (amount, sender,
-receiver and ownership checking) with one epoch. The checking ciphertexts bind
-the actual address components in the Transfer proof. Field authorization remains
-separate from ownership. See [disclosure](../disclosure.md) for the exact mapping
-and the upstream capability register. Current upstream cannot provision or use
-these protected keys through the proposed distributed PET protocol.
+Detection always encrypts `(asset_id, salt, flag, 0)` to the selected issuer DK.
+The flag is boolean; there is no role, address index or routing permutation in
+that plaintext. The four payload tiers use the following fixed order:
 
-Address-derived capsule capabilities and regulated nullifier keys remain separate
-from these encryption families. Registration grants and ordinary capability
-certificates continue to authenticate their own scope. Development encryption
-key bundles are explicitly synthetic fixtures.
+| Tier | Plaintext | Owner checked by PET | Unflagged regulated key | Flagged regulated key |
+| --- | --- | --- | --- | --- |
+| Sender core | Amount | Sender | Shared payload key | Issuer DK |
+| Sender extension | Receiver address | Sender | Shared payload key | Issuer DK |
+| Output core | Amount | Receiver | Shared payload key | Issuer DK |
+| Output extension | Sender address | Receiver | Shared payload key | Issuer DK |
 
-For regulated participation, ACP permits exactly one live shielded address per
-KYC identity. Shieldd's generic diversified-address capability does not admit
-additional regulated addresses; only the ACP-approved address may appear in a
-regulated user leaf.
+Capsules also use the asset payload key; RNK derivation and ownership checking
+use their separate keys. Decryption does not grant spending or seizure authority.
+Unregulated ciphertexts select the sink policy and establish no issuer or
+external-release capability.
 
-The leaf commits to the address encodings, asset ID, capsule capability,
-compliance-nullifier-key commitment and lifecycle. Registration checks the
-canonical address, capability derivation, and authorization. A derived `d = 0`
-is rejected. The same address may register independently for multiple assets.
+Honest construction samples a fresh private CSPRNG nonce root per Transfer,
+including separate roots for sibling actions and fee funding. Domain separation
+derives salts, seeds and nonzero tier randomizers. Root freshness is a privacy
+precondition, not a circuit-enforceable fact about a malicious creator's randomness.
 
-Asset id zero is reserved for the indexed-tree sentinel. Registration and both
-Transfer and Withdrawal circuits reject it as an action asset, so the sentinel
-cannot be presented as an authenticated regulated policy.
+## Daily volume state
 
-## Transfer Construction
+An external regulated ordinary Transfer stays undisclosed by proving a real
+accumulator transition with checked `u128` addition and
+`prior_undisclosed_volume + receiver_amount <= daily_volume_limit`. Equality is
+allowed. A larger candidate or explicit disclosure request uses padding, flags
+only the current transfer, and leaves the accumulator head unchanged. Unregulated
+and self-transfers remain unflagged. Fee funding uses a proof-bound disabled
+context and emits no accumulator commitment.
 
-The circuit excludes the Decaf identity class for the authorization key, both
-distinct address generators, and all four compliance tier EPKs. Each is an
-exact `x != 0` row, matching the native full-viewing-key and address gadgets.
-These are ownership/classification constraints, not builder hygiene:
-identity sender DTK derivation would make the transmission key independent of
-the IVK and let one note commitment/path be reopened under distinct nullifier
-keys, while an identity receiver generator would let a malicious proof create
-such a note. An identity tier EPK would make its shared point independent of
-the audit capability and cause every candidate address to pass the same key
-confirmation, so it is rejected by the accepted relation.
+The accounting day is UTC-aligned and independent of SCT epochs. Target timestamps
+must be within ±30 minutes of signed block time. A day's first transition emits a
+private deterministic origin nullifier; later transitions prove SCT membership
+of the predecessor and derive its positioned nullifier. Ordinary transfers emit
+indistinguishable real or padding commitments.
 
-The transfer planner selects one policy shape:
+Volume nullifiers live in a day-scoped set, separate from global spend-nullifier
+history, and are pruned strictly after `day_start + 24h + 30m`. The owner recovers
+the transition from a 108-byte OVK-authenticated compact-block payload containing
+92 plaintext bytes. Each day starts a new origin. Incomplete history prevents
+tracked transfers for that day while disclosure remains available. The issuer
+learns the current transfer, not the private total. [Wallet state](../wallet.md)
+owns reservation, recovery and concurrent-completion rules.
 
-- Regulated: exact asset-tree membership, registered sender and receiver
-  compliance leaves, and the registered policy values.
-- Unregulated: exact asset-tree non-membership, fixed sink ring/DK points,
-  and the canonical hash of the empty string for each policy identifier. The
-  authenticated gap-predecessor daily limit remains present in the leaf
-  witness but cannot make an unregulated transfer eligible for accumulation or
-  disclosure.
+## Wire and acceptance
 
-Both branches construct the same detection and audit ciphertext rows. The
-encryption equations are unconditional; `is_regulated` selects the effective
-keys and policy hashes. For an external regulated ordinary Transfer, the
-wallet either proves a real daily-volume transition or selects the fixed
-padding branch. Padding sets `is_flagged = true`; a real transition sets it to
-false. Self-transfers, unregulated transfers, and fee funding never set it.
+Only the receiver output carries the 835-byte `TransferComplianceCiphertext`
+and 272-byte `TransferComplianceMetadata`; inputs and change carry neither.
+The ciphertext binds four tiers, two ownership ciphertexts, key confirmations
+and detection. Metadata binds four policy hashes, the timestamp, audit epoch and
+four salts. The [ciphertext codec](../../crates/core/component/compliance/src/transfer.rs)
+and [metadata codec](../../crates/core/component/compliance/src/decode_object.rs)
+define exact order. Fields and points decode canonically; timestamp zero and
+incorrect lengths are rejected. Address plaintext packs two canonical field
+encodings into 31-byte stream words. Tier identity comes from position.
 
-For a real transition the circuit proves checked `u128` addition and
-`prior_undisclosed_volume + receiver_amount <= daily_volume_limit`. Equality
-remains undisclosed. A greater candidate or explicit caller request discloses
-only the current transaction and leaves the accumulator head unchanged.
+The circuit binds this data to the statement; consensus additionally checks
+current roots, timestamp freshness, proof and spend signatures, spend/volume
+nullifier uniqueness and the binding signature. The Transfer effect hash covers
+ciphertext, metadata, accumulator payload and proof context, so a delegated
+builder cannot replace them after authorization. Release points and DLEQ proofs
+belong to the privileged seizure path, not ordinary transaction or scanner bytes.
 
-| Tier | Plaintext | Unflagged regulated key | Flagged regulated key |
-| --- | --- | --- | --- |
-| Detection | asset id; salt; flag; reserved zero | issuer `dk_pub` | issuer `dk_pub` |
-| Sender core | amount | sender ACK | issuer `dk_pub` |
-| Sender extension | receiver address | sender ACK | issuer `dk_pub` |
-| Output core | amount | receiver ACK | issuer `dk_pub` |
-| Output extension | sender address | receiver ACK | issuer `dk_pub` |
+## Issuer scanning and evidence
 
-Unregulated transfers use the selected sink policy. Its ciphertexts remain
-well-formed, but no issuer decryptability or capability release is claimed.
+The scanner identifies accepted outputs through `BlockRef`, `TxRef`, `ActionRef`
+and `OutputRef`, using the transaction crate's canonical `TransactionId`.
+It validates block/parent hashes and rolls back to the common ancestor on a reorg.
+`ComplianceScreener` performs pure decoding and DK screening; it owns no storage,
+chain access or release calls.
 
-The four detection plaintext words are exact:
+The source supplies bounded canonical transaction pages. Screening retains relevant
+records and at most 256 invalid ciphertexts per block; irrelevant traffic increments
+coverage counters without durable ciphertext rows. Structural decoding failures
+are invalid, transfer detection nonmatches are irrelevant, and target-asset
+withdrawals retain their flagged/unflagged classification.
 
-```text
-asset_id
-detection_salt
-is_flagged
-0
-```
-
-The flag is boolean and the reserved word is exactly zero. No routing role,
-slot, derivation, index, or address fragment is encrypted in detection.
-
-Honest construction samples a fresh private CSPRNG nonce root for each
-Transfer action, separate from every sibling Transfer and fee-funding action.
-All five salts and the tier seeds/randomizers are deterministically
-domain-separated from that root. Reusing one root would repeat EPK and stream
-material. Root freshness is a native privacy premise, not a circuit or
-consensus check, because the root is private and a malicious creator controls
-its own randomness. Each derived tier scalar is rejection-sampled until
-nonzero, preventing an identity EPK/shared secret from exposing an honestly
-constructed tier.
-
-### Daily volume state
-
-The accounting day is UTC-aligned and independent of the SCT epoch. Every
-target timestamp is assigned to the UTC day that contains it. Target timestamps
-must remain within ±30 minutes of signed block time, so prior-day nullifiers
-remain retained for the same grace after midnight.
-
-The first real transition in a selected day emits a deterministic private
-origin nullifier. Later transitions prove SCT membership of the predecessor
-commitment and derive its positioned nullifier. Every ordinary Transfer emits
-an indistinguishable real or padding commitment; fee funding uses a
-proof-bound disabled context and emits neither.
-
-Accumulator nullifiers live in a day-prefixed temporary consensus set rather
-than the global historical nullifier tree. Entries are retained through
-`day_start + 24h + 30m` and pruned afterward. The owner opening is recovered
-from a fixed 108-byte OVK-authenticated payload in the compact block.
-
-A caller may request voluntary disclosure, which leaves the head unchanged and
-can run concurrently with other transfers spending independent notes. Disclosed
-volume is excluded from later undisclosed-volume calculations. Each selected day
-has a fresh deterministic origin; missing history blocks tracked transfers for
-that day while disclosure remains available. The issuer learns only the current
-transfer, never the running private total. The owner payload contains a 92-byte
-plaintext with the real/padding marker, subject, day, volume and blinding.
-
-Wallet reservation and recovery behavior is defined in [wallet state](../wallet.md).
-The circuit and native code use checked `u128` addition; temporary nullifier
-pruning is strict after the acceptance grace. Activation requires the external
-Shieldd Security models and proof gates for the exact activating commit.
-
-Only the receiver output carries compliance data:
-
-```text
-TransferOutputBody {
-  compliance_ciphertext: 832 bytes
-  compliance_metadata:   272 bytes
-}
-```
-
-Inputs and the change output carry neither field. The metadata is a single
-factored record:
-
-```text
-ring_id_hash
-policy_id_hash
-resource_hash
-permission_hash
-target_timestamp
-audit_epoch
-sender_core_salt
-sender_ext_salt
-output_core_salt
-output_ext_salt
-```
-
-The two core key confirmations are carried with the ciphertext. The circuit
-binds them to the recovered tier seeds, compressed EPKs, and role-specific
-salts. Metadata carries no subject derivation, ACK, or per-ciphertext address
-index. The circuit binds every metadata value to its selected policy fact.
-Tier identity is structural: the four EPK/c2/ciphertext groups and four salts
-always occur in sender-core, sender-extension, output-core, output-extension
-order.
-
-## Consensus And Proof Boundary
-
-The transfer circuit proves:
-
-- fixed two-input/two-output shape and dummy-note semantics;
-- spend ownership, authorization-key randomization, membership, nullifiers,
-  note commitments, value conservation, and balance commitment;
-- non-identity authorization key and sender/receiver diversified generators;
-- asset membership versus canonical non-membership gap;
-- rejection of the asset-tree zero sentinel;
-- regulated policy selection and compliance-leaf membership;
-- complete compliance leaves and `Active` sender/receiver status;
-- daily-volume origin or predecessor validity, checked addition, limit, UTC
-  day selection, proof context, and disclosure flag correctness;
-- four independent EPK/shared-secret/c2/payload encryption relations;
-- proof-bound full ownership ciphertexts for both roles under the checking key;
-- detection encryption;
-- exact `(asset_id, detection_salt, is_flagged, reserved_zero)` detection
-  packing;
-- two proof-derived, privately permuted 32-bit routing tags and their complete
-  parameter-set identifier;
-- the consensus recent-position floor and, for each spend, the exact old-note
-  classification `!is_dummy && position < recent_position_floor`;
-- canonical address plaintext packing from the two 32-byte Fq encodings into
-  31-byte stream words;
-- the single 10-field metadata binding; and
-- the exact 58-field statement preimage committed under the canonical transfer
-  statement-hash domain.
-
-The Rust verifier reconstructs the same 58 fields from typed public data.
-Consensus separately checks proof verification, the current asset-policy and
-user-status roots, timestamp freshness, spend signatures, transaction-wide
-spend-nullifier uniqueness, scoped daily-volume-nullifier uniqueness, and the
-binding signature. Transfer's effect hash includes the exact receiver
-ciphertext, metadata, accumulator payload, and proof context, so a delegated
-builder cannot replace them after the spends are authorized.
-
-## Scanner And Evidence
-
-The scanner extracts only typed public facts:
-
-```text
-ExtractedComplianceCiphertext {
-  output_ref,
-  routing_tags: [u32; 2],
-  raw_bytes,
-  metadata_bytes
-}
-```
-
-The scanner DB is the durable spine:
-
-```text
-chain output
-  -> canonical ciphertext/metadata decode
-  -> detection-tier DK screening
-  -> persisted detection or bounded invalid row
-  -> canonical evidence validation
-  -> flagged issuer-DK tier decryption
-  -> audit ledger projection
-```
-
-`ComplianceScreener` is pure parsing plus detection-key screening. It performs
-no persistence, chain fetches, ACP decisions, or release calls. Scanner blocks are
-keyed by height/hash/parent hash; a reorg rolls state back to the common
-ancestor before replay.
-
-The evidence object contains the output reference, asset/flag/detection facts,
-the 832-byte ciphertext, the 272-byte metadata record, and a payload hash. It
-contains no capsule-release evidence, shared point, or standalone DLEQ proof. Evidence
-validation compares both ciphertext and metadata to the accepted output and
-the persisted detection row before an audit can complete.
-
-Valid audit transitions are:
+Retained results are spooled into a private anonymous file with a 256 MiB local
+budget. Cancellation/process exit removes scratch data. One synchronous SQLite
+transaction streams evidence, counters and coverage, rechecking the predecessor
+and the public detection-key/target-asset identity. It performs no network calls
+or screening. Identity conflicts roll back the batch; configuration changes require
+reset/replay. Reorg rollback includes evidence and coverage. Relevant ciphertext
+bytes are preserved exactly. Evidence contains the
+output/block identity, detection facts, ciphertext, metadata and payload hash.
+`validate_and_save_evidence_object` checks byte equality and the persisted
+asset/flag/salt/reserved-zero facts before completing downstream work. Failures
+remain durable with bounded attacker-controlled reason text.
 
 ```text
 pending -> evidence_valid | evidence_invalid
@@ -284,13 +141,12 @@ decrypt_failed -> audit_complete
 audit_complete -> audit_complete
 ```
 
-## Audit Availability
+Flagged transfers can complete through issuer-DK decryption after evidence
+validation. Unflagged payloads require authorized threshold release; distributed
+PET and release integration are unavailable, so those rows cannot currently
+complete. Scanner evidence does not publish seed-opening material. Voluntary
+and issuer submissions use the separate [disclosure API](../disclosure.md).
 
-Flagged regulated transfers encrypt every audit tier to the issuer DK. After
-evidence validation, the issuer can decrypt them locally and complete the
-audit.
-
-Unflagged regulated tiers encrypt to the sender or receiver ACK. The scanner has
-no release import workflow, so those rows cannot currently complete. Scanner
-evidence must not publish seed-opening material. `SeizeNote` is a separate
-privileged host path.
+Source owners: [scanner](../../crates/core/component/compliance/src/scanner/),
+[evidence](../../crates/core/component/compliance/src/evidence.rs), and
+[audit](../../crates/core/component/compliance/src/audit.rs).

@@ -1,386 +1,297 @@
-#[cfg(feature = "prover")]
-use crate::evidence::{openings, signatures};
 use crate::*;
-use anyhow::{ensure, Context, Result};
-use base64::{engine::general_purpose::STANDARD, Engine};
-use serde::{Deserialize, Serialize};
+use anyhow::{ensure, Result};
+use commonware_cryptography::bls12381::primitives::group::Scalar;
 use sha2::{Digest, Sha256};
-use std::{
-    io::Write,
-    process::{Command, Stdio},
+#[cfg(feature = "prover")]
+use shieldd_sdk_circuits::{catalogue::Witness, note::Note};
+use shieldd_sdk_circuits::{
+    disclosure as circuit,
+    encoding::field as scalar,
+    encryption::Address,
+    group::{native_point, Point},
+    hash::Parameters,
+    proof::{Envelope, Family},
 };
+use shieldd_sdk_crypto::{domains, Fq};
+use shieldd_sdk_proof_params::pari::Registry;
 
-pub const CIRCUIT_ID: &str = "shieldd.disclosure.bls12-377.groth16.v1.32";
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Manifest {
-    circuit: String,
-    development: bool,
-    vk_sha256: String,
-    pk_sha256: String,
+fn family(request: &DisclosureRequest) -> Result<Family> {
+    validate_request(request)?;
+    Ok(if request.outputs.len() == 1 {
+        Family::DisclosureOne
+    } else {
+        Family::Disclosure
+    })
 }
-fn artifacts() -> Result<(std::path::PathBuf, Manifest)> {
-    let path = std::path::PathBuf::from(
-        std::env::var("SHIELDD_DISCLOSURE_ARTIFACTS")
-            .context("disclosure artifacts are not configured")?,
-    );
-    let manifest: Manifest = serde_json::from_slice(&std::fs::read(path.join("manifest.json"))?)?;
-    ensure!(manifest.circuit == CIRCUIT_ID, "wrong configured circuit");
-    // Production approval is deliberately unavailable until an approved ceremony is pinned.
-    ensure!(
-        manifest.development && cfg!(all(feature = "development-artifacts", debug_assertions)),
-        "no approved production disclosure setup is installed"
-    );
-    for hash in [&manifest.vk_sha256, &manifest.pk_sha256] {
-        ensure!(hex::decode(hash)?.len() == 32, "invalid artifact digest");
+
+pub fn circuit_id(request: &DisclosureRequest) -> Result<&'static str> {
+    Ok(match family(request)? {
+        Family::DisclosureOne => CIRCUIT_ID_ONE,
+        Family::Disclosure => CIRCUIT_ID_MANY,
+        _ => unreachable!("disclosure request selects a disclosure family"),
+    })
+}
+
+fn zero() -> Scalar {
+    Scalar::from(0u64)
+}
+fn bit(value: bool) -> Scalar {
+    Scalar::from(u64::from(value))
+}
+fn amount(value: &str) -> Result<Scalar> {
+    let n: u128 = value.parse()?;
+    ensure!(n.to_string() == value, "noncanonical amount");
+    Ok(scalar(&Fq::from_raw([n as u64, (n >> 64) as u64, 0, 0])))
+}
+fn asset(value: &str) -> Result<Scalar> {
+    let asset: shieldd_sdk_asset::asset::Id = value.parse()?;
+    ensure!(asset.to_string() == value, "noncanonical asset");
+    Ok(scalar(&asset.0))
+}
+fn recipient(value: &str) -> Result<Address<Scalar>> {
+    let address: shieldd_sdk_keys::Address = value.parse()?;
+    ensure!(address.to_string() == value, "noncanonical address");
+    Ok(Address {
+        diversified: native_point(&address.diversified_generator()),
+        transmission: native_point(&address.transmission_key().point()),
+    })
+}
+fn empty_address() -> Address<Scalar> {
+    Address {
+        diversified: Point {
+            x: zero(),
+            y: zero(),
+        },
+        transmission: Point {
+            x: zero(),
+            y: zero(),
+        },
     }
-    Ok((path, manifest))
 }
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "PascalCase")]
-struct PredicateInput {
-    op: String,
-    lower: String,
-    upper: String,
-    result: String,
-}
-impl Default for PredicateInput {
-    fn default() -> Self {
-        Self {
-            op: "0".into(),
-            lower: "0".into(),
-            upper: "0".into(),
-            result: "0".into(),
-        }
-    }
-}
-fn predicate(p: Option<&AmountPredicate>, result: Option<bool>) -> Result<PredicateInput> {
+fn predicate(
+    p: Option<&AmountPredicate>,
+    result: Option<bool>,
+) -> Result<circuit::Predicate<Scalar>> {
     ensure!(
         p.is_some() == result.is_some(),
         "predicate result shape mismatch"
     );
-    let mut out = PredicateInput::default();
-    if let Some(p) = p {
-        let (op, lo, hi) = match p {
-            AmountPredicate::GreaterThan(v) => (1, v.as_str(), "0"),
-            AmountPredicate::LessThan(v) => (2, v.as_str(), "0"),
-            AmountPredicate::AtLeast(v) => (3, v.as_str(), "0"),
-            AmountPredicate::AtMost(v) => (4, v.as_str(), "0"),
-            AmountPredicate::InclusiveRange { lower, upper } => (5, lower.as_str(), upper.as_str()),
-        };
-        out = PredicateInput {
-            op: op.to_string(),
-            lower: lo.into(),
-            upper: hi.into(),
-            result: bit(result.unwrap()),
-        };
-    }
-    Ok(out)
-}
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "PascalCase")]
-struct Slot {
-    active: String,
-    commitment: String,
-    reveal_amount: String,
-    reveal_asset: String,
-    reveal_recipient: String,
-    amount: String,
-    asset: String,
-    generator: String,
-    transmission: String,
-    predicate: PredicateInput,
-}
-impl Default for Slot {
-    fn default() -> Self {
-        Self {
-            active: bit(false),
-            commitment: bit(false),
-            reveal_amount: bit(false),
-            reveal_asset: bit(false),
-            reveal_recipient: bit(false),
-            amount: bit(false),
-            asset: bit(false),
-            generator: bit(false),
-            transmission: bit(false),
-            predicate: PredicateInput::default(),
+    let (op, lower, upper) = match p {
+        None => (0, zero(), zero()),
+        Some(AmountPredicate::GreaterThan(v)) => (1, amount(v)?, zero()),
+        Some(AmountPredicate::LessThan(v)) => (2, amount(v)?, zero()),
+        Some(AmountPredicate::AtLeast(v)) => (3, amount(v)?, zero()),
+        Some(AmountPredicate::AtMost(v)) => (4, amount(v)?, zero()),
+        Some(AmountPredicate::InclusiveRange { lower, upper }) => {
+            (5, amount(lower)?, amount(upper)?)
         }
-    }
+    };
+    Ok(circuit::Predicate {
+        op: Scalar::from(op as u64),
+        lower,
+        upper,
+        result: bit(result.unwrap_or(false)),
+    })
 }
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "PascalCase")]
-struct OpeningInput {
-    blinding: String,
-    amount: String,
-    asset: String,
-    generator: String,
-    transmission: String,
-    recovery: String,
-}
-impl Default for OpeningInput {
-    fn default() -> Self {
-        Self {
-            blinding: bit(false),
-            amount: bit(false),
-            asset: bit(false),
-            generator: bit(false),
-            transmission: bit(false),
-            recovery: bit(false),
-        }
-    }
-}
-#[derive(Serialize)]
-#[serde(rename_all = "PascalCase")]
-struct Assignment {
-    context: [String; 2],
-    context_hash: String,
-    slots: Vec<Slot>,
-    total_enabled: String,
-    total_reveal: String,
-    total_amount: String,
-    total_asset: String,
-    total_predicate: PredicateInput,
-    notes: Vec<OpeningInput>,
-}
-fn bit(v: bool) -> String {
-    if v { "1" } else { "0" }.into()
-}
-fn decimal(f: decaf377::Fq) -> String {
-    num_bigint::BigUint::from_bytes_le(&f.to_bytes()).to_string()
-}
-fn canonical_amount(v: &str) -> Result<String> {
-    let n: u128 = v.parse()?;
-    ensure!(n.to_string() == v, "noncanonical amount");
-    Ok(v.into())
-}
-fn asset(v: &str) -> Result<String> {
-    let a: shieldd_sdk_asset::asset::Id = v.parse()?;
-    ensure!(a.to_string() == v, "noncanonical asset");
-    Ok(decimal(a.0))
-}
-fn recipient(v: &str) -> Result<(String, String)> {
-    let a: shieldd_sdk_keys::Address = v.parse()?;
-    ensure!(a.to_string() == v, "noncanonical address");
-    Ok((
-        decimal(a.diversified_generator().vartime_compress_to_field()),
-        decimal(
-            decaf377::Fq::from_bytes_checked(&a.transmission_key().0)
-                .map_err(|_| anyhow::anyhow!("invalid transmission key"))?,
-        ),
-    ))
-}
-fn assignment(s: &DisclosureStatement, openings: Option<&[NoteOpening]>) -> Result<Assignment> {
+fn statement<const N: usize>(s: &DisclosureStatement) -> Result<circuit::Statement<Scalar, N>> {
     validate_request(&s.request)?;
+    ensure!(
+        s.request.outputs.len() <= N,
+        "request exceeds disclosure family capacity"
+    );
     ensure!(
         s.outputs.len() == s.request.outputs.len(),
         "output count mismatch"
     );
-    let mut h = Sha256::new();
-    h.update(b"shieldd.disclosure.statement.v1\0");
-    h.update(serde_json::to_vec(s)?);
-    let digest: [u8; 32] = h.finalize().into();
+    let mut context = Sha256::new();
+    context.update(b"shieldd.disclosure.statement.v2\0");
+    context.update([shieldd_sdk_crypto::SUITE]);
+    context.update(serde_json::to_vec(s)?);
+    let digest: [u8; 32] = context.finalize().into();
     let halves = [
-        u128::from_le_bytes(digest[..16].try_into()?),
-        u128::from_le_bytes(digest[16..].try_into()?),
+        scalar(&shieldd_sdk_crypto::encoding::pack(&digest[..16])[0]),
+        scalar(&shieldd_sdk_crypto::encoding::pack(&digest[16..])[0]),
     ];
-    let hash = poseidon377::hash_2(
-        &decaf377::Fq::from(332u64),
-        (decaf377::Fq::from(halves[0]), decaf377::Fq::from(halves[1])),
-    );
-    let mut a = Assignment {
-        context: halves.map(|n| n.to_string()),
-        context_hash: decimal(hash),
-        slots: vec![Slot::default(); MAX_OUTPUTS],
-        total_enabled: bit(false),
-        total_reveal: bit(false),
-        total_amount: bit(false),
-        total_asset: bit(false),
-        total_predicate: PredicateInput::default(),
-        notes: vec![OpeningInput::default(); MAX_OUTPUTS],
-    };
-    for (i, (c, o)) in s.request.outputs.iter().zip(&s.outputs).enumerate() {
-        ensure!(c.reference == o.public.reference, "reference mismatch");
+    let mut slots = std::array::from_fn(|_| circuit::Slot {
+        active: zero(),
+        commitment: zero(),
+        reveal_amount: zero(),
+        reveal_asset: zero(),
+        reveal_recipient: zero(),
+        amount: zero(),
+        asset: zero(),
+        address: empty_address(),
+        predicate: predicate(None, None).expect("empty predicate"),
+    });
+    for (index, (claim, output)) in s.request.outputs.iter().zip(&s.outputs).enumerate() {
         ensure!(
-            !c.memo && o.memo.is_none(),
+            claim.reference == output.public.reference,
+            "reference mismatch"
+        );
+        ensure!(
+            !claim.memo && output.memo.is_none(),
             "memo disclosure requires payload keys"
         );
-        let reveal_asset = c.asset || c.predicate.is_some();
+        let reveal_asset = claim.asset || claim.predicate.is_some();
         ensure!(
-            c.amount == o.amount.is_some()
-                && reveal_asset == o.asset.is_some()
-                && c.recipient == o.recipient.is_some(),
+            claim.amount == output.amount.is_some()
+                && reveal_asset == output.asset.is_some()
+                && claim.recipient == output.recipient.is_some(),
             "field selection mismatch"
         );
-        let (generator, transmission) = o
-            .recipient
-            .as_deref()
-            .map(recipient)
-            .transpose()?
-            .unwrap_or((bit(false), bit(false)));
-        a.slots[i] = Slot {
+        slots[index] = circuit::Slot {
             active: bit(true),
-            commitment: decimal(field(&o.public.commitment)?),
-            reveal_amount: bit(c.amount),
+            commitment: scalar(&field(&output.public.commitment)?),
+            reveal_amount: bit(claim.amount),
             reveal_asset: bit(reveal_asset),
-            reveal_recipient: bit(c.recipient),
-            amount: o
+            reveal_recipient: bit(claim.recipient),
+            amount: output
                 .amount
                 .as_deref()
-                .map(canonical_amount)
+                .map(amount)
                 .transpose()?
-                .unwrap_or(bit(false)),
-            asset: o
+                .unwrap_or_else(zero),
+            asset: output
                 .asset
                 .as_deref()
                 .map(asset)
                 .transpose()?
-                .unwrap_or(bit(false)),
-            generator,
-            transmission,
-            predicate: predicate(c.predicate.as_ref(), o.predicate_result)?,
+                .unwrap_or_else(zero),
+            address: output
+                .recipient
+                .as_deref()
+                .map(recipient)
+                .transpose()?
+                .unwrap_or_else(empty_address),
+            predicate: predicate(claim.predicate.as_ref(), output.predicate_result)?,
         };
     }
     ensure!(
         s.request.total.is_some() == s.selected_output_total.is_some(),
         "total shape mismatch"
     );
-    if let (Some(c), Some(t)) = (&s.request.total, &s.selected_output_total) {
+    let mut out = circuit::Statement {
+        context_hash: Parameters::load()?.native(domains::DISCLOSURE_CONTEXT, &halves),
+        context: halves,
+        slots,
+        total_enabled: zero(),
+        total_reveal: zero(),
+        total_amount: zero(),
+        total_asset: zero(),
+        total_predicate: predicate(None, None)?,
+    };
+    if let (Some(claim), Some(total)) = (&s.request.total, &s.selected_output_total) {
         ensure!(
-            c.reveal == t.amount.is_some(),
+            claim.reveal == total.amount.is_some(),
             "total amount shape mismatch"
         );
-        a.total_enabled = bit(true);
-        a.total_reveal = bit(c.reveal);
-        a.total_asset = asset(&t.asset)?;
-        a.total_amount = t
+        out.total_enabled = bit(true);
+        out.total_reveal = bit(claim.reveal);
+        out.total_amount = total
             .amount
             .as_deref()
-            .map(canonical_amount)
+            .map(amount)
             .transpose()?
-            .unwrap_or(bit(false));
-        a.total_predicate = predicate(c.predicate.as_ref(), t.predicate_result)?;
+            .unwrap_or_else(zero);
+        out.total_asset = asset(&total.asset)?;
+        out.total_predicate = predicate(claim.predicate.as_ref(), total.predicate_result)?;
     }
-    if let Some(openings) = openings {
-        ensure!(openings.len() == s.outputs.len(), "opening count mismatch");
-        for (i, o) in openings.iter().enumerate() {
-            let (generator, transmission) = recipient(&o.recipient)?;
-            a.notes[i] = OpeningInput {
-                blinding: decimal(field(&o.blinding)?),
-                amount: canonical_amount(&o.amount)?,
-                asset: asset(&o.asset)?,
-                generator,
-                transmission,
-                recovery: decimal(field(&o.recovery)?),
-            };
-        }
-    }
-    Ok(a)
+    Ok(out)
 }
-#[derive(Serialize)]
-struct BackendRequest {
-    assignment: Assignment,
-    proof: String,
-}
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct BackendResponse {
-    #[serde(default)]
-    proof: String,
-    verified: bool,
-}
-fn backend(op: &str, assignment: Assignment, proof: &[u8]) -> Result<BackendResponse> {
-    let (path, _) = artifacts()?;
-    let executable = std::env::var("SHIELDD_DISCLOSURE_BACKEND")
-        .context("local disclosure backend is not configured")?;
-    let bytes = serde_json::to_vec(&BackendRequest {
-        assignment,
-        proof: STANDARD.encode(proof),
-    })?;
-    ensure!(bytes.len() <= MAX_WITNESS_BYTES, "backend input too large");
-    let mut child = Command::new(executable)
-        .arg(op)
-        .arg(path)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .env(
-            "GOMAXPROCS",
-            std::env::var("GOMAXPROCS")
-                .ok()
-                .and_then(|v| v.parse::<usize>().ok())
-                .filter(|v| *v > 0)
-                .unwrap_or(2)
-                .min(2)
-                .to_string(),
-        )
-        .spawn()?;
-    let write = child
-        .stdin
-        .take()
-        .context("missing prover stdin")?
-        .write_all(&bytes);
-    if let Err(e) = write {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(e.into());
-    }
-    let out = child.wait_with_output()?;
-    ensure!(out.status.success(), "local disclosure backend failed");
+#[cfg(feature = "prover")]
+fn witness<const N: usize>(
+    s: &DisclosureStatement,
+    openings: &[NoteOpening],
+) -> Result<circuit::Witness<N>> {
+    ensure!(openings.len() == s.outputs.len(), "opening count mismatch");
     ensure!(
-        out.stdout.len() <= MAX_PACKAGE_BYTES,
-        "backend output too large"
+        openings.len() <= N,
+        "openings exceed disclosure family capacity"
     );
-    let response: BackendResponse = serde_json::from_slice(&out.stdout)?;
-    ensure!(
-        op != "verify" || response.proof.is_empty(),
-        "unexpected proof output"
-    );
-    Ok(response)
+    let mut notes = std::array::from_fn(|_| circuit::Opening {
+        note: Note {
+            blinding: zero(),
+            amount: zero(),
+            recovery: zero(),
+        },
+        asset: zero(),
+        address: empty_address(),
+    });
+    for (index, opening) in openings.iter().enumerate() {
+        notes[index] = circuit::Opening {
+            note: Note {
+                blinding: scalar(&field(&opening.blinding)?),
+                amount: amount(&opening.amount)?,
+                recovery: scalar(&field(&opening.recovery)?),
+            },
+            asset: asset(&opening.asset)?,
+            address: recipient(&opening.recipient)?,
+        };
+    }
+    Ok(circuit::Witness {
+        statement: statement::<N>(s)?,
+        notes,
+    })
 }
-
-pub(crate) fn verify_groth16(package: &DisclosurePackage) -> Result<()> {
-    let Evidence::Groth16 {
+pub(crate) fn verify_pari(package: &DisclosurePackage, registry: &Registry) -> Result<()> {
+    let Evidence::Pari {
         circuit,
-        verification_key_sha256,
+        verification_key_digest,
         proof,
         control_signatures,
     } = &package.evidence
     else {
-        anyhow::bail!("expected Groth16 evidence");
+        anyhow::bail!("expected Pari evidence")
     };
-    ensure!(circuit == CIRCUIT_ID, "unsupported circuit");
-    let (_, m) = artifacts().context(VerificationUnavailable)?;
+    let selected = family(&package.statement.request)?;
     ensure!(
-        verification_key_sha256 == &m.vk_sha256,
-        "wrong verification key"
+        circuit == circuit_id(&package.statement.request)?,
+        "wrong disclosure circuit for request"
     );
-    ensure!(proof.len() <= 4096, "proof too large");
-    let response = backend("verify", assignment(&package.statement, None)?, proof)
-        .context(VerificationUnavailable)?;
-    ensure!(response.verified, "backend rejected proof");
-    verify_controls(&package.statement, control_signatures)?;
-    Ok(())
+    ensure!(
+        verification_key_digest == &hex::encode(registry.verifying_key(selected)?.digest()),
+        "disclosure key mismatch"
+    );
+    registry.verify(
+        selected,
+        &match selected {
+            Family::DisclosureOne => {
+                statement::<1>(&package.statement)?.digest(Parameters::load()?)
+            }
+            Family::Disclosure => statement::<32>(&package.statement)?.digest(Parameters::load()?),
+            _ => unreachable!(),
+        },
+        &Envelope::from_bytes(proof)?,
+    )?;
+    verify_controls(&package.statement, control_signatures)
 }
-
 #[cfg(feature = "prover")]
-pub fn prove(w: &DisclosureWitness) -> Result<DisclosurePackage> {
+pub fn prove(w: &DisclosureWitness, registry: &Registry) -> Result<DisclosurePackage> {
     let statement = evaluate(w)?;
-    let private = openings(w)?;
-    let (_, m) = artifacts().context(VerificationUnavailable)?;
-    let response = backend("prove", assignment(&statement, Some(&private))?, &[])?;
-    ensure!(response.verified, "backend rejected proof");
-    let p = DisclosurePackage {
+    let selected = family(&statement.request)?;
+    let openings = crate::evidence::openings(w)?;
+    let native = match selected {
+        Family::DisclosureOne => {
+            Witness::DisclosureOne(Box::new(witness::<1>(&statement, &openings)?))
+        }
+        Family::Disclosure => Witness::Disclosure(Box::new(witness::<32>(&statement, &openings)?)),
+        _ => unreachable!(),
+    };
+    let proof = registry.prove(&native, shieldd_sdk_proof_params::pari::proving_strategy()?)?;
+    let selected_id = circuit_id(&statement.request)?;
+    let package = DisclosurePackage {
         version: VERSION,
         statement,
-        evidence: Evidence::Groth16 {
-            circuit: CIRCUIT_ID.into(),
-            verification_key_sha256: m.vk_sha256,
-            proof: STANDARD.decode(response.proof)?,
-            control_signatures: signatures(w),
+        evidence: Evidence::Pari {
+            circuit: selected_id.into(),
+            verification_key_digest: hex::encode(registry.verifying_key(selected)?.digest()),
+            proof: proof.to_bytes(),
+            control_signatures: crate::evidence::signatures(w),
         },
     };
-    verify(&p)?;
-    Ok(p)
+    verify(&package, Some(registry))?;
+    Ok(package)
 }
+
+#[cfg(all(test, feature = "prover"))]
+mod tests;

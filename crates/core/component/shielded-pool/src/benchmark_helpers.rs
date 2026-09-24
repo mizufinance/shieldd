@@ -1,6 +1,4 @@
-pub use crate::test_proof_helpers::proof_test_helpers::{
-    CircuitType, REGULATED_ASSET_ID, UNREGULATED_ASSET_ID,
-};
+pub use crate::test_proof_helpers::proof_test_helpers::{REGULATED_ASSET_ID, UNREGULATED_ASSET_ID};
 
 use crate::{
     ShieldedWithdrawalFamilyId, ShieldedWithdrawalProofPrivate, ShieldedWithdrawalProofPublic,

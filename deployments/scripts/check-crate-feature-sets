@@ -23,9 +23,4 @@ cargo check --profile ci -p shieldd-sdk-view --no-default-features
 cargo check --profile ci -p shieldd-sdk-view --no-default-features --features rpc
 cargo check --profile ci -p shieldd-sdk-compliance --no-default-features --features scanner
 cargo check --profile ci -p shieldd-sdk-transaction --no-default-features --features prover
-cargo check --profile ci -p shieldd-sdk-disclosure --no-default-features
-dependency_tree="$(cargo tree -p shieldd --edges normal --prefix none)"
-if grep -q '^libloading ' <<< "$dependency_tree"; then
-    echo 'ERROR: validator enables native prover loading' >&2
-    exit 1
-fi
+cargo check --profile ci -p shieldd-sdk-disclosure --no-default-features --all-targets

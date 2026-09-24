@@ -39,10 +39,11 @@ message CompactBlock {
   repeated compliance.v1.EventUserAssetStatusChanged compliance_user_status_changes = 18;
   // Asset registrations in this block (for client sync).
   repeated compliance.v1.EventAssetRegistered compliance_asset_registrations = 15;
-  // Encrypted note payloads grouped by their producing action for candidate retrieval.
-  repeated RoutingActionPayloads routing_action_payloads = 16;
+  // Actions reference canonical payload positions instead of repeating ciphertexts.
+  repeated RoutingAction routing_actions = 16;
   // Exact nullifier-generation window, emitted at genesis and app-epoch boundaries.
   sct.v1.NullifierWindow nullifier_window = 17;
+  uint64 state_payload_start_position = 19;
 }
 
 // An encrypted payload, corresponding to a single commitment in the state commitment tree.
@@ -68,47 +69,8 @@ message StatePayload {
 
 // Query operations for the compact block component.
 service QueryService {
-  // Returns a stream of compact blocks, optionally keeping the stream alive for push notifications.
-  rpc CompactBlockRange(CompactBlockRangeRequest) returns (stream CompactBlockRangeResponse);
-  // Returns a single compact block at a specific height.
-  //
-  // Clients requesting multiple compact blocks should generally use the streaming RPC.
-  rpc CompactBlock(CompactBlockRequest) returns (CompactBlockResponse);
-  // Streams typed action-level routing records without filtering.
-  rpc RoutingBlockRange(RoutingBlockRangeRequest) returns (stream RoutingBlockRangeResponse);
-  // Finds action-level candidates by routing selector.
-  rpc RoutingCandidates(RoutingCandidatesRequest) returns (stream RoutingCandidatesResponse);
-}
-
-// Requests a range of compact block data.
-message CompactBlockRangeRequest {
-  // The start height of the range.
-  uint64 start_height = 2;
-  // The end height of the range, defaults to the latest block height.
-  uint64 end_height = 3;
-  // If set, keeps the connection alive past `end_height`,
-  // streaming new compact blocks as they are created.
-  bool keep_alive = 4;
-}
-
-message CompactBlockRangeResponse {
-  core.component.compact_block.v1.CompactBlock compact_block = 1;
-}
-
-message CompactBlockRequest {
-  uint64 height = 1;
-}
-
-message CompactBlockResponse {
-  core.component.compact_block.v1.CompactBlock compact_block = 1;
-}
-
-message RoutingBlock {
-  uint64 height = 1;
-  crypto.tct.v1.MerkleRoot block_root = 2;
-  crypto.tct.v1.MerkleRoot epoch_root = 3;
-  repeated RoutingRecord records = 4;
-  shielded_pool.v1.DiscoveryParameters discovery_parameters = 5;
+  rpc FilteredBlockPage(FilteredBlockPageRequest) returns (FilteredBlockPageResponse);
+  rpc CompactBlockPage(CompactBlockPageRequest) returns (CompactBlockPageResponse);
 }
 
 // One public tag attached to an action. Slot roles are deliberately absent.
@@ -120,29 +82,76 @@ message RoutingRecord {
   uint32 tag_slot = 5;
 }
 
-// Encrypted payloads associated with one public action position.
-message RoutingActionPayloads {
+// SCT positions associated with one public action position.
+message RoutingAction {
   core.txhash.v1.TransactionId transaction_id = 1;
   uint32 action_index = 2;
-  repeated shielded_pool.v1.NotePayload note_payloads = 3;
+  repeated uint64 payload_positions = 3;
 }
 
-message RoutingBlockRangeRequest {
-  uint64 start_height = 1;
-  uint64 end_height = 2;
+// Node-local metadata. Payloads are stored separately by canonical position.
+message StoredCompactBlock {
+  CompactBlock metadata = 1;
+  repeated StoredSection sections = 2;
 }
 
-message RoutingBlockRangeResponse {
-  RoutingBlock routing_block = 1;
+// Fixed sections preserve each repeated field's canonical order.
+enum CompactRecordKind {
+  COMPACT_RECORD_KIND_UNSPECIFIED = 0;
+  COMPACT_RECORD_KIND_PAYLOAD = 1;
+  COMPACT_RECORD_KIND_NULLIFIER = 2;
+  COMPACT_RECORD_KIND_ROUTING_RECORD = 3;
+  COMPACT_RECORD_KIND_ROUTING_ACTION = 4;
+  COMPACT_RECORD_KIND_USER_REGISTRATION = 5;
+  COMPACT_RECORD_KIND_USER_STATUS = 6;
+  COMPACT_RECORD_KIND_ASSET_REGISTRATION = 7;
+  COMPACT_RECORD_KIND_PROVEN_PAYLOAD = 8;
+  COMPACT_RECORD_KIND_HEADER = 9;
+}
+message StoredSection {
+  CompactRecordKind kind = 1;
+  uint32 count = 2;
+}
+message CompactBlockPageRequest {
+  uint64 height = 1;
+  bytes cursor = 2;
+}
+message CompactRecordFragment {
+  CompactRecordKind kind = 1;
+  uint32 index = 2;
+  uint32 offset = 3;
+  uint32 total_length = 4;
+  bytes data = 5;
+}
+message CompactBlockPageResponse {
+  CompactPage page = 1;
+}
+message FilteredBlockPageResponse {
+  CompactPage page = 1;
+}
+// Common authenticated page contents for full and filtered synchronization.
+message CompactPage {
+  uint64 height = 1;
+  string chain_id = 2;
+  bytes block_identity = 3;
+  repeated CompactRecordFragment fragments = 4;
+  bytes next_cursor = 5;
 }
 
-message RoutingCandidatesRequest {
-  uint64 start_height = 1;
-  uint64 end_height = 2;
-  repeated shielded_pool.v1.RoutingSelector selectors = 3;
+// Opt-in trusted-provider query. Selectors reveal wallet routing interests.
+message FilteredBlockPageRequest {
+  uint64 height = 1;
+  repeated shielded_pool.v1.RoutingSelector selectors = 2;
+  bytes cursor = 3;
 }
-
-message RoutingCandidatesResponse {
-  RoutingRecord record = 1;
-  repeated shielded_pool.v1.NotePayload note_payloads = 2;
+message ProvenPayload {
+  uint64 position = 1;
+  StatePayload payload = 2;
+  repeated crypto.tct.v1.MerklePathChunk auth_path = 3; // eight, leaf to root
+  txhash.v1.TransactionId transaction_id = 4;
+}
+// Local positional index entry for payloads with no routing tag.
+message UnroutedPayload {
+  uint64 position = 1;
+  txhash.v1.TransactionId transaction_id = 2;
 }

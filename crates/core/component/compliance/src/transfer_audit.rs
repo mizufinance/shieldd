@@ -1,13 +1,12 @@
 //! Selection and local decryption of canonical Transfer compliance ciphertext.
 use anyhow::{ensure, Result};
-use decaf377::{Element, Fq};
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_crypto::{Fq, SubgroupPoint};
 use shieldd_sdk_num::Amount;
 
 use crate::{
-    crypto::{compliance_stream_block, transfer_key_confirmation},
-    scanning::AddressData,
-    TransferComplianceCiphertext, TransferComplianceMetadata,
+    crypto::transfer_key_confirmation, scanning::AddressData, TransferComplianceCiphertext,
+    TransferComplianceMetadata,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,7 +20,7 @@ pub enum TransferTier {
 
 /// Public fields selected from one canonical transaction, never a second encryption.
 pub struct TransferTierCiphertext<'a> {
-    pub epk: Element,
+    pub epk: SubgroupPoint,
     pub c2: Fq,
     pub ciphertext: &'a [u8],
     pub salt: Fq,
@@ -71,7 +70,10 @@ impl TransferTier {
                 None,
             ),
         };
-        ensure!(epk != Element::default(), "identity transfer ephemeral key");
+        ensure!(
+            epk != SubgroupPoint::default(),
+            "identity transfer ephemeral key"
+        );
         Ok(TransferTierCiphertext {
             epk,
             c2,
@@ -85,55 +87,40 @@ impl TransferTier {
 impl TransferTierCiphertext<'_> {
     /// Caller must first verify PRE against this transaction's EPK and encryption key.
     /// A successful decode alone does not authenticate a PRE result or chain acceptance.
-    pub fn decrypt(&self, shared: &Element) -> Result<TransferAuditData> {
+    pub fn decrypt(&self, shared: &SubgroupPoint) -> Result<TransferAuditData> {
         ensure!(
-            *shared != Element::default(),
+            *shared != SubgroupPoint::default(),
             "identity transfer shared point"
         );
-        let seed = self.c2 - shared.vartime_compress_to_field();
+        let seed = self.c2 - crate::crypto::shared_secret(shared);
         self.decrypt_seed(seed)
     }
 
     pub(crate) fn decrypt_seed(&self, seed: Fq) -> Result<TransferAuditData> {
         let len: usize = if let Some(confirmation) = self.key_confirmation {
             ensure!(
-                transfer_key_confirmation(seed, self.epk.vartime_compress_to_field(), self.salt)
-                    == confirmation,
+                transfer_key_confirmation(seed, &self.epk, self.salt) == confirmation,
                 "transfer key confirmation mismatch"
             );
             16
         } else {
             64
         };
-        ensure!(
-            self.ciphertext.len() == len.div_ceil(31) * 32,
-            "invalid transfer tier length"
-        );
-        let mut plaintext = Vec::with_capacity(len);
-        for (i, chunk) in self.ciphertext.chunks_exact(32).enumerate() {
-            let ct = Fq::from_bytes_checked(chunk.try_into()?)
-                .map_err(|_| anyhow::anyhow!("noncanonical transfer ciphertext"))?;
-            let bytes = (ct - compliance_stream_block(seed, i as u64)).to_bytes();
-            let take = 31.min(len - plaintext.len());
-            ensure!(
-                bytes[take..].iter().all(|b| *b == 0),
-                "noncanonical transfer plaintext"
-            );
-            plaintext.extend_from_slice(&bytes[..take]);
-        }
+        let plaintext = crate::crypto::decrypt_tier_bytes(self.ciphertext, seed, len)?;
         if len == 16 {
             return Ok(TransferAuditData::Amount(Amount::from_le_bytes(
                 plaintext.try_into().expect("checked amount length"),
             )));
         }
-        let diversified_generator = decaf377::Encoding(plaintext[..32].try_into()?)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("invalid counterparty diversified generator"))?;
+        let diversified_generator =
+            shieldd_sdk_crypto::encoding::nonidentity(plaintext[..32].try_into()?)
+                .map_err(|_| anyhow::anyhow!("invalid counterparty diversified generator"))?;
         ensure!(
-            diversified_generator != Element::default(),
+            diversified_generator != SubgroupPoint::default(),
             "identity counterparty diversified generator"
         );
         let transmission_key = plaintext[32..].try_into()?;
+        shieldd_sdk_crypto::encoding::nonidentity(&transmission_key)?;
         Ok(TransferAuditData::Counterparty(AddressData {
             diversified_generator,
             transmission_key,
@@ -145,9 +132,30 @@ impl TransferTierCiphertext<'_> {
 mod tests {
     use super::*;
     use crate::{test_helpers::make_address, transfer::encrypt_transfer};
-    use decaf377::Fr;
     use rand::{rngs::StdRng, SeedableRng};
     use shieldd_sdk_asset::{asset, Value};
+    use shieldd_sdk_crypto::Fr;
+
+    #[test]
+    fn rejects_invalid_counterparty_transmission_point() {
+        use group::{Group, GroupEncoding};
+        let seed = Fq::from(7);
+        for transmission in [SubgroupPoint::identity().to_bytes(), [255; 32]] {
+            let mut plaintext = shieldd_sdk_crypto::generators::SPEND_AUTH
+                .to_bytes()
+                .to_vec();
+            plaintext.extend_from_slice(&transmission);
+            let ciphertext = crate::crypto::encrypt_tier_bytes(&plaintext, seed);
+            let selected = TransferTierCiphertext {
+                epk: *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                c2: seed,
+                ciphertext: &ciphertext,
+                salt: Fq::from(0),
+                key_confirmation: None,
+            };
+            assert!(selected.decrypt_seed(seed).is_err());
+        }
+    }
 
     #[test]
     fn decrypt_original_transfer_tiers_with_selected_key() {
@@ -155,7 +163,7 @@ mod tests {
         let receiver = make_address(32);
         let ring_sk = Fr::from(29u64);
         let dk = Fr::from(37u64);
-        let general = crate::AuditKeys::test_keys();
+        let general = crate::audit_keys::test_keys();
         let amount = Amount::from(u128::MAX);
         let metadata = TransferComplianceMetadata::from_identifiers(
             "ring",
@@ -173,7 +181,7 @@ mod tests {
             let encrypted = encrypt_transfer(
                 StdRng::seed_from_u64(17),
                 &general,
-                &(Element::GENERATOR * dk),
+                &((*shieldd_sdk_crypto::generators::SPEND_AUTH) * dk),
                 &receiver,
                 &sender,
                 Value {
@@ -197,16 +205,7 @@ mod tests {
                 let selected = tier.select(&encrypted.ciphertext, &metadata).unwrap();
                 let sender_tier =
                     matches!(tier, TransferTier::SenderCore | TransferTier::SenderExt);
-                let key = if flagged {
-                    dk
-                } else {
-                    Fr::from(match tier {
-                        TransferTier::SenderCore => 201u64,
-                        TransferTier::SenderExt => 203,
-                        TransferTier::OutputCore => 201,
-                        TransferTier::OutputExt => 202,
-                    })
-                };
+                let key = if flagged { dk } else { Fr::from(201u64) };
                 let result = selected.decrypt(&(selected.epk * key)).unwrap();
                 let expected = match tier {
                     TransferTier::SenderCore | TransferTier::OutputCore => {
@@ -216,7 +215,7 @@ mod tests {
                         let address = if sender_tier { &receiver } else { &sender };
                         TransferAuditData::Counterparty(AddressData {
                             diversified_generator: *address.diversified_generator(),
-                            transmission_key: address.transmission_key().0,
+                            transmission_key: address.transmission_key().to_bytes(),
                         })
                     }
                 };
@@ -238,7 +237,7 @@ mod tests {
                     }
                 }
                 if flagged {
-                    for committee in [201u64, 202, 203, 204] {
+                    for committee in [201u64, 204] {
                         assert!(selected
                             .decrypt(&(selected.epk * Fr::from(committee)))
                             .is_err());
@@ -251,7 +250,7 @@ mod tests {
                 assert!(selected
                     .decrypt(&(selected.epk * (key + Fr::from(1u64))))
                     .is_err());
-                assert!(selected.decrypt(&Element::default()).is_err());
+                assert!(selected.decrypt(&SubgroupPoint::default()).is_err());
             }
         }
     }

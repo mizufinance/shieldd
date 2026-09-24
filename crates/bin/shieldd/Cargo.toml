@@ -7,12 +7,16 @@ description = "Embedded Shieldd execution library"
 repository = { workspace = true }
 license = { workspace = true }
 publish = false
-rust-version = "1.75"
 
 [lib]
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+shieldd-sdk-crypto.workspace = true
+shieldd-sdk-proof-params.workspace = true
 ibc-proto = { workspace = true }
 cnidarium-component = { workspace = true }
 anyhow = { workspace = true }
@@ -23,6 +27,7 @@ shieldd-sdk-app = { workspace = true, features = ["parallel"], default-features 
 shieldd-sdk-compact-block = { workspace = true, features = ["component"] }
 shieldd-sdk-compliance = { workspace = true, features = ["component"] }
 shieldd-sdk-proto = { workspace = true, default-features = true }
+shieldd-sdk-tct = { workspace = true }
 shieldd-sdk-sct = { workspace = true, default-features = true }
 shieldd-sdk-shielded-pool = { workspace = true, default-features = false }
 tendermint = { workspace = true }
@@ -33,13 +38,13 @@ tracing = { workspace = true }
 # Rust-side global allocator. With the baked `dirty_decay_ms:0` config (see lib.rs),
 # freed pages are returned to the OS promptly instead of being held in per-thread
 # arenas, which shrinks the RSS high-water from transient per-block allocation
-# bursts. Only covers Rust allocations (not RocksDB's C++ or the gnark Go runtime).
+# bursts. Only covers Rust allocations (not RocksDB's C++).
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.6"
 
 [dev-dependencies]
+shieldd-sdk-transaction.workspace = true
 ibc-types = { workspace = true }
-decaf377 = { workspace = true, default-features = true }
 shieldd-sdk-asset = { workspace = true, default-features = true }
 shieldd-sdk-keys = { workspace = true, default-features = false }
 tempfile = { workspace = true }

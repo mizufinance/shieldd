@@ -1,8 +1,8 @@
 use std::{collections::HashSet, future::Future, time::Duration};
 
 use anyhow::{anyhow, bail, Context, Result};
+use ark_ec_04::AffineRepr;
 use cosmrs::Any;
-use decaf377::Encoding;
 use orbis_authn::{create_authenticated_request, JwtSigner};
 use orbis_common::blockchain::{
     acp::{
@@ -11,6 +11,7 @@ use orbis_common::blockchain::{
     },
     BroadcastResult, VeraClient,
 };
+use orbis_crypto::{CryptoDeserialize, GroupAffine};
 use orbis_prost::Message;
 use orbis_proto::{
     info_service::{info_service_client::InfoServiceClient, GetNodeInfoRequest},
@@ -333,12 +334,8 @@ impl OrbisClient {
 
         let ring_pk_hex = ring.ring_pk;
         let bytes = hex::decode(&ring_pk_hex).context("invalid Orbis ring_pk hex")?;
-        let bytes_arr: [u8; 32] = bytes
-            .try_into()
-            .map_err(|_| anyhow!("ring_pk should be 32 bytes"))?;
-        let ring_pk = Encoding(bytes_arr)
-            .vartime_decompress()
-            .map_err(|_| anyhow!("invalid ring_pk encoding"))?;
+        let ring_pk = GroupAffine::from_bytes(&bytes).context("invalid BLS12-381 ring key")?;
+        anyhow::ensure!(!ring_pk.is_zero(), "identity Orbis ring key");
 
         Ok(RingInfo {
             ring_id: ring.id,
@@ -557,18 +554,6 @@ impl OrbisClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn containerized_p2p_address_can_be_derived_without_cli_parsing() {
-        let info = NodeInfo {
-            public_address: "vera1deadbeef".to_string(),
-            node_key: "node-key".to_string(),
-            peer_id: "12D3KooWExample".to_string(),
-            p2p_address: "/ip4/127.0.0.1/tcp/4001".to_string(),
-        };
-        assert_eq!(info.peer_id, "12D3KooWExample");
-        assert!(info.p2p_address.contains("4001"));
-    }
 
     #[test]
     fn invalid_endpoint_is_rejected() {

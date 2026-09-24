@@ -35,6 +35,21 @@ pub mod epoch_manager {
 pub mod nullifier_generations {
     use crate::nullifier_generation::NullifierTreeId;
 
+    pub fn block_range(generation: u64) -> Vec<u8> {
+        format!("sct/nullifier_generations/history/{generation:020}/range").into_bytes()
+    }
+    pub fn insertion(generation: u64, height: u64) -> Vec<u8> {
+        format!("sct/nullifier_generations/history/{generation:020}/blocks/{height:020}")
+            .into_bytes()
+    }
+    pub fn spend_prefix(generation: u64) -> Vec<u8> {
+        format!("sct/nullifier_generations/history/{generation:020}/positions/").into_bytes()
+    }
+    pub fn spend_interval(generation: u64, position: u64) -> Vec<u8> {
+        let mut key = spend_prefix(generation);
+        key.extend_from_slice(&(u64::MAX - position).to_be_bytes());
+        key
+    }
     pub fn storage_prefix() -> &'static str {
         "sct/nullifier_generations/"
     }
@@ -61,6 +76,10 @@ pub mod nullifier_generations {
             tree.storage_segment()
         )
         .into_bytes()
+    }
+
+    pub fn prune_cursor() -> &'static [u8] {
+        b"sct/nullifier_generations/local_prune_cursor"
     }
 
     fn tree_base(tree: NullifierTreeId) -> String {

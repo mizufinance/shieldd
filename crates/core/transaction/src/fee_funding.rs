@@ -41,6 +41,7 @@ impl FeeFundingPlan {
         witness_data: &WitnessData,
         memo_key: &shieldd_sdk_keys::symmetric::PayloadKey,
         recent_position_floor: u64,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<FeeFunding> {
         self.validate()?;
         let transfer_plan = &self.transfer;
@@ -66,6 +67,7 @@ impl FeeFundingPlan {
                 witness_data.anchor,
                 memo_key,
                 recent_position_floor,
+                registry,
             )
             .map_err(|e| anyhow!("fee funding proof generation failed: {e}"))?;
 
@@ -76,7 +78,7 @@ impl FeeFundingPlan {
         self.transfer.balance()
     }
 
-    pub fn value_blinding(&self) -> decaf377::Fr {
+    pub fn value_blinding(&self) -> shieldd_sdk_crypto::Fr {
         self.transfer.value_blinding
     }
 

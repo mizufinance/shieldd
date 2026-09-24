@@ -10,6 +10,8 @@ pub static SUBSTORE_PREFIXES: Lazy<Vec<String>> =
 pub static COMETBFT_SUBSTORE_PREFIX: &'static str = "cometbft-data";
 
 pub mod app_version;
+#[cfg(feature = "component")]
+pub mod registry_binding;
 pub use app_version::APP_VERSION;
 
 pub mod genesis;

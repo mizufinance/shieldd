@@ -1,7 +1,7 @@
 //! Incremental serialization for the [`Tree`](crate::Tree).
 
-use poseidon377::Fq;
 use serde::de::Visitor;
+use shieldd_sdk_crypto::Fq;
 
 use crate::prelude::*;
 
@@ -409,17 +409,12 @@ pub fn updates(
                         None
                     };
 
-                    let hash_update = if hash != Hash::one() {
-                        // Optimization: don't serialize `Hash::one()`, because it will be filled in automatically
-                        Some(storage::Update::StoreHash(storage::StoreHash {
-                            position,
-                            height,
-                            hash,
-                            essential,
-                        }))
-                    } else {
-                        None
-                    };
+                    let hash_update = Some(storage::Update::StoreHash(storage::StoreHash {
+                        position,
+                        height,
+                        hash,
+                        essential,
+                    }));
 
                     // Deleting children, then adding the hash allows the backend to do a sensibility check that
                     // there are no children of essential hashes, if it chooses to.

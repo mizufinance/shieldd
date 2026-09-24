@@ -1,4 +1,5 @@
 use anyhow::{ensure, Context, Result};
+use group::GroupEncoding;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::{TransferComplianceCiphertext, TransferComplianceMetadata};
 use shieldd_sdk_transaction::Action;
@@ -184,7 +185,7 @@ pub fn accepted_audit_ciphertext(
         field: selection.access.key_field(),
     };
     let tier = selection.access.tier().select(&ct, &metadata)?;
-    let epk = tier.epk.vartime_compress().0;
+    let epk = tier.epk.to_bytes();
     let wrapping = tier.c2.to_bytes();
     let owner_index = match selection.access.tier() {
         TransferTier::SenderCore | TransferTier::SenderExt => 0,
@@ -197,11 +198,7 @@ pub fn accepted_audit_ciphertext(
             let owner = address
                 .parse()
                 .context("invalid named-person audit address")?;
-            Some(
-                shieldd_sdk_compliance::ownership::fingerprint(&owner)
-                    .vartime_compress()
-                    .0,
-            )
+            Some(shieldd_sdk_compliance::ownership::fingerprint(&owner).to_bytes())
         }
     };
     Ok(AcceptedAuditCiphertext {
@@ -234,9 +231,7 @@ pub fn decode_audit_ciphertext(
     shared_point: [u8; 32],
 ) -> Result<DecodedAuditValue> {
     use shieldd_sdk_compliance::transfer_audit::TransferAuditData;
-    let shared = decaf377::Encoding(shared_point)
-        .vartime_decompress()
-        .map_err(|_| anyhow::anyhow!("invalid audit shared point"))?;
+    let shared = shieldd_sdk_crypto::encoding::nonidentity(&shared_point)?;
     let ct = TransferComplianceCiphertext::from_bytes(&accepted.ciphertext)?;
     let value = accepted
         .selection
@@ -249,7 +244,7 @@ pub fn decode_audit_ciphertext(
             base_units: amount.to_string(),
         },
         TransferAuditData::Counterparty(address) => DecodedAuditValue::AddressComponents {
-            diversified_generator: address.diversified_generator.vartime_compress().0,
+            diversified_generator: address.diversified_generator.to_bytes(),
             transmission_key: address.transmission_key,
         },
     })

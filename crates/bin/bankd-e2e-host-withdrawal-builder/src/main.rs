@@ -5,10 +5,10 @@ use std::{env, ops::Deref, path::PathBuf, str::FromStr};
 use anyhow::{anyhow, bail, Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use cnidarium::Storage;
-use decaf377::Fr;
 use rand_core::OsRng;
 use shieldd_sdk_app::SUBSTORE_PREFIXES;
 use shieldd_sdk_asset::{asset, Value};
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::{test_keys, Address};
 use shieldd_sdk_mock_client::MockClient;
 use shieldd_sdk_num::Amount;
@@ -200,7 +200,12 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
     let snapshot = storage.latest_snapshot();
     let plan = client.complete_intent(intent, snapshot).await?;
     let tx = client
-        .witness_auth_build(&plan)
+        .witness_auth_build(
+            &plan,
+            std::sync::Arc::new(shieldd_sdk_proof_params::pari::Registry::load(
+                std::env::var("SHIELDD_PARI_KEYS").context("SHIELDD_PARI_KEYS is required")?,
+            )?),
+        )
         .await
         .context("failed to build Shieldd host withdrawal transaction")?;
     Ok(tx.encode_to_vec())

@@ -2,8 +2,7 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
-use shieldd_sdk_proof_aggregation::AggregateBundle;
-use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType, Message as _};
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 use std::convert::{TryFrom, TryInto};
 
@@ -19,7 +18,6 @@ pub enum Action {
     ShieldedHostWithdrawal(shieldd_sdk_shielded_pool::ShieldedHostWithdrawal),
     ComplianceRegisterAsset(MsgRegisterAsset),
     ComplianceRegisterUser(MsgRegisterUser),
-    AggregateBundle(AggregateBundle),
 }
 
 impl EffectingData for Action {
@@ -31,17 +29,6 @@ impl EffectingData for Action {
             Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.effect_hash(),
             Action::ComplianceRegisterAsset(action) => action.effect_hash(),
             Action::ComplianceRegisterUser(action) => action.effect_hash(),
-            Action::AggregateBundle(bundle) => {
-                let bytes = pb::AggregateBundle::from(bundle.clone()).encode_to_vec();
-                EffectHash(
-                    blake2b_simd::Params::new()
-                        .personal(b"ShielddAgBH")
-                        .hash(&bytes)
-                        .as_bytes()[0..32]
-                        .try_into()
-                        .expect("hash output is 32 bytes"),
-                )
-            }
         }
     }
 }
@@ -64,7 +51,6 @@ impl Action {
             Action::ComplianceRegisterUser(_) => {
                 tracing::info_span!("ComplianceRegisterUser", ?idx)
             }
-            Action::AggregateBundle(_) => tracing::info_span!("AggregateBundle", ?idx),
         }
     }
 
@@ -76,7 +62,6 @@ impl Action {
 
             Action::ComplianceRegisterAsset(_) => 80,
             Action::ComplianceRegisterUser(_) => 81,
-            Action::AggregateBundle(_) => 82,
 
             Action::ShieldedHostWithdrawal(_) => 201,
         }
@@ -93,7 +78,6 @@ impl IsAction for Action {
 
             Action::ComplianceRegisterAsset(_) => balance::Commitment::default(),
             Action::ComplianceRegisterUser(_) => balance::Commitment::default(),
-            Action::AggregateBundle(_) => balance::Commitment::default(),
         }
     }
 
@@ -110,7 +94,6 @@ impl IsAction for Action {
             Action::ComplianceRegisterUser(action) => {
                 ActionView::ComplianceRegisterUser(action.to_owned())
             }
-            Action::AggregateBundle(action) => ActionView::AggregateBundle(action.to_owned()),
         }
     }
 }
@@ -137,9 +120,6 @@ impl From<Action> for pb::Action {
             },
             Action::ComplianceRegisterUser(inner) => pb::Action {
                 action: Some(pb::action::Action::ComplianceRegisterUser(inner.into())),
-            },
-            Action::AggregateBundle(inner) => pb::Action {
-                action: Some(pb::action::Action::AggregateBundle(inner.into())),
             },
         }
     }
@@ -169,9 +149,6 @@ impl TryFrom<pb::Action> for Action {
             }
             pb::action::Action::ComplianceRegisterUser(inner) => {
                 Ok(Action::ComplianceRegisterUser(inner.try_into()?))
-            }
-            pb::action::Action::AggregateBundle(inner) => {
-                Ok(Action::AggregateBundle(inner.try_into()?))
             }
         }
     }

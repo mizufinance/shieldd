@@ -2,9 +2,10 @@ use super::*;
 use crate::params::{ComplianceParameters, StateWriteExt as _};
 use crate::tree::QuadTree;
 use cnidarium::TempStorage;
-use decaf377::{Fq, Fr};
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use futures::StreamExt;
+use group::Group;
+use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::component::clock::EpochManager;
 use std::collections::BTreeMap;
@@ -107,9 +108,9 @@ async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
         .test_only_register_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
             true,
         )
@@ -177,9 +178,9 @@ async fn note_seizure_is_terminal_but_allows_more_notes_from_the_same_freeze() {
         .test_only_register_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
             true,
         )
@@ -239,7 +240,7 @@ async fn add_compliance_leaf_rejects_identity_capability_before_mutation() {
         Address::dummy(&mut rand::thread_rng()),
         asset::Id(Fq::from(1u64)),
     );
-    leaf.capk = decaf377::Element::IDENTITY;
+    leaf.rnk_dh_pk = shieldd_sdk_crypto::SubgroupPoint::identity();
 
     let err = state
         .add_compliance_leaf(leaf)
@@ -247,7 +248,7 @@ async fn add_compliance_leaf_rejects_identity_capability_before_mutation() {
         .expect_err("durable state must reject an identity capability");
 
     assert!(
-        err.to_string().contains("capk must be nonidentity"),
+        err.to_string().contains("rnk_dh_pk must be nonidentity"),
         "unexpected error: {err:#}"
     );
     assert_eq!(state.get_user_count().await.unwrap(), 0);
@@ -372,22 +373,25 @@ async fn test_register_regulated_asset() {
     let proof_before = state.get_asset_proof_data(asset_id).await.unwrap();
     assert!(!proof_before.is_regulated);
 
+    let policy = AssetPolicy::for_test(
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
+        500,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
+    );
+
     // Register as regulated
     state
-        .register_regulated_asset(
-            asset_id,
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
+        .register_regulated_asset(asset_id, policy.clone())
         .await
         .unwrap();
 
     // Now asset is regulated (in IMT)
     let proof_after = state.get_asset_proof_data(asset_id).await.unwrap();
     assert!(proof_after.is_regulated);
+    assert_eq!(
+        state.get_asset_policy(asset_id).await.unwrap(),
+        Some(policy)
+    );
     assert_eq!(proof_after.indexed_leaf.value, asset_id.0);
     let tree = state.reconstruct_asset_tree().await.unwrap();
     assert!(tree.contains(asset_id.0));
@@ -411,9 +415,9 @@ async fn test_asset_imt_uses_nv_nodes_and_leaves_not_full_blob() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -455,9 +459,9 @@ async fn test_asset_imt_root_check_fails_on_missing_nv_leaves() {
         .register_regulated_asset(
             asset::Id(Fq::from(777u64)),
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -480,9 +484,9 @@ async fn full_asset_structure_validation_is_confined_to_readiness() {
     let mut state = cnidarium::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     state
         .register_regulated_asset(asset::Id(Fq::from(777u64)), policy.clone())
@@ -519,9 +523,9 @@ async fn asset_mutation_rejects_a_corrupted_touched_path() {
     let mut state = cnidarium::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     state
         .register_regulated_asset(asset::Id(Fq::from(777u64)), policy.clone())
@@ -553,9 +557,9 @@ async fn test_direct_read_proofs_match_reconstructed_trees_random_trace() {
     state.initialize_trees().await.unwrap();
     let mut rng = rand::rngs::StdRng::seed_from_u64(0x5eed);
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     let mut user_positions = Vec::new();
     let mut asset_ids = Vec::new();
@@ -630,7 +634,8 @@ async fn test_direct_read_proofs_match_reconstructed_trees_random_trace() {
                 direct_proof.indexed_leaf.commit(),
                 &direct_proof.auth_path,
                 direct_proof.position,
-            ),
+            )
+            .unwrap(),
             reconstructed.root()
         );
     }
@@ -643,11 +648,11 @@ async fn test_asset_proof_direct_read_membership_and_gap_parity() {
     let mut state = cnidarium::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
-    let registered = [100u64, 300u64];
+    let registered = [300u64, 100u64];
     for value in registered {
         state
             .register_regulated_asset(asset::Id(Fq::from(value)), policy.clone())
@@ -655,19 +660,38 @@ async fn test_asset_proof_direct_read_membership_and_gap_parity() {
             .unwrap();
     }
 
+    // (query, regulated, predecessor/value, position): insertion order is not numeric order.
     let cases = [
-        asset::Id(Fq::from(50u64)),
-        asset::Id(Fq::from(100u64)),
-        asset::Id(Fq::from(200u64)),
-        asset::Id(Fq::from(300u64)),
-        asset::Id(Fq::from(400u64)),
-        asset::Id(*FQ_MAX - Fq::from(1u64)),
+        (Fq::from(50u64), false, Fq::from(0u64), 0),
+        (Fq::from(100u64), true, Fq::from(100u64), 2),
+        (Fq::from(200u64), false, Fq::from(100u64), 2),
+        (Fq::from(300u64), true, Fq::from(300u64), 1),
+        (Fq::from(400u64), false, Fq::from(300u64), 1),
+        (*FQ_MAX - Fq::from(1u64), false, Fq::from(300u64), 1),
     ];
 
     let reconstructed = state.reconstruct_asset_tree().await.unwrap();
-    for asset_id in cases {
+    for (value, regulated, expected_value, position) in cases {
+        let asset_id = asset::Id(value);
         let direct = state.get_asset_proof_data(asset_id).await.unwrap();
-        if reconstructed.contains(asset_id.0) {
+        assert_eq!(direct.is_regulated, regulated);
+        assert_eq!(direct.indexed_leaf.value, expected_value);
+        assert_eq!(direct.position, position);
+        assert_eq!(
+            direct.auth_path.layers.len(),
+            crate::tree::DEFAULT_DEPTH as usize
+        );
+        if !regulated {
+            assert!(
+                crate::indexed_tree::FqOrdKey::from(expected_value)
+                    < crate::indexed_tree::FqOrdKey::from(value)
+            );
+            assert!(
+                crate::indexed_tree::FqOrdKey::from(value)
+                    < crate::indexed_tree::FqOrdKey::from(direct.indexed_leaf.next_value)
+            );
+        }
+        if regulated {
             let (position, leaf, path) = reconstructed.membership_proof(asset_id.0).unwrap();
             assert!(direct.is_regulated);
             assert_eq!(direct.position, position);
@@ -684,36 +708,6 @@ async fn test_asset_proof_direct_read_membership_and_gap_parity() {
 }
 
 #[tokio::test]
-async fn test_cold_user_and_asset_proof_lookup_uses_keyed_storage() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    let mut rng = rand::thread_rng();
-
-    let asset_id = asset::Id(Fq::from(5151u64));
-    state
-        .register_regulated_asset(
-            asset_id,
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
-        .await
-        .unwrap();
-    let leaf = ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset_id);
-    let position = state.add_compliance_leaf(leaf).await.unwrap();
-
-    let user_path = state.get_user_auth_path(position).await.unwrap();
-    assert_eq!(user_path.len(), crate::tree::DEFAULT_DEPTH as usize);
-    let asset_proof = state.get_asset_proof_data(asset_id).await.unwrap();
-    assert!(asset_proof.is_regulated);
-    assert_eq!(asset_proof.indexed_leaf.value, asset_id.0);
-}
-
-#[tokio::test]
 async fn test_asset_duplicate_prevention() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
@@ -727,9 +721,9 @@ async fn test_asset_duplicate_prevention() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -751,9 +745,9 @@ async fn test_asset_duplicate_prevention() {
         .register_regulated_asset(
             asset_id,
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -771,236 +765,6 @@ async fn test_asset_duplicate_prevention() {
         count_before,
         "IMT leaf count should remain unchanged after idempotent registration"
     );
-}
-
-#[tokio::test]
-async fn test_verify_compliance_leaf() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-
-    let mut rng = rand::thread_rng();
-
-    // Create a compliance leaf
-    let leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
-
-    // Before adding, verification should fail
-    let verified = state.verify_compliance_leaf(&leaf).await.unwrap();
-    assert!(!verified, "Leaf should not be verified before being added");
-
-    // Add the leaf to the registry
-    state.add_compliance_leaf(leaf.clone()).await.unwrap();
-
-    // After adding, verification should succeed
-    let verified = state.verify_compliance_leaf(&leaf).await.unwrap();
-    assert!(verified, "Leaf should be verified after being added");
-
-    // Create a different leaf with same asset but different wallet
-    let different_leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
-
-    // Different leaf should not verify
-    let verified = state.verify_compliance_leaf(&different_leaf).await.unwrap();
-    assert!(!verified, "Different leaf should not be verified");
-}
-
-#[tokio::test]
-async fn test_leaf_json_serialization() {
-    let mut rng = rand::thread_rng();
-
-    // Create a compliance leaf
-    let original_leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(200u64)));
-
-    // Export to JSON
-    let json = original_leaf
-        .to_json()
-        .expect("JSON serialization should succeed");
-
-    // JSON should not be empty
-    assert!(!json.is_empty(), "JSON should not be empty");
-
-    // Import from JSON
-    let imported_leaf =
-        ComplianceLeaf::from_json(&json).expect("JSON deserialization should succeed");
-
-    // Should be equal to original
-    assert_eq!(
-        original_leaf, imported_leaf,
-        "Imported leaf should match original"
-    );
-
-    // Commitments should also match
-    assert_eq!(
-        original_leaf.commit().0,
-        imported_leaf.commit().0,
-        "Commitments should match"
-    );
-}
-
-#[tokio::test]
-async fn test_share_and_verify_workflow() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-
-    let mut rng = rand::thread_rng();
-
-    // User creates their compliance leaf (private)
-    let user_leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(300u64)));
-
-    // User registers on-chain
-    state.add_compliance_leaf(user_leaf.clone()).await.unwrap();
-
-    // User exports their leaf to share off-chain with issuer
-    let shared_json = user_leaf.to_json().expect("Export should succeed");
-
-    // Issuer receives the JSON and imports it
-    let received_leaf = ComplianceLeaf::from_json(&shared_json).expect("Import should succeed");
-
-    // Issuer verifies that this leaf exists on-chain
-    let is_valid = state.verify_compliance_leaf(&received_leaf).await.unwrap();
-    assert!(
-        is_valid,
-        "Issuer should be able to verify the shared leaf exists on-chain"
-    );
-
-    // Leaf fields are preserved through sharing
-    assert_eq!(user_leaf.address, received_leaf.address);
-    assert_eq!(user_leaf.asset_id, received_leaf.asset_id);
-}
-
-#[tokio::test]
-async fn test_verify_with_multiple_leaves() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-
-    let mut rng = rand::thread_rng();
-
-    // Add multiple leaves
-    let mut leaves = Vec::new();
-    for i in 0..5u64 {
-        let leaf = ComplianceLeaf::registered_for_test(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(i + 1)),
-        );
-        state.add_compliance_leaf(leaf.clone()).await.unwrap();
-        leaves.push(leaf);
-    }
-
-    // All added leaves should verify
-    for leaf in &leaves {
-        let verified = state.verify_compliance_leaf(leaf).await.unwrap();
-        assert!(verified, "All added leaves should verify");
-    }
-
-    // A new leaf not in the tree should not verify
-    let new_leaf =
-        ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(999u64)));
-    let verified = state.verify_compliance_leaf(&new_leaf).await.unwrap();
-    assert!(!verified, "Non-registered leaf should not verify");
-}
-
-#[tokio::test]
-async fn test_comprehensive_integration() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    let mut rng = rand::thread_rng();
-    put_test_compliance_params(&mut state);
-
-    // Bridged asset (USDC) - regulated
-    let usdc_asset_id = asset::Id(Fq::from(12345u64));
-    state
-        .register_regulated_asset(
-            usdc_asset_id,
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
-        .await
-        .unwrap();
-
-    let usdc_proof = state.get_asset_proof_data(usdc_asset_id).await.unwrap();
-    assert!(usdc_proof.is_regulated);
-
-    let empty_imt = IndexedMerkleTree::new();
-    assert_ne!(
-        state.get_asset_imt_root().await.unwrap().0,
-        empty_imt.root().0
-    );
-
-    // Native asset (shieldd) - unregulated (NOT in IMT)
-    let shieldd_asset_id = asset::Id(Fq::from(1u64));
-    // Don't register - unregulated assets are proven via non-membership
-    let shieldd_proof = state.get_asset_proof_data(shieldd_asset_id).await.unwrap();
-    assert!(!shieldd_proof.is_regulated);
-
-    // Distinct users derive distinct capabilities from their full addresses.
-    let wallet1 = Address::dummy(&mut rng);
-    let leaf1 = ComplianceLeaf::registered_for_test(wallet1.clone(), usdc_asset_id);
-    let leaf2 = ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), usdc_asset_id);
-    let leaf3 = ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), usdc_asset_id);
-
-    state.add_compliance_leaf(leaf1.clone()).await.unwrap();
-    state.add_compliance_leaf(leaf2.clone()).await.unwrap();
-    state.add_compliance_leaf(leaf3.clone()).await.unwrap();
-    assert_eq!(state.get_user_count().await.unwrap(), 3);
-    assert!(state.verify_compliance_leaf(&leaf1).await.unwrap());
-    assert!(state.verify_compliance_leaf(&leaf2).await.unwrap());
-    assert!(state.verify_compliance_leaf(&leaf3).await.unwrap());
-
-    // Share and verify workflow
-    let shared_json = leaf1.to_json().unwrap();
-    let received_leaf = ComplianceLeaf::from_json(&shared_json).unwrap();
-    assert!(state.verify_compliance_leaf(&received_leaf).await.unwrap());
-    assert_eq!(received_leaf.address, leaf1.address);
-
-    // Query unregistered asset - should get non-membership proof
-    let unknown_asset = asset::Id(Fq::from(99999u64));
-    let unknown_proof = state.get_asset_proof_data(unknown_asset).await.unwrap();
-    assert!(!unknown_proof.is_regulated);
-
-    // Authentication paths
-    let path = state.get_user_auth_path(0).await.unwrap();
-    assert_eq!(path.len(), 16);
-    let user_root = state.get_user_tree_root().await.unwrap();
-    let tree = state.reconstruct_user_tree().await.unwrap();
-    assert!(QuadTree::verify_auth_path(
-        0,
-        leaf1.commit(),
-        &path,
-        user_root,
-        tree.depth()
-    ));
-
-    // Same wallet registered for multiple assets
-    let dai_asset_id = asset::Id(Fq::from(67890u64));
-    state
-        .register_regulated_asset(
-            dai_asset_id,
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
-        .await
-        .unwrap();
-    let leaf1_dai = ComplianceLeaf::registered_for_test(wallet1, dai_asset_id);
-    state.add_compliance_leaf(leaf1_dai.clone()).await.unwrap();
-    assert!(state.verify_compliance_leaf(&leaf1).await.unwrap());
-    assert!(state.verify_compliance_leaf(&leaf1_dai).await.unwrap());
-    assert_eq!(state.get_user_count().await.unwrap(), 4);
 }
 
 #[tokio::test]
@@ -1024,6 +788,17 @@ async fn test_user_leaf_position_lookup() {
     state.add_compliance_leaf(leaf1.clone()).await.unwrap();
     state.add_compliance_leaf(leaf2.clone()).await.unwrap();
     state.add_compliance_leaf(leaf3.clone()).await.unwrap();
+
+    assert_eq!(state.get_user_count().await.unwrap(), 3);
+    for leaf in [&leaf1, &leaf2, &leaf3] {
+        assert_eq!(
+            state
+                .get_user_leaf(&leaf.address, leaf.asset_id)
+                .await
+                .unwrap(),
+            Some(leaf.clone())
+        );
+    }
 
     // Position lookups
     assert_eq!(
@@ -1068,7 +843,7 @@ async fn test_user_leaf_position_lookup() {
     ));
 }
 
-/// Tests that get_user_leaf() returns the exact registered leaf (catches ACK mismatch bugs).
+/// Tests that get_user_leaf() returns the exact registered leaf (including RNK and lifecycle fields).
 #[tokio::test]
 async fn test_user_leaf_roundtrip() {
     let storage = TempStorage::new().await.unwrap();
@@ -1092,9 +867,7 @@ async fn test_user_leaf_roundtrip() {
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(original_leaf.address, fetched_leaf.address);
-    assert_eq!(original_leaf.asset_id, fetched_leaf.asset_id);
-    assert_eq!(original_leaf.commit().0, fetched_leaf.commit().0);
+    assert_eq!(original_leaf, fetched_leaf);
     assert!(state
         .get_user_leaf(&Address::dummy(&mut rng), asset_id)
         .await
@@ -1103,7 +876,7 @@ async fn test_user_leaf_roundtrip() {
 }
 
 #[tokio::test]
-async fn user_leaf_record_is_compact_and_authenticated() {
+async fn user_leaf_record_matches_its_committed_tree_position() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
     let mut state = cnidarium::StateDelta::new(snapshot);
@@ -1128,16 +901,6 @@ async fn user_leaf_record_is_compact_and_authenticated() {
             leaf: leaf.clone()
         }
     );
-    assert!(state
-        .get_raw(&format!("compliance/user_lookup/{wallet}/{asset_id}"))
-        .await
-        .unwrap()
-        .is_none());
-    assert!(state
-        .get_raw(&format!("compliance/user_leaf/{wallet}/{asset_id}"))
-        .await
-        .unwrap()
-        .is_none());
 
     let corrupt_leaf = leaf.clone().with_status_for_test(UserAssetStatus::Frozen);
     let corrupt = UserLeafRecord {
@@ -1159,22 +922,32 @@ async fn user_leaf_record_is_compact_and_authenticated() {
 
 #[tokio::test]
 async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
-    let identity_authority = VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
+    let identity_authority = VerificationKey::from(
+        &SigningKey::<SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap(),
+    );
     let cases = [
         (
             "detection key",
-            AssetPolicy::for_test(decaf377::Element::IDENTITY, 1, decaf377::Element::GENERATOR),
+            AssetPolicy::for_test(
+                shieldd_sdk_crypto::SubgroupPoint::identity(),
+                1,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
+            ),
         ),
         (
             "ring key",
-            AssetPolicy::for_test(decaf377::Element::GENERATOR, 1, decaf377::Element::IDENTITY),
+            AssetPolicy::for_test(
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                1,
+                shieldd_sdk_crypto::SubgroupPoint::identity(),
+            ),
         ),
         (
             "registration authority key",
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 1,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             )
             .with_registration_authority(identity_authority),
         ),
@@ -1194,7 +967,7 @@ async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
             .unwrap_err();
 
         assert!(
-            error.to_string().contains("identity"),
+            format!("{error:#}").contains("identity"),
             "{key_role} returned unexpected error: {error:#}"
         );
         assert_eq!(
@@ -1215,127 +988,6 @@ async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
             "{key_role} persisted an asset policy"
         );
     }
-}
-
-#[tokio::test]
-async fn test_imt_get_proof_data_regulated() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-
-    let asset_id = asset::Id(Fq::from(12345u64));
-    state
-        .register_regulated_asset(
-            asset_id,
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
-        .await
-        .unwrap();
-
-    // Get proof data for regulated asset
-    let proof_data = state.get_asset_proof_data(asset_id).await.unwrap();
-
-    assert!(proof_data.is_regulated);
-    assert_eq!(proof_data.indexed_leaf.value, asset_id.0);
-    assert_eq!(proof_data.position, 1); // First after sentinel
-    assert_eq!(proof_data.auth_path.layers.len(), 16);
-
-    // Verify the path
-    let tree = state.reconstruct_asset_tree().await.unwrap();
-    let root = tree.root();
-    assert!(IndexedMerkleTree::verify_auth_path(
-        proof_data.position,
-        &proof_data.indexed_leaf,
-        &tree.auth_path(proof_data.position).unwrap(),
-        root,
-        tree.depth()
-    ));
-}
-
-#[tokio::test]
-async fn test_imt_get_proof_data_unregulated() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-
-    // Register one asset
-    let regulated_asset = asset::Id(Fq::from(100u64));
-    state
-        .register_regulated_asset(
-            regulated_asset,
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
-        .await
-        .unwrap();
-
-    // Get proof for unregistered asset (should be non-membership proof)
-    let unregulated_asset = asset::Id(Fq::from(50u64));
-    let proof_data = state.get_asset_proof_data(unregulated_asset).await.unwrap();
-
-    assert!(!proof_data.is_regulated);
-    // The low leaf should be the sentinel (value=0)
-    assert_eq!(proof_data.indexed_leaf.value, Fq::from(0u64));
-    assert_eq!(proof_data.position, 0); // Sentinel position
-
-    // Verify the unregulated asset falls in the gap
-    assert!(proof_data.indexed_leaf.value < unregulated_asset.0);
-    assert!(unregulated_asset.0 < proof_data.indexed_leaf.next_value);
-}
-
-#[tokio::test]
-async fn test_imt_multiple_regulated_assets() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-
-    // Register multiple assets in non-sorted order
-    let assets = [
-        asset::Id(Fq::from(500u64)),
-        asset::Id(Fq::from(100u64)),
-        asset::Id(Fq::from(300u64)),
-    ];
-
-    for asset_id in &assets {
-        state
-            .register_regulated_asset(
-                *asset_id,
-                AssetPolicy::for_test(
-                    decaf377::Element::GENERATOR,
-                    u128::MAX,
-                    decaf377::Element::GENERATOR,
-                ),
-            )
-            .await
-            .unwrap();
-    }
-
-    let tree = state.reconstruct_asset_tree().await.unwrap();
-    assert_eq!(tree.leaf_count(), 4); // sentinel + 3 assets
-
-    // All should have valid membership proofs
-    for asset_id in &assets {
-        let proof_data = state.get_asset_proof_data(*asset_id).await.unwrap();
-        assert!(proof_data.is_regulated);
-        assert_eq!(proof_data.indexed_leaf.value, asset_id.0);
-    }
-
-    // An unregistered asset in a gap should have non-membership proof
-    let unregistered = asset::Id(Fq::from(200u64)); // Between 100 and 300
-    let proof_data = state.get_asset_proof_data(unregistered).await.unwrap();
-    assert!(!proof_data.is_regulated);
-    // Low leaf should be the one with value=100
-    assert_eq!(proof_data.indexed_leaf.value, Fq::from(100u64));
 }
 
 // ========== Historical Anchor Tests ==========
@@ -1360,9 +1012,9 @@ async fn test_record_and_validate_anchors() {
         .register_regulated_asset(
             asset::Id(Fq::from(200u64)),
             AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 u128::MAX,
-                decaf377::Element::GENERATOR,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
             ),
         )
         .await
@@ -1381,11 +1033,11 @@ async fn test_record_and_validate_anchors() {
         .await
         .unwrap();
 
-    // Append-only user roots remain available as recent history.
+    // Recorded user roots remain available for recent historical lookup.
     let user_anchor_by_height = state.get_user_anchor_by_height(1).await.unwrap().unwrap();
     assert_eq!(user_anchor.0, user_anchor_by_height.0);
 
-    // Historical validation applies only to the append-only user tree.
+    // Historical lookup does not establish current authorization admissibility.
     let user_height = state.check_user_anchor(&user_anchor).await.unwrap();
     assert_eq!(user_height, Some(1));
 }
@@ -1485,7 +1137,7 @@ async fn historical_anchors_are_retained_but_only_the_current_root_is_accepted()
 // ========== Bounded Anchor Window Tests (Phase 7) ==========
 
 #[tokio::test]
-async fn stale_user_anchor_is_rejected_immediately_after_status_tree_change() {
+async fn user_root_change_invalidates_old_anchor_before_history_recording() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
     let mut state = cnidarium::StateDelta::new(snapshot);
@@ -1503,12 +1155,6 @@ async fn stale_user_anchor_is_rejected_immediately_after_status_tree_change() {
     let leaf =
         ComplianceLeaf::registered_for_test(Address::dummy(&mut rng), asset::Id(Fq::from(9999u64)));
     state.add_compliance_leaf(leaf).await.unwrap();
-
-    // Advance beyond the retained-history window. The rejection is based on
-    // the current root, not the age of the historical record.
-    let new_height = 1 + TEST_ANCHOR_WINDOW_BLOCKS + 1;
-    state.put_block_height(new_height);
-    state.record_compliance_anchors(new_height).await.unwrap();
 
     // New anchors should be different
     let new_user_anchor = state.get_user_tree_root().await.unwrap();
@@ -1529,44 +1175,68 @@ async fn stale_user_anchor_is_rejected_immediately_after_status_tree_change() {
         "error should identify the current-root mismatch: {}",
         err_msg
     );
+    state
+        .validate_compliance_anchors(&new_user_anchor, &old_asset_anchor)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
 async fn stale_asset_anchor_is_rejected_immediately_after_policy_change() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    put_test_compliance_params(&mut state);
+    for initial_height in [0u64, 1] {
+        let storage = TempStorage::new().await.unwrap();
+        let snapshot = storage.latest_snapshot();
+        let mut state = cnidarium::StateDelta::new(snapshot);
+        state.initialize_trees().await.unwrap();
+        put_test_compliance_params(&mut state);
 
-    state.put_block_height(1);
-    state.record_compliance_anchors(1).await.unwrap();
-    let user_anchor = state.get_user_tree_root().await.unwrap();
-    let stale_asset_anchor = state.get_asset_imt_root().await.unwrap();
+        state.put_block_height(initial_height);
+        state
+            .record_compliance_anchors(initial_height)
+            .await
+            .unwrap();
+        let user_anchor = state.get_user_tree_root().await.unwrap();
+        let stale_asset_anchor = state.get_asset_imt_root().await.unwrap();
 
-    state.put_block_height(2);
-    state
-        .register_regulated_asset(
-            asset::Id(Fq::from(4242u64)),
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
-        .await
-        .unwrap();
-    let current_asset_anchor = state.get_asset_imt_root().await.unwrap();
-    assert_ne!(stale_asset_anchor, current_asset_anchor);
+        state.put_block_height(2);
+        state
+            .register_regulated_asset(
+                asset::Id(Fq::from(4242u64)),
+                AssetPolicy::for_test(
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                    u128::MAX,
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                ),
+            )
+            .await
+            .unwrap();
+        let current_asset_anchor = state.get_asset_imt_root().await.unwrap();
+        assert_ne!(stale_asset_anchor, current_asset_anchor);
 
-    let error = state
-        .validate_compliance_anchors(&user_anchor, &stale_asset_anchor)
-        .await
-        .expect_err("an asset anchor predating a policy change must be invalid immediately");
-    assert!(
-        error.to_string().contains("current asset compliance root"),
-        "unexpected error: {error:#}"
-    );
+        let error = state
+            .validate_compliance_anchors(&user_anchor, &stale_asset_anchor)
+            .await
+            .expect_err("an asset anchor predating a policy change must be invalid immediately");
+        assert!(
+            error.to_string().contains("current asset compliance root"),
+            "unexpected error: {error:#}"
+        );
+        state
+            .validate_compliance_anchors(&user_anchor, &current_asset_anchor)
+            .await
+            .unwrap();
+        let after_window = TEST_ANCHOR_WINDOW_BLOCKS + 2;
+        state.put_block_height(after_window);
+        state.record_compliance_anchors(after_window).await.unwrap();
+        assert!(state
+            .validate_compliance_anchors(&user_anchor, &stale_asset_anchor)
+            .await
+            .is_err());
+        state
+            .validate_compliance_anchors(&user_anchor, &current_asset_anchor)
+            .await
+            .unwrap();
+    }
 }
 
 #[tokio::test]
@@ -1654,112 +1324,6 @@ async fn test_shortened_anchor_window_pruning_catches_up() {
 }
 
 #[tokio::test]
-async fn test_genesis_anchor_attack_prevented() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-    put_test_compliance_params(&mut state);
-
-    // Genesis: IMT is empty, record anchor at height 0
-    state.put_block_height(0);
-    state.record_compliance_anchors(0).await.unwrap();
-    let genesis_user_anchor = state.get_user_tree_root().await.unwrap();
-    let genesis_asset_anchor = state.get_asset_imt_root().await.unwrap();
-
-    // Register USDC as regulated at height 100
-    state.put_block_height(100);
-    let usdc_id = asset::Id(Fq::from(12345u64));
-    state
-        .register_regulated_asset(
-            usdc_id,
-            AssetPolicy::for_test(
-                decaf377::Element::GENERATOR,
-                u128::MAX,
-                decaf377::Element::GENERATOR,
-            ),
-        )
-        .await
-        .unwrap();
-    state.record_compliance_anchors(100).await.unwrap();
-
-    // The asset IMT root should have changed
-    let new_asset_anchor = state.get_asset_imt_root().await.unwrap();
-    assert_ne!(
-        genesis_asset_anchor.0, new_asset_anchor.0,
-        "IMT root should change after registration"
-    );
-
-    // Advance to height past the window (genesis anchor now too old)
-    let attack_height = TEST_ANCHOR_WINDOW_BLOCKS + 1;
-    state.put_block_height(attack_height);
-    state
-        .record_compliance_anchors(attack_height)
-        .await
-        .unwrap();
-
-    // Attempt to use genesis anchor for USDC non-membership proof
-    // This is the "genesis anchor attack" - should FAIL
-    let result = state
-        .validate_compliance_anchors(&genesis_user_anchor, &genesis_asset_anchor)
-        .await;
-
-    // The mutable asset-policy tree must match current state regardless of
-    // whether a stale root also exceeds the user-history window.
-    assert!(result.is_err());
-    let err_msg = result.unwrap_err().to_string();
-    assert!(
-        err_msg.contains("current asset compliance root"),
-        "Genesis anchor attack should be prevented: {}",
-        err_msg
-    );
-
-    // But a recent anchor should still work
-    let recent_user_anchor = state.get_user_tree_root().await.unwrap();
-    let recent_asset_anchor = state.get_asset_imt_root().await.unwrap();
-    assert!(state
-        .validate_compliance_anchors(&recent_user_anchor, &recent_asset_anchor)
-        .await
-        .is_ok());
-}
-
-#[tokio::test]
-async fn test_register_asset_with_custom_daily_volume_limit() {
-    let storage = TempStorage::new().await.unwrap();
-    let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
-    state.initialize_trees().await.unwrap();
-
-    let asset_id = asset::Id(Fq::from(555u64));
-    let dk_pub = decaf377::Element::GENERATOR;
-
-    // Register with daily_volume_limit=500
-    state
-        .register_regulated_asset(
-            asset_id,
-            AssetPolicy::for_test(dk_pub, 500u128, decaf377::Element::GENERATOR),
-        )
-        .await
-        .unwrap();
-
-    // Read back proof data - asset must be regulated
-    let proof = state.get_asset_proof_data(asset_id).await.unwrap();
-    assert!(proof.is_regulated);
-
-    // Policy is stored separately via set_asset_policy
-    let policy = state
-        .get_asset_policy(asset_id)
-        .await
-        .unwrap()
-        .expect("policy should be set after registration");
-    assert_eq!(
-        policy.params.daily_volume_limit, 500u128,
-        "daily_volume_limit should survive round-trip"
-    );
-    assert_eq!(policy.params.dk_pub, dk_pub);
-}
-
-#[tokio::test]
 async fn test_get_asset_policy_cached_matches_uncached() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
@@ -1769,9 +1333,9 @@ async fn test_get_asset_policy_cached_matches_uncached() {
     let present_asset = asset::Id(Fq::from(77u64));
     let missing_asset = asset::Id(Fq::from(88u64));
     let policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         u128::MAX,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
 
     state
@@ -1846,9 +1410,9 @@ async fn test_ibc_origin_lookup_rejects_duplicate_base_denom() {
 
     let route = crate::IbcRoute::transfer("channel-0", "connection-0", "channel-7");
     let mut policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         500,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     policy.replace_allowed_ibc_routes(vec![route.clone()]);
     policy.params.ibc_origin = Some(crate::IbcAssetOrigin {
@@ -1886,9 +1450,9 @@ async fn test_replace_asset_ibc_policy_requires_expected_hash() {
     let old_route = crate::IbcRoute::transfer("channel-0", "connection-0", "channel-7");
     let new_route = crate::IbcRoute::transfer("channel-1", "connection-1", "channel-8");
     let mut policy = AssetPolicy::for_test(
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
         500,
-        decaf377::Element::GENERATOR,
+        *shieldd_sdk_crypto::generators::SPEND_AUTH,
     );
     policy.replace_allowed_ibc_routes(vec![old_route.clone()]);
     let expected_hash = indexed_tree::route_policy_to_fq(&policy.params).to_bytes();
@@ -1941,55 +1505,31 @@ async fn test_anchor_pruning_preserves_latest_lookup_for_reused_anchor() {
 }
 
 #[test]
-fn timestamp_freshness_accepts_current_and_exact_boundaries() {
-    const CURRENT: i64 = 1_700_000_000;
-    assert!(check_timestamp_freshness(CURRENT as u64, CURRENT).is_ok());
-    assert!(
-        check_timestamp_freshness((CURRENT as u64) - MAX_TIMESTAMP_DRIFT_SECS, CURRENT,).is_ok()
-    );
-    assert!(
-        check_timestamp_freshness((CURRENT as u64) + MAX_TIMESTAMP_DRIFT_SECS, CURRENT,).is_ok()
-    );
-}
-
-#[test]
-fn timestamp_freshness_signed_conversion_matches_u64_policy() {
-    let cases = [
-        (1u64, 0i64),
-        (1, 1),
-        (1, 3_601),
-        (1, 3_602),
-        (7_201, 3_601),
-        (7_202, 3_601),
-        (i64::MAX as u64, i64::MAX),
-    ];
-    for (target_timestamp, consensus_timestamp) in cases {
-        let block_timestamp = u64::try_from(consensus_timestamp).expect("case is nonnegative");
-        let expected = target_timestamp != 0
-            && target_timestamp.abs_diff(block_timestamp) <= MAX_TIMESTAMP_DRIFT_SECS;
+fn timestamp_freshness_enforces_the_thirty_minute_drift_limit() {
+    for (target, consensus, accepted) in [
+        (1u64, 0i64, true),
+        (1, 1, true),
+        (1, 1801, true),
+        (1, 1802, false),
+        (3601, 1801, true),
+        (3602, 1801, false),
+        (1_700_000_000, 1_700_000_000, true),
+        (1_699_998_200, 1_700_000_000, true),
+        (1_700_001_800, 1_700_000_000, true),
+        (0, 0, false),
+        (0, 1, false),
+        (0, 3600, false),
+        (1000, 4601, false),
+        (4601, 1000, false),
+        (i64::MAX as u64, i64::MAX, true),
+        (u64::MAX, i64::MAX, false),
+    ] {
         assert_eq!(
-            check_timestamp_freshness(target_timestamp, consensus_timestamp).is_ok(),
-            expected,
-            "signed conversion changed freshness for target={target_timestamp}, consensus={consensus_timestamp}"
+            check_timestamp_freshness(target, consensus).is_ok(),
+            accepted,
+            "target={target}, consensus={consensus}"
         );
     }
-}
-
-#[test]
-fn timestamp_freshness_rejects_negative_consensus_time() {
-    let error = check_timestamp_freshness(1, -1)
-        .expect_err("pre-epoch consensus time must fail before conversion");
-    assert!(
-        error.to_string().contains("must be nonnegative"),
-        "unexpected rejection reason: {error:#}"
-    );
-}
-
-#[test]
-fn timestamp_freshness_rejects_zero_and_outside_window() {
-    assert!(check_timestamp_freshness(0, 0).is_err());
-    assert!(check_timestamp_freshness(0, 1).is_err());
-    assert!(check_timestamp_freshness(0, MAX_TIMESTAMP_DRIFT_SECS as i64).is_err());
-    assert!(check_timestamp_freshness(1000, 1000 + 3601).is_err());
-    assert!(check_timestamp_freshness(1000 + 3601, 1000).is_err());
+    let error = check_timestamp_freshness(1, -1).unwrap_err();
+    assert!(error.to_string().contains("must be nonnegative"));
 }

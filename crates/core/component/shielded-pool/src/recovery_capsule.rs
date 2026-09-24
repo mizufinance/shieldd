@@ -1,23 +1,16 @@
 use anyhow::{anyhow, ensure, Context, Result};
-use decaf377::{Element, Fq, Fr};
-use once_cell::sync::Lazy;
+use group::{Group, GroupEncoding};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::crypto::compliance_stream_block;
+use shieldd_sdk_compliance::crypto::shared_secret;
+use shieldd_sdk_crypto::{audit::point_fields, domains, poseidon};
+use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 
 use crate::Rseed;
 
-pub const RECOVERY_CAPSULE_BYTES: usize = 32 * 6;
-
-static CAPSULE_COMMITMENT_DOMAIN: Lazy<Fq> =
-    Lazy::new(|| domain(b"shieldd.recovery_capsule.commitment"));
-static CAPSULE_CONFIRMATION_DOMAIN: Lazy<Fq> =
-    Lazy::new(|| domain(b"shieldd.recovery_capsule.confirmation"));
-
-fn domain(label: &[u8]) -> Fq {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(label).as_bytes())
-}
+pub const RECOVERY_CAPSULE_BYTES: usize = 1 + 32 * 6;
 
 fn derive_bytes(rseed: Rseed, label: &[u8]) -> [u8; 64] {
     let mut state = blake2b_simd::Params::new().hash_length(64).to_state();
@@ -31,9 +24,8 @@ fn derive_bytes(rseed: Rseed, label: &[u8]) -> [u8; 64] {
 }
 
 fn derive_opening(rseed: Rseed) -> RecoveryCapsuleOpening {
-    let seed = Fq::from_le_bytes_mod_order(&derive_bytes(rseed, b"shieldd.recovery_capsule.seed"));
-    let mut r =
-        Fr::from_le_bytes_mod_order(&derive_bytes(rseed, b"shieldd.recovery_capsule.randomizer"));
+    let seed = Fq::from_bytes_wide(&derive_bytes(rseed, b"shieldd.recovery_capsule.seed"));
+    let mut r = Fr::from_bytes_wide(&derive_bytes(rseed, b"shieldd.recovery_capsule.randomizer"));
     if r == Fr::from(0u64) {
         r = Fr::from(1u64);
     }
@@ -41,7 +33,7 @@ fn derive_opening(rseed: Rseed) -> RecoveryCapsuleOpening {
 }
 
 fn derive_salt(rseed: Rseed) -> Fq {
-    Fq::from_le_bytes_mod_order(&derive_bytes(rseed, b"shieldd.recovery_capsule.salt"))
+    Fq::from_bytes_wide(&derive_bytes(rseed, b"shieldd.recovery_capsule.salt"))
 }
 
 /// The commitment embedded in a note and opened by its public recovery capsule.
@@ -52,9 +44,10 @@ pub struct RecoveryCommitment(pub Fq);
 impl RecoveryCommitment {
     /// Explicit marker for notes outside the regulated recovery path.
     pub fn unavailable() -> Self {
-        static UNAVAILABLE_DOMAIN: Lazy<Fq> =
-            Lazy::new(|| domain(b"shieldd.recovery_capsule.unavailable"));
-        Self(poseidon377::hash_1(&UNAVAILABLE_DOMAIN, Fq::from(0u64)))
+        Self(poseidon::hash(
+            domains::RECOVERY_UNAVAILABLE,
+            &[Fq::from(0)],
+        ))
     }
 }
 
@@ -62,9 +55,9 @@ impl TryFrom<[u8; 32]> for RecoveryCommitment {
     type Error = anyhow::Error;
 
     fn try_from(value: [u8; 32]) -> Result<Self> {
-        Ok(Self(Fq::from_bytes_checked(&value).map_err(|_| {
-            anyhow!("invalid recovery commitment field element")
-        })?))
+        Ok(Self(shieldd_sdk_crypto::encoding::field(&value).map_err(
+            |_| anyhow!("invalid recovery commitment field element"),
+        )?))
     }
 }
 
@@ -74,11 +67,11 @@ impl From<RecoveryCommitment> for [u8; 32] {
     }
 }
 
-/// Fixed-shape ciphertext under a registered capsule capability.
+/// Fixed-shape ciphertext under the effective asset payload key.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::RecoveryCapsule", into = "pb::RecoveryCapsule")]
 pub struct RecoveryCapsule {
-    pub epk: Element,
+    pub epk: SubgroupPoint,
     pub c2: Fq,
     pub salt: Fq,
     pub key_confirmation: Fq,
@@ -86,7 +79,7 @@ pub struct RecoveryCapsule {
     pub encrypted_note_blinding: Fq,
 }
 
-/// Private randomness proving that a recovery capsule is encrypted to a leaf capability.
+/// Private randomness proving that a recovery capsule is encrypted to the effective asset payload key.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RecoveryCapsuleOpening {
     pub seed: Fq,
@@ -104,26 +97,24 @@ impl RecoveryCapsule {
     pub fn encrypt(
         amount: Amount,
         note_blinding: Fq,
-        capk: Element,
+        payload_key: SubgroupPoint,
         rseed: Rseed,
     ) -> Result<(Self, RecoveryCapsuleOpening)> {
         ensure!(
-            capk != Element::IDENTITY,
-            "recovery capk must be nonidentity"
+            payload_key != SubgroupPoint::identity(),
+            "recovery payload_key must be nonidentity"
         );
         let opening = derive_opening(rseed);
-        let epk = Element::GENERATOR * opening.r;
-        let shared = capk * opening.r;
+        ensure!(opening.r != Fr::from(0), "zero recovery randomizer");
+        let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * opening.r;
+        let shared = payload_key * opening.r;
         let salt = derive_salt(rseed);
-        let epk_fq = epk.vartime_compress_to_field();
+
         let capsule = Self {
             epk,
-            c2: opening.seed + shared.vartime_compress_to_field(),
+            c2: opening.seed + shared_secret(&shared),
             salt,
-            key_confirmation: poseidon377::hash_3(
-                &CAPSULE_CONFIRMATION_DOMAIN,
-                (opening.seed, epk_fq, salt),
-            ),
+            key_confirmation: confirmation(opening.seed, &epk, salt),
             encrypted_amount: Fq::from(amount) + compliance_stream_block(opening.seed, 0),
             encrypted_note_blinding: note_blinding + compliance_stream_block(opening.seed, 1),
         };
@@ -133,23 +124,25 @@ impl RecoveryCapsule {
 
     pub fn validate(&self) -> Result<()> {
         ensure!(
-            self.epk != Element::IDENTITY,
+            self.epk != SubgroupPoint::identity(),
             "recovery capsule epk must be nonidentity"
         );
         Ok(())
     }
 
     pub fn commitment(&self) -> RecoveryCommitment {
-        RecoveryCommitment(poseidon377::hash_6(
-            &CAPSULE_COMMITMENT_DOMAIN,
-            (
-                self.epk.vartime_compress_to_field(),
+        let [x, y] = point_fields(&self.epk);
+        RecoveryCommitment(poseidon::hash(
+            domains::RECOVERY_COMMITMENT,
+            &[
+                x,
+                y,
                 self.c2,
                 self.salt,
                 self.key_confirmation,
                 self.encrypted_amount,
                 self.encrypted_note_blinding,
-            ),
+            ],
         ))
     }
 
@@ -157,26 +150,23 @@ impl RecoveryCapsule {
         &self,
         amount: Amount,
         note_blinding: Fq,
-        capk: Element,
+        payload_key: SubgroupPoint,
         opening: RecoveryCapsuleOpening,
     ) -> Result<()> {
         ensure!(
-            capk != Element::IDENTITY,
-            "recovery capk must be nonidentity"
+            payload_key != SubgroupPoint::identity(),
+            "recovery payload_key must be nonidentity"
         );
-        let epk = Element::GENERATOR * opening.r;
-        let shared = capk * opening.r;
+        ensure!(opening.r != Fr::from(0), "zero recovery randomizer");
+        let epk = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * opening.r;
+        let shared = payload_key * opening.r;
         ensure!(self.epk == epk, "recovery capsule epk opening mismatch");
         ensure!(
-            self.c2 == opening.seed + shared.vartime_compress_to_field(),
+            self.c2 == opening.seed + shared_secret(&shared),
             "recovery capsule seed envelope mismatch"
         );
         ensure!(
-            self.key_confirmation
-                == poseidon377::hash_3(
-                    &CAPSULE_CONFIRMATION_DOMAIN,
-                    (opening.seed, epk.vartime_compress_to_field(), self.salt),
-                ),
+            self.key_confirmation == confirmation(opening.seed, &epk, self.salt),
             "recovery capsule key confirmation mismatch"
         );
         ensure!(
@@ -193,11 +183,7 @@ impl RecoveryCapsule {
 
     pub fn decrypt_with_seed(&self, seed: Fq) -> Result<RecoveryPlaintext> {
         ensure!(
-            self.key_confirmation
-                == poseidon377::hash_3(
-                    &CAPSULE_CONFIRMATION_DOMAIN,
-                    (seed, self.epk.vartime_compress_to_field(), self.salt),
-                ),
+            self.key_confirmation == confirmation(seed, &self.epk, self.salt),
             "recovery capsule seed does not match key confirmation"
         );
         let amount_fq = self.encrypted_amount - compliance_stream_block(seed, 0);
@@ -220,7 +206,8 @@ impl RecoveryCapsule {
 
     pub fn to_bytes(&self) -> [u8; RECOVERY_CAPSULE_BYTES] {
         let mut bytes = [0u8; RECOVERY_CAPSULE_BYTES];
-        bytes[..32].copy_from_slice(&self.epk.vartime_compress().0);
+        bytes[0] = shieldd_sdk_crypto::SUITE;
+        bytes[1..33].copy_from_slice(&self.epk.to_bytes());
         for (index, field) in [
             self.c2,
             self.salt,
@@ -231,7 +218,7 @@ impl RecoveryCapsule {
         .into_iter()
         .enumerate()
         {
-            let start = 32 * (index + 1);
+            let start = 1 + 32 * (index + 1);
             bytes[start..start + 32].copy_from_slice(&field.to_bytes());
         }
         bytes
@@ -242,15 +229,18 @@ impl RecoveryCapsule {
             bytes.len() == RECOVERY_CAPSULE_BYTES,
             "recovery capsule must be {RECOVERY_CAPSULE_BYTES} bytes"
         );
-        let epk = decaf377::Encoding(bytes[..32].try_into().context("read recovery epk")?)
-            .vartime_decompress()
-            .map_err(|error| anyhow!("invalid recovery capsule epk: {error:?}"))?;
+        ensure!(
+            bytes[0] == shieldd_sdk_crypto::SUITE,
+            "unsupported recovery capsule suite"
+        );
+        let bytes = &bytes[1..];
+        let epk = shieldd_sdk_crypto::encoding::nonidentity(bytes[..32].try_into()?)?;
         let read_fq = |index: usize| -> Result<Fq> {
             let start = 32 * index;
             let raw: [u8; 32] = bytes[start..start + 32]
                 .try_into()
                 .context("read recovery capsule field")?;
-            Fq::from_bytes_checked(&raw)
+            shieldd_sdk_crypto::encoding::field(&raw)
                 .map_err(|_| anyhow!("invalid canonical recovery capsule field {index}"))
         };
         let capsule = Self {
@@ -294,13 +284,14 @@ mod tests {
     #[test]
     fn capsule_roundtrip_and_opening() {
         let rseed = Rseed::generate(&mut OsRng);
-        let capk = Element::GENERATOR * Fr::from(19u64);
+        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(19u64);
         let amount = Amount::from(42u64);
         let blinding = Fq::from(77u64);
-        let (capsule, opening) = RecoveryCapsule::encrypt(amount, blinding, capk, rseed).unwrap();
+        let (capsule, opening) =
+            RecoveryCapsule::encrypt(amount, blinding, payload_key, rseed).unwrap();
 
         capsule
-            .verify_opening(amount, blinding, capk, opening)
+            .verify_opening(amount, blinding, payload_key, opening)
             .unwrap();
         assert_eq!(
             capsule.decrypt_with_seed(opening.seed).unwrap(),
@@ -317,14 +308,23 @@ mod tests {
 
     #[test]
     fn capsule_rejects_wrong_seed_and_noncanonical_wire_fields() {
-        let capk = Element::GENERATOR * Fr::from(5u64);
-        let (capsule, _) =
-            RecoveryCapsule::encrypt(Amount::from(9u64), Fq::from(10u64), capk, Rseed([11; 32]))
-                .unwrap();
+        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(5u64);
+        let (capsule, _) = RecoveryCapsule::encrypt(
+            Amount::from(9u64),
+            Fq::from(10u64),
+            payload_key,
+            Rseed([11; 32]),
+        )
+        .unwrap();
         assert!(capsule.decrypt_with_seed(Fq::from(12u64)).is_err());
 
         let mut bytes = capsule.to_bytes();
-        bytes[32..64].fill(0xff);
+        bytes[33..65].fill(0xff);
         assert!(RecoveryCapsule::from_bytes(&bytes).is_err());
     }
+}
+
+fn confirmation(seed: Fq, epk: &SubgroupPoint, salt: Fq) -> Fq {
+    let [x, y] = point_fields(epk);
+    poseidon::hash(domains::RECOVERY_CONFIRMATION, &[seed, x, y, salt])
 }

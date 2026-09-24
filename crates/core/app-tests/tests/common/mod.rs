@@ -13,7 +13,12 @@ pub async fn scan_latest(
 ) -> anyhow::Result<()> {
     use shieldd_sdk_sct::component::clock::EpochRead as _;
     let snapshot = chain.latest_snapshot();
-    let mut worker = shieldd_sdk_view::SyncWorker::new(wallet.clone()).await?;
+    let mut worker = shieldd_sdk_view::SyncWorker::new(
+        wallet.clone(),
+        shieldd_sdk_app_tests::registry(),
+        std::sync::Arc::new(HistorySource(snapshot.clone())),
+    )
+    .await?;
     let first = wallet.last_sync_height().await?.map(|h| h + 1).unwrap_or(0);
     let last = snapshot.get_block_height().await?;
     for height in first..=last {
@@ -66,4 +71,21 @@ pub async fn wallet_block(
         assets: vec![],
         updated_app_parameters,
     })
+}
+
+struct HistorySource(cnidarium::Snapshot);
+#[async_trait::async_trait]
+impl shieldd_sdk_view::HistoricalWitnessSource for HistorySource {
+    async fn nonmembership_proof(
+        &self,
+        nullifier: shieldd_sdk_sct::Nullifier,
+        generation_index: u64,
+    ) -> anyhow::Result<shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof> {
+        shieldd_sdk_sct::nullifier_tree::archived_nonmembership_proof(
+            &self.0,
+            generation_index,
+            nullifier,
+        )
+        .await
+    }
 }

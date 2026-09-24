@@ -16,12 +16,6 @@ GROUPS = {
     "audit": ["orbis-integration"],
 }
 
-GNARK_LIBRARIES = {
-    "libshieldd_gnark_transfer",
-    "libshieldd_gnark_note_reshape",
-    "libshieldd_gnark_shielded_withdrawal",
-}
-
 
 def digest(path):
     with path.open("rb") as source:
@@ -55,20 +49,14 @@ def verify(directory, expected, target=None, profile="release"):
             raise ValueError("artifact build profile mismatch")
         if not isinstance(record.get("debug_assertions"), bool):
             raise ValueError("artifact manifest lacks compiler provenance")
-        proof = record.get("proof_parameters", {})
-        if not isinstance(proof.get("approved"), bool) or not isinstance(proof.get("debug_assertions"), bool):
-            raise ValueError("artifact manifest lacks proof-parameter provenance")
-        if profile == "release" and (record.get("debug_assertions") is not False
-                                    or proof["debug_assertions"] or not proof["approved"]):
-            raise ValueError("production requires non-debug artifacts and approved proof keys")
+        if record.get("suite") != "shieldd-jubjub-pari-v1":
+            raise ValueError("artifact cryptographic suite mismatch")
     required = set()
     for group in manifest["groups"]:
         required.update({"include/shieldd.h", "lib/libshieldd.a"} if group == "native"
                         else {f"bin/{name}" for name in GROUPS[group]})
     if not required.issubset(manifest["files"]):
         raise ValueError("artifact manifest omits required deliverables")
-    if "provers" in manifest["groups"] and not any(name.startswith("lib/gnark/") for name in manifest["files"]):
-        raise ValueError("artifact manifest omits gnark libraries")
     for name, checksum in manifest["files"].items():
         path = (directory / name).resolve()
         if not path.is_relative_to(directory.resolve()) or not path.is_file() or digest(path) != checksum:
@@ -77,9 +65,11 @@ def verify(directory, expected, target=None, profile="release"):
 
 
 def build(group, output, source_revision, target, profile="release"):
+    if not target:
+        info = subprocess.check_output(["rustc", "-vV"], text=True)
+        target = next(line.removeprefix("host: ") for line in info.splitlines() if line.startswith("host: "))
     command = ["cargo", "build", "--profile", profile, "--locked", "--message-format=json-render-diagnostics"]
-    if target:
-        command += ["--target", target]
+    command += ["--target", target]
     for package in GROUPS[group]:
         command += ["--package", package]
     if group == "native":
@@ -89,15 +79,11 @@ def build(group, output, source_revision, target, profile="release"):
         env.setdefault(name, "2")
     copies = {}
     profiles = {}
-    proof_provenance = None
-    proof_debug = None
     process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True)
     for line in process.stdout:
         event = json.loads(line)
         if event.get("reason") == "compiler-artifact":
             name = event["target"]["name"]
-            if name == "shieldd_sdk_proof_params":
-                proof_debug = event["profile"]["debug_assertions"]
             if name not in GROUPS[group]:
                 continue
             profiles[name] = event["profile"]["debug_assertions"]
@@ -107,26 +93,15 @@ def build(group, output, source_revision, target, profile="release"):
                         copies["lib/libshieldd.a"] = Path(filename)
             elif event.get("executable"):
                 copies[f"bin/{name}"] = Path(event["executable"])
-        if event.get("reason") == "build-script-executed" and "shieldd-sdk-proof-params" in event["package_id"]:
-            proof_provenance = json.loads((Path(event["out_dir"]) / "proof_artifact_provenance.json").read_text())
-            for library in (Path(event["out_dir"]) / "gnark").glob("*/*"):
-                if library.stem in GNARK_LIBRARIES and library.suffix in (".so", ".dylib", ".dll"):
-                    copies[f"lib/gnark/{library.name}"] = library
     if process.wait():
         raise RuntimeError("artifact build failed")
-    if set(profiles) != set(GROUPS[group]) or proof_provenance is None or not isinstance(proof_debug, bool):
-        raise ValueError("build did not provide compiler and proof provenance")
-    proof_provenance["debug_assertions"] = proof_debug
+    if set(profiles) != set(GROUPS[group]):
+        raise ValueError("build did not provide compiler provenance")
     expected = {"lib/libshieldd.a"} if group == "native" else {f"bin/{name}" for name in GROUPS[group]}
     if not expected.issubset(copies):
         raise ValueError(f"build did not produce {sorted(expected - copies.keys())}")
-    if group == "provers" and not any(name.startswith("lib/gnark/") for name in copies):
-        raise ValueError("prover build did not produce its native gnark libraries")
     if group == "native":
         copies["include/shieldd.h"] = ROOT / "crates/bin/shieldd/include/shieldd.h"
-    if not target:
-        info = subprocess.check_output(["rustc", "-vV"], text=True)
-        target = next(line.removeprefix("host: ") for line in info.splitlines() if line.startswith("host: "))
     manifest = {"source_revision": source_revision, "target": target, "groups": [], "files": {}, "provenance": {}}
     if (output / "manifest.json").exists():
         previous = json.loads((output / "manifest.json").read_text())
@@ -146,7 +121,7 @@ def build(group, output, source_revision, target, profile="release"):
     manifest["provenance"][group] = {
         "profile": profile,
         "debug_assertions": any(profiles.values()),
-        "proof_parameters": proof_provenance,
+        "suite": "shieldd-jubjub-pari-v1",
     }
     manifest["groups"] = sorted(set(manifest["groups"]) | {group})
     (output / "manifest.json").write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")

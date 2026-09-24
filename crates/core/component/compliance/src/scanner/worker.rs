@@ -10,10 +10,17 @@ use tracing::{debug, info, instrument, warn};
 use super::screener::{ComplianceScreener, ScreeningResult};
 use super::storage::ScannerStore;
 use super::sync::extract_compliance_ciphertexts;
-use super::types::{
-    BlockRef, CandidateEvidence, OutputOutcome, ScannedBlock, ScannedOutput, TxRef,
-};
+use super::types::{BlockRef, CandidateEvidence, OutputOutcome, ScannedOutput, TxRef};
 use crate::issuer_keys::DetectionKey;
+
+use super::spool::{ScanBatch, ScannerIdentity};
+#[cfg(test)]
+use super::types::ScannedBlock;
+
+pub struct TransactionPage {
+    pub transactions: Vec<shieldd_sdk_proto::core::transaction::v1::Transaction>,
+    pub next_cursor: Vec<u8>,
+}
 
 const BLOCK_IDENTITY_MAX_ATTEMPTS: usize = 5;
 const BLOCK_IDENTITY_INITIAL_BACKOFF: Duration = Duration::from_millis(200);
@@ -31,10 +38,7 @@ pub trait ScannerSource: BlockIdentityProvider {
         start: u64,
         end: Option<u64>,
     ) -> Result<BoxStream<'static, Result<u64>>>;
-    async fn transactions(
-        &self,
-        block: &BlockRef,
-    ) -> Result<Vec<shieldd_sdk_proto::core::transaction::v1::Transaction>>;
+    async fn transaction_page(&self, block: &BlockRef, cursor: Vec<u8>) -> Result<TransactionPage>;
 }
 
 pub struct WorkerHandle {
@@ -61,6 +65,7 @@ impl WorkerHandle {
 
 pub struct IssuerComplianceWorker {
     screener: ComplianceScreener,
+    identity: ScannerIdentity,
     target_asset_id: asset::Id,
     storage: Arc<dyn ScannerStore>,
     source: Arc<dyn ScannerSource>,
@@ -75,6 +80,8 @@ impl IssuerComplianceWorker {
         storage: Arc<dyn ScannerStore>,
         source: Arc<dyn ScannerSource>,
     ) -> Result<(Self, WorkerHandle)> {
+        let identity = ScannerIdentity::new(&detection_key, &target_asset_id);
+        storage.bind_configuration(identity).await?;
         let error_slot = Arc::new(Mutex::new(None));
         let last_height = storage
             .last_scanned_block()
@@ -84,6 +91,7 @@ impl IssuerComplianceWorker {
         let (sync_height_tx, sync_height_rx) = watch::channel(last_height);
 
         let worker = Self {
+            identity,
             screener: ComplianceScreener::new(detection_key, target_asset_id),
             target_asset_id,
             storage,
@@ -263,47 +271,79 @@ impl IssuerComplianceWorker {
     }
 
     async fn process_block(&self, block: BlockRef) -> Result<()> {
-        let mut scanned = ScannedBlock::new(block.clone());
-        let transactions = self.source.transactions(&block).await?;
+        let mut scanned = ScanBatch::new(
+            block.clone(),
+            self.storage.last_scanned_block().await?,
+            self.identity,
+        )?;
+        let mut cursor = Vec::new();
+        let mut tx_index = 0u32;
 
         let mut detection_count = 0u64;
         let mut invalid_count = 0u64;
         let mut flagged_count = 0u64;
 
-        for (tx_index, tx) in transactions.iter().enumerate() {
-            let tx_ref = TxRef {
-                block: block.clone(),
-                tx_index: tx_index as u32,
-                tx_hash: crate::scanner_transaction_id_from_proto(tx),
-            };
-
-            for extracted in extract_compliance_ciphertexts(&tx_ref, tx) {
-                let outcome = match self.screener.screen(extracted.clone()) {
-                    ScreeningResult::Irrelevant => OutputOutcome::Irrelevant,
-                    ScreeningResult::Detected(event) => {
-                        detection_count += 1;
-                        flagged_count += u64::from(event.is_flagged);
-                        let evidence = CandidateEvidence::from_detection(
-                            &event,
-                            extracted.metadata_bytes.as_deref(),
-                        );
-                        OutputOutcome::Detected { event, evidence }
-                    }
-                    ScreeningResult::InvalidCiphertext(invalid) => {
-                        invalid_count += 1;
-                        OutputOutcome::Invalid {
-                            reason: invalid.reason,
-                        }
-                    }
+        loop {
+            use shieldd_sdk_proto::Message;
+            let page = self.source.transaction_page(&block, cursor.clone()).await?;
+            anyhow::ensure!(
+                page.transactions.len() <= 256
+                    && page
+                        .transactions
+                        .iter()
+                        .map(Message::encoded_len)
+                        .sum::<usize>()
+                        <= 4 * 1024 * 1024
+                    && page.next_cursor.len() <= 1024,
+                "scanner transaction page exceeds budget"
+            );
+            anyhow::ensure!(
+                page.next_cursor.is_empty()
+                    || (!page.transactions.is_empty() && page.next_cursor != cursor),
+                "scanner pagination did not advance"
+            );
+            for tx in &page.transactions {
+                let tx_ref = TxRef {
+                    block: block.clone(),
+                    tx_index,
+                    tx_hash: crate::scanner_transaction_id_from_proto(tx),
                 };
-                scanned.outputs.push(ScannedOutput {
-                    ciphertext: extracted,
-                    outcome,
-                });
-            }
-        }
 
-        self.storage.commit_scanned_block(&scanned).await?;
+                for extracted in extract_compliance_ciphertexts(&tx_ref, tx) {
+                    let outcome = match self.screener.screen(extracted.clone()) {
+                        ScreeningResult::Irrelevant => OutputOutcome::Irrelevant,
+                        ScreeningResult::Detected(event) => {
+                            detection_count += 1;
+                            flagged_count += u64::from(event.is_flagged);
+                            let evidence = CandidateEvidence::from_detection(
+                                &event,
+                                extracted.metadata_bytes.as_deref(),
+                            );
+                            OutputOutcome::Detected { event, evidence }
+                        }
+                        ScreeningResult::InvalidCiphertext(invalid) => {
+                            invalid_count += 1;
+                            OutputOutcome::Invalid {
+                                reason: invalid.reason,
+                            }
+                        }
+                    };
+                    scanned.push(ScannedOutput {
+                        ciphertext: extracted,
+                        outcome,
+                    })?;
+                }
+
+                tx_index = tx_index
+                    .checked_add(1)
+                    .context("transaction ordinal overflow")?;
+            }
+            if page.next_cursor.is_empty() {
+                break;
+            }
+            cursor = page.next_cursor;
+        }
+        self.storage.commit_batch(&scanned).await?;
         let _ = self.sync_height_tx.send(block.height);
 
         if detection_count > 0 || invalid_count > 0 {
@@ -402,11 +442,15 @@ mod tests {
                 self.heights.lock().unwrap().clone().into_iter().map(Ok),
             )))
         }
-        async fn transactions(
+        async fn transaction_page(
             &self,
             _block: &BlockRef,
-        ) -> Result<Vec<shieldd_sdk_proto::core::transaction::v1::Transaction>> {
-            Ok(vec![])
+            _cursor: Vec<u8>,
+        ) -> Result<TransactionPage> {
+            Ok(TransactionPage {
+                transactions: vec![],
+                next_cursor: vec![],
+            })
         }
     }
 
@@ -430,7 +474,7 @@ mod tests {
             }
             let (worker, _) = IssuerComplianceWorker::new(
                 DetectionKey::demo(),
-                asset::Id(decaf377::Fq::from(12345u64)),
+                asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
                 store.clone(),
                 source,
             )
@@ -458,7 +502,7 @@ mod tests {
         let identity = Arc::new(MemoryBlockIdentity::default());
         let (_worker, handle) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(12345u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
             Arc::new(store),
             identity,
         )
@@ -480,7 +524,7 @@ mod tests {
         identity.insert(b1);
         let (worker, _) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(1u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
             store,
             identity,
         )
@@ -509,7 +553,7 @@ mod tests {
         identity.insert(block(3, 30, 20));
         let (worker, _) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(1u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
             store,
             identity,
         )
@@ -523,7 +567,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn worker_validates_detected_metadata_only_evidence() {
+    async fn detected_metadata_builds_valid_persisted_evidence() {
         let store = Arc::new(SqliteScannerStore::new(":memory:").unwrap());
         let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
         let block = evidence.output_ref().action.tx.block.clone();
@@ -585,7 +629,7 @@ mod tests {
         source.failures.lock().unwrap().insert(2, 1);
         let (worker, _) = IssuerComplianceWorker::new(
             DetectionKey::demo(),
-            asset::Id(decaf377::Fq::from(1u64)),
+            asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
             Arc::new(SqliteScannerStore::new(":memory:").unwrap()),
             source.clone(),
         )

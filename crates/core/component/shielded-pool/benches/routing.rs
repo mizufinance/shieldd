@@ -26,11 +26,8 @@ fn routing_scan(c: &mut Criterion) {
         },
         address,
     );
-    let witness = shieldd_sdk_compliance::ComplianceLeaf::synthetic_unregulated(
-        output.dest_address.clone(),
-        output.value.asset_id,
-    );
-    let (note, recovery_capsule) = output.output_note_and_capsule(witness.capk);
+    let (note, recovery_capsule) =
+        output.output_note_and_capsule(*shieldd_sdk_compliance::UNREGULATED_RING);
     let payload = note.payload(recovery_capsule);
 
     let mut state = 0x9e37_79b9u32;

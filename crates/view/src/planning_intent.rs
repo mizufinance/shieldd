@@ -1,4 +1,4 @@
-use decaf377::Fr;
+use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_fee::Gas;
 use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_shielded_pool::{

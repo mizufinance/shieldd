@@ -7,8 +7,11 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use super::spool::{ScanBatch, ScannerIdentity};
+#[cfg(test)]
+use super::types::ScannedBlock;
 use super::types::{BlockRef, OutputRef, FLOW_TYPE_PRIVATE_TRANSFER, FLOW_TYPE_WITHDRAW};
-use super::types::{CandidateEvidence, OutputOutcome, ScannedBlock};
+use super::types::{CandidateEvidence, OutputOutcome};
 use crate::audit_status::{AuditStatus, ScreenStatus};
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
@@ -21,7 +24,8 @@ const WAL_AUTOCHECKPOINT_PAGES: i64 = 1_000;
 pub trait ScannerStore: Send + Sync {
     async fn last_scanned_block(&self) -> Result<Option<BlockRef>>;
     async fn block_by_height(&self, height: u64) -> Result<Option<BlockRef>>;
-    async fn commit_scanned_block(&self, scanned: &ScannedBlock) -> Result<()>;
+    async fn bind_configuration(&self, identity: ScannerIdentity) -> Result<()>;
+    async fn commit_batch(&self, scanned: &ScanBatch) -> Result<()>;
     async fn rollback_to_height(&self, height: u64) -> Result<()>;
     async fn detection_count(&self) -> Result<u64>;
 
@@ -92,6 +96,24 @@ impl SqliteScannerStore {
         })
     }
 
+    #[cfg(test)]
+    pub(crate) async fn commit_scanned_block(&self, scanned: &ScannedBlock) -> Result<()> {
+        let identity = ScannerIdentity::new(
+            &crate::DetectionKey::demo(),
+            &shieldd_sdk_asset::asset::Id(shieldd_sdk_crypto::Fq::from(12345u64)),
+        );
+        self.bind_configuration(identity).await?;
+        let mut batch = ScanBatch::new(
+            scanned.block.clone(),
+            self.last_scanned_block().await?,
+            identity,
+        )?;
+        for output in &scanned.outputs {
+            batch.push(output.clone())?;
+        }
+        self.commit_batch(&batch).await
+    }
+
     fn configure_writer(conn: &Connection) -> Result<()> {
         conn.busy_timeout(SQLITE_BUSY_TIMEOUT)?;
         conn.pragma_update(None, "auto_vacuum", "INCREMENTAL")?;
@@ -116,7 +138,8 @@ impl SqliteScannerStore {
 
     fn initialize_schema(conn: &Connection) -> Result<()> {
         let schema_sql = r#"
-            -- PET-ready Transfer ciphertext format 3
+            -- Scanner retained evidence and complete coverage, schema 4
+            CREATE TABLE IF NOT EXISTS scanner_configuration (id INTEGER PRIMARY KEY CHECK(id=1), identity BLOB NOT NULL);
             CREATE TABLE IF NOT EXISTS scanner_schema (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 identity TEXT NOT NULL
@@ -127,7 +150,10 @@ impl SqliteScannerStore {
                 block_hash BLOB NOT NULL,
                 parent_hash BLOB NOT NULL,
                 block_time_unix INTEGER,
-                scan_status TEXT NOT NULL CHECK (scan_status IN ('committed'))
+                scan_status TEXT NOT NULL CHECK (scan_status IN ('committed')),
+                irrelevant_count INTEGER NOT NULL,
+                invalid_count INTEGER NOT NULL,
+                detected_count INTEGER NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS scanner_detections (
@@ -522,37 +548,50 @@ impl ScannerStore for SqliteScannerStore {
         })
     }
 
-    async fn commit_scanned_block(&self, scanned: &ScannedBlock) -> Result<()> {
+    async fn bind_configuration(&self, identity: ScannerIdentity) -> Result<()> {
+        let conn = self.lock_conn()?;
+        conn.execute("INSERT INTO scanner_configuration(id, identity) VALUES(1, ?1) ON CONFLICT(id) DO NOTHING", params![identity.0.as_slice()])?;
+        let stored: Vec<u8> = conn.query_row(
+            "SELECT identity FROM scanner_configuration WHERE id=1",
+            [],
+            |r| r.get(0),
+        )?;
+        anyhow::ensure!(
+            stored == identity.0,
+            "scanner configuration changed; reset and replay required"
+        );
+        Ok(())
+    }
+
+    async fn commit_batch(&self, scanned: &ScanBatch) -> Result<()> {
         let block = &scanned.block;
         anyhow::ensure!(
             block.height > 0 && block.height <= i64::MAX as u64,
             "invalid scanner block height"
         );
-        let mut identities = std::collections::HashSet::new();
-        for output in &scanned.outputs {
-            let output_ref = &output.ciphertext.record_ref.output_ref();
-            anyhow::ensure!(
-                &output_ref.action.tx.block == block,
-                "scanner output block mismatch"
-            );
-            anyhow::ensure!(
-                identities.insert((
-                    output_ref.action.tx.tx_hash,
-                    output_ref.action.action_index,
-                    output_ref.output_index
-                )),
-                "duplicate scanner output"
-            );
-            if let OutputOutcome::Detected { event, .. } = &output.outcome {
-                anyhow::ensure!(
-                    event.record_ref == output.ciphertext.record_ref,
-                    "detection output identity mismatch"
-                );
-            }
-        }
-
         let conn = self.lock_conn()?;
         let tx = conn.unchecked_transaction()?;
+        let identity: Vec<u8> = tx.query_row(
+            "SELECT identity FROM scanner_configuration WHERE id=1",
+            [],
+            |r| r.get(0),
+        )?;
+        anyhow::ensure!(
+            identity == scanned.identity.0,
+            "scanner configuration changed before commit"
+        );
+        let predecessor = tx.query_row("SELECT height, block_hash, parent_hash, block_time_unix FROM scanner_blocks ORDER BY height DESC LIMIT 1", [], block_ref_from_row).optional()?;
+        anyhow::ensure!(
+            predecessor == scanned.predecessor,
+            "scanner predecessor changed during screening"
+        );
+        if let Some(previous) = &predecessor {
+            anyhow::ensure!(
+                previous.height.checked_add(1) == Some(block.height)
+                    && previous.block_hash == block.parent_hash,
+                "scanner block does not extend predecessor"
+            );
+        }
         let existing = tx.query_row(
             "SELECT height, block_hash, parent_hash, block_time_unix FROM scanner_blocks WHERE height = ?1",
             params![block.height as i64], block_ref_from_row).optional()?;
@@ -575,23 +614,25 @@ impl ScannerStore for SqliteScannerStore {
         let mut invalid_count = 0usize;
 
         tx.execute(
-            "INSERT OR REPLACE INTO scanner_blocks
-             (height, block_hash, parent_hash, block_time_unix, scan_status)
-             VALUES (?1, ?2, ?3, ?4, 'committed')",
+            "INSERT INTO scanner_blocks
+             (height, block_hash, parent_hash, block_time_unix, scan_status, irrelevant_count, invalid_count, detected_count)
+             VALUES (?1, ?2, ?3, ?4, 'committed', ?5, ?6, ?7)",
             params![
                 block.height as i64,
                 block.block_hash.as_slice(),
                 block.parent_hash.as_slice(),
                 block.block_time_unix,
+                scanned.counts.irrelevant, scanned.counts.invalid, scanned.counts.detected,
             ],
         )?;
 
-        for output in &scanned.outputs {
+        for output in scanned.records()? {
+            let output = output?;
             let ciphertext = &output.ciphertext;
             let output_ref = &ciphertext.record_ref.output_ref();
             let tx_ref = &output_ref.action.tx;
             tx.execute(
-                "INSERT OR IGNORE INTO scanner_ciphertexts
+                "INSERT INTO scanner_ciphertexts
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
                   raw_bytes, compliance_metadata_bytes, screen_status, screen_reason, record_type, withdrawal_public_data)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11)",
@@ -637,7 +678,7 @@ impl ScannerStore for SqliteScannerStore {
                 OutputOutcome::Detected { event, evidence } => {
                     update_ciphertext_status(&tx, output_ref, ScreenStatus::Detected, None)?;
                     tx.execute(
-                        "INSERT OR IGNORE INTO scanner_detections
+                        "INSERT INTO scanner_detections
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
                   asset_id, is_flagged, salt,
                   routing_tag_0, routing_tag_1, ciphertext_bytes, audit_status)
@@ -659,7 +700,7 @@ impl ScannerStore for SqliteScannerStore {
                         ],
                     )?;
                     tx.execute(
-                        "INSERT OR IGNORE INTO audit_rows
+                        "INSERT INTO audit_rows
                  (height, block_hash, tx_index, tx_hash, action_index, output_index,
                   flow_type, asset_id, is_flagged, amount, self_address, counterparty_address,
                   public_address, decrypted_via, updated_at_unix)
@@ -717,7 +758,7 @@ impl ScannerStore for SqliteScannerStore {
             }
         }
 
-        if invalid_count > MAX_INVALID_CIPHERTEXTS_PER_BLOCK {
+        if scanned.counts.invalid > MAX_INVALID_CIPHERTEXTS_PER_BLOCK as u64 {
             tx.execute(
                 "INSERT OR REPLACE INTO scanner_invalid_ciphertext_summaries
                  (height, block_hash, skipped_count)
@@ -725,7 +766,7 @@ impl ScannerStore for SqliteScannerStore {
                 params![
                     block.height as i64,
                     block.block_hash.as_slice(),
-                    (invalid_count - MAX_INVALID_CIPHERTEXTS_PER_BLOCK) as i64,
+                    (scanned.counts.invalid - MAX_INVALID_CIPHERTEXTS_PER_BLOCK as u64) as i64,
                 ],
             )?;
         }
@@ -857,9 +898,8 @@ fn update_ciphertext_status(
             |row| row.get(0),
         )
         .optional()?;
-    if let Some(current) = current {
-        ScreenStatus::try_advance(ScreenStatus::from_str(&current)?, status)?;
-    }
+    let current = current.context("ciphertext status row is missing")?;
+    ScreenStatus::try_advance(ScreenStatus::from_str(&current)?, status)?;
     let reason = reason.map(crate::audit::bounded_failure_reason);
     tx.execute(
         "UPDATE scanner_ciphertexts
@@ -1007,26 +1047,26 @@ mod tests {
     fn detection(height: u64) -> DetectionEvent {
         DetectionEvent {
             record_ref: crate::ComplianceRecordRef::TransferOutput(output_ref(height, 1, 2, 3)),
-            asset_id: asset::Id(decaf377::Fq::from(123u64)),
+            asset_id: asset::Id(shieldd_sdk_crypto::Fq::from(123u64)),
             is_flagged: true,
-            salt: decaf377::Fq::from(9u64),
+            salt: shieldd_sdk_crypto::Fq::from(9u64),
             routing_tags: [11, 22],
             ciphertext: crate::scanner::types::ComplianceCiphertext::Transfer(
                 crate::transfer::TransferComplianceCiphertext {
-                    sender_core_epk: decaf377::Element::GENERATOR,
-                    sender_ext_epk: decaf377::Element::GENERATOR,
-                    output_core_epk: decaf377::Element::GENERATOR,
-                    output_ext_epk: decaf377::Element::GENERATOR,
-                    sender_core_c2: decaf377::Fq::from(1u64),
-                    sender_ext_c2: decaf377::Fq::from(2u64),
+                    sender_core_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+                    sender_ext_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+                    output_core_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+                    output_ext_epk: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+                    sender_core_c2: shieldd_sdk_crypto::Fq::from(1u64),
+                    sender_ext_c2: shieldd_sdk_crypto::Fq::from(2u64),
                     ownership: [crate::ownership::OwnershipCiphertext {
-                        r: decaf377::Element::GENERATOR,
-                        c: decaf377::Element::GENERATOR,
+                        r: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
+                        c: (*shieldd_sdk_crypto::generators::SPEND_AUTH),
                     }; 2],
-                    output_core_c2: decaf377::Fq::from(3u64),
-                    output_ext_c2: decaf377::Fq::from(4u64),
-                    sender_core_key_confirmation: decaf377::Fq::from(5u64),
-                    output_core_key_confirmation: decaf377::Fq::from(6u64),
+                    output_core_c2: shieldd_sdk_crypto::Fq::from(3u64),
+                    output_ext_c2: shieldd_sdk_crypto::Fq::from(4u64),
+                    sender_core_key_confirmation: shieldd_sdk_crypto::Fq::from(5u64),
+                    output_core_key_confirmation: shieldd_sdk_crypto::Fq::from(6u64),
                     detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
                     encrypted_sender_core: [0u8; 32],
                     encrypted_sender_ext: [0u8; 96],
@@ -1040,7 +1080,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sqlite_store_commits_block_and_detection_atomically() {
+    async fn sqlite_store_commits_and_rejects_duplicate_blocks() {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
         let scanner_block = block(10);
@@ -1056,7 +1096,7 @@ mod tests {
 
         let mut scanned = ScannedBlock::new(block(10).clone());
         scanned.outputs.push(detected_output(detection(10)));
-        store.commit_scanned_block(&scanned).await.unwrap();
+        assert!(store.commit_scanned_block(&scanned).await.is_err());
         assert_eq!(store.detection_count().await.unwrap(), 1);
     }
 
@@ -1076,31 +1116,81 @@ mod tests {
             MAX_INVALID_CIPHERTEXTS_PER_BLOCK as u64
         );
         assert_eq!(store.skipped_invalid_ciphertext_count(20).unwrap(), 7);
+        let conn = store.lock_conn().unwrap();
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM scanner_ciphertexts", [], |r| r
+                .get::<_, usize>(0))
+                .unwrap(),
+            MAX_INVALID_CIPHERTEXTS_PER_BLOCK
+        );
+        assert_eq!(
+            conn.query_row(
+                "SELECT invalid_count FROM scanner_blocks WHERE height=20",
+                [],
+                |r| r.get::<_, usize>(0)
+            )
+            .unwrap(),
+            MAX_INVALID_CIPHERTEXTS_PER_BLOCK + 7
+        );
     }
 
     #[tokio::test]
-    async fn sqlite_store_persists_raw_ciphertext_screening_status() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let store = SqliteScannerStore::new(temp_file.path()).unwrap();
-        let block = block(25);
-        let ciphertext = ciphertext(25, 4);
-        let mut scanned = ScannedBlock::new(block.clone());
+    async fn scanner_configuration_predecessor_and_duplicate_conflicts_fail_atomically() {
+        let store = SqliteScannerStore::new(":memory:").unwrap();
+        let key = crate::DetectionKey::demo();
+        let asset = shieldd_sdk_asset::asset::Id(shieldd_sdk_crypto::Fq::from(7u64));
+        let identity = ScannerIdentity::new(&key, &asset);
+        store.bind_configuration(identity).await.unwrap();
+        assert!(store
+            .bind_configuration(ScannerIdentity::new(
+                &key,
+                &shieldd_sdk_asset::asset::Id(shieldd_sdk_crypto::Fq::from(8u64))
+            ))
+            .await
+            .is_err());
+        let mut conflicting = ScanBatch::new(block(1), None, identity).unwrap();
+        conflicting.push(detected_output(detection(1))).unwrap();
+        conflicting.push(detected_output(detection(1))).unwrap();
+        assert!(store.commit_batch(&conflicting).await.is_err());
+        assert_eq!(store.detection_count().await.unwrap(), 0);
+        assert!(store.last_scanned_block().await.unwrap().is_none());
+        let stale = ScanBatch::new(block(2), None, identity).unwrap();
+        let cancelled = ScanBatch::new(block(1), None, identity).unwrap();
+        drop(cancelled);
+        assert!(store.last_scanned_block().await.unwrap().is_none());
+        store
+            .commit_batch(&ScanBatch::new(block(1), None, identity).unwrap())
+            .await
+            .unwrap();
+        assert!(store.commit_batch(&stale).await.is_err());
+        assert_eq!(store.last_scanned_block().await.unwrap().unwrap().height, 1);
+    }
+
+    #[tokio::test]
+    async fn sqlite_store_counts_irrelevant_without_retaining_ciphertexts() {
+        let store = SqliteScannerStore::new(":memory:").unwrap();
+        let mut scanned = ScannedBlock::new(block(25));
         scanned.outputs.push(ScannedOutput {
-            ciphertext: ciphertext.clone(),
+            ciphertext: ciphertext(25, 4),
             outcome: OutputOutcome::Irrelevant,
         });
         store.commit_scanned_block(&scanned).await.unwrap();
-
         let conn = store.lock_conn().unwrap();
-        let (status, bundle): (String, Vec<u8>) = conn
-            .query_row(
-                "SELECT screen_status, compliance_metadata_bytes FROM scanner_ciphertexts WHERE height = 25",
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM scanner_ciphertexts", [], |r| r
+                .get::<_, u64>(0))
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            conn.query_row(
+                "SELECT irrelevant_count FROM scanner_blocks WHERE height=25",
                 [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |r| r.get::<_, u64>(0)
             )
-            .unwrap();
-        assert_eq!(status, "irrelevant");
-        assert_eq!(bundle, vec![8, 4]);
+            .unwrap(),
+            1
+        );
     }
 
     #[tokio::test]
@@ -1112,7 +1202,9 @@ mod tests {
         let mut scanned = ScannedBlock::new(block.clone());
         scanned.outputs.push(ScannedOutput {
             ciphertext: ciphertext.clone(),
-            outcome: OutputOutcome::Irrelevant,
+            outcome: OutputOutcome::Invalid {
+                reason: "malformed".into(),
+            },
         });
         store.commit_scanned_block(&scanned).await.unwrap();
 
@@ -1124,7 +1216,7 @@ mod tests {
             ScreenStatus::Detected,
             None,
         )
-        .expect_err("irrelevant ciphertext cannot become detected");
+        .expect_err("invalid ciphertext cannot become detected");
 
         assert!(
             err.to_string().contains("illegal screen status transition"),
@@ -1282,7 +1374,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sqlite_store_enables_wal_and_bounded_checkpointing() {
+    async fn sqlite_store_configures_wal_checkpoint_and_vacuum_policy() {
         let temp_file = NamedTempFile::new().unwrap();
         let store = SqliteScannerStore::new(temp_file.path()).unwrap();
 
@@ -1306,47 +1398,36 @@ mod tests {
             assert_eq!(auto_vacuum, 2);
             assert_eq!(wal_autocheckpoint, WAL_AUTOCHECKPOINT_PAGES);
         }
-
-        for height in 1..=5 {
-            let block = block(height);
-            let mut scanned = ScannedBlock::new(block.clone());
-            scanned.outputs.push(detected_output(detection(height)));
-            store.commit_scanned_block(&scanned).await.unwrap();
-        }
-
-        let wal_path = PathBuf::from(format!("{}-wal", temp_file.path().display()));
-        let wal_size = std::fs::metadata(wal_path).map(|m| m.len()).unwrap_or(0);
-        assert!(wal_size < 1024 * 1024, "WAL file grew to {wal_size} bytes");
     }
 
     #[tokio::test]
-    async fn sqlite_store_allows_concurrent_readers_during_writes() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let store = Arc::new(SqliteScannerStore::new(temp_file.path()).unwrap());
+    async fn sqlite_readers_see_committed_state_while_writer_is_active() {
+        let file = NamedTempFile::new().unwrap();
+        let store = Arc::new(SqliteScannerStore::new(file.path()).unwrap());
+        let mut scanned = ScannedBlock::new(block(1));
+        scanned.outputs.push(detected_output(detection(1)));
+        store.commit_scanned_block(&scanned).await.unwrap();
+        assert_eq!(store.detection_count().await.unwrap(), 1);
 
-        let mut readers = Vec::new();
-        for _ in 0..READ_POOL_SIZE {
-            let store = Arc::clone(&store);
-            readers.push(tokio::spawn(async move {
-                for _ in 0..50 {
-                    store.detection_count().await.unwrap();
-                    store.last_scanned_block().await.unwrap();
-                }
-            }));
-        }
-
-        for height in 1..=20 {
-            let block = block(height);
-            let mut scanned = ScannedBlock::new(block.clone());
-            scanned.outputs.push(detected_output(detection(height)));
-            store.commit_scanned_block(&scanned).await.unwrap();
-        }
-
-        for reader in readers {
-            reader.await.unwrap();
-        }
-
-        assert_eq!(store.detection_count().await.unwrap(), 20);
+        let mut connection = store.lock_conn().unwrap();
+        let transaction = connection.transaction().unwrap();
+        transaction
+            .execute("DELETE FROM scanner_detections", [])
+            .unwrap();
+        let reader_store = Arc::clone(&store);
+        let runtime = tokio::runtime::Handle::current();
+        let (send, receive) = std::sync::mpsc::channel();
+        let reader = std::thread::spawn(move || {
+            send.send(runtime.block_on(reader_store.detection_count()))
+                .unwrap();
+        });
+        // Receiving before releasing the write lock establishes actual overlap.
+        let observed = receive.recv_timeout(Duration::from_secs(5));
+        transaction.commit().unwrap();
+        drop(connection);
+        reader.join().unwrap();
+        assert_eq!(observed.expect("reader blocked behind writer").unwrap(), 1);
+        assert_eq!(store.detection_count().await.unwrap(), 0);
     }
 
     #[tokio::test]

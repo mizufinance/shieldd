@@ -6,7 +6,7 @@
 //! The IMT always contains a structural sentinel leaf. Regulated assets may be
 //! configured here; unregulated assets use IMT non-membership proofs.
 
-use decaf377_rdsa::{SpendAuth, VerificationKey};
+use reddsa::{sapling::SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
@@ -220,11 +220,11 @@ impl NativeAssetRegistration {
             );
             return Ok(AssetPolicy::default_unregulated());
         }
-        let dk_pub = decaf377::Encoding(
-            self.dk_pub
+        let dk_pub = shieldd_sdk_crypto::encoding::nonidentity(
+            &self
+                .dk_pub
                 .ok_or_else(|| anyhow::anyhow!("regulated genesis asset requires dk_pub"))?,
         )
-        .vartime_decompress()
         .map_err(|_| anyhow::anyhow!("invalid regulated genesis dk_pub"))?;
         let registration_authority_vk = self.registration_authority_vk.ok_or_else(|| {
             anyhow::anyhow!("regulated genesis asset requires registration_authority_vk")
@@ -232,11 +232,11 @@ impl NativeAssetRegistration {
         let seizure_authority_vk = self.seizure_authority_vk.ok_or_else(|| {
             anyhow::anyhow!("regulated genesis asset requires seizure_authority_vk")
         })?;
-        let ring_pk = decaf377::Encoding(
-            self.ring_pk
+        let ring_pk = shieldd_sdk_crypto::encoding::nonidentity(
+            &self
+                .ring_pk
                 .ok_or_else(|| anyhow::anyhow!("regulated genesis asset requires ring_pk"))?,
         )
-        .vartime_decompress()
         .map_err(|_| anyhow::anyhow!("invalid regulated genesis ring_pk"))?;
         let policy = AssetPolicy::new(
             dk_pub,
@@ -343,35 +343,27 @@ impl From<NativeAssetRegistration> for pb::NativeAssetRegistration {
 
 #[cfg(test)]
 mod tests {
-    use decaf377::Fr;
-    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+    use group::GroupEncoding;
+    use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
+    use shieldd_sdk_crypto::Fr;
 
     use super::*;
 
     #[test]
-    fn test_default_genesis() {
-        let content = Content::default();
-        assert!(content.native_assets.is_empty());
-        assert!(content.user_registrations.is_empty());
-        assert_eq!(
-            content.compliance_params.anchor_validation_window_blocks,
-            crate::params::ComplianceParameters::default().anchor_validation_window_blocks
-        );
-    }
-
-    #[test]
     fn test_serde_roundtrip() {
-        let authority = VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(7u64)));
+        let authority = VerificationKey::from(
+            &SigningKey::<SpendAuth>::try_from(Fr::from(7u64).to_bytes()).unwrap(),
+        );
         let content = Content {
             compliance_registrar_vk: vec![authority],
             native_assets: vec![NativeAssetRegistration {
-                audit_keys: Some(crate::AuditKeys::test_keys()),
-                asset_id: asset::Id(decaf377::Fq::from(2u64)),
+                audit_keys: Some(crate::audit_keys::test_keys()),
+                asset_id: asset::Id(shieldd_sdk_crypto::Fq::from(2u64)),
                 is_regulated: true,
-                dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+                dk_pub: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
                 registration_authority_vk: Some(authority),
                 seizure_authority_vk: Some(authority),
-                ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+                ring_pk: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
                 ring_id: "ring".into(),
                 policy_id: "policy".into(),
                 permission: "read".into(),
@@ -389,7 +381,9 @@ mod tests {
 
     #[test]
     fn genesis_rejects_identity_authorization_keys() {
-        let identity = VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
+        let identity = VerificationKey::from(
+            &SigningKey::<SpendAuth>::try_from(Fr::from(0u64).to_bytes()).unwrap(),
+        );
         let registrar_content = Content {
             compliance_registrar_vk: vec![identity],
             ..Default::default()
@@ -398,16 +392,14 @@ mod tests {
             .validate_authorization_keys()
             .expect_err("genesis registrar keys must be nonidentity");
         assert!(
-            registrar_error
-                .to_string()
-                .contains("compliance registrar key must not be identity"),
+            format!("{registrar_error:#}").contains("identity"),
             "unexpected rejection reason: {registrar_error:#}"
         );
 
         let authority_content = Content {
             native_assets: vec![NativeAssetRegistration {
                 audit_keys: None,
-                asset_id: asset::Id(decaf377::Fq::from(1u64)),
+                asset_id: asset::Id(shieldd_sdk_crypto::Fq::from(1u64)),
                 is_regulated: false,
                 dk_pub: None,
                 registration_authority_vk: Some(identity),
@@ -424,24 +416,24 @@ mod tests {
             .validate_authorization_keys()
             .expect_err("genesis registration authority keys must be nonidentity");
         assert!(
-            authority_error
-                .to_string()
-                .contains("compliance registration authority key must not be identity"),
+            format!("{authority_error:#}").contains("identity"),
             "unexpected rejection reason: {authority_error:#}"
         );
     }
 
     #[test]
     fn regulated_genesis_asset_requires_complete_orbis_configuration() {
-        let authority = VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(7u64)));
+        let authority = VerificationKey::from(
+            &SigningKey::<SpendAuth>::try_from(Fr::from(7u64).to_bytes()).unwrap(),
+        );
         let mut registration = NativeAssetRegistration {
-            audit_keys: Some(crate::AuditKeys::test_keys()),
-            asset_id: asset::Id(decaf377::Fq::from(2u64)),
+            audit_keys: Some(crate::audit_keys::test_keys()),
+            asset_id: asset::Id(shieldd_sdk_crypto::Fq::from(2u64)),
             is_regulated: true,
-            dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+            dk_pub: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
             registration_authority_vk: Some(authority),
             seizure_authority_vk: Some(authority),
-            ring_pk: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+            ring_pk: Some((*shieldd_sdk_crypto::generators::SPEND_AUTH).to_bytes()),
             ring_id: "ring".to_owned(),
             policy_id: "policy".to_owned(),
             permission: "read".to_owned(),

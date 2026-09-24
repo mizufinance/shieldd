@@ -1,18 +1,24 @@
 # Orbis Runtime Contract
 
-Shieldd pins the Orbis integration runtime here so local and CI flows use an
-Orbis image and Vera source revision known to be wire-compatible.
+The pinned image is **not compatible with the current Shieldd suite**.
+`images.lock.json` selects Decaf377, and startup rejects it before launching
+containers. CI verifies local adapter contracts and this rejection, not live
+BLS PRE or Jubjub PET. See the [external contract](../../docs/jubjub-external-contract.md)
+for required capabilities and the boundary between PRE delivery and audit keys.
 
-Current contract line:
+The configuration below describes the deployment path once a compatible runtime
+is available and validated. It is not evidence that the locked image supports it.
+
+Runtime configuration:
 
 - [images.lock.json](images.lock.json) is the single source for the Orbis image
   digest and Vera source revision.
-- The Orbis revision is the latest source revision with a matching validated
-  published image; unbuilt source revisions are outside the runtime contract.
+- A replacement image must have a verified source revision, supported crypto
+  feature and matching digest; a newer source revision alone is insufficient.
 - The locked Orbis source revision must match all three `orbis-rs` git
   dependencies in
   [crates/util/orbis-client/Cargo.toml](../../crates/util/orbis-client/Cargo.toml).
-- The Orbis crypto feature is `decaf377`.
+- The Orbis PRE delivery feature is `bls12-381`; Shieldd audit openings use Jubjub.
 - `ORBIS_IMAGE`, `VERA_IMAGE`, and `VERA_REF` may be overridden for explicit
   local testing. CI rejects runtime revision overrides.
 - The published Orbis images do not self-fund. `orbis-funder` uses a dedicated
@@ -22,7 +28,7 @@ Current contract line:
   public key for Orbis's `TEST_ACCOUNT_HEX_KEY`, matching the signer used by
   `orbis-integration` to call `UpdateNodePeerId` / `AddNodeToWhitelist`.
 
-Runtime flow:
+Flow requiring a compatible runtime:
 
 1. Each Orbis node creates a Vera `x/orbis` `NodeInfo` keyed by its
    `node_key`.
@@ -38,7 +44,7 @@ Runtime flow:
 The Vera backend maps document, key-derivation, node-info, and ring records to
 `x/orbis` state.
 
-`./scripts/orbis-stack.sh up` loads the pinned runtime via
+After the crypto compatibility check passes, `./scripts/orbis-stack.sh up` loads the pinned runtime via
 `ensure_orbis_images`, builds Vera from its pinned revision, and brings the
 stack up with `docker compose up -d --pull missing`. It does not build
 `orbis-rs`. Docker assigns one
@@ -49,15 +55,16 @@ to report its production server. The launcher then probes each published node
 endpoint. On a native Docker bridge where loopback publication is unavailable,
 it records the exact reachable container endpoint instead.
 
-To refresh an image:
+To validate and adopt a compatible image:
 
 1. Inspect the candidate tag or digest with `docker buildx imagetools inspect`
    and confirm its OCI index includes `linux/amd64`.
 2. For Orbis, confirm the image was built from the same revision used by all
    three Cargo dependencies. Update the three Cargo pins and the lock revision
    together when advancing that source revision.
-3. Record the Orbis OCI index digest and compatible Vera source revision in
-   `images.lock.json`.
+3. Verify the image implements the required BLS12-381 PRE feature and identify
+   separately whether Jubjub audit/PET support is present. Record the crypto
+   feature, OCI index digest and compatible Vera source revision in `images.lock.json`.
 4. Run `scripts/orbis-stack.sh pull`, inspect
    `docker compose -f deployments/orbis/docker-compose.yml config --images`,
    then run `scripts/orbis-stack.sh up` and create a ring with

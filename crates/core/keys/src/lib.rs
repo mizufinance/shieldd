@@ -2,8 +2,7 @@
 // Requires nightly.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-use decaf377_ka as ka;
-use decaf377_rdsa as rdsa;
+use shieldd_sdk_crypto::ka;
 
 pub mod address;
 pub mod keys;
@@ -17,10 +16,12 @@ pub use symmetric::{BackreferenceKey, PayloadKey, PositionMetadataKey};
 
 /// Rejects the identity point for keys used to authorize protocol actions.
 pub fn ensure_nonidentity_spend_auth_key(
-    key: &rdsa::VerificationKey<rdsa::SpendAuth>,
+    key: &reddsa::VerificationKey<reddsa::sapling::SpendAuth>,
     role: &str,
 ) -> anyhow::Result<()> {
-    anyhow::ensure!(!key.is_identity(), "{role} must not be identity");
+    use anyhow::Context;
+    shieldd_sdk_crypto::encoding::nonidentity(&(*key).into())
+        .with_context(|| format!("invalid {role}"))?;
     Ok(())
 }
 

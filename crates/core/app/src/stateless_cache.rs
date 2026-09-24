@@ -6,15 +6,11 @@ use std::sync::Arc;
 
 use crate::{app::MAX_TRANSACTION_SIZE_BYTES, metrics};
 use sha2::Digest as _;
-use shieldd_sdk_proof_aggregation::ProofFamilyId;
-use shieldd_sdk_proof_params::{
-    batch::{BatchItem, VerifiedBatchItem},
-    DeployedProofKey,
-};
+use shieldd_sdk_circuits::proof::Family;
+use shieldd_sdk_proof_params::pari::{Registry, Verification, Verified};
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_tct::{Root, StateCommitment};
 use shieldd_sdk_transaction::Transaction;
 use shieldd_sdk_txhash::{AuthHash, AuthorizingData};
 
@@ -24,7 +20,6 @@ const MAX_CACHEABLE_RAW_TX_BYTES: usize = MAX_TRANSACTION_SIZE_BYTES;
 
 #[derive(Clone)]
 pub enum CacheEntry {
-    Extracted(Arc<TxArtifact>),
     FullyVerified(Arc<VerifiedTxArtifact>),
     Invalid,
 }
@@ -38,33 +33,24 @@ pub(crate) enum ProofSlot {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ProofLocation {
-    pub family_id: ProofFamilyId,
+    pub family_id: Family,
     pub family_index: usize,
-    pub key: DeployedProofKey,
 }
 
 #[derive(Clone)]
 pub struct TxArtifact {
     pub tx: Arc<Transaction>,
-    pub proof_items: BTreeMap<ProofFamilyId, Vec<BatchItem>>,
+    pub(crate) proof_items: BTreeMap<Family, Vec<Verification>>,
     pub spend_nullifiers: Vec<Nullifier>,
-    pub anchor_pairs: Vec<(StateCommitment, StateCommitment)>,
     pub total_proof_count: usize,
-    pub historical_validation: Option<HistoricalValidationStamp>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HistoricalValidationStamp {
-    pub snapshot_version: u64,
-    pub anchor: Root,
 }
 
 impl TxArtifact {
     pub(crate) fn proof_locations(&self) -> Result<BTreeMap<ProofSlot, ProofLocation>> {
-        let mut family_counts = BTreeMap::<ProofFamilyId, usize>::new();
+        let mut family_counts = BTreeMap::<Family, usize>::new();
         let mut locations = BTreeMap::new();
         for (action_index, action) in self.tx.actions().enumerate() {
-            let Some((family_id, key)) = proof_family_and_key_for_action(action) else {
+            let Some(family_id) = proof_family_for_action(action) else {
                 continue;
             };
             let family_index = *family_counts.entry(family_id).or_default();
@@ -74,12 +60,11 @@ impl TxArtifact {
                 ProofLocation {
                     family_id,
                     family_index,
-                    key,
                 },
             );
         }
         if self.tx.transaction_body.fee_funding.is_some() {
-            let family_id = ProofFamilyId::Transfer;
+            let family_id = Family::Transfer;
             let family_index = *family_counts.entry(family_id).or_default();
             family_counts.insert(family_id, family_index + 1);
             locations.insert(
@@ -87,7 +72,6 @@ impl TxArtifact {
                 ProofLocation {
                     family_id,
                     family_index,
-                    key: DeployedProofKey::Transfer,
                 },
             );
         }
@@ -120,75 +104,78 @@ impl TxArtifact {
         Ok(locations)
     }
 
-    fn proof_item_at(&self, location: ProofLocation) -> Result<&BatchItem> {
+    fn proof_item_at(&self, location: ProofLocation) -> Result<&Verification> {
         self.proof_items
             .get(&location.family_id)
             .and_then(|items| items.get(location.family_index))
             .ok_or_else(|| anyhow::anyhow!("extracted proof item is missing"))
     }
+}
 
-    pub fn with_historical_validation(
-        &self,
-        historical_validation: HistoricalValidationStamp,
-    ) -> Arc<Self> {
-        if self.historical_validation == Some(historical_validation) {
-            return Arc::new(self.clone());
-        }
-
-        Arc::new(Self {
-            tx: self.tx.clone(),
-            proof_items: self.proof_items.clone(),
-            spend_nullifiers: self.spend_nullifiers.clone(),
-            anchor_pairs: self.anchor_pairs.clone(),
-            total_proof_count: self.total_proof_count,
-            historical_validation: Some(historical_validation),
-        })
-    }
-
-    pub fn with_historical_validation_owned(
-        mut self: Arc<Self>,
-        historical_validation: HistoricalValidationStamp,
-    ) -> Arc<Self> {
-        if self.historical_validation != Some(historical_validation) {
-            Arc::make_mut(&mut self).historical_validation = Some(historical_validation);
-        }
-        self
-    }
-
-    pub fn has_matching_historical_validation(&self, snapshot_version: u64) -> bool {
-        self.historical_validation.as_ref().is_some_and(|stamp| {
-            stamp.snapshot_version == snapshot_version && stamp.anchor == self.tx.anchor
-        })
+fn proof_family_for_action(action: &shieldd_sdk_transaction::Action) -> Option<Family> {
+    use shieldd_sdk_transaction::Action;
+    match action {
+        Action::Transfer(_) => Some(Family::Transfer),
+        Action::NoteReshape(action) => Some(action.body.family_id.proof_family()),
+        Action::ShieldedHostWithdrawal(_) => Some(Family::Withdrawal),
+        _ => None,
     }
 }
 
-fn proof_family_and_key_for_action(
-    action: &shieldd_sdk_transaction::Action,
-) -> Option<(ProofFamilyId, DeployedProofKey)> {
-    use shieldd_sdk_transaction::Action;
+#[cfg(test)]
+pub(crate) mod attachment_observer {
+    use shieldd_sdk_transaction::Transaction;
+    use std::sync::{Arc, Mutex};
+    use std::thread::{self, ThreadId};
 
-    match action {
-        Action::Transfer(_) => Some((ProofFamilyId::Transfer, DeployedProofKey::Transfer)),
-        Action::NoteReshape(action) => Some((
-            ProofFamilyId::NoteReshape(action.body.family_id),
-            action.body.family_id.deployed_proof_key(),
-        )),
+    struct Observation {
+        transaction: Arc<Transaction>,
+        runtime_thread: ThreadId,
+        calls: usize,
+        on_runtime_thread: bool,
+    }
+    static OBSERVATION: Mutex<Option<Observation>> = Mutex::new(None);
 
-        Action::ShieldedHostWithdrawal(action) => Some((
-            ProofFamilyId::ShieldedWithdrawal(action.body.family_id),
-            action.body.family_id.deployed_proof_key(),
-        )),
-        Action::ComplianceRegisterAsset(_)
-        | Action::ComplianceRegisterUser(_)
-        | Action::AggregateBundle(_) => None,
+    pub(crate) struct Guard;
+    impl Guard {
+        pub(crate) fn new(transaction: Arc<Transaction>) -> Self {
+            let mut slot = OBSERVATION.lock().unwrap();
+            assert!(slot.is_none(), "only one attachment observer may run");
+            *slot = Some(Observation {
+                transaction,
+                runtime_thread: thread::current().id(),
+                calls: 0,
+                on_runtime_thread: false,
+            });
+            Self
+        }
+        pub(crate) fn result(&self) -> (usize, bool) {
+            let slot = OBSERVATION.lock().unwrap();
+            let observed = slot.as_ref().unwrap();
+            (observed.calls, observed.on_runtime_thread)
+        }
+    }
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            *OBSERVATION.lock().unwrap() = None;
+        }
+    }
+    pub(super) fn record(transaction: &Arc<Transaction>) {
+        if let Some(observed) = OBSERVATION.lock().unwrap().as_mut() {
+            if Arc::ptr_eq(&observed.transaction, transaction) {
+                observed.calls += 1;
+                observed.on_runtime_thread |= thread::current().id() == observed.runtime_thread;
+            }
+        }
     }
 }
 
 /// A transaction artifact carrying a verified capability for every proof slot.
 #[derive(Clone)]
 pub struct VerifiedTxArtifact {
+    registry_id: [u8; 32],
     extracted: Arc<TxArtifact>,
-    verified_proofs: BTreeMap<ProofSlot, VerifiedBatchItem>,
+    verified_proofs: BTreeMap<ProofSlot, Verified>,
     verified_historical_inputs: Vec<VerifiedHistoricalInput>,
 }
 
@@ -216,7 +203,7 @@ impl VerifiedHistoricalInput {
 fn validate_proof_capability_rows<T>(
     extracted: &TxArtifact,
     verified_rows: Vec<(ProofSlot, T)>,
-    ensure_binds: impl Fn(&T, DeployedProofKey, &BatchItem) -> Result<()>,
+    ensure_binds: impl Fn(&T, Family, &Verification) -> Result<()>,
 ) -> Result<BTreeMap<ProofSlot, T>> {
     let locations = extracted.proof_locations()?;
     let mut verified_proofs = BTreeMap::new();
@@ -236,25 +223,46 @@ fn validate_proof_capability_rows<T>(
         let capability = verified_proofs
             .get(&slot)
             .ok_or_else(|| anyhow::anyhow!("verified proof capability missing for {slot:?}"))?;
-        ensure_binds(capability, location.key, extracted.proof_item_at(location)?)
-            .with_context(|| format!("{slot:?} capability binding failed"))?;
+        ensure_binds(
+            capability,
+            location.family_id,
+            extracted.proof_item_at(location)?,
+        )
+        .with_context(|| format!("{slot:?} capability binding failed"))?;
     }
     Ok(verified_proofs)
 }
 
 impl VerifiedTxArtifact {
+    pub(crate) fn ensure_registry(&self, registry: &Registry) -> Result<()> {
+        ensure!(
+            self.registry_id == registry.id(),
+            "verified transaction registry mismatch"
+        );
+        Ok(())
+    }
     pub(crate) fn new(
         extracted: Arc<TxArtifact>,
-        verified_rows: Vec<(ProofSlot, VerifiedBatchItem)>,
+        verified_rows: Vec<(ProofSlot, Verified)>,
+        registry: &Registry,
     ) -> Result<Self> {
         let verified_proofs = validate_proof_capability_rows(
             extracted.as_ref(),
             verified_rows,
-            |capability, key, item| capability.ensure_binds(key, item).map_err(Into::into),
+            |capability, family, item| {
+                ensure!(
+                    capability.registry_id() == registry.id(),
+                    "proof capability registry mismatch"
+                );
+                capability.ensure_binds(family, item)
+            },
         )?;
+        #[cfg(test)]
+        attachment_observer::record(&extracted.tx);
         let verified_historical_inputs =
-            crate::action_handler::transaction::verify_historical_proofs(&extracted.tx)?;
+            crate::action_handler::transaction::verify_historical_proofs(&extracted.tx, registry)?;
         let artifact = Self {
+            registry_id: registry.id(),
             extracted,
             verified_proofs,
             verified_historical_inputs,
@@ -265,7 +273,8 @@ impl VerifiedTxArtifact {
 
     pub(crate) fn take_family_capabilities(
         extracted: Arc<TxArtifact>,
-        capabilities: &mut BTreeMap<ProofFamilyId, VecDeque<VerifiedBatchItem>>,
+        capabilities: &mut BTreeMap<Family, VecDeque<Verified>>,
+        registry: &Registry,
     ) -> Result<Self> {
         let rows = extracted
             .proof_locations()?
@@ -283,10 +292,10 @@ impl VerifiedTxArtifact {
                 Ok((slot, capability))
             })
             .collect::<Result<Vec<_>>>()?;
-        Self::new(extracted, rows)
+        Self::new(extracted, rows, registry)
     }
 
-    pub(crate) fn proof_for_slot(&self, slot: ProofSlot) -> Result<&VerifiedBatchItem> {
+    pub(crate) fn proof_for_slot(&self, slot: ProofSlot) -> Result<&Verified> {
         self.verified_proofs
             .get(&slot)
             .ok_or_else(|| anyhow::anyhow!("verified proof capability missing for {slot:?}"))
@@ -318,38 +327,6 @@ impl VerifiedTxArtifact {
     pub(crate) fn extracted(&self) -> Arc<TxArtifact> {
         self.extracted.clone()
     }
-
-    pub(crate) fn has_matching_historical_validation(&self, snapshot_version: u64) -> bool {
-        self.extracted
-            .has_matching_historical_validation(snapshot_version)
-    }
-
-    pub(crate) fn with_historical_validation_owned(
-        mut self: Arc<Self>,
-        historical_validation: HistoricalValidationStamp,
-    ) -> Arc<Self> {
-        if !self
-            .extracted
-            .has_matching_historical_validation(historical_validation.snapshot_version)
-        {
-            Arc::make_mut(&mut self).extracted = self
-                .extracted
-                .clone()
-                .with_historical_validation_owned(historical_validation);
-        }
-        self
-    }
-}
-
-impl CacheEntry {
-    /// Returns the artifact if this entry holds one, regardless of verification tier.
-    pub fn artifact(&self) -> Option<Arc<TxArtifact>> {
-        match self {
-            CacheEntry::Extracted(a) => Some(a.clone()),
-            CacheEntry::FullyVerified(a) => Some(a.extracted()),
-            CacheEntry::Invalid => None,
-        }
-    }
 }
 
 /// Bounded cache for stateless verification results, shared across ABCI passes.
@@ -369,6 +346,7 @@ pub struct StatelessCache {
 }
 
 struct CacheValue {
+    registry_id: [u8; 32],
     raw_tx: Arc<[u8]>,
     entry: CacheEntry,
     referenced: AtomicBool,
@@ -408,7 +386,7 @@ impl StatelessCache {
         }
     }
 
-    pub fn get(&self, hash: &[u8; 32], raw_tx: &[u8]) -> Option<CacheEntry> {
+    pub fn get(&self, registry_id: [u8; 32], hash: &[u8; 32], raw_tx: &[u8]) -> Option<CacheEntry> {
         if raw_tx.len() > self.max_cacheable_raw_tx_bytes {
             metrics::counter!(metrics::STATELESS_CACHE_MISS_TOTAL).increment(1);
             return None;
@@ -419,7 +397,7 @@ impl StatelessCache {
             metrics::counter!(metrics::STATELESS_CACHE_MISS_TOTAL).increment(1);
             return None;
         };
-        if value.raw_tx.as_ref() != raw_tx {
+        if value.registry_id != registry_id || value.raw_tx.as_ref() != raw_tx {
             metrics::counter!(metrics::STATELESS_CACHE_MISS_TOTAL).increment(1);
             return None;
         }
@@ -428,7 +406,7 @@ impl StatelessCache {
         let entry = value.entry.clone();
         drop(inner);
         match entry {
-            CacheEntry::Extracted(_) | CacheEntry::FullyVerified(_) => {
+            CacheEntry::FullyVerified(_) => {
                 metrics::counter!(metrics::STATELESS_CACHE_HIT_VALID_TOTAL).increment(1)
             }
             CacheEntry::Invalid => {
@@ -438,7 +416,7 @@ impl StatelessCache {
         Some(entry)
     }
 
-    fn insert(&self, raw_tx: &[u8], entry: CacheEntry) -> Result<()> {
+    fn insert(&self, registry_id: [u8; 32], raw_tx: &[u8], entry: CacheEntry) -> Result<()> {
         let hash: [u8; 32] = sha2::Sha256::digest(raw_tx).into();
         if self.max_entries == 0
             || raw_tx.len() > self.max_cacheable_raw_tx_bytes
@@ -452,6 +430,7 @@ impl StatelessCache {
         if let Some(value) = inner.map.get_mut(&hash) {
             let old_len = value.raw_tx.len();
             value.raw_tx = Arc::from(raw_tx);
+            value.registry_id = registry_id;
             value.entry = entry;
             value.referenced.store(true, Ordering::Relaxed);
             inner.retained_raw_tx_bytes = inner
@@ -482,6 +461,7 @@ impl StatelessCache {
         inner.map.insert(
             hash,
             CacheValue {
+                registry_id,
                 raw_tx: Arc::from(raw_tx),
                 entry,
                 referenced: AtomicBool::new(true),
@@ -492,18 +472,11 @@ impl StatelessCache {
     }
 
     fn ensure_artifact_matches_raw(raw_tx: &[u8], artifact_tx: &Transaction) -> Result<()> {
-        let decoded = Transaction::decode_canonical(raw_tx)
-            .context("decoding stateless cache transaction association")?;
         ensure!(
-            decoded.encode_to_vec() == artifact_tx.encode_to_vec(),
+            raw_tx == artifact_tx.encode_to_vec(),
             "stateless cache artifact transaction does not match raw transaction"
         );
         Ok(())
-    }
-
-    pub fn insert_extracted(&self, raw_tx: &[u8], artifact: Arc<TxArtifact>) -> Result<()> {
-        Self::ensure_artifact_matches_raw(raw_tx, artifact.tx.as_ref())?;
-        self.insert(raw_tx, CacheEntry::Extracted(artifact))
     }
 
     pub fn insert_fully_verified(
@@ -512,11 +485,15 @@ impl StatelessCache {
         artifact: Arc<VerifiedTxArtifact>,
     ) -> Result<()> {
         Self::ensure_artifact_matches_raw(raw_tx, artifact.tx().as_ref())?;
-        self.insert(raw_tx, CacheEntry::FullyVerified(artifact))
+        self.insert(
+            artifact.registry_id,
+            raw_tx,
+            CacheEntry::FullyVerified(artifact),
+        )
     }
 
-    pub fn insert_invalid(&self, raw_tx: &[u8]) -> Result<()> {
-        self.insert(raw_tx, CacheEntry::Invalid)
+    pub fn insert_invalid(&self, registry_id: [u8; 32], raw_tx: &[u8]) -> Result<()> {
+        self.insert(registry_id, raw_tx, CacheEntry::Invalid)
     }
 
     #[cfg(test)]
@@ -568,8 +545,13 @@ fn evict_one_clock(inner: &mut CacheInner, protected: Option<&[u8; 32]>) -> bool
 
 #[cfg(test)]
 mod tests {
-    use ark_groth16::Proof;
-    use decaf377::{Bls12_377, Fq};
+    use commonware_codec::Encode;
+    use commonware_cryptography::{
+        bls12381::primitives::group::{Scalar, G1},
+        zk::pari::Claim,
+    };
+    use commonware_math::algebra::{Additive, CryptoGroup};
+    use shieldd_sdk_circuits::proof::Envelope;
     use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
     use shieldd_sdk_transaction::Action;
 
@@ -579,27 +561,33 @@ mod tests {
         sha2::Sha256::digest(raw).into()
     }
 
-    fn proof_item(value: u64) -> BatchItem {
-        BatchItem {
-            proof: Proof::<Bls12_377>::default(),
-            public_inputs: vec![Fq::from(value)],
+    fn proof_item(value: u64) -> Verification {
+        // Codec fixture for pure slot mapping tests, never accepted as a verified proof.
+        let mut bytes = vec![shieldd_sdk_crypto::SUITE, Family::Transfer as u8];
+        bytes.extend([0; 32]);
+        bytes.extend(Claim::new(vec![Scalar::from(value)], vec![G1::generator()]).encode());
+        bytes.extend(G1::generator().encode());
+        bytes.extend(G1::generator().encode());
+        bytes.extend(Scalar::zero().encode());
+        Verification {
+            family: Family::Transfer,
+            statement: Scalar::from(value),
+            envelope: Envelope::from_bytes(&bytes).unwrap(),
         }
     }
-
     #[derive(Clone, Debug)]
     struct TestCapability {
-        key: DeployedProofKey,
-        public_inputs: Vec<Fq>,
+        key: Family,
+        item: Verification,
     }
-
-    fn capability(key: DeployedProofKey, item: &BatchItem) -> TestCapability {
+    fn capability(key: Family, item: &Verification) -> TestCapability {
         TestCapability {
             key,
-            public_inputs: item.public_inputs.clone(),
+            item: item.clone(),
         }
     }
 
-    fn two_slot_artifact() -> (Arc<TxArtifact>, BatchItem, BatchItem) {
+    fn two_slot_artifact() -> (Arc<TxArtifact>, Verification, Verification) {
         let (transfer, _, _) = build_transfer_action_and_public_without_proof(false);
         let mut tx = Transaction::default();
         tx.transaction_body.actions = vec![
@@ -610,14 +598,9 @@ mod tests {
         let second = proof_item(2);
         let artifact = Arc::new(TxArtifact {
             tx: Arc::new(tx),
-            proof_items: BTreeMap::from([(
-                ProofFamilyId::Transfer,
-                vec![first.clone(), second.clone()],
-            )]),
+            proof_items: BTreeMap::from([(Family::Transfer, vec![first.clone(), second.clone()])]),
             spend_nullifiers: Vec::new(),
-            anchor_pairs: Vec::new(),
             total_proof_count: 2,
-            historical_validation: None,
         });
         (artifact, first, second)
     }
@@ -625,18 +608,15 @@ mod tests {
     #[test]
     fn verified_artifact_capability_rows_reject_every_coverage_and_binding_mismatch() {
         let (artifact, first, second) = two_slot_artifact();
-        let first_capability = capability(DeployedProofKey::Transfer, &first);
-        let second_capability = capability(DeployedProofKey::Transfer, &second);
+        let first_capability = capability(Family::Transfer, &first);
+        let second_capability = capability(Family::Transfer, &second);
         let validate = |rows| {
             validate_proof_capability_rows(
                 artifact.as_ref(),
                 rows,
                 |capability: &TestCapability, key, item| {
                     ensure!(capability.key == key, "wrong deployed proof key");
-                    ensure!(
-                        capability.public_inputs == item.public_inputs,
-                        "wrong public inputs"
-                    );
+                    ensure!(&capability.item == item, "wrong public inputs");
                     Ok(())
                 },
             )
@@ -672,7 +652,7 @@ mod tests {
         let wrong_key = vec![
             (
                 ProofSlot::BodyAction(0),
-                capability(DeployedProofKey::NoteReshapeOneByEight, &first),
+                capability(Family::ReshapeOneToEight, &first),
             ),
             (ProofSlot::BodyAction(1), second_capability),
         ];
@@ -685,14 +665,47 @@ mod tests {
         let hash = digest(b"first transaction");
 
         cache
-            .insert_invalid(b"first transaction")
+            .insert_invalid([1; 32], b"first transaction")
             .expect("cache insertion succeeds");
 
         assert!(matches!(
-            cache.get(&hash, b"first transaction"),
+            cache.get([1; 32], &hash, b"first transaction"),
             Some(CacheEntry::Invalid)
         ));
-        assert!(cache.get(&hash, b"different transaction").is_none());
+        assert!(cache
+            .get([1; 32], &hash, b"different transaction")
+            .is_none());
+    }
+
+    #[test]
+    fn cached_results_are_scoped_to_exact_registry() {
+        let cache = StatelessCache::new();
+        let raw = b"same transaction";
+        let hash = digest(raw);
+        cache.insert_invalid([1; 32], raw).unwrap();
+        assert!(cache.get([1; 32], &hash, raw).is_some());
+        assert!(cache.get([2; 32], &hash, raw).is_none());
+        cache.insert_invalid([2; 32], raw).unwrap();
+        assert!(cache.get([1; 32], &hash, raw).is_none());
+        assert!(cache.get([2; 32], &hash, raw).is_some());
+        assert_eq!(cache.retained(), (1, raw.len()));
+    }
+
+    #[test]
+    fn artifact_association_requires_exact_canonical_bytes() {
+        let tx = Transaction::default();
+        let canonical = tx.encode_to_vec();
+        StatelessCache::ensure_artifact_matches_raw(&canonical, &tx).unwrap();
+        let mut noncanonical = canonical;
+        // Unknown protobuf field 100 decodes to the same domain transaction.
+        noncanonical.extend([0xa0, 0x06, 0x01]);
+        assert_eq!(
+            Transaction::decode(noncanonical.as_slice())
+                .unwrap()
+                .encode_to_vec(),
+            tx.encode_to_vec()
+        );
+        assert!(StatelessCache::ensure_artifact_matches_raw(&noncanonical, &tx).is_err());
     }
 
     #[test]
@@ -710,19 +723,15 @@ mod tests {
             tx: Arc::new(other_tx),
             proof_items: BTreeMap::new(),
             spend_nullifiers: Vec::new(),
-            anchor_pairs: Vec::new(),
             total_proof_count: 0,
-            historical_validation: None,
         });
 
-        cache
-            .insert_extracted(&raw_bytes, other_artifact.clone())
-            .expect_err("raw transaction A must not accept extracted artifact B");
-
-        let verified = Arc::new(
-            VerifiedTxArtifact::new(other_artifact, Vec::new())
-                .expect("zero-proof test artifact has complete empty coverage"),
-        );
+        let verified = Arc::new(VerifiedTxArtifact {
+            registry_id: [1; 32],
+            extracted: other_artifact,
+            verified_proofs: BTreeMap::new(),
+            verified_historical_inputs: Vec::new(),
+        });
         cache
             .insert_fully_verified(&raw_bytes, verified)
             .expect_err("raw transaction A must not accept verified artifact B");
@@ -736,18 +745,18 @@ mod tests {
         let replacement_digest = digest(b"replacement transaction");
 
         cache
-            .insert_invalid(b"first transaction")
+            .insert_invalid([1; 32], b"first transaction")
             .expect("cache insertion succeeds");
         cache
-            .insert_invalid(b"replacement transaction")
+            .insert_invalid([1; 32], b"replacement transaction")
             .expect("cache insertion succeeds");
 
         assert!(matches!(
-            cache.get(&first_digest, b"first transaction"),
+            cache.get([1; 32], &first_digest, b"first transaction"),
             Some(CacheEntry::Invalid)
         ));
         assert!(matches!(
-            cache.get(&replacement_digest, b"replacement transaction"),
+            cache.get([1; 32], &replacement_digest, b"replacement transaction"),
             Some(CacheEntry::Invalid)
         ));
     }
@@ -758,11 +767,11 @@ mod tests {
         let digest = digest(b"12345");
 
         cache
-            .insert_invalid(b"12345")
+            .insert_invalid([1; 32], b"12345")
             .expect("oversized insertion is a no-op");
 
         assert_eq!(cache.retained(), (0, 0));
-        assert!(cache.get(&digest, b"12345").is_none());
+        assert!(cache.get([1; 32], &digest, b"12345").is_none());
     }
 
     #[test]
@@ -770,23 +779,23 @@ mod tests {
         let cache = StatelessCache::with_limits(8, 6, 4);
 
         cache
-            .insert_invalid(b"one")
+            .insert_invalid([1; 32], b"one")
             .expect("cache insertion succeeds");
         cache
-            .insert_invalid(b"two")
+            .insert_invalid([1; 32], b"two")
             .expect("cache insertion succeeds");
         cache
-            .insert_invalid(b"tri")
+            .insert_invalid([1; 32], b"tri")
             .expect("cache insertion succeeds");
 
         assert_eq!(cache.retained(), (2, 6));
-        assert!(cache.get(&digest(b"one"), b"one").is_none());
+        assert!(cache.get([1; 32], &digest(b"one"), b"one").is_none());
         assert!(matches!(
-            cache.get(&digest(b"two"), b"two"),
+            cache.get([1; 32], &digest(b"two"), b"two"),
             Some(CacheEntry::Invalid)
         ));
         assert!(matches!(
-            cache.get(&digest(b"tri"), b"tri"),
+            cache.get([1; 32], &digest(b"tri"), b"tri"),
             Some(CacheEntry::Invalid)
         ));
     }
@@ -796,23 +805,23 @@ mod tests {
         let cache = StatelessCache::with_limits(2, 1_024, 4);
 
         cache
-            .insert_invalid(b"one")
+            .insert_invalid([1; 32], b"one")
             .expect("cache insertion succeeds");
         cache
-            .insert_invalid(b"two")
+            .insert_invalid([1; 32], b"two")
             .expect("cache insertion succeeds");
         cache
-            .insert_invalid(b"tri")
+            .insert_invalid([1; 32], b"tri")
             .expect("cache insertion succeeds");
 
         assert_eq!(cache.retained(), (2, 6));
-        assert!(cache.get(&digest(b"one"), b"one").is_none());
+        assert!(cache.get([1; 32], &digest(b"one"), b"one").is_none());
         assert!(matches!(
-            cache.get(&digest(b"two"), b"two"),
+            cache.get([1; 32], &digest(b"two"), b"two"),
             Some(CacheEntry::Invalid)
         ));
         assert!(matches!(
-            cache.get(&digest(b"tri"), b"tri"),
+            cache.get([1; 32], &digest(b"tri"), b"tri"),
             Some(CacheEntry::Invalid)
         ));
     }
@@ -824,22 +833,22 @@ mod tests {
         let other = digest(b"bbbb");
 
         cache
-            .insert_invalid(b"aa")
+            .insert_invalid([1; 32], b"aa")
             .expect("cache insertion succeeds");
         cache
-            .insert_invalid(b"bbbb")
+            .insert_invalid([1; 32], b"bbbb")
             .expect("cache insertion succeeds");
         cache
-            .insert_invalid(b"aa")
+            .insert_invalid([1; 32], b"aa")
             .expect("cache reinsertion succeeds");
 
         assert_eq!(cache.retained(), (2, 6));
         assert!(matches!(
-            cache.get(&other, b"bbbb"),
+            cache.get([1; 32], &other, b"bbbb"),
             Some(CacheEntry::Invalid)
         ));
         assert!(matches!(
-            cache.get(&repeated, b"aa"),
+            cache.get([1; 32], &repeated, b"aa"),
             Some(CacheEntry::Invalid)
         ));
     }
@@ -850,7 +859,7 @@ mod tests {
 
         for index in 0u8..100 {
             cache
-                .insert_invalid(&[index; 4])
+                .insert_invalid([1; 32], &[index; 4])
                 .expect("cache insertion succeeds");
             let (entries, retained_bytes) = cache.retained();
             assert!(entries <= 3);
@@ -859,7 +868,7 @@ mod tests {
 
         assert_eq!(cache.retained(), (3, 12));
         assert!(matches!(
-            cache.get(&digest(&[99; 4]), &[99; 4]),
+            cache.get([1; 32], &digest(&[99; 4]), &[99; 4]),
             Some(CacheEntry::Invalid)
         ));
     }
@@ -868,17 +877,17 @@ mod tests {
     fn clock_invariant_drift_clears_cache_instead_of_exceeding_limits() {
         let cache = StatelessCache::with_limits(1, 4, 4);
         cache
-            .insert_invalid(b"one")
+            .insert_invalid([1; 32], b"one")
             .expect("cache insertion succeeds");
         cache.inner.write().clock.clear();
 
         cache
-            .insert_invalid(b"two")
+            .insert_invalid([1; 32], b"two")
             .expect("cache insertion succeeds");
 
         assert_eq!(cache.retained(), (0, 0));
-        assert!(cache.get(&digest(b"one"), b"one").is_none());
-        assert!(cache.get(&digest(b"two"), b"two").is_none());
+        assert!(cache.get([1; 32], &digest(b"one"), b"one").is_none());
+        assert!(cache.get([1; 32], &digest(b"two"), b"two").is_none());
     }
 
     #[test]
@@ -886,15 +895,15 @@ mod tests {
         let cache = StatelessCache::with_limits(1, 4, 4);
         let digest = digest(b"one");
         cache
-            .insert_invalid(b"one")
+            .insert_invalid([1; 32], b"one")
             .expect("cache insertion succeeds");
         cache.inner.write().retained_raw_tx_bytes = 5;
 
         cache
-            .insert_invalid(b"one")
+            .insert_invalid([1; 32], b"one")
             .expect("cache insertion succeeds");
 
         assert_eq!(cache.retained(), (0, 0));
-        assert!(cache.get(&digest, b"one").is_none());
+        assert!(cache.get([1; 32], &digest, b"one").is_none());
     }
 }

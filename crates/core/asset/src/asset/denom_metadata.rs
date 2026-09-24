@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::{ensure, Context};
-use decaf377::Fq;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::asset::v1 as pb, view::v1::AssetsResponse, DomainType};
@@ -224,12 +223,7 @@ impl Inner {
     /// The base denom is added as a unit, so `units` can be empty and should
     /// not include a unit for the base denomination.
     pub fn new(base_denom: String, mut units: Vec<BareDenomUnit>) -> Self {
-        let id = Id(Fq::from_le_bytes_mod_order(
-            blake2b_simd::Params::default()
-                .personal(b"Shieldd_AssetID")
-                .hash(base_denom.as_bytes())
-                .as_bytes(),
-        ));
+        let id = Id::from_raw_denom(&base_denom);
 
         // Perform validity check for each unit.
 
@@ -592,7 +586,6 @@ mod ibc_transfer_path_tests {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
 
     #[test]
     fn can_parse_metadata_from_chain_registry() {
@@ -653,29 +646,11 @@ mod tests {
     }
 
     #[test]
-    fn encoding_round_trip_succeeds() {
+    fn metadata_codec_checks_the_denom_asset_binding() {
         let metadata = super::Metadata::try_from("ushieldd").unwrap();
-
-        let proto = super::pb::Metadata::from(metadata.clone());
-
-        let metadata_2 = super::Metadata::try_from(proto).unwrap();
-
-        assert_eq!(metadata, metadata_2);
-    }
-
-    #[test]
-    #[should_panic]
-    fn changing_asset_id_without_changing_denom_fails_decoding() {
-        let mut metadata = super::Metadata::try_from("ushieldd").unwrap();
-
-        let inner = Arc::get_mut(&mut metadata.inner).unwrap();
-
-        inner.id = super::Id::from_raw_denom("uusd");
-
-        let proto = super::pb::Metadata::from(metadata);
-
-        // This should throw an error, because the asset ID and denom are now inconsistent.
-
-        let _domain_type = super::Metadata::try_from(proto).unwrap();
+        let mut proto = super::pb::Metadata::from(metadata.clone());
+        assert_eq!(super::Metadata::try_from(proto.clone()).unwrap(), metadata);
+        proto.shieldd_asset_id = Some(super::Id::from_raw_denom("uusd").into());
+        assert!(super::Metadata::try_from(proto).is_err());
     }
 }

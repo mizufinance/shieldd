@@ -4,9 +4,9 @@
 //! live in nonverifiable storage and are always checked back to that head.
 
 use anyhow::{ensure, Context as _, Result};
-use decaf377::Fq;
-use once_cell::sync::Lazy;
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_crypto::Fq;
+use shieldd_sdk_crypto::{domains, encoding, poseidon};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_tct::StateCommitment;
 
@@ -22,38 +22,9 @@ use crate::{
     WithdrawalComplianceCiphertext,
 };
 
-pub const AUDIT_LOG_VERSION: u32 = 1;
+pub const AUDIT_LOG_VERSION: u32 = 2;
 pub const MAX_AUDIT_CHAIN_ID_BYTES: usize = 128;
 pub const MAX_AUDIT_RECORD_BYTES: usize = 4096;
-
-static AUDIT_BYTES_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.bytes.v1").as_bytes())
-});
-static AUDIT_SOURCE_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.source.v1").as_bytes())
-});
-static AUDIT_EFFECT_HEAD_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.effect.head.v1").as_bytes())
-});
-static AUDIT_EFFECT_TAIL_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.effect.tail.v1").as_bytes())
-});
-static AUDIT_RECORD_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.record.v1").as_bytes())
-});
-static AUDIT_LOG_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.audit.log.v1").as_bytes())
-});
-static AUDIT_TRANSFER_CANDIDATE_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"shieldd.audit.candidate.transfer.v1").as_bytes(),
-    )
-});
-static AUDIT_WITHDRAWAL_CANDIDATE_DOMAIN: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(
-        blake2b_simd::blake2b(b"shieldd.audit.candidate.withdrawal.v1").as_bytes(),
-    )
-});
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AuditSource {
@@ -106,17 +77,17 @@ impl AuditSource {
             } => {
                 let (tx_low, tx_high) = split_256(transaction_id);
                 (
-                    poseidon377::hash_7(
-                        &AUDIT_SOURCE_DOMAIN,
-                        (
+                    poseidon::hash(
+                        domains::AUDIT_SOURCE,
+                        &[
                             Fq::from(1u64),
                             Fq::from(*height),
-                            Fq::from(tx_low),
-                            Fq::from(tx_high),
-                            Fq::from(*action_index),
-                            Fq::from(*effect_index),
+                            u128_field(tx_low),
+                            u128_field(tx_high),
+                            Fq::from(*action_index as u64),
+                            Fq::from(*effect_index as u64),
                             Fq::from(0u64),
-                        ),
+                        ],
                     ),
                     Fq::from(0u64),
                 )
@@ -131,25 +102,25 @@ impl AuditSource {
             } => {
                 let (tx_low, tx_high) = split_256(tx_hash);
                 (
-                    poseidon377::hash_7(
-                        &AUDIT_SOURCE_DOMAIN,
-                        (
+                    poseidon::hash(
+                        domains::AUDIT_SOURCE,
+                        &[
                             Fq::from(2u64),
                             Fq::from(*height),
-                            Fq::from(tx_low),
-                            Fq::from(tx_high),
-                            Fq::from(*tx_index),
-                            Fq::from(*message_index),
-                            Fq::from(*effect_index),
-                        ),
+                            u128_field(tx_low),
+                            u128_field(tx_high),
+                            Fq::from(*tx_index as u64),
+                            Fq::from(*message_index as u64),
+                            Fq::from(*effect_index as u64),
+                        ],
                     ),
                     audit_bytes_commitment(chain_id.as_bytes()),
                 )
             }
         };
-        Ok(poseidon377::hash_2(
-            &AUDIT_SOURCE_DOMAIN,
-            (source_head, context),
+        Ok(poseidon::hash(
+            domains::AUDIT_SOURCE,
+            &[source_head, context],
         ))
     }
 }
@@ -230,14 +201,14 @@ impl AuditEffect {
                     metadata.policy_id_hash()?,
                     metadata.permission_hash()?,
                     metadata.resource_hash()?,
-                    public.sender_core_epk.vartime_compress_to_field(),
+                    shieldd_sdk_crypto::audit::point_fields(&public.sender_core_epk),
                     public.detection_ciphertext,
-                    public.output_core_epk.vartime_compress_to_field(),
+                    shieldd_sdk_crypto::audit::point_fields(&public.output_core_epk),
                     public.output_core_c2,
                     public.output_core_key_confirmation,
                     public.output_core_ciphertext[0],
                     metadata.output_core_salt()?,
-                    public.sender_ext_epk.vartime_compress_to_field(),
+                    shieldd_sdk_crypto::audit::point_fields(&public.sender_ext_epk),
                     public.sender_ext_c2,
                     public.sender_ext_ciphertext,
                 );
@@ -248,14 +219,14 @@ impl AuditEffect {
                     metadata.policy_id_hash()?,
                     metadata.permission_hash()?,
                     metadata.resource_hash()?,
-                    public.sender_core_epk.vartime_compress_to_field(),
+                    shieldd_sdk_crypto::audit::point_fields(&public.sender_core_epk),
                     public.detection_ciphertext,
-                    public.sender_core_epk.vartime_compress_to_field(),
+                    shieldd_sdk_crypto::audit::point_fields(&public.sender_core_epk),
                     public.sender_core_c2,
                     public.sender_core_key_confirmation,
                     public.sender_core_ciphertext[0],
                     metadata.sender_core_salt()?,
-                    public.output_ext_epk.vartime_compress_to_field(),
+                    shieldd_sdk_crypto::audit::point_fields(&public.output_ext_epk),
                     public.output_ext_c2,
                     public.output_ext_ciphertext,
                 );
@@ -275,7 +246,7 @@ impl AuditEffect {
                     *asset_id,
                     *amount,
                     asset_anchor.0,
-                    ciphertext.epk.vartime_compress_to_field(),
+                    shieldd_sdk_crypto::audit::point_fields(&ciphertext.epk),
                     ciphertext.c2,
                     ciphertext.key_confirmation,
                     encrypted_sender,
@@ -312,7 +283,7 @@ impl AuditEffect {
                     WithdrawalKind::Host => 1u64,
                 });
                 fields[1] = asset_id.0;
-                fields[2] = Fq::from(*amount);
+                fields[2] = u128_field(*amount);
                 fields[3] = audit_bytes_commitment(compliance_ciphertext);
                 fields[4] = self.candidate_commitments()?[0];
                 fields[5] = asset_anchor.0;
@@ -328,7 +299,7 @@ impl AuditEffect {
                 recipient,
             } => {
                 fields[0] = asset_id.0;
-                fields[1] = Fq::from(*amount);
+                fields[1] = u128_field(*amount);
                 fields[2] = audit_bytes_commitment(&recipient.to_vec());
                 4
             }
@@ -370,8 +341,8 @@ impl AuditEffect {
             } => {
                 fields[0] = asset_id.0;
                 fields[1] = audit_bytes_commitment(&address.to_vec());
-                fields[2] = Fq::from_le_bytes_mod_order(nullifier);
-                fields[3] = Fq::from(*amount);
+                fields[2] = encoding::field(nullifier)?;
+                fields[3] = u128_field(*amount);
                 fields[4] = Fq::from(*freeze_generation);
                 fields[5] = *authorization_commitment;
                 9
@@ -382,9 +353,9 @@ impl AuditEffect {
 
     pub fn commitment(&self) -> Result<Fq> {
         let (kind, fields) = self.commitment_fields()?;
-        let head = poseidon377::hash_7(
-            &AUDIT_EFFECT_HEAD_DOMAIN,
-            (
+        let head = poseidon::hash(
+            domains::AUDIT_EFFECT_HEAD,
+            &[
                 Fq::from(kind),
                 fields[0],
                 fields[1],
@@ -392,13 +363,13 @@ impl AuditEffect {
                 fields[3],
                 fields[4],
                 fields[5],
-            ),
+            ],
         );
-        Ok(poseidon377::hash_7(
-            &AUDIT_EFFECT_TAIL_DOMAIN,
-            (
+        Ok(poseidon::hash(
+            domains::AUDIT_EFFECT_TAIL,
+            &[
                 head, fields[6], fields[7], fields[8], fields[9], fields[10], fields[11],
-            ),
+            ],
         ))
     }
 }
@@ -697,13 +668,13 @@ impl AuditEffectRecord {
 
     pub fn commitment(&self) -> Result<Fq> {
         self.validate()?;
-        Ok(poseidon377::hash_3(
-            &AUDIT_RECORD_DOMAIN,
-            (
-                Fq::from(AUDIT_LOG_VERSION),
+        Ok(poseidon::hash(
+            domains::AUDIT_RECORD,
+            &[
+                Fq::from(AUDIT_LOG_VERSION as u64),
                 self.source.commitment()?,
                 self.effect.commitment()?,
-            ),
+            ],
         ))
     }
 }
@@ -716,19 +687,19 @@ fn transfer_candidate_commitment(
     policy_id_hash: Fq,
     permission_hash: Fq,
     resource_hash: Fq,
-    detection_epk: Fq,
+    detection_epk: [Fq; 2],
     detection_ciphertext: [Fq; 4],
-    core_epk: Fq,
+    core_epk: [Fq; 2],
     core_c2: Fq,
     core_key_confirmation: Fq,
     core_ciphertext: Fq,
     core_salt: Fq,
-    address_epk: Fq,
+    address_epk: [Fq; 2],
     address_c2: Fq,
     address_ciphertext: [Fq; 3],
 ) -> Fq {
     fold_candidate(
-        &AUDIT_TRANSFER_CANDIDATE_DOMAIN,
+        domains::AUDIT_TRANSFER_CANDIDATE,
         [
             Fq::from(role),
             asset_anchor,
@@ -736,17 +707,20 @@ fn transfer_candidate_commitment(
             policy_id_hash,
             permission_hash,
             resource_hash,
-            detection_epk,
+            detection_epk[0],
+            detection_epk[1],
             detection_ciphertext[0],
             detection_ciphertext[1],
             detection_ciphertext[2],
             detection_ciphertext[3],
-            core_epk,
+            core_epk[0],
+            core_epk[1],
             core_c2,
             core_key_confirmation,
             core_ciphertext,
             core_salt,
-            address_epk,
+            address_epk[0],
+            address_epk[1],
             address_c2,
             address_ciphertext[0],
             address_ciphertext[1],
@@ -760,22 +734,23 @@ fn withdrawal_candidate_commitment(
     asset_id: asset::Id,
     amount: u128,
     asset_anchor: Fq,
-    epk: Fq,
+    epk: [Fq; 2],
     c2: Fq,
     key_confirmation: Fq,
     address_ciphertext: [Fq; 3],
 ) -> Fq {
     fold_candidate(
-        &AUDIT_WITHDRAWAL_CANDIDATE_DOMAIN,
+        domains::AUDIT_WITHDRAWAL_CANDIDATE,
         [
             Fq::from(2u64),
             Fq::from(match kind {
                 WithdrawalKind::Host => 1u64,
             }),
             asset_id.0,
-            Fq::from(amount),
+            u128_field(amount),
             asset_anchor,
-            epk,
+            epk[0],
+            epk[1],
             c2,
             key_confirmation,
             address_ciphertext[0],
@@ -785,9 +760,9 @@ fn withdrawal_candidate_commitment(
     )
 }
 
-fn fold_candidate<const N: usize>(domain: &Fq, fields: [Fq; N]) -> Fq {
+fn fold_candidate<const N: usize>(domain: u8, fields: [Fq; N]) -> Fq {
     fields.into_iter().fold(Fq::from(0u64), |head, field| {
-        poseidon377::hash_2(domain, (head, field))
+        poseidon::hash(domain, &[head, field])
     })
 }
 
@@ -802,7 +777,7 @@ fn decode_fq_words<const N: usize>(bytes: &[u8]) -> Result<[Fq; N]> {
             let encoded: [u8; 32] = bytes[start..start + 32]
                 .try_into()
                 .expect("bounded field word");
-            Fq::from_bytes_checked(&encoded)
+            shieldd_sdk_crypto::encoding::field(&encoded)
                 .map_err(|_| anyhow::anyhow!("non-canonical audit ciphertext field {index}"))
         })
         .collect::<Result<Vec<_>>>()?;
@@ -835,9 +810,9 @@ impl AuditLogState {
             height >= self.last_height,
             "audit effect source height moved backwards"
         );
-        let head = poseidon377::hash_3(
-            &AUDIT_LOG_DOMAIN,
-            (self.head, Fq::from(self.length), record.commitment()?),
+        let head = poseidon::hash(
+            domains::AUDIT_LOG,
+            &[self.head, Fq::from(self.length), record.commitment()?],
         );
         Ok(Self {
             length: self
@@ -862,8 +837,9 @@ impl AuditLogState {
     fn decode(bytes: &[u8]) -> Result<Self> {
         ensure!(bytes.len() == 48, "audit log state must be 48 bytes");
         let length = u64::from_le_bytes(bytes[..8].try_into().expect("checked length"));
-        let head = Fq::from_bytes_checked(&bytes[8..40].try_into().expect("checked length"))
-            .map_err(|_| anyhow::anyhow!("audit log head must be canonical"))?;
+        let head =
+            shieldd_sdk_crypto::encoding::field(&bytes[8..40].try_into().expect("checked length"))
+                .map_err(|_| anyhow::anyhow!("audit log head must be canonical"))?;
         let last_height = u64::from_le_bytes(bytes[40..].try_into().expect("checked length"));
         Ok(Self {
             length,
@@ -950,21 +926,17 @@ fn put_bytes(out: &mut Vec<u8>, value: &[u8]) -> Result<()> {
 }
 
 pub fn audit_bytes_commitment(bytes: &[u8]) -> Fq {
-    let mut head = poseidon377::hash_2(
-        &AUDIT_BYTES_DOMAIN,
-        (
+    let mut head = poseidon::hash(
+        domains::AUDIT_BYTES,
+        &[
             Fq::from(bytes.len() as u64),
             Fq::from(bytes.len().div_ceil(31) as u64),
-        ),
+        ],
     );
     for (index, chunk) in bytes.chunks(31).enumerate() {
-        head = poseidon377::hash_3(
-            &AUDIT_BYTES_DOMAIN,
-            (
-                head,
-                Fq::from(index as u64),
-                Fq::from_le_bytes_mod_order(chunk),
-            ),
+        head = poseidon::hash(
+            domains::AUDIT_BYTES,
+            &[head, Fq::from(index as u64), encoding::pack(chunk)[0]],
         );
     }
     head
@@ -979,7 +951,7 @@ fn split_256(bytes: &[u8; 32]) -> (u128, u128) {
 
 fn put_hash_limbs(fields: &mut [Fq; 12], bytes: &[u8; 64]) {
     for (field, chunk) in fields.iter_mut().zip(bytes.chunks_exact(16)) {
-        *field = Fq::from(u128::from_le_bytes(
+        *field = u128_field(u128::from_le_bytes(
             chunk.try_into().expect("fixed hash limb"),
         ));
     }
@@ -1025,7 +997,7 @@ impl<'a> AuditReader<'a> {
 
     fn read_fq(&mut self) -> Result<Fq> {
         let bytes = self.read_fixed()?;
-        Fq::from_bytes_checked(&bytes)
+        shieldd_sdk_crypto::encoding::field(&bytes)
             .map_err(|_| anyhow::anyhow!("audit field element must be canonical"))
     }
 
@@ -1177,8 +1149,8 @@ mod tests {
         let receiver = Address::dummy(&mut OsRng);
         let encrypted = encrypt_transfer(
             &mut OsRng,
-            &crate::AuditKeys::test_keys(),
-            &decaf377::Element::GENERATOR,
+            &crate::audit_keys::test_keys(),
+            &(*shieldd_sdk_crypto::generators::SPEND_AUTH),
             &receiver,
             &sender,
             Value {
@@ -1244,8 +1216,12 @@ mod tests {
         assert_ne!(candidates[0], changed[0]);
         assert_eq!(candidates[1], changed[1]);
 
-        let withdrawal =
-            encrypt_withdrawal(&mut OsRng, decaf377::Element::GENERATOR, &sender).unwrap();
+        let withdrawal = encrypt_withdrawal(
+            &mut OsRng,
+            *shieldd_sdk_crypto::generators::SPEND_AUTH,
+            &sender,
+        )
+        .unwrap();
         let withdrawal_effect = AuditEffect::Withdrawal {
             kind: WithdrawalKind::Host,
             asset_id,
@@ -1294,4 +1270,8 @@ mod tests {
         );
         assert!(state.verify_audit_log().await.is_err());
     }
+}
+
+fn u128_field(value: u128) -> Fq {
+    Fq::from_raw([value as u64, (value >> 64) as u64, 0, 0])
 }

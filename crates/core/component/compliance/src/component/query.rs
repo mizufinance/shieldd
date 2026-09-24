@@ -1,4 +1,5 @@
 use cnidarium_component::QueryError as Status;
+use group::GroupEncoding;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_proto::core::component::compliance::v1::{
@@ -61,7 +62,7 @@ pub async fn compliance_asset_status(
         .map_err(|e| Status::internal(format!("failed to query asset policy: {e}")))?;
     let (dk_pub, daily_volume_limit) = match &policy {
         Some(policy) => (
-            policy.params.dk_pub.vartime_compress().0.to_vec(),
+            policy.params.dk_pub.to_bytes().to_vec(),
             policy.params.daily_volume_limit.to_le_bytes().to_vec(),
         ),
         None => (vec![], vec![]),
@@ -386,8 +387,8 @@ mod tests {
     use crate::registry::ComplianceRegistryWrite as _;
     use crate::structs::{AssetPolicy, ComplianceLeaf};
     use cnidarium::TempStorage;
-    use decaf377::Fq;
     use shieldd_sdk_asset::asset;
+    use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::Address;
 
     #[tokio::test]
@@ -402,9 +403,9 @@ mod tests {
             .test_only_register_asset(
                 asset::Id(Fq::from(55u64)),
                 AssetPolicy::for_test(
-                    decaf377::Element::GENERATOR,
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
                     u128::MAX,
-                    decaf377::Element::GENERATOR,
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
                 ),
                 true,
             )

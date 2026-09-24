@@ -1,12 +1,14 @@
 //! Demo envelopes delivering accepted transfer openings through Orbis PRE.
 use anyhow::{ensure, Context, Result};
-use decaf377::{Element, Fr};
+use ark_ec_04::AffineRepr;
+use group::GroupEncoding;
 use orbis_crypto::{
     r#trait::{EncryptionProof, Secret, ThresholdDealer},
     CiphertextContext, CryptoDeserialize, GroupAffine, PreImpl,
 };
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::AssetPolicy;
+use shieldd_sdk_crypto::{encoding, generators::SPEND_AUTH, Fr};
 use shieldd_sdk_transaction::{Action, ActionPlan, Transaction, TransactionPlan};
 use zeroize::{Zeroize, Zeroizing};
 
@@ -36,7 +38,7 @@ pub struct PackageBinding {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OrbisDelivery {
-    pub ring_pk: [u8; 32],
+    pub ring_pk: Vec<u8>,
     pub policy: AuditPolicy,
 }
 
@@ -79,7 +81,7 @@ pub fn prepare_packages(
     tx: &Transaction,
     delivery: &OrbisDelivery,
 ) -> Result<Vec<SealedAuditPackage>> {
-    point(&delivery.ring_pk)?;
+    let _ = point(&delivery.ring_pk)?;
     ensure!(
         [
             &delivery.policy.ring_id,
@@ -156,14 +158,14 @@ fn seal(
     context: CiphertextContext,
     scalar: Fr,
 ) -> Result<SealedAuditPackage> {
-    let recipient = GroupAffine::from_bytes(&context.ring_pk)?;
+    let recipient = point(&context.ring_pk)?;
     let plaintext = Zeroizing::new(serde_json::to_vec(&Opening {
         binding: binding.clone(),
         scalar: scalar.to_bytes(),
     })?);
     let (_, secret, proof) = PreImpl::encrypt_secret(&recipient, &plaintext, None, &context)?;
     Ok(SealedAuditPackage {
-        version: 1,
+        version: 2,
         binding,
         context,
         secret,
@@ -177,7 +179,7 @@ pub fn validate_package(
     chain: &str,
     block: &AcceptedBlock,
 ) -> Result<AcceptedAuditCiphertext> {
-    ensure!(package.version == 1, "unsupported Orbis package version");
+    ensure!(package.version == 2, "unsupported Orbis package version");
     let binding = &package.binding;
     ensure!(
         binding.tier == binding.field.tier(),
@@ -219,7 +221,7 @@ pub fn validate_package(
             && context.salt.is_none(),
         "package context mismatch"
     );
-    point(&context.ring_pk)?;
+    let _ = point(&context.ring_pk)?;
     PreImpl::verify_encryption(&package.proof, context, &package.secret)?;
     Ok(accepted)
 }
@@ -232,6 +234,8 @@ pub fn decode_package(
     reader_key: &orbis_crypto::ScalarField,
     reencrypted_commitment: &[u8],
 ) -> Result<DecodedAuditValue> {
+    ensure!(package.version == 2, "unsupported Orbis package version");
+    let _ = point(&package.context.ring_pk)?;
     policy.validate_regulated()?;
     let binding = &package.binding;
     ensure!(
@@ -270,44 +274,33 @@ pub fn decode_package(
         opening.binding == *binding,
         "sealed transaction binding mismatch"
     );
-    let scalar = Fr::from_bytes_checked(&opening.scalar)
-        .map_err(|_| anyhow::anyhow!("invalid opening scalar"))?;
+    let scalar = encoding::scalar(&opening.scalar)?;
     ensure!(
-        (Element::GENERATOR * scalar).vartime_compress().0 == accepted.epk,
+        (*SPEND_AUTH * scalar).to_bytes() == accepted.epk,
         "opening does not match accepted ephemeral key"
     );
     let keys = &policy.ring.audit_keys;
-    let key = match binding.field {
-        AuditField::Amount => keys.amount,
-        AuditField::Sender => keys.sender,
-        AuditField::Receiver => keys.receiver,
-    };
-    decode_audit_ciphertext(accepted, (key * scalar).vartime_compress().0)
+    let key = keys.payload;
+    decode_audit_ciphertext(accepted, (key * scalar).to_bytes())
 }
 
-fn point(bytes: &[u8]) -> Result<Element> {
-    let encoded: [u8; 32] = bytes.try_into().context("invalid point length")?;
-    let point = decaf377::Encoding(encoded)
-        .vartime_decompress()
-        .map_err(|_| anyhow::anyhow!("invalid point"))?;
-    ensure!(
-        !point.is_identity() && point.vartime_compress().0 == encoded,
-        "noncanonical or identity point"
-    );
+fn point(bytes: &[u8]) -> Result<GroupAffine> {
+    let point = GroupAffine::from_bytes(bytes).context("invalid BLS12-381 delivery key")?;
+    ensure!(!point.is_zero(), "identity delivery key");
     Ok(point)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use decaf377::Fq;
+    use ark_ec_04::CurveGroup;
     use orbis_crypto::CryptoSerialize;
     use rand::{rngs::StdRng, SeedableRng};
     use shieldd_sdk_asset::{asset, Value};
     use shieldd_sdk_compliance::{
-        test_helpers::make_address, transfer::encrypt_transfer, AuditKeys,
-        TransferComplianceMetadata,
+        test_helpers::make_address, transfer::encrypt_transfer, TransferComplianceMetadata,
     };
+    use shieldd_sdk_crypto::Fq;
 
     fn fixture(
         field: AuditField,
@@ -320,20 +313,20 @@ mod tests {
     ) {
         let ring_key = Fr::from(71u64);
         let policy = AssetPolicy::new(
-            Element::GENERATOR * Fr::from(99u64),
+            *SPEND_AUTH * Fr::from(99u64),
             1000,
             vec![],
             None,
             "ring".into(),
-            Element::GENERATOR * ring_key,
+            *SPEND_AUTH * ring_key,
             "policy".into(),
             "read".into(),
             "document".into(),
-            AuditKeys::test_keys(),
+            shieldd_sdk_compliance::audit_keys::test_keys(),
         );
-        let vk = decaf377_rdsa::VerificationKey::from(&decaf377_rdsa::SigningKey::<
-            decaf377_rdsa::SpendAuth,
-        >::new(rand_core::OsRng));
+        let vk = reddsa::VerificationKey::from(
+            &reddsa::SigningKey::<reddsa::sapling::SpendAuth>::new(rand_core::OsRng),
+        );
         let policy = policy
             .with_registration_authority(vk)
             .with_seizure_authority(vk);
@@ -393,7 +386,10 @@ mod tests {
             },
         };
         let context = CiphertextContext {
-            ring_pk: policy.ring.ring_pk.vartime_compress().0.to_vec(),
+            ring_pk: (GroupAffine::generator() * orbis_crypto::ScalarField::from(83u64))
+                .into_affine()
+                .to_bytes()
+                .unwrap(),
             policy_id: "policy".into(),
             resource: "document".into(),
             permission: "read".into(),
@@ -419,7 +415,7 @@ mod tests {
                 access: AuditAccess::General { value: field },
                 policy: binding.policy.clone(),
             },
-            epk: selected.epk.vartime_compress().0,
+            epk: selected.epk.to_bytes(),
             wrapping: selected.c2.to_bytes(),
             ciphertext: encrypted.ciphertext.to_bytes(),
             metadata,
@@ -434,36 +430,40 @@ mod tests {
         };
         // A local aggregate response isolates adapter correctness; live CI exercises threshold nodes.
         let reader = orbis_crypto::ScalarField::from(17u64);
-        let ring = orbis_crypto::ScalarField::from_bytes(&ring_key.to_bytes()).unwrap();
+        let ring = orbis_crypto::ScalarField::from(83u64);
         let response = (GroupAffine::from_bytes(&package.secret.enc_cmt).unwrap()
-            + GroupAffine::GENERATOR * reader)
+            + GroupAffine::generator() * reader)
             * ring;
         (
             package,
             accepted,
             policy,
             reader,
-            response.to_bytes().unwrap(),
+            response.into_affine().to_bytes().unwrap(),
         )
     }
 
     #[test]
-    fn upstream_and_shieldd_points_and_scalars_are_byte_compatible() {
-        for n in [1, 17, 71, 201, u64::MAX] {
-            let local = Fr::from(n);
-            let upstream = orbis_crypto::ScalarField::from_bytes(&local.to_bytes()).unwrap();
-            assert_eq!(upstream.to_bytes(), local.to_bytes());
-            assert_eq!(
-                (GroupAffine::GENERATOR * upstream).to_bytes().unwrap(),
-                (Element::GENERATOR * local).vartime_compress().0
-            );
+    fn delivery_keys_use_strict_bls_encoding() {
+        for bytes in [
+            vec![0; 32],
+            vec![0; 47],
+            vec![0; 49],
+            vec![255; 48],
+            GroupAffine::identity().to_bytes().unwrap(),
+        ] {
+            assert!(point(&bytes).is_err());
         }
+        assert!(point(&GroupAffine::generator().to_bytes().unwrap()).is_ok());
     }
 
     #[test]
-    fn sealed_fields_decode_accepted_payloads_without_serializing_openings() {
+    fn sealed_fields_decode_accepted_payloads() {
         for field in AuditField::ALL {
             let (package, accepted, policy, reader, response) = fixture(field);
+            assert_eq!(package.context.ring_pk.len(), 48);
+            assert_eq!(response.len(), 48);
+            assert_eq!(accepted.epk.len(), 32);
             let decoded = decode_package(&package, &accepted, &policy, &reader, &response).unwrap();
             match field {
                 AuditField::Amount => assert_eq!(
@@ -477,9 +477,6 @@ mod tests {
                     DecodedAuditValue::AddressComponents { .. }
                 )),
             }
-            let json = serde_json::to_value(&package).unwrap();
-            assert!(json.get("scalar").is_none());
-            assert!(json.get("shared_point").is_none());
         }
     }
 
@@ -501,7 +498,7 @@ mod tests {
             assert!(decode_package(&changed, &accepted, &policy, &reader, &response).is_err());
         }
         let mut changed = accepted.clone();
-        changed.epk = Element::GENERATOR.vartime_compress().0;
+        changed.epk = SPEND_AUTH.to_bytes();
         assert!(decode_package(&package, &changed, &policy, &reader, &response).is_err());
         let mut changed = policy.clone();
         changed.ring.audit_keys.epoch += 1;

@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use decaf377::Fr;
 use rand::{rngs::StdRng, SeedableRng};
 use shieldd_sdk_asset::Value;
 #[cfg(feature = "component")]
@@ -8,6 +7,7 @@ use shieldd_sdk_compliance::{
     derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
     TransferComplianceMetadata, TransferCompliancePublicInputs,
 };
+use shieldd_sdk_crypto::Fr;
 
 #[cfg(feature = "component")]
 use super::TransferOutputBody;
@@ -46,7 +46,6 @@ pub(crate) fn build_transfer_compliance(
     is_flagged: bool,
 ) -> Result<BuildTransferComplianceResult> {
     let sender_leaf = &context.witness.sender.leaf;
-    let receiver_leaf = &context.recipient.leaf;
     let asset_policy = context.witness.policy.as_ref();
     let asset_indexed_leaf = &context.witness.asset.leaf;
     let target_timestamp = context.timestamp;
@@ -54,11 +53,11 @@ pub(crate) fn build_transfer_compliance(
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
         .ok_or_else(|| anyhow!("transfer requires at least one output"))?;
-    let receiver_note = receiver_output.output_note(receiver_leaf.capk);
+    let receiver_note = receiver_output.output_note(context.witness.asset.payload_key());
     let dk_pub = if context.witness.asset.is_regulated {
         asset_indexed_leaf.params.dk_pub
     } else {
-        *shieldd_sdk_compliance::UNREGULATED_SINK_DK_PUB
+        *shieldd_sdk_compliance::UNREGULATED_DETECTION
     };
 
     let general_keys = if context.witness.asset.is_regulated {
@@ -67,11 +66,11 @@ pub(crate) fn build_transfer_compliance(
         shieldd_sdk_compliance::AuditKeys::unregulated()
     };
 
-    let detection_salt = derive_transfer_salt(transfer_nonce_root, b"detection");
-    let sender_core_salt = derive_transfer_salt(transfer_nonce_root, b"sender_core");
-    let sender_ext_salt = derive_transfer_salt(transfer_nonce_root, b"sender_ext");
-    let output_core_salt = derive_transfer_salt(transfer_nonce_root, b"output_core");
-    let output_ext_salt = derive_transfer_salt(transfer_nonce_root, b"output_ext");
+    let detection_salt = derive_transfer_salt(transfer_nonce_root, 0);
+    let sender_core_salt = derive_transfer_salt(transfer_nonce_root, 1);
+    let sender_ext_salt = derive_transfer_salt(transfer_nonce_root, 2);
+    let output_core_salt = derive_transfer_salt(transfer_nonce_root, 3);
+    let output_ext_salt = derive_transfer_salt(transfer_nonce_root, 4);
     let mut rng = StdRng::from_seed(transfer_compliance_rng_seed(transfer_nonce_root));
 
     let encryption = encrypt_transfer(
@@ -260,9 +259,9 @@ pub(crate) fn transfer_compliance_public_from_parts(
 
 #[cfg(test)]
 mod tests {
-    use decaf377::Fq;
     use rand::{rngs::StdRng, SeedableRng};
     use shieldd_sdk_asset::asset;
+    use shieldd_sdk_crypto::Fq;
 
     #[test]
     fn unregulated_compliance_ignores_authenticated_predecessor_policy() {

@@ -20,7 +20,7 @@ use crate::state_key;
     into = "pb::ComplianceParameters"
 )]
 pub struct ComplianceParameters {
-    /// Number of recent compliance anchors accepted for proof validation.
+    /// Retention window for recorded user roots; authorization requires current roots.
     pub anchor_validation_window_blocks: u64,
 }
 

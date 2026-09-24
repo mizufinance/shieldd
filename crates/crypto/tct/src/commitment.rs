@@ -1,10 +1,30 @@
-use decaf377::Fq;
+use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
 
 /// A commitment to a note or swap.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "pb::StateCommitment", try_from = "pb::StateCommitment")]
 pub struct StateCommitment(pub Fq);
+
+impl std::hash::Hash for StateCommitment {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::hash::Hash::hash(&self.0.to_bytes(), state);
+    }
+}
+impl Ord for StateCommitment {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0
+            .to_bytes()
+            .iter()
+            .rev()
+            .cmp(other.0.to_bytes().iter().rev())
+    }
+}
+impl PartialOrd for StateCommitment {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 /// An error when decoding a commitment from a hex string.
 #[derive(Clone, Debug, thiserror::Error)]
@@ -18,7 +38,7 @@ pub enum ParseCommitmentError {
 }
 
 impl StateCommitment {
-    /// Parse a hex string as a [`Commitment`].
+    /// Parse a hex string as a [`crate::StateCommitment`].
     pub fn parse_hex(str: &str) -> Result<StateCommitment, ParseCommitmentError> {
         let bytes = hex::decode(str)?;
         Ok(StateCommitment::try_from(&bytes[..])?)
@@ -34,26 +54,23 @@ mod test_serde {
     use super::StateCommitment;
 
     #[test]
-    fn roundtrip_json_zero() {
-        let commitment = StateCommitment::try_from([0; 32]).unwrap();
-        let bytes = serde_json::to_vec(&commitment).unwrap();
-        println!("{bytes:?}");
-        let deserialized: StateCommitment = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(commitment, deserialized);
+    fn commitment_codecs_require_canonical_field_bytes() {
+        use super::{pb, Fq};
+        for field in [Fq::from(0u64), Fq::from(1u64), -Fq::from(1u64)] {
+            let commitment = StateCommitment(field);
+            let proto: pb::StateCommitment = commitment.into();
+            assert_eq!(proto.inner, field.to_bytes());
+            assert_eq!(StateCommitment::try_from(proto).unwrap(), commitment);
+            let json = serde_json::to_vec(&commitment).unwrap();
+            assert_eq!(
+                serde_json::from_slice::<StateCommitment>(&json).unwrap(),
+                commitment
+            );
+        }
+        for bytes in [vec![], vec![0; 31], vec![0; 33], vec![255; 32]] {
+            assert!(StateCommitment::try_from(pb::StateCommitment { inner: bytes }).is_err());
+        }
     }
-
-    /*
-    Disabled; pbjson_build derived implementations don't play well with bincode,
-    because of the issue described here: https://github.com/bincode-org/bincode/issues/276
-    #[test]
-    fn roundtrip_bincode_zero() {
-        let commitment = Commitment::try_from([0; 32]).unwrap();
-        let bytes = bincode::serialize(&commitment).unwrap();
-        println!("{:?}", bytes);
-        let deserialized: Commitment = bincode::deserialize(&bytes).unwrap();
-        assert_eq!(commitment, deserialized);
-    }
-     */
 }
 
 impl From<StateCommitment> for pb::StateCommitment {
@@ -77,7 +94,8 @@ impl TryFrom<pb::StateCommitment> for StateCommitment {
             .try_into()
             .map_err(|_| InvalidStateCommitment)?;
 
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| InvalidStateCommitment)?;
+        let inner =
+            shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| InvalidStateCommitment)?;
 
         Ok(StateCommitment(inner))
     }
@@ -108,7 +126,8 @@ impl TryFrom<[u8; 32]> for StateCommitment {
     type Error = InvalidStateCommitment;
 
     fn try_from(bytes: [u8; 32]) -> Result<StateCommitment, Self::Error> {
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| InvalidStateCommitment)?;
+        let inner =
+            shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| InvalidStateCommitment)?;
 
         Ok(StateCommitment(inner))
     }
@@ -121,7 +140,8 @@ impl TryFrom<&[u8]> for StateCommitment {
     fn try_from(slice: &[u8]) -> Result<StateCommitment, Self::Error> {
         let bytes: [u8; 32] = slice[..].try_into().map_err(|_| InvalidStateCommitment)?;
 
-        let inner = Fq::from_bytes_checked(&bytes).map_err(|_| InvalidStateCommitment)?;
+        let inner =
+            shieldd_sdk_crypto::encoding::field(&bytes).map_err(|_| InvalidStateCommitment)?;
 
         Ok(StateCommitment(inner))
     }
@@ -132,8 +152,8 @@ pub use arbitrary::FqStrategy;
 
 #[cfg(feature = "arbitrary")]
 mod arbitrary {
-    use decaf377::Fq;
     use proptest::strategy::Strategy;
+    use shieldd_sdk_crypto::Fq;
 
     use super::StateCommitment;
 
@@ -154,7 +174,7 @@ mod arbitrary {
     pub struct FqStrategy(Vec<Fq>);
 
     impl FqStrategy {
-        /// Create a new [`FqStrategy`] that will generate arbitrary [`Commitment`]s.
+        /// Create a new [`FqStrategy`] that will generate arbitrary [`crate::StateCommitment`]s.
         pub fn arbitrary() -> Self {
             Self::one_of(vec![])
         }
@@ -185,7 +205,11 @@ mod arbitrary {
             } else {
                 let mut bytes = [0u8; 32];
                 rng.fill_bytes(&mut bytes);
-                proptest::strategy::Just(decaf377::Fq::from_le_bytes_mod_order(&bytes))
+                proptest::strategy::Just(Fq::from_bytes_wide(&{
+                    let mut wide = [0; 64];
+                    wide[..32].copy_from_slice(&bytes);
+                    wide
+                }))
             }
             .prop_filter("impossible", |_| true))
         }

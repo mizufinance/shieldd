@@ -9,30 +9,22 @@ edition = {workspace = true}
 
 [features]
 default = []
-parallel = [
-    "ark-ff/parallel",
-    "poseidon377/parallel",
-    "decaf377-rdsa/parallel",
-    "decaf377/parallel",
-]
 
 [dependencies]
+shieldd-sdk-crypto.workspace = true
+ff.workspace = true
+group.workspace = true
 anyhow = {workspace = true}
-ark-ff = {workspace = true, default-features = false}
-ark-serialize = {workspace = true}
 base64 = {workspace = true}
 bech32 = {workspace = true}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true}
-decaf377 = {workspace = true, default-features = true}
-decaf377-rdsa = {workspace = true}
 derivative = {workspace = true}
 getrandom = {workspace = true, features = ["js"]}
 hex = {workspace = true}
 once_cell = {workspace = true}
 shieldd-sdk-num = {workspace = true, default-features = true}
 shieldd-sdk-proto = {workspace = true, default-features = true}
-poseidon377 = {workspace = true}
 rand = {workspace = true}
 rand_core = {workspace = true, features = ["getrandom"]}
 regex = {workspace = true}
@@ -45,6 +37,7 @@ pbjson-types = {workspace = true}
 lazy_static = "1.5.0"
 
 [dev-dependencies]
+shieldd-sdk-circuits.workspace = true
 proptest = {workspace = true}
 serde_json = {workspace = true}
 getrandom = {workspace = true}

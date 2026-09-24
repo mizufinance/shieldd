@@ -11,17 +11,17 @@ publish = false
 [features]
 default = ["demo", "disclosure"]
 disclosure = ["dep:shieldd-sdk-disclosure", "dep:shieldd-sdk-view", "dep:tonic", "dep:tempfile", "dep:libc"]
-development-disclosure-artifacts = ["disclosure", "shieldd-sdk-disclosure/development-artifacts"]
 disclosure-prover = ["disclosure", "shieldd-sdk-disclosure/prover"]
 demo = ["shieldd-sdk-keys/demo"]
 orbis = ["disclosure", "shieldd-sdk-disclosure/orbis", "dep:shieldd-orbis-client", "dep:orbis-authn", "dep:orbis-common", "dep:orbis-crypto"]
-ledger = ["dep:shieldd-sdk-custody-ledger-usb"]
 
 [dependencies]
+shieldd-sdk-proof-params.workspace = true
+ark-std-04 = { package = "ark-std", version = "0.4" }
 shieldd-orbis-client = { workspace = true, optional = true }
 orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df", optional = true }
 orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df", optional = true }
-orbis-crypto = { package = "crypto", path = "../../../third_party/orbis-crypto", default-features = false, features = ["decaf377"], optional = true }
+orbis-crypto = { package = "crypto", path = "../../../third_party/orbis-crypto", default-features = false, features = ["bls12-381"], optional = true }
 
 zeroize = "1"
 shieldd-sdk-disclosure = { workspace = true, features = ["proof"], optional = true }
@@ -35,15 +35,16 @@ base64 = {workspace = true}
 bytes = {workspace = true}
 camino = {workspace = true}
 clap = {workspace = true, features = ["derive", "env"]}
-decaf377 = {workspace = true, default-features = true}
-decaf377-rdsa = {workspace = true}
+shieldd-sdk-crypto.workspace = true
+ff.workspace = true
+group.workspace = true
+reddsa.workspace = true
 time = "0.3"
 directories = {workspace = true}
 hex = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
 shieldd-sdk-compliance = {workspace = true, default-features = false}
 shieldd-sdk-custody = {workspace = true}
-shieldd-sdk-custody-ledger-usb = {workspace = true, optional = true}
 shieldd-sdk-keys = {workspace = true, default-features = false}
 shieldd-sdk-proto = {workspace = true, default-features = true}
 shieldd-sdk-transaction = {workspace = true, default-features = false}
@@ -62,3 +63,4 @@ tracing-subscriber = {workspace = true, features = ["env-filter", "ansi"]}
 [dev-dependencies]
 assert_cmd = {workspace = true}
 predicates = "2.1"
+tempfile = {workspace = true}

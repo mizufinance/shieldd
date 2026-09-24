@@ -1,95 +1,109 @@
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-SCRIPT = Path(__file__).resolve().parents[1] / "stage_artifacts.py"
-SPEC = importlib.util.spec_from_file_location("stage_artifacts", SCRIPT)
+SPEC = importlib.util.spec_from_file_location("stage_artifacts", Path(__file__).resolve().parents[1] / "stage_artifacts.py")
 stage = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(stage)
 
 
 class StagedArtifactsTests(unittest.TestCase):
-    def test_prover_stage_excludes_retired_libraries_from_build_cache(self):
+    def test_default_build_pins_host_target_despite_cargo_environment(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            out = root / "build"
-            libraries = out / "gnark" / "test-target"
-            libraries.mkdir(parents=True)
-            current = {f"libshieldd_gnark_{family}.dylib" for family in
-                       ("transfer", "note_reshape", "shielded_withdrawal")}
-            for name in current | {"libshieldd_gnark_retired.dylib"}:
-                (libraries / name).write_bytes(name.encode())
-            (out / "proof_artifact_provenance.json").write_text(json.dumps({"approved": True, "debug_assertions": False}))
-            events = [{"reason": "build-script-executed",
-                       "package_id": "shieldd-sdk-proof-params", "out_dir": str(out)},
-                      {"reason": "compiler-artifact", "target": {"name": "shieldd_sdk_proof_params"},
-                       "profile": {"debug_assertions": False}}]
-            for name in stage.GROUPS["provers"]:
-                binary = root / name
-                binary.write_bytes(name.encode())
-                events.append({"reason": "compiler-artifact", "target": {"name": name},
-                               "executable": str(binary), "profile": {"debug_assertions": False}})
-            process = Mock(stdout=[json.dumps(event) for event in events])
-            process.wait.return_value = 0
-            destination = root / "stage"
-            with patch.object(stage.subprocess, "Popen", return_value=process):
-                stage.build("provers", destination, "a" * 40, "test-target")
-            self.assertEqual({p.name for p in (destination / "lib/gnark").iterdir()}, current)
+            library = root / "libshieldd.a"
+            library.write_bytes(b"fixture")
+            event = {"reason": "compiler-artifact", "target": {"name": "shieldd"},
+                     "profile": {"debug_assertions": False}, "filenames": [str(library)]}
+            process = Mock(stdout=[json.dumps(event)], wait=Mock(return_value=0))
+            with patch.dict(stage.os.environ, {"CARGO_BUILD_TARGET": "foreign-target"}), \
+                 patch.object(stage.subprocess, "Popen", return_value=process) as spawn, \
+                 patch.object(stage.subprocess, "check_output", return_value="host: native-target\n"):
+                stage.build("native", root / "out", "a" * 40, None)
+            command = spawn.call_args.args[0]
+            self.assertIn("--target", command)
+            self.assertEqual(command[command.index("--target") + 1], "native-target")
+            stage.verify(root / "out", "a" * 40, "native-target")
 
-    def test_ci_profile_keeps_development_assertions(self):
-        import tomllib
-        config = tomllib.loads((stage.ROOT / "Cargo.toml").read_text())
-        self.assertIs(config["profile"]["ci"].get("debug-assertions"), True)
-
-    def test_development_artifacts_cannot_be_verified_as_production(self):
+    def test_manifest_binds_suite_revision_profile_and_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            files = {}
-            for name in ("lib/libshieldd.a", "include/shieldd.h"):
-                path = root / name
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(name.encode())
-                files[name] = stage.digest(path)
-            record = {"profile": "ci", "debug_assertions": True,
-                      "proof_parameters": {"approved": False, "debug_assertions": True}}
-            manifest = {"source_revision": "a" * 40, "target": "test-target",
-                        "groups": ["native"], "files": files, "provenance": {"native": record}}
-            (root / "manifest.json").write_text(json.dumps(manifest))
-            stage.verify(root, "a" * 40, profile="ci")
-            with self.assertRaisesRegex(ValueError, "profile mismatch"):
-                stage.verify(root, "a" * 40)
-            record["profile"] = "release"
-            (root / "manifest.json").write_text(json.dumps(manifest))
-            with self.assertRaisesRegex(ValueError, "production requires"):
-                stage.verify(root, "a" * 40)
-
-    def test_revision_platform_integrity_and_required_outputs(self):
-        for case in ["valid", "revision", "platform", "corrupt", "unlisted", "missing"]:
-            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                files = {}
-                for name in ("lib/libshieldd.a", "include/shieldd.h"):
-                    path = root / name
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_bytes(name.encode())
-                    files[name] = stage.digest(path)
-                manifest = {"source_revision": "a" * 40, "target": "test-target", "groups": ["native"], "files": files, "provenance": {"native": {"profile": "release", "debug_assertions": False, "proof_parameters": {"approved": True, "debug_assertions": False}}}}
-                revision, target = "a" * 40, "test-target"
-                if case == "revision": revision = "b" * 40
-                if case == "platform": target = "other-target"
-                if case == "corrupt": (root / "lib/libshieldd.a").write_bytes(b"corrupt")
-                if case == "unlisted": manifest["files"] = {}
-                if case == "missing": (root / "lib/libshieldd.a").unlink()
+            manifest = self.manifest_fixture(root)
+            def write():
                 (root / "manifest.json").write_text(json.dumps(manifest))
-                if case == "valid":
-                    stage.verify(root, revision, target)
-                else:
-                    with self.assertRaises((ValueError, FileNotFoundError)):
-                        stage.verify(root, revision, target)
+            write()
+            stage.verify(root, "a" * 40, "test")
+            for revision, target, profile in (("b" * 40, "test", "release"), ("a" * 40, "other", "release"), ("a" * 40, "test", "ci")):
+                with self.assertRaises(ValueError):
+                    stage.verify(root, revision, target, profile)
+            manifest["provenance"]["native"]["suite"] = "wrong"
+            write()
+            with self.assertRaises(ValueError): stage.verify(root, "a" * 40, "test")
+            manifest["provenance"]["native"]["suite"] = "shieldd-jubjub-pari-v1"
+            write()
+            (root / "lib/libshieldd.a").write_bytes(b"changed")
+            with self.assertRaises(ValueError): stage.verify(root, "a" * 40, "test")
 
 
-if __name__ == "__main__":
-    unittest.main()
+    def manifest_fixture(self, root):
+        files = {}
+        for name in ("include/shieldd.h", "lib/libshieldd.a"):
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"fixture")
+            files[name] = hashlib.sha256(b"fixture").hexdigest()
+        return {"source_revision": "a" * 40, "target": "test", "groups": ["native"],
+                "files": files, "provenance": {"native": {"profile": "release",
+                "debug_assertions": False, "suite": "shieldd-jubjub-pari-v1"}}}
+
+    def test_sha256_known_answer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "payload"
+            path.write_bytes(b"abc")
+            self.assertEqual(stage.digest(path),
+                "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+
+    def test_missing_required_deliverable_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = self.manifest_fixture(root)
+            target = root / "manifest.json"
+            target.write_text(json.dumps(manifest))
+            stage.verify(root, "a" * 40, "test")
+            del manifest["files"]["lib/libshieldd.a"]
+            target.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "omits required deliverables"):
+                stage.verify(root, "a" * 40, "test")
+
+    def test_checksum_matching_external_file_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            outer = Path(directory)
+            root = outer / "artifacts"
+            root.mkdir()
+            manifest = self.manifest_fixture(root)
+            target = root / "manifest.json"
+            target.write_text(json.dumps(manifest))
+            stage.verify(root, "a" * 40, "test")
+            outside = outer / "outside.a"
+            outside.write_bytes(b"outside fixture")
+            manifest["files"]["../outside.a"] = stage.digest(outside)
+            target.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "missing or corrupt artifact"):
+                stage.verify(root, "a" * 40, "test")
+
+    def test_failed_build_cannot_publish_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            library = root / "libshieldd.a"
+            library.write_bytes(b"fixture")
+            event = {"reason": "compiler-artifact", "target": {"name": "shieldd"},
+                     "profile": {"debug_assertions": False}, "filenames": [str(library)]}
+            process = Mock(stdout=[json.dumps(event)], wait=Mock(return_value=1))
+            with patch.object(stage.subprocess, "Popen", return_value=process):
+                with self.assertRaisesRegex(RuntimeError, "artifact build failed"):
+                    stage.build("native", root / "out", "a" * 40, "test")
+            self.assertFalse((root / "out" / "manifest.json").exists())

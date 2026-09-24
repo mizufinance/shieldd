@@ -1,12 +1,12 @@
 use anyhow::{anyhow, ensure, Context, Error};
-use decaf377::{Fq, Fr};
-use decaf377_rdsa::{Signature, SpendAuth};
+use reddsa::{sapling::SpendAuth, Signature};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, Balance};
 use shieldd_sdk_compliance::{
     derive_withdrawal_encryption_material, encrypt_withdrawal_with_material,
     withdrawal_encryption_key, WithdrawalEncryptionResult,
 };
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::{
     symmetric::{PayloadKey, WrappedMemoKey},
     Address, FullViewingKey,
@@ -85,11 +85,11 @@ impl ShieldedHostWithdrawalPlan {
     pub fn volume_accumulator_payload(
         &self,
         fvk: &FullViewingKey,
-    ) -> crate::VolumeAccumulatorPayload {
+    ) -> anyhow::Result<crate::VolumeAccumulatorPayload> {
         self.volume_accumulator.clone().selected_payload(
             fvk.nullifier_key(),
             fvk.outgoing(),
-            Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes()),
+            shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce),
             crate::TransferProofContext::Ordinary,
         )
     }
@@ -142,8 +142,8 @@ impl ShieldedHostWithdrawalPlan {
             first_spend_randomizer: self.first_spend().randomizer,
             sender_address: self.sender_address(),
             asset_id: self.withdrawal_asset_id(),
-            capk: self.compliance.witness.sender.leaf.capk,
-            nullifier_domain_sep_label: b"shieldd.shielded_withdrawal.synthetic_dummy.nullifier",
+            payload_key: self.compliance.witness.asset.payload_key(),
+            nullifier_domain: shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
             nullifier_seed_label:
                 b"shieldd.shielded_host_withdrawal.synthetic_dummy.nullifier_seed",
             spend_auth_key_label:
@@ -330,10 +330,10 @@ impl ShieldedHostWithdrawalPlan {
         let change_note = self
             .change_output
             .as_ref()
-            .map(|output| output.output_note(self.compliance.witness.sender.leaf.capk))
+            .map(|output| output.output_note(self.compliance.witness.asset.payload_key()))
             .unwrap_or_else(|| self.padder().synthetic_dummy_output_note(1));
         let withdrawal_effect_hash_limbs = self.withdrawal_effect_hash_limbs();
-        let routing_nonce = Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes());
+        let routing_nonce = shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce);
         let routing_tag = discovery::single_tag(
             &self.sender_address(),
             self.compliance.witness.asset.is_regulated,
@@ -344,7 +344,7 @@ impl ShieldedHostWithdrawalPlan {
             .withdrawal_compliance_encryption()
             .map_err(|error| crate::ProofError::InvalidPrivateInput(error.to_string()))?;
         let volume_plan = self.volume_accumulator.clone();
-        let volume_payload = self.volume_accumulator_payload(fvk);
+        let volume_payload = self.volume_accumulator_payload(fvk)?;
         let volume_prior_proof = if needs_accumulator_proof {
             state_commitment_proofs[self.spends.len()].clone()
         } else {
@@ -398,8 +398,8 @@ impl ShieldedHostWithdrawalPlan {
                 change_output: ShieldedWithdrawalChangePrivate {
                     created_note: change_note,
                 },
-                volume_accumulator_seed: Fq::from_le_bytes_mod_order(
-                    &self.compliance.nonce.to_bytes(),
+                volume_accumulator_seed: shieldd_sdk_crypto::encoding::embed_scalar(
+                    &self.compliance.nonce,
                 ),
                 volume_accumulator: crate::VolumeAccumulatorPrivate {
                     plan: volume_plan,
@@ -441,7 +441,9 @@ impl ShieldedHostWithdrawalPlan {
         let (change_note, recovery_capsule) = self
             .change_output
             .as_ref()
-            .map(|output| output.output_note_and_capsule(self.compliance.witness.sender.leaf.capk))
+            .map(|output| {
+                output.output_note_and_capsule(self.compliance.witness.asset.payload_key())
+            })
             .unwrap_or_else(|| padder.synthetic_dummy_output_note_and_capsule(1));
         let esk = change_note.ephemeral_secret_key();
         let ovk_wrapped_key = change_note.encrypt_key(
@@ -459,7 +461,7 @@ impl ShieldedHostWithdrawalPlan {
             wrapped_memo_key,
             ovk_wrapped_key,
         };
-        let routing_nonce = Fq::from_le_bytes_mod_order(&self.compliance.nonce.to_bytes());
+        let routing_nonce = shieldd_sdk_crypto::encoding::embed_scalar(&self.compliance.nonce);
         let routing_tag = discovery::single_tag(
             &self.sender_address(),
             self.compliance.witness.asset.is_regulated,
@@ -481,7 +483,7 @@ impl ShieldedHostWithdrawalPlan {
             routing_tag,
             routing_parameter_set_id: self.routing_parameters.id(),
             withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext,
-            volume_accumulator: self.volume_accumulator_payload(fvk),
+            volume_accumulator: self.volume_accumulator_payload(fvk)?,
         })
     }
 
@@ -494,6 +496,7 @@ impl ShieldedHostWithdrawalPlan {
         anchor: tct::Root,
         memo_key: &PayloadKey,
         recent_position_floor: u64,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<ShieldedHostWithdrawal, crate::ProofError> {
         let body = self
             .action_body(fvk, memo_key, anchor, recent_position_floor)
@@ -511,7 +514,7 @@ impl ShieldedHostWithdrawalPlan {
             anchor,
             recent_position_floor,
         )?;
-        let proof = ShieldedWithdrawalProof::prove(public, private)?;
+        let proof = ShieldedWithdrawalProof::prove(public, private, registry)?;
         let mut auth_sigs = auth_sigs;
         while auth_sigs.len() < PADDED_HOST_WITHDRAWAL_INPUTS {
             auth_sigs.push(dummy_spend_auth_sig());
@@ -592,9 +595,9 @@ impl TryFrom<pb::ShieldedHostWithdrawalPlan> for ShieldedHostWithdrawalPlan {
             .map_err(|_| anyhow!("malformed shielded host withdrawal value blinding"))?;
 
         let plan = Self {
-            value_blinding: Fr::from_bytes_checked(&value_blinding_bytes).map_err(|_| {
-                anyhow!("malformed canonical shielded host withdrawal value blinding")
-            })?,
+            value_blinding: shieldd_sdk_crypto::encoding::scalar(&value_blinding_bytes).map_err(
+                |_| anyhow!("malformed canonical shielded host withdrawal value blinding"),
+            )?,
             spends: value
                 .spends
                 .into_iter()
@@ -634,8 +637,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        HostTransfer, HostWithdrawalDestination, Note, ShieldedWithdrawalProof,
-        ShieldedWithdrawalProofPrivate, ShieldedWithdrawalProofPublic,
+        HostTransfer, HostWithdrawalDestination, Note, ShieldedWithdrawalProofPrivate,
+        ShieldedWithdrawalProofPublic,
     };
 
     fn padded_proof_inputs() -> (
@@ -726,17 +729,13 @@ mod tests {
     fn padded_spend_uses_shared_withdrawal_circuit_nullifier_domain() {
         let (public, private) = padded_proof_inputs();
         let dummy = &private.optional_input;
-        let domain = Fq::from_le_bytes_mod_order(
-            blake2b_simd::blake2b(b"shieldd.shielded_withdrawal.synthetic_dummy.nullifier")
-                .as_bytes(),
-        );
-        let expected = Nullifier(poseidon377::hash_3(
-            &domain,
-            (
+        let expected = Nullifier(shieldd_sdk_crypto::poseidon::hash(
+            shieldd_sdk_crypto::domains::WITHDRAWAL_DUMMY_NULLIFIER,
+            &[
                 dummy.dummy_nullifier_seed,
-                Fq::from_le_bytes_mod_order(&dummy.spend.spend_auth_randomizer.to_bytes()),
-                Fq::from(1u64),
-            ),
+                shieldd_sdk_crypto::encoding::embed_scalar(&dummy.spend.spend_auth_randomizer),
+                Fq::from(1),
+            ],
         ));
 
         assert_eq!(public.inputs[1].nullifier, expected);
@@ -745,6 +744,10 @@ mod tests {
     #[test]
     fn host_withdrawal_binds_routing_parameters() {
         let (public, private) = padded_proof_inputs();
+        let witness = crate::pari::withdrawal(&public, &private).expect("map padded withdrawal");
+        assert!(shieldd_sdk_circuits::catalogue::evaluate(&witness)
+            .expect("evaluate padded withdrawal")
+            .is_satisfied());
 
         assert_eq!(
             public.routing_parameter_set_id,
@@ -760,30 +763,15 @@ mod tests {
             )
         );
     }
-
-    #[cfg(all(feature = "prover", any(unix, windows)))]
-    #[test]
-    #[ignore = "expensive: real release-mode Gnark proof generation"]
-    fn gnark_proof_padded_host_withdrawal_proof_roundtrip() {
-        crate::gnark::require_proof_test_runtime(crate::gnark::ProofTestFamily::Withdrawal)
-            .expect("proof test prerequisites must be present");
-
-        let (public, private) = padded_proof_inputs();
-        let proof = ShieldedWithdrawalProof::prove(public.clone(), private)
-            .expect("padded host withdrawal proof should generate");
-        proof
-            .verify(&public)
-            .expect("padded host withdrawal proof should verify");
-    }
 }
 
 #[cfg(test)]
 mod admission_tests {
     use std::ops::Deref;
 
-    use decaf377::Fr;
     use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM, TEST_USD_DENOM};
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_txhash::EffectingData;
 

@@ -2,6 +2,13 @@
 
 use super::*;
 
+#[cfg(test)]
+#[derive(Default)]
+pub(super) struct HistoricalCheckGate {
+    entered: tokio::sync::Notify,
+    release: tokio::sync::Notify,
+}
+
 pub(super) struct DecodedTransaction<'a> {
     bytes: &'a [u8],
     tx: Arc<Transaction>,
@@ -61,28 +68,9 @@ impl App {
         );
         if let Some(cache) = cache {
             let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
-            let artifact = match cache.get(&hash, tx_bytes) {
+            let artifact = match cache.get(self.registry.id(), &hash, tx_bytes) {
                 Some(CacheEntry::FullyVerified(artifact)) => {
                     Self::record_artifact_reuse("checktx");
-                    Some(artifact)
-                }
-                Some(CacheEntry::Extracted(extracted)) => {
-                    let mut verified = match Self::verify_tx_artifacts_for_stage(
-                        "checktx_cache_upgrade",
-                        std::slice::from_ref(&extracted),
-                    )
-                    .await
-                    {
-                        Ok(verified) => verified,
-                        Err(error) => {
-                            cache.insert_invalid(tx_bytes)?;
-                            return Err(error);
-                        }
-                    };
-                    let artifact = verified
-                        .pop()
-                        .context("verified cache-upgrade artifact missing")?;
-                    cache.insert_fully_verified(tx_bytes, artifact.clone())?;
                     Some(artifact)
                 }
                 Some(CacheEntry::Invalid) => {
@@ -91,17 +79,9 @@ impl App {
                 None => None,
             };
             if let Some(artifact) = artifact {
-                let skip_historical =
-                    artifact.has_matching_historical_validation(self.snapshot_version);
-                let events = if supports_parallel_prepare(artifact.tx())
-                    && self.checktx_shared_context.is_some()
-                {
-                    self.execute_checktx_fast(artifact, skip_historical).await?
-                } else {
-                    self.deliver_tx_with_verified_stateless(artifact, None)
-                        .await?
-                };
-                return Ok(events);
+                return self
+                    .deliver_tx_with_verified_stateless(artifact, None)
+                    .await;
             }
         }
 
@@ -111,90 +91,50 @@ impl App {
                 Arc::new(Transaction::decode_canonical(tx_bytes).context("decoding transaction")?)
             }
         };
-        Self::ensure_user_tx_has_no_internal_actions(&tx)?;
-        let fast = supports_parallel_prepare(tx.as_ref()) && self.checktx_shared_context.is_some();
-        let tx_for_extract = tx.clone();
-        let handle = tokio::runtime::Handle::current();
-        let span = tracing::Span::current();
         let stage = if cache.is_some() {
             "checktx"
         } else {
             "checktx_uncached"
         };
-        let stateless = tokio::task::spawn_blocking(move || {
-            span.in_scope(|| {
-                handle.block_on(Self::build_tx_artifact_for_stage(stage, tx_for_extract))
-            })
-        });
-        let prepared = if fast {
-            let context = self
-                .checktx_shared_context
-                .as_ref()
-                .expect("checked shared context")
-                .historical_check_context
-                .as_ref()
-                .clone();
-            let snapshot = Arc::new(self.committed_snapshot.clone());
-            let tx = tx.clone();
-            Some(tokio::spawn(
-                async move { prepare_candidate_read(tx, snapshot, context, false).await }
-                    .instrument(tracing::Span::current()),
-            ))
-        } else {
-            None
-        };
-        let historical = if !fast {
+        let artifact = {
+            let stateless =
+                Self::build_tx_artifact_for_stage(self.registry.clone(), stage, tx.clone());
             let state = self.state.clone();
-            Some(tokio::spawn(
-                async move { tx.check_historical(state).await }
-                    .instrument(tracing::Span::current()),
-            ))
-        } else {
-            None
-        };
-
-        // Stateless rejection wins before any prepared effects can be applied.
-        let artifact_result = stateless.await.context("waiting for extraction task")?;
-        if let Some(cache) = cache {
-            match &artifact_result {
-                Ok(artifact) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
-                Err(_) => cache.insert_invalid(tx_bytes)?,
-            }
-        }
-        let artifact = match artifact_result {
-            Ok(artifact) => artifact,
-            Err(error) => {
-                if let Some(task) = prepared {
-                    task.abort();
+            #[cfg(test)]
+            let gate = self.historical_check_gate.clone();
+            let historical = async move {
+                #[cfg(test)]
+                if let Some(gate) = gate {
+                    gate.entered.notify_one();
+                    gate.release.notified().await;
                 }
-                if let Some(task) = historical {
-                    task.abort();
+                tx.check_historical(state).await
+            }
+            .instrument(tracing::Span::current());
+            tokio::pin!(stateless, historical);
+            let mut historical_result = None;
+            let artifact_result = tokio::select! {
+                result = &mut stateless => result,
+                result = &mut historical => {
+                    historical_result = Some(result);
+                    stateless.await
                 }
-                return Err(error).context("extract stateless failed");
+            };
+            // Stateless rejection wins; dropping the scoped historical future releases state.
+            if let Some(cache) = cache {
+                match &artifact_result {
+                    Ok(artifact) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
+                    Err(_) => cache.insert_invalid(self.registry.id(), tx_bytes)?,
+                }
             }
+            let artifact = artifact_result.context("extract stateless failed")?;
+            match historical_result {
+                Some(result) => result?,
+                None => historical.await?,
+            }
+            artifact
         };
-        if let Some(prepared) = prepared {
-            let prepared = prepared.await.context("waiting for prepared candidate")??;
-            let stamp = self.current_historical_validation_stamp(artifact.tx());
-            let artifact = artifact.with_historical_validation_owned(stamp);
-            if let Some(cache) = cache {
-                cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-            }
-            let events = self.apply_prepared_checktx(artifact, prepared).await?;
-            Ok(events)
-        } else {
-            historical
-                .expect("standard path has a historical task")
-                .await
-                .context("waiting for historical checks")??;
-            let stamp = self.current_historical_validation_stamp(artifact.tx());
-            let artifact = artifact.with_historical_validation_owned(stamp);
-            if let Some(cache) = cache {
-                cache.insert_fully_verified(tx_bytes, artifact.clone())?;
-            }
-            let events = self.execute_tx_checked_historical(artifact).await?;
-            Ok(events)
-        }
+        self.execute_tx_checked_historical(artifact).await
     }
 
     pub(super) async fn deliver_tx_with_verified_stateless(
@@ -202,6 +142,7 @@ impl App {
         artifact: Arc<VerifiedTxArtifact>,
         historical_context: Option<&HistoricalCheckContext>,
     ) -> Result<Vec<abci::Event>> {
+        artifact.ensure_registry(&self.registry)?;
         let tx = artifact.tx().clone();
 
         match historical_context {
@@ -221,155 +162,11 @@ impl App {
         Ok(events)
     }
 
-    pub(super) async fn execute_checktx_fast(
-        &mut self,
-        artifact: Arc<VerifiedTxArtifact>,
-        skip_historical: bool,
-    ) -> Result<Vec<abci::Event>> {
-        let context = self
-            .checktx_shared_context
-            .as_ref()
-            .map(|context| context.historical_check_context.as_ref().clone())
-            .context("missing CheckTxSharedContext for fast CheckTx path")?;
-        let tx = artifact.tx().clone();
-        let snapshot = self.committed_snapshot.clone();
-        let handle = tokio::runtime::Handle::current();
-        let prepared = tokio::task::spawn_blocking(move || {
-            prepare_candidate_read_blocking(tx, snapshot, context, skip_historical, handle)
-        })
-        .await
-        .context("joining fast CheckTx prepare task")??;
-        self.apply_prepared_checktx(artifact, prepared).await
-    }
-
-    pub(super) async fn apply_prepared_checktx(
-        &mut self,
-        artifact: Arc<VerifiedTxArtifact>,
-        prepared: PreparedCandidateRead,
-    ) -> Result<Vec<abci::Event>> {
-        let tx = artifact.tx().clone();
-
-        let mut state_tx = self
-            .state
-            .try_begin_transaction()
-            .expect("state Arc should be present and unique");
-
-        let mut deferred_transaction = None;
-        match self.block_tx_indexing_mode {
-            BlockTxIndexingMode::NoIndex => {}
-            BlockTxIndexingMode::PerTx => {
-                let height = state_tx.get_block_height().await?;
-
-                let transaction = Arc::as_ref(&tx).clone();
-
-                let proto_transaction = transaction.into();
-
-                Self::append_block_transaction_to_state(&mut state_tx, height, proto_transaction)
-                    .await
-                    .context("storing transactions")?;
-            }
-            BlockTxIndexingMode::DeferredBatch => {
-                let _height = state_tx.get_block_height().await?;
-
-                let transaction = Arc::as_ref(&tx).clone();
-
-                let proto_transaction = transaction.into();
-
-                deferred_transaction = Some(proto_transaction);
-            }
-        }
-
-        let tx_id = tx.id();
-
-        state_tx.put_current_source(Some(tx_id.clone()));
-
-        let gas_used = tx.gas_cost();
-        let fee = tx.transaction_body.transaction_parameters.fee;
-        if let Some(context) = self.checktx_shared_context.as_ref() {
-            Self::apply_checktx_fee_with_context(&mut state_tx, gas_used, fee, context)?;
-        } else {
-            state_tx.pay_fee(gas_used, fee).await?;
-        }
-
-        // CheckTx runs against an ephemeral per-transaction app fork. For the
-        // supported fast path, committed-state nullifier checks have already
-        // run in the read phase, and same-block conflict resolution is a
-        // proposer/block concern. However, the fast path still builds an app
-        // fork with concrete state for downstream consumers and tests, so the
-        // fork should reflect the same semantic spend set as the slow path.
-        for scoped in &prepared.volume_nullifiers {
-            state_tx
-                .record_volume_nullifier(scoped.day_start, scoped.nullifier)
-                .await?;
-        }
-
-        state_tx
-            .nullify_all(&prepared.spend_nullifiers, tx_id.clone().into())
-            .await?;
-
-        for nullifier in &prepared.spend_nullifiers {
-            state_tx.record_proto(
-                shieldd_sdk_shielded_pool::event::EventNullifierSpent {
-                    nullifier: *nullifier,
-                }
-                .to_proto(),
-            );
-        }
-
-        for payload in &prepared.sct_payloads {
-            if let StatePayload::Note { note, .. } = payload {
-                state_tx.record_proto(
-                    shieldd_sdk_shielded_pool::event::EventNoteCreated {
-                        note_commitment: note.note_commitment,
-                    }
-                    .to_proto(),
-                );
-            }
-        }
-
-        if let Some(context) = self.checktx_shared_context.as_ref() {
-            let base_position_u64: u64 = context.sct_base_position.into();
-            for (offset, payload) in prepared.sct_payloads.iter().enumerate() {
-                let position = shieldd_sdk_tct::Position::from(base_position_u64 + offset as u64);
-                state_tx.record_proto(shieldd_sdk_sct::event::commitment(
-                    *payload.commitment(),
-                    position,
-                    payload.source().clone(),
-                ));
-            }
-        } else {
-            let positioned_sct_payloads = self
-                .pending_sct_append_log
-                .reserve_positions(&state_tx, prepared.sct_payloads.clone())
-                .await
-                .context("reserving deferred SCT positions")?;
-            for (position, payload) in &positioned_sct_payloads {
-                state_tx.record_proto(shieldd_sdk_sct::event::commitment(
-                    *payload.commitment(),
-                    *position,
-                    payload.source().clone(),
-                ));
-            }
-            self.pending_sct_append_log
-                .append_positioned(positioned_sct_payloads);
-        }
-
-        state_tx.stage_routing_actions(prepared.routing_actions.clone());
-        append_transaction_audit_effects(&mut state_tx, prepared.audit_effects.clone()).await?;
-
-        let events = state_tx.apply().1;
-
-        if let Some(transaction) = deferred_transaction {
-            self.deferred_block_transactions.push(transaction);
-        }
-
-        Ok(events)
-    }
-
     pub(super) async fn execute_tx_checked_historical(
         &mut self,
         artifact: Arc<VerifiedTxArtifact>,
     ) -> Result<Vec<abci::Event>> {
+        artifact.ensure_registry(&self.registry)?;
         let tx = artifact.tx().clone();
 
         // At this point, the stateful checks should have completed,
@@ -389,7 +186,11 @@ impl App {
                 )
             })?;
 
-        // Index the transaction:
+        check_and_execute(Arc::as_ref(&artifact), &mut state_tx)
+            .await
+            .context("executing transaction")?;
+
+        // Index only after current-state admission succeeds; both effects share this delta.
 
         let mut deferred_transaction = None;
         match self.block_tx_indexing_mode {
@@ -416,10 +217,6 @@ impl App {
             }
         }
 
-        check_and_execute(Arc::as_ref(&artifact), &mut state_tx)
-            .await
-            .context("executing transaction")?;
-
         // At this point, we've completed execution successfully with no errors,
         // so we can apply the transaction to the State. Otherwise, we'd have
         // bubbled up an error and dropped the StateTransaction.
@@ -431,5 +228,129 @@ impl App {
         }
 
         Ok(events)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shieldd_sdk_compliance::{structs::AssetRegistrationGrant, MsgRegisterAsset};
+    use shieldd_sdk_proto::DomainType;
+
+    fn registration_bytes() -> Vec<u8> {
+        let mut action = MsgRegisterAsset {
+            audit_certificate: None,
+            audit_keys: None,
+            asset_id: *shieldd_sdk_asset::BASE_ASSET_ID,
+            is_regulated: false,
+            dk_pub: None,
+            daily_volume_limit: None,
+            allowed_ibc_routes: vec![],
+            ibc_origin: None,
+            ring_pk: None,
+            ring_id: String::new(),
+            policy_id: String::new(),
+            permission: String::new(),
+            resource: String::new(),
+            registration_authority_vk: None,
+            seizure_authority_vk: None,
+            asset_registration_grant: None,
+        };
+        let body = action.registration_grant_body(u64::MAX);
+        let key = shieldd_sdk_keys::test_keys::SPEND_KEY.spend_auth_key();
+        action.asset_registration_grant = Some(AssetRegistrationGrant {
+            signature: key.sign(rand_core::OsRng, &body.signing_bytes()),
+            registrar_vk: key.into(),
+            body,
+        });
+        let mut tx = Transaction::default();
+        tx.transaction_body
+            .actions
+            .push(Action::ComplianceRegisterAsset(action));
+        tx.encode_to_vec()
+    }
+
+    async fn initialized_app(snapshot: Snapshot, registry: Arc<Registry>) -> Result<App> {
+        let mut app = App::new(snapshot, registry).await?;
+        app.init_chain(&AppState::Content(Default::default())).await;
+        app.begin_block(&cnidarium_component::BlockContext {
+            height: 1,
+            time: Time::from_unix_timestamp(1_700_000_000, 0)?,
+        })
+        .await;
+        Ok(app)
+    }
+
+    #[test]
+    fn cold_delivery_completes_with_one_blocking_worker() -> Result<()> {
+        const CHILD: &str = "SHIELDD_TEST_SINGLE_BLOCKING_WORKER";
+        if std::env::var_os(CHILD).is_some() {
+            let registry = crate::app::tests::registry();
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .max_blocking_threads(1)
+                .build()?;
+            runtime.block_on(async {
+                let storage = cnidarium::TempStorage::new().await?;
+                let mut app = initialized_app(storage.latest_snapshot(), registry).await?;
+                // Parsing, signatures and verification must finish even though this
+                // registrar is not authorized in the initialized pool.
+                assert!(app
+                    .deliver_tx_bytes(&registration_bytes(), None)
+                    .await
+                    .is_err());
+                Ok::<_, anyhow::Error>(())
+            })?;
+            return Ok(());
+        }
+        let mut child = std::process::Command::new(std::env::current_exe()?)
+            .args([
+                "--exact",
+                "app::delivery::tests::cold_delivery_completes_with_one_blocking_worker",
+                "--nocapture",
+            ])
+            .env(CHILD, "1")
+            .spawn()?;
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
+        loop {
+            if let Some(status) = child.try_wait()? {
+                anyhow::ensure!(status.success(), "single-worker delivery subprocess failed");
+                return Ok(());
+            }
+            if std::time::Instant::now() >= deadline {
+                child.kill()?;
+                child.wait()?;
+                anyhow::bail!("single-worker delivery deadlocked (subprocess terminated)");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+    }
+
+    #[tokio::test]
+    async fn cancelling_delivery_releases_stateful_check_immediately() -> Result<()> {
+        let storage = cnidarium::TempStorage::new().await?;
+        let mut app =
+            initialized_app(storage.latest_snapshot(), crate::app::tests::registry()).await?;
+        let gate = Arc::new(HistoricalCheckGate::default());
+        app.historical_check_gate = Some(gate.clone());
+        let bytes = registration_bytes();
+        let mut delivery = Box::pin(app.deliver_tx_bytes(&bytes, None));
+        tokio::select! {
+            _ = gate.entered.notified() => {},
+            result = &mut delivery => panic!("delivery finished before historical check gate: {result:?}"),
+        }
+        drop(delivery);
+        let retained = Arc::strong_count(&app.state);
+        // Also clean up the detached task on the failing implementation.
+        gate.release.notify_one();
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            while Arc::strong_count(&app.state) > 1 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        assert_eq!(retained, 1, "cancelled delivery retained application state");
+        assert!(app.state.try_begin_transaction().is_some());
+        Ok(())
     }
 }

@@ -259,10 +259,11 @@ impl IsAction for MsgRegisterUser {
 #[cfg(test)]
 mod tests {
 
-    use ark_serialize::CanonicalSerialize;
-    use decaf377::Fr;
+    use commonware_codec::Encode;
+    use commonware_math::algebra::{Additive, CryptoGroup};
     use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_crypto::Fr;
     use shieldd_sdk_keys::{test_keys, PayloadKey};
     use shieldd_sdk_shielded_pool::{
         Note, ShieldedHostWithdrawal, ShieldedHostWithdrawalView, ShieldedInputPlan,
@@ -310,10 +311,19 @@ mod tests {
                 0,
             )
             .expect("build withdrawal body");
-        let mut proof_bytes = Vec::new();
-        ark_groth16::Proof::<decaf377::Bls12_377>::default()
-            .serialize_compressed(&mut proof_bytes)
-            .expect("encode proof-shaped view fixture");
+        use commonware_cryptography::{
+            bls12381::primitives::group::{Scalar, G1},
+            zk::pari::Claim,
+        };
+        use shieldd_sdk_circuits::proof::{Envelope, Family};
+        // Codec-valid placeholders exercise views, never proof verification.
+        let mut proof_bytes = vec![shieldd_sdk_crypto::SUITE, Family::Withdrawal as u8];
+        proof_bytes.extend([0; 32]);
+        proof_bytes.extend(Claim::new(vec![Scalar::zero()], vec![G1::generator()]).encode());
+        proof_bytes.extend(G1::generator().encode());
+        proof_bytes.extend(G1::generator().encode());
+        proof_bytes.extend(Scalar::zero().encode());
+        Envelope::from_bytes(&proof_bytes).expect("canonical encoding fixture");
         let action = ShieldedHostWithdrawal {
             auth_sigs: vec![[0u8; 64].into(); body.family_id.auth_sig_count()],
             body,

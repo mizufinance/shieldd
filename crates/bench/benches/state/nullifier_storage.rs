@@ -18,7 +18,7 @@ fn configured_sizes() -> Vec<usize> {
 }
 
 fn nullifier(index: usize) -> Nullifier {
-    Nullifier(decaf377::Fq::from(index as u64 + 1))
+    Nullifier(shieldd_sdk_crypto::Fq::from(index as u64 + 1))
 }
 
 fn nullifier_key(index: usize) -> [u8; 32] {

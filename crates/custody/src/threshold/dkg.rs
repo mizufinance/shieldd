@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use decaf377::Fq;
-use decaf377_frost as frost;
+use ff::Field;
 use frost::keys::dkg as frost_dkg;
-use std::collections::{HashMap, HashSet};
+use redjubjub_frost as frost;
+use shieldd_sdk_crypto::Fq;
+use std::collections::{BTreeMap, HashMap, HashSet};
 mod encryption;
 use ed25519_consensus::{Signature, SigningKey, VerificationKey};
 use encryption::EncryptionKey;
@@ -27,9 +27,7 @@ impl NullifierCommitment {
         let mut state = blake2b_simd::Params::new()
             .personal(b"dkg-commit")
             .to_state();
-        share
-            .serialize_compressed(&mut state)
-            .expect("failed to serialize Fq element");
+        state.update(&share.to_bytes());
         let out = state.finalize().as_array()[..32]
             .try_into()
             .expect("array conversion should not fail");
@@ -68,7 +66,7 @@ impl From<Round1> for pb::DkgRound1 {
         Self {
             pkg: Some(value.package.into()),
             nullifier_commitment: value.nullifier_commitment.as_bytes().to_vec(),
-            epk: value.epk.as_bytes().to_vec(),
+            epk: value.epk.to_bytes().to_vec(),
             vk: value.vk.as_bytes().to_vec(),
         }
     }
@@ -98,13 +96,7 @@ fn round2_inner_to_pb(
     encrypted_packages: HashMap<VerificationKey, Vec<u8>>,
     nullifier: Fq,
 ) -> pb::dkg_round2::Inner {
-    let nullifier = {
-        let mut bytes = Vec::new();
-        nullifier
-            .serialize_compressed(&mut bytes)
-            .expect("field serialization should not fail");
-        bytes
-    };
+    let nullifier = nullifier.to_bytes().to_vec();
     // Need to sort to guarantee a deterministic encoding for signing.
     let encrypted_packages = {
         let mut acc: Vec<_> = encrypted_packages
@@ -160,7 +152,9 @@ impl TryFrom<pb::DkgRound2> for Round2 {
                 .into_iter()
                 .map(|x| Ok((x.vk.as_slice().try_into()?, x.encrypted_package)))
                 .collect::<Result<HashMap<_, _>, Self::Error>>()?,
-            nullifier: Fq::deserialize_compressed(inner.nullifier.as_slice())?,
+            nullifier: shieldd_sdk_crypto::encoding::field(
+                &inner.nullifier.as_slice().try_into()?,
+            )?,
             vk: value.vk.as_slice().try_into()?,
             sig: value.sig.as_slice().try_into()?,
         })
@@ -187,10 +181,14 @@ impl Round2 {
         }
     }
 
-    fn encrypted_packages(self) -> Result<(VerificationKey, HashMap<VerificationKey, Vec<u8>>)> {
+    fn verify(&self) -> Result<()> {
         let data =
             round2_inner_to_pb(self.encrypted_packages.clone(), self.nullifier).encode_to_vec();
         self.vk.verify(&self.sig, &data)?;
+        Ok(())
+    }
+
+    fn encrypted_packages(self) -> Result<(VerificationKey, HashMap<VerificationKey, Vec<u8>>)> {
         Ok((self.vk, self.encrypted_packages))
     }
 }
@@ -212,7 +210,7 @@ pub struct Round2State {
     /// This is what FROST tells us to remember.
     secret_package: frost_dkg::round2::SecretPackage,
     /// FROST round 3 will need this data.
-    round1_packages: HashMap<frost::Identifier, frost_dkg::round1::Package>,
+    round1_packages: BTreeMap<frost::Identifier, frost_dkg::round1::Package>,
     /// We want to keep a list of verification keys, and we need to remember the commitments
     /// so that we can check the openings in the next round anyways.
     ///
@@ -234,7 +232,7 @@ pub fn round1(mut rng: impl CryptoRngCore, t: u16, n: u16) -> Result<(Round1, Ro
     let (secret_package, package) = frost_dkg::part1(id, n, t, &mut rng)?;
     let edk = DecryptionKey::new(&mut rng);
     let epk = edk.public();
-    let nullifier = Fq::rand(&mut rng);
+    let nullifier = Fq::random(&mut rng);
     let nullifier_commitment = NullifierCommitment::create(nullifier);
     let round1 = Round1 {
         package,
@@ -261,7 +259,7 @@ pub fn round2(
         let mut seen = HashSet::new();
         seen.insert(state.sk.verification_key());
         for m in &messages {
-            if seen.contains(&m.vk) {
+            if !seen.insert(m.vk) {
                 anyhow::bail!("duplicate verification key in messages");
             }
         }
@@ -314,11 +312,21 @@ pub fn round2(
     Ok((round2, state))
 }
 
-pub fn round3(
-    mut rng: impl CryptoRngCore,
-    state: Round2State,
-    messages: Vec<Round2>,
-) -> Result<Config> {
+pub fn round3(state: Round2State, messages: Vec<Round2>) -> Result<Config> {
+    // Check the exact authenticated participant set before accumulating contributions.
+    anyhow::ensure!(
+        messages.len() == state.associated_data.len(),
+        "incorrect round 2 participant count"
+    );
+    let mut seen = HashSet::new();
+    for message in &messages {
+        anyhow::ensure!(seen.insert(message.vk), "duplicate round 2 participant");
+        anyhow::ensure!(
+            state.associated_data.contains_key(&message.vk),
+            "unknown round 2 participant"
+        );
+        message.verify()?;
+    }
     let nullifier_key = {
         let mut acc = state.nullifier;
         for message in &messages {
@@ -341,7 +349,7 @@ pub fn round3(
             let my_ciphertext = encrypted_packages
                 .get(&state.sk.verification_key())
                 .ok_or(anyhow!("no encrypted package for this recipient"))?;
-            let my_plaintext = state.edk.decrypt(&mut rng, &my_ciphertext)?;
+            let my_plaintext = state.edk.decrypt(&my_ciphertext)?;
             let package = frost_dkg::round2::Package::decode(my_plaintext.as_slice())?;
             let id = state
                 .associated_data
@@ -350,7 +358,7 @@ pub fn round3(
                 .0;
             Ok((id, package))
         })
-        .collect::<Result<HashMap<_, _>>>()?;
+        .collect::<Result<BTreeMap<_, _>>>()?;
     let (key_package, public_key_package) = frost_dkg::part3(
         &state.secret_package,
         &state.round1_packages,
@@ -368,4 +376,49 @@ pub fn round3(
         verification_keys,
         nullifier_key,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand_core::OsRng;
+
+    fn transcript() -> (Vec<Round2>, Vec<Round2State>) {
+        let (messages, states): (Vec<_>, Vec<_>) =
+            (0..3).map(|_| round1(OsRng, 2, 3).unwrap()).unzip();
+        states
+            .into_iter()
+            .enumerate()
+            .map(|(i, state)| {
+                round2(
+                    OsRng,
+                    state,
+                    messages
+                        .iter()
+                        .enumerate()
+                        .filter(|(j, _)| *j != i)
+                        .map(|(_, m)| m.clone())
+                        .collect(),
+                )
+                .unwrap()
+            })
+            .unzip()
+    }
+
+    #[test]
+    fn duplicated_round2_participant_cannot_change_nullifier_key() {
+        let (messages, mut states) = transcript();
+        let state = states.remove(0);
+        let mut received = messages[1..].to_vec();
+        received.push(received[0].clone());
+        assert!(round3(state, received).is_err());
+    }
+
+    #[test]
+    fn duplicated_round1_participant_is_rejected() {
+        let (_, state) = round1(OsRng, 2, 3).unwrap();
+        let (a, _) = round1(OsRng, 2, 3).unwrap();
+        let (b, _) = round1(OsRng, 2, 3).unwrap();
+        assert!(round2(OsRng, state, vec![a.clone(), b, a]).is_err());
+    }
 }

@@ -1,11 +1,11 @@
 use anyhow::{ensure, Context, Result};
-use decaf377::{Fq, Fr};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_compliance::{
     AssetPolicy, ComplianceLeaf, IndexedLeaf, IndexedMerkleTree, MerklePath, QuadTree,
     DEFAULT_DEPTH,
 };
+use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
 use shieldd_sdk_tct::StateCommitment;
@@ -19,6 +19,16 @@ pub struct AssetWitness {
     pub position: u64,
     pub path: MerklePath,
     pub is_regulated: bool,
+}
+
+impl AssetWitness {
+    pub fn payload_key(&self) -> shieldd_sdk_crypto::SubgroupPoint {
+        if self.is_regulated {
+            self.leaf.ring.audit_keys.payload
+        } else {
+            *shieldd_sdk_compliance::UNREGULATED_RING
+        }
+    }
 }
 
 impl From<AssetWitness> for pb::AssetWitness {
@@ -279,9 +289,22 @@ impl ActionWitness {
             );
         } else {
             ensure!(
-                self.asset.leaf.value < asset_id.0
+                self.asset
+                    .leaf
+                    .value
+                    .to_bytes()
+                    .iter()
+                    .rev()
+                    .cmp(asset_id.0.to_bytes().iter().rev())
+                    .is_lt()
                     && (self.asset.leaf.next_value == Fq::from(0u64)
-                        || asset_id.0 < self.asset.leaf.next_value),
+                        || asset_id
+                            .0
+                            .to_bytes()
+                            .iter()
+                            .rev()
+                            .cmp(self.asset.leaf.next_value.to_bytes().iter().rev())
+                            .is_lt()),
                 "unregulated asset witness must prove non-membership"
             );
         }
@@ -310,6 +333,14 @@ impl ActionWitness {
         );
         let path = auth_path(&witness.path, witness.position)?;
         if self.asset.is_regulated {
+            ensure!(
+                witness.leaf.status == shieldd_sdk_compliance::UserAssetStatus::Active,
+                "ordinary actions require an active regulated user"
+            );
+            ensure!(
+                witness.leaf.frozen_since_height == 0,
+                "active regulated user must have a cleared frozen-since height"
+            );
             ensure!(
                 QuadTree::verify_auth_path(
                     witness.position,
@@ -343,11 +374,73 @@ fn auth_path(path: &MerklePath, position: u64) -> Result<Vec<[StateCommitment; 3
             let mut siblings = [StateCommitment(Fq::from(0u64)); 3];
             for (index, bytes) in layer.siblings.iter().enumerate() {
                 siblings[index] = StateCommitment(
-                    Fq::from_bytes_checked(bytes.as_slice().try_into()?)
+                    shieldd_sdk_crypto::encoding::field(bytes.as_slice().try_into()?)
                         .map_err(|_| anyhow::anyhow!("noncanonical witness sibling"))?,
                 );
             }
             Ok(siblings)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_proof_helpers::proof_test_helpers::{
+        create_user_tree_proof, generate_base_test_data,
+    };
+    use shieldd_sdk_compliance::UserAssetStatus;
+
+    fn authenticated_sender(status: UserAssetStatus, frozen_since_height: u64) -> ActionWitness {
+        let base = generate_base_test_data(&mut rand_core::OsRng, 1, 100, true);
+        let mut witness = base.action_witness();
+        witness.sender.leaf.status = status;
+        witness.sender.leaf.freeze_generation = 3;
+        witness.sender.leaf.frozen_since_height = frozen_since_height;
+        let (root, path, position) = create_user_tree_proof(&witness.sender.leaf);
+        witness.user_root = root;
+        witness.sender.path = path;
+        witness.sender.position = position;
+        assert!(QuadTree::verify_auth_path(
+            position,
+            witness.sender.leaf.commit(),
+            &auth_path(&witness.sender.path, position).unwrap(),
+            root,
+            DEFAULT_DEPTH,
+        ));
+        witness
+    }
+
+    #[test]
+    fn authenticated_frozen_and_seized_users_reject_ordinary_actions() {
+        for status in [UserAssetStatus::Frozen, UserAssetStatus::Seized] {
+            let witness = authenticated_sender(status, 7);
+            assert!(
+                witness
+                    .validate(witness.asset.asset_id, &witness.sender.leaf.address)
+                    .is_err(),
+                "authenticated {status:?} sender must reject before proof generation",
+            );
+            assert!(witness
+                .validate_user(&witness.sender, &witness.sender.leaf.address)
+                .is_err());
+        }
+    }
+
+    #[test]
+    fn authenticated_active_user_requires_cleared_frozen_height() {
+        let witness = authenticated_sender(UserAssetStatus::Active, 7);
+        assert!(witness
+            .validate(witness.asset.asset_id, &witness.sender.leaf.address)
+            .is_err());
+    }
+
+    #[test]
+    fn authenticated_active_user_preserves_prior_freeze_generation() {
+        let witness = authenticated_sender(UserAssetStatus::Active, 0);
+        witness
+            .validate(witness.asset.asset_id, &witness.sender.leaf.address)
+            .unwrap();
+        assert_eq!(witness.sender.leaf.freeze_generation, 3);
+    }
 }
