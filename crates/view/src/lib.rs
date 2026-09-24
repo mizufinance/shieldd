@@ -19,7 +19,7 @@ pub use provider_rpc::RpcSyncProvider;
 mod storage;
 mod sync;
 mod worker;
-pub use provider::{GenerationAnchors, HostBlock, SyncMode, SyncProvider};
+pub use provider::{GenerationAnchors, HostBlock, SyncLimits, SyncMode, SyncProvider};
 
 pub use crate::client_compliance::{
     complete_plan_with_compliance, CompletionData, VolumeRecoveryRecord,

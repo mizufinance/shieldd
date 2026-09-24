@@ -318,11 +318,10 @@ async fn ensure_pack<S: StateRead + ?Sized>(
         match existing {
             Ok(receipt) => return Ok((Some(receipt), repair)),
             Err(error) => {
-                let quarantine = repository.quarantine(archived.generation_index)?;
+                repository.quarantine(archived.generation_index)?;
                 tracing::warn!(
                     generation_index = archived.generation_index,
                     %error,
-                    quarantine = ?quarantine,
                     "quarantined invalid nullifier generation pack"
                 );
             }
@@ -531,6 +530,7 @@ mod tests {
         drop(latest);
         storage.release().await;
         let storage = Storage::load(path, vec![]).await?;
+        drop(archives);
         let reopened = GenerationPackRepository::new(directory.path().join("archives"), 4096)?;
         assert!(
             reopened.ready_receipt(0)?.is_none(),
@@ -550,7 +550,7 @@ mod tests {
         seed(&mut state).await?;
         storage.commit(state).await?;
         let directory = tempfile::tempdir()?;
-        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 4096)?;
+        let mut repository = GenerationPackRepository::new(directory.path().to_path_buf(), 4096)?;
         let snapshot = storage.latest_snapshot();
         let archived = nullifier_tree::archived_generation(&snapshot, 0).await?;
         ensure_pack(&snapshot, &repository, archived).await?;
@@ -580,8 +580,9 @@ mod tests {
             })
             .context("archive data file")?;
         std::fs::write(&data, b"truncated")?;
-        let cold = GenerationPackRepository::new(directory.path().to_path_buf(), 0)?;
-        assert!(cold.nonmembership_proof(archived, nf(8)).is_err());
+        drop(repository);
+        repository = GenerationPackRepository::new(directory.path().to_path_buf(), 0)?;
+        assert!(repository.nonmembership_proof(archived, nf(8)).is_err());
         ensure_pack(&snapshot, &repository, archived).await?;
         repository
             .nonmembership_proof(archived, nf(8))?

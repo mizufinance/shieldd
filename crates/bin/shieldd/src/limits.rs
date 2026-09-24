@@ -57,11 +57,18 @@ impl ServiceLimits {
             "invalid worker budget"
         );
         ensure!(
-            self.query_memory_bytes >= self.reservation_bytes() as usize
+            self.query_memory_bytes
+                >= self.check_tx_reservation_bytes() + self.reservation_bytes() as usize
                 && self.query_memory_bytes <= u32::MAX as usize,
             "invalid query memory budget"
         );
         Ok(())
+    }
+    pub(crate) fn check_tx_reservation_bytes(&self) -> usize {
+        self.check_tx_workers * self.reservation_bytes() as usize
+    }
+    pub(crate) fn read_memory_bytes(&self) -> usize {
+        self.query_memory_bytes - self.check_tx_reservation_bytes()
     }
     pub(crate) fn reservation_bytes(&self) -> u32 {
         8 * 1024 * 1024

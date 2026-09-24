@@ -50,7 +50,7 @@ pub struct QueryService {
     pub(crate) limits: crate::ServiceLimits,
     storage: RwLock<Option<Storage>>,
     published: RwLock<Option<PublishedState>>,
-    pub(crate) generation_packs: Option<GenerationPackRepository>,
+    generation_packs: RwLock<Option<GenerationPackRepository>>,
     registry: Arc<Registry>,
     cache: Arc<StatelessCache>,
     check_slots: Arc<tokio::sync::Semaphore>,
@@ -68,7 +68,7 @@ impl QueryService {
         Self {
             storage: RwLock::new(Some(storage)),
             published: RwLock::new(None),
-            generation_packs,
+            generation_packs: RwLock::new(generation_packs),
             registry,
             cache,
             check_slots: Arc::new(tokio::sync::Semaphore::new(limits.check_tx_workers)),
@@ -77,7 +77,17 @@ impl QueryService {
             limits,
         }
     }
+    pub(crate) fn generation_packs(&self) -> Option<GenerationPackRepository> {
+        self.generation_packs
+            .read()
+            .expect("archive lock poisoned")
+            .clone()
+    }
     pub(crate) fn close(&self) {
+        self.generation_packs
+            .write()
+            .expect("archive lock poisoned")
+            .take();
         self.storage.write().expect("storage lock poisoned").take();
         self.check_slots.close();
         self.archive_slots.close();
@@ -624,7 +634,7 @@ impl QueryService {
             .context("missing nullifier")
             .and_then(Nullifier::try_from)
             .map_err(ServiceError::invalid_argument)?;
-        let repository = self.generation_packs.clone().ok_or_else(|| {
+        let repository = self.generation_packs().ok_or_else(|| {
             ServiceError::failed_precondition(anyhow::anyhow!(
                 "historical witness storage is not configured"
             ))

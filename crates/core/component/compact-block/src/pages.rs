@@ -9,6 +9,47 @@ use shieldd_sdk_tct::builder::block::LeafProof;
 use shieldd_sdk_txhash::TransactionId;
 use std::collections::BTreeMap;
 
+/// Local aggregate wire-data and record budgets, independent of chain validity.
+#[derive(Clone, Copy, Debug)]
+pub struct AssemblyLimits {
+    pub max_encoded_bytes: usize,
+    pub max_records: usize,
+}
+impl Default for AssemblyLimits {
+    fn default() -> Self {
+        Self {
+            max_encoded_bytes: 64 * 1024 * 1024,
+            max_records: 262_144,
+        }
+    }
+}
+/// Shared across selector chunks and canonical transactions for one wallet block.
+pub struct AssemblyBudget {
+    bytes: usize,
+    records: usize,
+}
+impl AssemblyBudget {
+    pub fn new(limits: AssemblyLimits) -> Result<Self> {
+        ensure!(
+            limits.max_encoded_bytes > 0 && limits.max_records > 0,
+            "invalid wallet block budget"
+        );
+        Ok(Self {
+            bytes: limits.max_encoded_bytes,
+            records: limits.max_records,
+        })
+    }
+    pub fn reserve_record(&mut self, length: usize) -> Result<()> {
+        ensure!(
+            length <= self.bytes && self.records > 0,
+            "wallet block exceeds assembly budget"
+        );
+        self.bytes -= length;
+        self.records -= 1;
+        Ok(())
+    }
+}
+
 /// A filtered block whose selected payloads have complete positional proof records.
 /// Provider omission remains a trusted-provider boundary; callers must verify the host SCT root.
 pub struct SparseCompactBlock {
@@ -44,7 +85,11 @@ impl PageAssembler {
             complete: false,
         }
     }
-    pub fn push(&mut self, page: pb::CompactBlockPageResponse) -> Result<()> {
+    pub fn push(
+        &mut self,
+        page: pb::CompactBlockPageResponse,
+        budget: &mut AssemblyBudget,
+    ) -> Result<()> {
         ensure!(
             !self.complete
                 && page.height == self.height
@@ -78,6 +123,7 @@ impl PageAssembler {
                 }
                 None => {
                     ensure!(fragment.offset == 0, "record starts at a nonzero offset");
+                    budget.reserve_record(fragment.total_length as usize)?;
                     pb::CompactRecordFragment {
                         data: Vec::new(),
                         ..fragment.clone()
@@ -91,7 +137,7 @@ impl PageAssembler {
             );
             record.data.extend(fragment.data);
             if record.data.len() == record.total_length as usize {
-                self.record(record)?;
+                self.record(record, budget)?;
             } else {
                 self.pending = Some(record);
             }
@@ -102,7 +148,7 @@ impl PageAssembler {
         }
         Ok(())
     }
-    fn record(&mut self, record: pb::CompactRecordFragment) -> Result<()> {
+    fn record(&mut self, record: pb::CompactRecordFragment, budget: &AssemblyBudget) -> Result<()> {
         if record.kind == 0 {
             ensure!(
                 self.header.is_none() && record.index == 0,
@@ -138,6 +184,16 @@ impl PageAssembler {
             ensure!(
                 header.sections[0].count <= 65536,
                 "payload count exceeds SCT capacity"
+            );
+            let required_records: u64 = header
+                .sections
+                .iter()
+                .filter(|section| !self.filtered || section.kind >= 5)
+                .map(|section| u64::from(section.count))
+                .sum();
+            ensure!(
+                required_records <= budget.records as u64,
+                "wallet block exceeds record budget"
             );
             self.header = Some(header);
             return Ok(());

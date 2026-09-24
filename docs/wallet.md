@@ -14,7 +14,9 @@ whose database commit may have completed.
 `RemoteFiltered { provider_id }` matching the selected provider. FullScan decrypts
 every note with bounded concurrency and does not depend on an issued-address
 manifest. Filtered mode queries all issued selectors for both asset precisions,
-including the applicable previous-parameter grace period, in batches of 256.
+including the applicable previous-parameter grace period. `SyncLimits` configures
+the selected provider’s item cap (256 by default); set it to the node’s configured
+operating limit. Selector and nullifier requests use that cap.
 Retired addresses remain eligible. An incomplete manifest requires FullScan recovery.
 
 Filtered responses contain matched and unrouted payloads, positional block proofs,
@@ -28,7 +30,11 @@ facts; this is not a light client. Selectors and owned nullifiers are disclosed 
 that provider. See [routing privacy](routing.md#remote-privacy-modes).
 
 All page fragments and required transactions complete before the existing atomic
-wallet write. Expired mutable cursors or failed queries discard unfinished work;
+wallet write. A shared `AssemblyBudget` covers all selector chunks and canonical
+transactions for that block: defaults are 64 MiB encoded data and 262,144 records.
+These configurable client limits reject excessive input before appending records;
+they do not alter consensus validity. Browser compact assembly applies equivalent
+aggregate limits. Expired mutable cursors or failed queries discard unfinished work;
 restart at a fresh host anchor. Historical block-proof trees are disposable node
 caches, bounded separately to 64 MiB with one reconstruction worker. Wallet
 compliance synchronization remains global.

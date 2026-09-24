@@ -159,6 +159,8 @@ pub struct ArchiveReadStatistics {
 }
 #[derive(Clone, Debug)]
 pub struct Repository {
+    // Clones and in-flight reads keep the exclusive archive-directory owner alive.
+    _owner: Arc<File>,
     directory: Arc<PathBuf>,
     max_cached_bytes: usize,
     cache: Arc<Mutex<PageCache>>,
@@ -169,6 +171,38 @@ pub struct Repository {
 impl Repository {
     pub fn new(directory: PathBuf, max_cached_bytes: usize) -> Result<Self> {
         fs::create_dir_all(&directory)?;
+        let owner = File::options()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(directory.join(".archive-owner.lock"))?;
+        owner
+            .try_lock()
+            .context("archive directory is already in use")?;
+        // Only the exclusive owner may reclaim files whose destructors were lost to a crash.
+        for entry in fs::read_dir(&directory)? {
+            let entry = entry?;
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if [
+                ".archive-build-",
+                ".archive-data-",
+                ".archive-manifest-",
+                ".archive-probe-",
+                ".corrupt-manifest-",
+                ".corrupt-data-",
+            ]
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
+            {
+                if entry.file_type()?.is_dir() {
+                    fs::remove_dir_all(entry.path())?;
+                } else {
+                    fs::remove_file(entry.path())?;
+                }
+            }
+        }
         // Fail startup on an unusable configured directory, even before the first retirement.
         let probe = tempfile::Builder::new()
             .prefix(".archive-probe-")
@@ -177,6 +211,7 @@ impl Repository {
         drop(probe);
         File::open(&directory)?.sync_all()?;
         Ok(Self {
+            _owner: Arc::new(owner),
             directory: Arc::new(directory),
             max_cached_bytes,
             cache: Arc::new(Mutex::new(PageCache::default())),
@@ -312,27 +347,19 @@ impl Repository {
             .remove(&generation);
         Ok(())
     }
-    pub fn quarantine(&self, generation: u64) -> Result<Option<PathBuf>> {
+    pub fn quarantine(&self, generation: u64) -> Result<()> {
         self.forget_ready_receipt(generation)?;
         let path = self.path(generation);
         if !path.exists() {
-            return Ok(None);
+            return Ok(());
         }
-        let target = tempfile::Builder::new()
-            .prefix(".corrupt-manifest-")
-            .tempfile_in(self.directory())?;
-        fs::rename(&path, target.path())?;
-        let (_, path) = target.keep()?;
+        fs::remove_file(&path)?;
         File::open(self.directory())?.sync_all()?;
-        self.cache
-            .lock()
-            .expect("archive mutex poisoned")
-            .pages
-            .clear();
         let mut cache = self.cache.lock().expect("archive mutex poisoned");
+        cache.pages.clear();
         cache.order.clear();
         cache.bytes = 0;
-        Ok(Some(path))
+        Ok(())
     }
     /// Stream insertion-ordered ordinary nullifiers. Errors or cancellation must arrive as an Err, never a successful EOF.
     pub fn write_stream(
@@ -888,7 +915,7 @@ mod tests {
         crate::nullifier_tree::rollover(&mut state, 60, 2 << 32).await?;
         let archived = crate::nullifier_tree::archived_generation(&state, 0).await?;
         let directory = tempfile::tempdir()?;
-        let repository = Repository::new(directory.path().to_path_buf(), PAGE_BYTES as usize)?;
+        let mut repository = Repository::new(directory.path().to_path_buf(), PAGE_BYTES as usize)?;
         assert!(repository
             .write_stream(
                 archived,
@@ -931,9 +958,10 @@ mod tests {
             let mut corrupt = original.clone();
             corrupt[at] ^= 255;
             fs::write(&path, corrupt)?;
-            let reader = Repository::new(directory.path().to_path_buf(), 0)?;
-            assert!(reader.verify(archived).is_err());
-            assert!(reader.witness(archived, nf(0)).is_err());
+            drop(repository);
+            repository = Repository::new(directory.path().to_path_buf(), 0)?;
+            assert!(repository.verify(archived).is_err());
+            assert!(repository.witness(archived, nf(0)).is_err());
         }
         fs::write(&path, &original[..original.len() - 1])?;
         assert!(repository.verify(archived).is_err());
@@ -945,11 +973,42 @@ mod tests {
         repository.quarantine(0)?;
         repository.write_stream(archived, values.into_iter().map(Ok))?;
         assert_eq!(fs::read(&path)?, original);
+        drop(repository);
         let cold = Repository::new(directory.path().to_path_buf(), 0)?;
         cold.nonmembership_proof(archived, nf(8))?
             .verify_for(nf(8))?;
         Ok(())
     }
+    #[test]
+    fn archive_owner_reclaims_interrupted_builds_without_touching_published_files() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let scratch = directory.path().join(".archive-build-interrupted");
+        fs::create_dir(&scratch)?;
+        fs::write(scratch.join("leaves"), b"incomplete build")?;
+        let unpublished = directory.path().join(".archive-data-interrupted");
+        fs::write(&unpublished, b"unpublished")?;
+        let published = directory.path().join("archive-keep.data");
+        fs::write(&published, b"canonical data")?;
+        let unrelated = directory.path().join("operator-notes");
+        fs::write(&unrelated, b"preserve")?;
+        let repository = Repository::new(directory.path().to_path_buf(), 4096)?;
+        assert!(!scratch.exists(), "interrupted build was not reclaimed");
+        assert!(!unpublished.exists());
+        assert_eq!(fs::read(&published)?, b"canonical data");
+        assert_eq!(fs::read(&unrelated)?, b"preserve");
+        let active = directory.path().join(".archive-data-active");
+        fs::write(&active, b"live owner")?;
+        assert!(Repository::new(directory.path().to_path_buf(), 4096).is_err());
+        assert!(active.exists(), "another owner deleted a live build");
+        let clone = repository.clone();
+        drop(repository);
+        assert!(Repository::new(directory.path().to_path_buf(), 4096).is_err());
+        drop(clone);
+        let _reopened = Repository::new(directory.path().to_path_buf(), 4096)?;
+        assert!(!active.exists());
+        Ok(())
+    }
+
     #[test]
     fn bounded_merge_preserves_every_sorted_index_entry_across_runs() -> Result<()> {
         let directory = tempfile::tempdir()?;

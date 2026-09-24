@@ -9,7 +9,7 @@ snapshots. Host withdrawals use the shared `shielded_withdrawal` proof family
 and return value to Bankd for transfer or execution.
 
 ABI 2 requires an archive directory at open; Bankd uses `data/shieldd-archives`
-and fails startup if it is unusable. Compact/local storage and archive formats are
+and fails startup if it is unusable or another owner has locked it. Compact/local storage and archive formats are
 incompatible with older data: reset and resynchronize, without migration paths.
 
 Public reads use committed snapshots independently of the execution mutex. Block
@@ -22,7 +22,10 @@ even after service shutdown; callers must free every result/error buffer.
 
 Local defaults are 4 MiB response pages, 256 KiB requests, 256 selectors/nullifiers,
 eight read requests, 64 MiB query workspace/outstanding responses, two CheckTx
-workers and two archive readers. `SHIELDD_SERVICE_LIMITS` accepts a JSON object
+workers and two archive readers. The 64 MiB pool reserves 8 MiB per CheckTx
+worker (16 MiB by default), leaving 48 MiB for reads and their outstanding buffers.
+CheckTx does not acquire public-read slots. Memory admission can therefore bind
+before the eight-reader concurrency cap. `SHIELDD_SERVICE_LIMITS` accepts a JSON object
 with fields defined by [ServiceLimits](../crates/bin/shieldd/src/limits.rs), applying
 at startup. Transport budgets can be tightened within supported client bounds.
 Excess work fails with retryable overload instead of entering an unbounded queue.

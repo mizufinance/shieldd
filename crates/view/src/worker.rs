@@ -281,11 +281,14 @@ impl SyncWorker {
         mode: &crate::SyncMode,
         host: crate::HostBlock,
     ) -> anyhow::Result<()> {
+        let limits = provider.limits();
+        limits.validate()?;
+        let mut budget = shieldd_sdk_compact_block::pages::AssemblyBudget::new(limits.block)?;
         let (block, sparse, transactions) = match mode {
             crate::SyncMode::FullScan => (
-                crate::provider::full(provider, &host).await?,
+                crate::provider::full(provider, &host, &mut budget).await?,
                 None,
-                crate::provider::transactions(provider, host.height).await?,
+                crate::provider::transactions(provider, host.height, &mut budget).await?,
             ),
             crate::SyncMode::RemoteFiltered { provider_id } => {
                 anyhow::ensure!(
@@ -296,6 +299,7 @@ impl SyncWorker {
                     provider,
                     &host,
                     self.storage.issued_addresses().await?,
+                    &mut budget,
                 )
                 .await?;
                 (sparse.block.clone(), Some(sparse), Vec::new())
@@ -315,12 +319,14 @@ impl SyncWorker {
             },
             sparse,
             remote,
+            &mut budget,
         )
         .await
     }
 
     pub async fn scan(&mut self, input: WalletBlock) -> anyhow::Result<()> {
-        self.scan_inner(input, None, None).await
+        let mut budget = shieldd_sdk_compact_block::pages::AssemblyBudget::new(Default::default())?;
+        self.scan_inner(input, None, None, &mut budget).await
     }
 
     async fn scan_inner(
@@ -332,6 +338,7 @@ impl SyncWorker {
             &dyn crate::GenerationAnchors,
             &str,
         )>,
+        budget: &mut shieldd_sdk_compact_block::pages::AssemblyBudget,
     ) -> anyhow::Result<()> {
         let WalletBlock {
             block,
@@ -407,7 +414,7 @@ impl SyncWorker {
             filtered_block.spent_nullifiers =
                 crate::provider::spends(provider, anchors, chain, height, nullifiers).await?;
             if !filtered_block.spent_nullifiers.is_empty() {
-                transactions = crate::provider::transactions(provider, height).await?;
+                transactions = crate::provider::transactions(provider, height, budget).await?;
             } else {
                 let ids = filtered_block
                     .new_notes
@@ -420,6 +427,8 @@ impl SyncWorker {
                         transaction.id() == id,
                         "provider returned the wrong canonical transaction"
                     );
+                    use shieldd_sdk_proto::DomainType as _;
+                    budget.reserve_record(transaction.encode_to_vec().len())?;
                     transactions.push(transaction);
                 }
             }

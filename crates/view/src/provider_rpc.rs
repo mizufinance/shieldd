@@ -1,4 +1,4 @@
-use super::provider::SyncProvider;
+use super::provider::{SyncLimits, SyncProvider};
 use async_trait::async_trait;
 use shieldd_sdk_proto::core::{
     app::v1 as app,
@@ -13,13 +13,19 @@ use tonic::transport::Channel;
 /// The endpoint is also the identity used for explicit filtered-sync consent.
 pub struct RpcSyncProvider {
     endpoint: String,
+    limits: SyncLimits,
     channel: Channel,
 }
 
 impl RpcSyncProvider {
-    pub async fn connect(endpoint: String) -> anyhow::Result<Self> {
+    pub async fn connect(endpoint: String, limits: SyncLimits) -> anyhow::Result<Self> {
+        limits.validate()?;
         let channel = Channel::from_shared(endpoint.clone())?.connect().await?;
-        Ok(Self { endpoint, channel })
+        Ok(Self {
+            endpoint,
+            channel,
+            limits,
+        })
     }
 
     async fn query<Q, R>(&self, method: &'static str, request: Q) -> anyhow::Result<R>
@@ -49,6 +55,9 @@ impl RpcSyncProvider {
 
 #[async_trait]
 impl SyncProvider for RpcSyncProvider {
+    fn limits(&self) -> SyncLimits {
+        self.limits
+    }
     fn id(&self) -> &str {
         &self.endpoint
     }

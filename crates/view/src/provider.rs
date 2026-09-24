@@ -2,7 +2,7 @@
 use anyhow::{ensure, Context, Result};
 use async_trait::async_trait;
 use shieldd_sdk_compact_block::{
-    pages::{PageAssembler, SparseCompactBlock},
+    pages::{AssemblyBudget, AssemblyLimits, PageAssembler, SparseCompactBlock},
     CompactBlock,
 };
 use shieldd_sdk_proto::{
@@ -26,6 +26,31 @@ pub enum SyncMode {
     RemoteFiltered { provider_id: String },
 }
 
+/// Provider-specific operating limits. Configure the item cap to the selected node's budget.
+#[derive(Clone, Copy, Debug)]
+pub struct SyncLimits {
+    pub items_per_request: usize,
+    pub block: AssemblyLimits,
+}
+impl Default for SyncLimits {
+    fn default() -> Self {
+        Self {
+            items_per_request: 256,
+            block: AssemblyLimits::default(),
+        }
+    }
+}
+impl SyncLimits {
+    pub fn validate(&self) -> Result<()> {
+        ensure!(
+            (1..=256).contains(&self.items_per_request),
+            "invalid provider item limit"
+        );
+        AssemblyBudget::new(self.block)?;
+        Ok(())
+    }
+}
+
 /// Independently supplied host facts. No field may be copied from the filtering response.
 pub struct HostBlock {
     pub chain_id: String,
@@ -42,6 +67,7 @@ pub struct HostBlock {
 #[async_trait]
 pub trait SyncProvider: Send + Sync {
     fn id(&self) -> &str;
+    fn limits(&self) -> SyncLimits;
     async fn compact_page(
         &self,
         request: cb::CompactBlockPageRequest,
@@ -67,7 +93,11 @@ pub trait GenerationAnchors: Send + Sync {
     async fn generation_root(&self, anchor_height: u64, generation: u64) -> Result<[u8; 32]>;
 }
 
-pub(crate) async fn full(provider: &dyn SyncProvider, host: &HostBlock) -> Result<CompactBlock> {
+pub(crate) async fn full(
+    provider: &dyn SyncProvider,
+    host: &HostBlock,
+    budget: &mut AssemblyBudget,
+) -> Result<CompactBlock> {
     let mut assembler = PageAssembler::new(host.height, host.chain_id.clone(), false);
     let mut cursor = vec![];
     loop {
@@ -79,7 +109,7 @@ pub(crate) async fn full(provider: &dyn SyncProvider, host: &HostBlock) -> Resul
             .await?;
         check_page(&page, &cursor)?;
         let next = page.next_cursor.clone();
-        assembler.push(page)?;
+        assembler.push(page, budget)?;
         if next.is_empty() {
             return assembler.full();
         }
@@ -101,7 +131,10 @@ pub(crate) async fn sparse(
     provider: &dyn SyncProvider,
     host: &HostBlock,
     addresses: Vec<crate::IssuedAddress>,
+    budget: &mut AssemblyBudget,
 ) -> Result<SparseCompactBlock> {
+    let limits = provider.limits();
+    limits.validate()?;
     let mut selectors = BTreeSet::new();
     for issued in addresses {
         // Include retired and restored addresses: retirement is not proof that no sender uses them.
@@ -129,7 +162,7 @@ pub(crate) async fn sparse(
     let mut merged: Option<SparseCompactBlock> = None;
     // An empty manifest still queries unrouted outputs; FullScan is the recovery mode.
     for chunk in selectors
-        .chunks(256)
+        .chunks(limits.items_per_request)
         .chain(selectors.is_empty().then_some(&[][..]))
     {
         let mut assembler = PageAssembler::new(host.height, host.chain_id.clone(), true);
@@ -144,7 +177,7 @@ pub(crate) async fn sparse(
                 .await?;
             check_page(&page, &cursor)?;
             let next = page.next_cursor.clone();
-            assembler.push(page)?;
+            assembler.push(page, budget)?;
             if next.is_empty() {
                 break;
             }
@@ -202,6 +235,7 @@ pub(crate) async fn sparse(
 pub(crate) async fn transactions(
     provider: &dyn SyncProvider,
     height: u64,
+    budget: &mut AssemblyBudget,
 ) -> Result<Vec<Transaction>> {
     let mut cursor = vec![];
     let mut result = vec![];
@@ -220,6 +254,7 @@ pub(crate) async fn transactions(
             "invalid transaction page"
         );
         for transaction in page.transactions {
+            budget.reserve_record(transaction.encoded_len())?;
             result.push(transaction.try_into()?);
         }
         if page.next_cursor.is_empty() {
@@ -236,9 +271,11 @@ pub(crate) async fn spends(
     height: u64,
     nullifiers: BTreeSet<Nullifier>,
 ) -> Result<Vec<Nullifier>> {
+    let limits = provider.limits();
+    limits.validate()?;
     let nullifiers = nullifiers.into_iter().collect::<Vec<_>>();
     let mut result = BTreeSet::new();
-    for chunk in nullifiers.chunks(256) {
+    for chunk in nullifiers.chunks(limits.items_per_request) {
         let mut cursor = vec![];
         let mut anchor = None;
         loop {
@@ -295,4 +332,125 @@ pub(crate) async fn spends(
         }
     }
     Ok(result.into_iter().collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    struct LimitedProvider(Mutex<Vec<usize>>);
+    #[async_trait]
+    impl SyncProvider for LimitedProvider {
+        fn id(&self) -> &str {
+            "limited-provider"
+        }
+        fn limits(&self) -> SyncLimits {
+            SyncLimits {
+                items_per_request: 2,
+                ..Default::default()
+            }
+        }
+        async fn spend_page(
+            &self,
+            request: sct::SpendStatusPageRequest,
+        ) -> Result<sct::SpendStatusPageResponse> {
+            ensure!(
+                request.nullifiers.len() <= 2,
+                "provider item limit exceeded"
+            );
+            ensure!(
+                request.start_height == 7 && request.end_height == 7,
+                "wrong interval"
+            );
+            self.0.lock().unwrap().push(request.nullifiers.len());
+            Ok(sct::SpendStatusPageResponse {
+                chain_id: "test".into(),
+                anchor_height: 7,
+                ..Default::default()
+            })
+        }
+        async fn compact_page(
+            &self,
+            _: cb::CompactBlockPageRequest,
+        ) -> Result<cb::CompactBlockPageResponse> {
+            anyhow::bail!("unexpected full query")
+        }
+        async fn filtered_page(
+            &self,
+            _: cb::FilteredBlockPageRequest,
+        ) -> Result<cb::CompactBlockPageResponse> {
+            anyhow::bail!("unexpected filtered query")
+        }
+        async fn transaction_page(
+            &self,
+            request: app::TransactionsByHeightRequest,
+        ) -> Result<app::TransactionsByHeightResponse> {
+            ensure!(
+                request.cursor.is_empty() || request.cursor == [1],
+                "unexpected cursor"
+            );
+            Ok(app::TransactionsByHeightResponse {
+                block_height: request.block_height,
+                transactions: vec![Transaction::default().into()],
+                next_cursor: if request.cursor.is_empty() {
+                    vec![1]
+                } else {
+                    vec![]
+                },
+            })
+        }
+        async fn transaction(&self, _: u64, _: TransactionId) -> Result<Transaction> {
+            anyhow::bail!("unexpected transaction")
+        }
+    }
+    struct Anchors;
+    #[async_trait]
+    impl GenerationAnchors for Anchors {
+        async fn generation_root(&self, _: u64, _: u64) -> Result<[u8; 32]> {
+            anyhow::bail!("unexpected positive spend")
+        }
+    }
+    #[tokio::test]
+    async fn spend_sync_obeys_selected_provider_item_budget() -> Result<()> {
+        let provider = LimitedProvider(Mutex::new(vec![]));
+        let nullifiers = (1..=5u64)
+            .map(|n| Nullifier(shieldd_sdk_crypto::Fq::from(n)))
+            .collect();
+        assert!(spends(&provider, &Anchors, "test", 7, nullifiers)
+            .await?
+            .is_empty());
+        assert_eq!(*provider.0.lock().unwrap(), [2, 2, 1]);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn transaction_pages_share_the_blocks_remaining_assembly_budget() -> Result<()> {
+        use shieldd_sdk_proto::DomainType;
+        let provider = LimitedProvider(Mutex::new(vec![]));
+        let length = Transaction::default().to_proto().encoded_len();
+        for (bytes, records, succeeds) in [
+            (2 * length, 2, true),
+            (2 * length - 1, 2, false),
+            (2 * length, 1, false),
+        ] {
+            let mut budget = AssemblyBudget::new(AssemblyLimits {
+                max_encoded_bytes: bytes + 17,
+                max_records: records + 1,
+            })?;
+            // Compact records already fetched for this block consume the same budget.
+            budget.reserve_record(17)?;
+            let result = transactions(&provider, 7, &mut budget).await;
+            if succeeds {
+                let transactions = result?;
+                assert_eq!(transactions.len(), 2);
+                assert!(transactions
+                    .iter()
+                    .all(|tx| tx.id() == Transaction::default().id()));
+            } else {
+                assert!(result.unwrap_err().to_string().contains("assembly budget"));
+            }
+        }
+        Ok(())
+    }
 }

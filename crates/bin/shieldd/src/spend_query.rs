@@ -18,6 +18,50 @@ struct Cursor {
     index: usize,
 }
 
+// Generation ranges are recorded in generation order, including empty blocks.
+// Seek both ends so a recent one-block query never walks unrelated history.
+async fn overlapping_generations(
+    state: &impl cnidarium::StateRead,
+    current: u64,
+    start_height: u64,
+    end_height: u64,
+) -> anyhow::Result<std::ops::Range<u64>> {
+    // Genesis and rollover create a sentinel-only current tree before its first
+    // block interval. Its authenticated leaf count proves there are no spends.
+    let has_current_spends = nullifier_tree::current_leaf_count(state).await? != 1;
+    let count = current
+        .checked_add(u64::from(has_current_spends))
+        .context("generation count overflow")?;
+    let (mut low, mut high) = (0, count);
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if nullifier_tree::generation_block_range(state, mid)
+            .await?
+            .end_height
+            < start_height
+        {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    let first = low;
+    high = count;
+    while low < high {
+        let mid = low + (high - low) / 2;
+        if nullifier_tree::generation_block_range(state, mid)
+            .await?
+            .start_height
+            <= end_height
+        {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    Ok(first..low)
+}
+
 pub async fn page(
     service: &QueryService,
     mut request: pb::SpendStatusPageRequest,
@@ -65,11 +109,19 @@ pub async fn page(
     let generations = nullifier_tree::generation_state(&state)
         .await
         .map_err(ServiceError::unavailable)?;
+    let relevant = overlapping_generations(
+        &state,
+        generations.current_generation,
+        request.start_height,
+        request.end_height,
+    )
+    .await
+    .map_err(ServiceError::unavailable)?;
     let mut cursor = Cursor {
         chain: chain.clone(),
         parameters,
         version: state.version(),
-        generation: 0,
+        generation: relevant.start,
         index: 0,
     };
     if let Some(resumed) = resumed {
@@ -77,7 +129,7 @@ pub async fn page(
         if cursor.chain != chain
             || cursor.parameters != parameters
             || cursor.index >= nullifiers.len()
-            || cursor.generation > generations.current_generation
+            || !relevant.contains(&cursor.generation)
         {
             return Err(ServiceError::invalid_argument(anyhow::anyhow!(
                 "spend cursor belongs to another query"
@@ -90,18 +142,18 @@ pub async fn page(
         spends: vec![],
         next_cursor: vec![],
     };
-    // A bounded page includes at most 64 generation skips or witness reads.
+    // A bounded page includes at most 64 witness reads in overlapping generations.
     for _ in 0..64 {
-        if cursor.generation > generations.current_generation {
+        if cursor.generation >= relevant.end {
             break;
         }
         let range = nullifier_tree::generation_block_range(&state, cursor.generation)
             .await
             .map_err(ServiceError::unavailable)?;
         if range.end_height < request.start_height || range.start_height > request.end_height {
-            cursor.generation += 1;
-            cursor.index = 0;
-            continue;
+            return Err(ServiceError::unavailable(anyhow::anyhow!(
+                "inconsistent generation block ranges"
+            )));
         }
         let nullifier = nullifiers[cursor.index];
         let (spent, witness, root) = if cursor.generation < generations.archived_generation_count {
@@ -109,8 +161,7 @@ pub async fn page(
                 .await
                 .map_err(ServiceError::unavailable)?;
             let repository = service
-                .generation_packs
-                .clone()
+                .generation_packs()
                 .context("archive repository is unavailable")
                 .map_err(ServiceError::unavailable)?;
             let permit = service
@@ -125,7 +176,7 @@ pub async fn page(
             .await
             .map_err(|e| ServiceError::internal(e.into()))?;
             let (spent, witness) = result.map_err(|e| {
-                if let Some(r) = &service.generation_packs {
+                if let Some(r) = service.generation_packs() {
                     r.request_repair(cursor.generation);
                 }
                 ServiceError::unavailable(e)
@@ -173,7 +224,7 @@ pub async fn page(
             cursor.generation += 1;
         }
     }
-    if cursor.generation <= generations.current_generation {
+    if cursor.generation < relevant.end {
         response.next_cursor =
             serde_json::to_vec(&cursor).map_err(|e| ServiceError::internal(e.into()))?;
     }

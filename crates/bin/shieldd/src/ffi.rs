@@ -89,6 +89,7 @@ struct Handle {
     queries: std::sync::Arc<crate::QueryService>,
     read_slots: std::sync::Arc<tokio::sync::Semaphore>,
     query_bytes: std::sync::Arc<tokio::sync::Semaphore>,
+    check_bytes: std::sync::Arc<tokio::sync::Semaphore>,
 }
 
 #[repr(C)]
@@ -312,7 +313,10 @@ fn open_handle(
             service.queries().limits.read_workers,
         )),
         query_bytes: std::sync::Arc::new(tokio::sync::Semaphore::new(
-            service.queries().limits.query_memory_bytes,
+            service.queries().limits.read_memory_bytes(),
+        )),
+        check_bytes: std::sync::Arc::new(tokio::sync::Semaphore::new(
+            service.queries().limits.check_tx_reservation_bytes(),
         )),
         runtime,
         service: tokio::sync::Mutex::new(service),
@@ -340,7 +344,11 @@ pub extern "C" fn shieldd_call(
         let handle = unsafe { &*(handle.cast::<Handle>()) };
         let is_query = method.is_query();
         if is_query {
-            query_budget = Some(handle.query_bytes.clone());
+            query_budget = Some(if method == Method::CheckTx {
+                handle.check_bytes.clone()
+            } else {
+                handle.query_bytes.clone()
+            });
         }
         if is_query && request_len > handle.queries.limits.request_bytes {
             return Err(FfiError::invalid_argument(
@@ -349,14 +357,21 @@ pub extern "C" fn shieldd_call(
         }
         let request = unsafe { input_bytes(request, request_len)? };
         if is_query {
-            let _slot = handle
-                .read_slots
-                .clone()
-                .try_acquire_owned()
-                .map_err(|_| FfiError::service(ServiceError::overloaded()))?;
+            let _slot = if method == Method::CheckTx {
+                None
+            } else {
+                Some(
+                    handle
+                        .read_slots
+                        .clone()
+                        .try_acquire_owned()
+                        .map_err(|_| FfiError::service(ServiceError::overloaded()))?,
+                )
+            };
             // A reservation covers construction/encoding and remains attached to the returned buffer.
-            let memory = handle
-                .query_bytes
+            let memory = query_budget
+                .as_ref()
+                .expect("query budget")
                 .clone()
                 .try_acquire_many_owned(handle.queries.limits.reservation_bytes())
                 .map_err(|_| FfiError::service(ServiceError::overloaded()))?;
@@ -433,9 +448,11 @@ pub extern "C" fn shieldd_close(handle: *mut ShielddHandle) -> ShielddResult {
             queries,
             read_slots,
             query_bytes,
+            check_bytes,
         } = *handle;
         read_slots.close();
         query_bytes.close();
+        check_bytes.close();
         drop(queries);
         let mut service = service.into_inner();
         runtime
@@ -780,8 +797,16 @@ mod tests {
         drop(guard);
         reader.join().unwrap();
         assert_eq!(result.unwrap(), STATUS_OK);
+        // Admission stays available even while callers retain every read response.
+        let baseline = shieldd_call(handle, METHOD_CHECK_TX, ptr::null(), 0);
+        let expected_status = baseline.status;
+        let expected_error = error_text(&baseline);
+        assert_ne!(expected_status, STATUS_OVERLOADED);
+        free_result(baseline);
         let mut held = Vec::new();
-        for _ in 0..8 {
+        for _ in 0..raw.queries.limits.read_memory_bytes()
+            / raw.queries.limits.reservation_bytes() as usize
+        {
             let response = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
             assert_eq!(response.status, STATUS_OK);
             held.push(response);
@@ -789,6 +814,19 @@ mod tests {
         let overloaded = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
         assert_eq!(overloaded.status, STATUS_OVERLOADED);
         free_result(overloaded);
+        let slots = raw
+            .read_slots
+            .clone()
+            .try_acquire_many_owned(raw.queries.limits.read_workers as u32)
+            .unwrap();
+        let check = shieldd_call(handle, METHOD_CHECK_TX, ptr::null(), 0);
+        assert_eq!(
+            check.status, expected_status,
+            "public reads starved CheckTx"
+        );
+        assert_eq!(error_text(&check), expected_error);
+        free_result(check);
+        drop(slots);
         free_result(held.pop().unwrap());
         let admitted = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
         assert_eq!(admitted.status, STATUS_OK);

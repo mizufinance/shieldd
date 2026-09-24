@@ -47,12 +47,18 @@ use 64 MiB sort runs and a 16-way merge. Publication validates the complete file
 flushes it, publishes without overwriting an existing archive, and flushes the
 directory before recording success. Startup inspects manifests; a single
 maintenance worker validates, builds and repairs archives in the background.
+Archive directory ownership is exclusive for the lifetime of the repository and
+its in-flight readers. Startup reclaims only archive-owned build, unpublished and
+quarantine scratch names while holding that lock; published manifests/data and
+unrelated files are preserved. Invalid manifests are removed before rebuilding.
 
 Witness queries binary-search the index and read the leaf/path through a separate
 64 MiB page cache. Each returned witness is checked against the committed root.
 Missing or corrupt data is unavailable, never evidence that a nullifier is unspent.
 Repair replays the generation's block interval using retained canonical history.
 Per-block insertion intervals recover spend heights without a record per nullifier.
+Spend queries binary-search the monotone generation block ranges and page only
+overlapping generations.
 
 Retirement requires complete validation in the current process. A validated file
 handle and identity remain bound to the pruning commit. The ordered writer commits

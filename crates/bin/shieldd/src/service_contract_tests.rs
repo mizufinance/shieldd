@@ -502,8 +502,32 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
             cursor: vec![],
         })
         .await?;
+    use shieldd_sdk_compact_block::pages::{AssemblyBudget, AssemblyLimits};
+    let length = full
+        .fragments
+        .iter()
+        .map(|f| f.total_length as usize)
+        .sum::<usize>();
+    for limits in [
+        AssemblyLimits {
+            max_encoded_bytes: length - 1,
+            max_records: 262_144,
+        },
+        AssemblyLimits {
+            max_encoded_bytes: 64 * 1024 * 1024,
+            max_records: 1,
+        },
+    ] {
+        let mut limited = PageAssembler::new(1, "shieldd-service-test".into(), false);
+        assert!(limited
+            .push(full.clone(), &mut AssemblyBudget::new(limits)?)
+            .is_err());
+    }
     let mut assembler = PageAssembler::new(1, "shieldd-service-test".into(), false);
-    assembler.push(full)?;
+    assembler.push(
+        full,
+        &mut shieldd_sdk_compact_block::pages::AssemblyBudget::new(Default::default())?,
+    )?;
     assert_eq!(assembler.full()?.encode_to_vec(), expected);
     let selector: shieldd_sdk_proto::core::component::shielded_pool::v1::RoutingSelector =
         RoutingSelector {
@@ -521,7 +545,10 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
         .await?;
     assert!(page.next_cursor.is_empty());
     let mut assembler = PageAssembler::new(1, "shieldd-service-test".into(), true);
-    assembler.push(page.clone())?;
+    assembler.push(
+        page.clone(),
+        &mut shieldd_sdk_compact_block::pages::AssemblyBudget::new(Default::default())?,
+    )?;
     let sparse = assembler.sparse()?;
     assert_eq!(
         sparse.proofs.iter().map(|p| p.position).collect::<Vec<_>>(),
@@ -538,7 +565,10 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
     let mut assembler = PageAssembler::new(1, "shieldd-service-test".into(), true);
     // A conflicting repeated candidate or a forged path must fail before wallet state is touched.
     assert!(assembler
-        .push(tampered)
+        .push(
+            tampered,
+            &mut shieldd_sdk_compact_block::pages::AssemblyBudget::new(Default::default())?
+        )
         .and_then(|_| assembler.sparse())
         .is_err());
     Ok(())
@@ -656,5 +686,82 @@ async fn spend_pages_bind_snapshot_and_report_verified_insertion_heights() -> Re
         }
     }
     assert_eq!(found, nullifiers);
+    Ok(())
+}
+
+#[tokio::test]
+async fn recent_spend_query_finishes_without_pages_for_unrelated_generations() -> Result<()> {
+    use shieldd_sdk_sct::{component::clock::EpochManager, nullifier_tree, Nullifier};
+    let (storage, client) = initialized_client().await?;
+    let nullifier = Nullifier(shieldd_sdk_crypto::Fq::from(1u64));
+    let mut request = shieldd_sdk_proto::core::component::sct::v1::SpendStatusPageRequest {
+        nullifiers: vec![nullifier.into()],
+        start_height: 0,
+        end_height: 0,
+        cursor: vec![],
+    };
+    let genesis = client.queries().spend_status_page(request.clone()).await?;
+    assert!(genesis.spends.is_empty() && genesis.next_cursor.is_empty());
+    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    nullifier_tree::record_block_insertions(
+        &mut state,
+        nullifier_tree::InsertionInterval {
+            height: 0,
+            generation: 0,
+            first_position: 1,
+            count: 0,
+        },
+    )
+    .await?;
+    for generation in 1..=128u64 {
+        nullifier_tree::rollover(&mut state, generation * 30, generation << 32).await?;
+        if generation == 128 {
+            nullifier_tree::insert_batch(&mut state, [nullifier]).await?;
+        }
+        nullifier_tree::record_block_insertions(
+            &mut state,
+            nullifier_tree::InsertionInterval {
+                height: generation,
+                generation,
+                first_position: 1,
+                count: u64::from(generation == 128),
+            },
+        )
+        .await?;
+    }
+    state.put_block_height(128);
+    storage.commit(state).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
+    request.start_height = 128;
+    request.end_height = 128;
+    let page = client.queries().spend_status_page(request.clone()).await?;
+    assert_eq!(page.spends.len(), 1);
+    assert_eq!(page.spends[0].height, 128);
+    assert!(
+        page.next_cursor.is_empty(),
+        "unrelated generations require extra network round trips"
+    );
+    // Epoch completion opens the next tree before that tree has a block interval.
+    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    nullifier_tree::rollover(&mut state, 129 * 30, 129 << 32).await?;
+    storage.commit(state).await?;
+    client
+        .queries()
+        .publish_committed(
+            client
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?,
+        )
+        .await?;
+    let after_rollover = client.queries().spend_status_page(request).await?;
+    assert_eq!(after_rollover.spends, page.spends);
+    assert!(after_rollover.next_cursor.is_empty());
     Ok(())
 }
