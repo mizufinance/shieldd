@@ -534,22 +534,22 @@ impl Repository {
         File::open(self.directory())?.sync_all()?;
         self.verify(archived)
     }
-    fn read_at(
+    fn read_into(
         &self,
         file: &mut File,
         manifest: &Manifest,
         offset: u64,
-        length: usize,
-    ) -> Result<Vec<u8>> {
+        out: &mut [u8],
+    ) -> Result<()> {
         ensure!(
             offset
-                .checked_add(length as u64)
+                .checked_add(out.len() as u64)
                 .is_some_and(|end| end <= manifest.byte_length),
             "archive read out of bounds"
         );
-        let mut out = Vec::with_capacity(length);
-        while out.len() < length {
-            let at = offset + out.len() as u64;
+        let mut filled = 0;
+        while filled < out.len() {
+            let at = offset + filled as u64;
             let page = at / PAGE_BYTES;
             let key = (manifest.digest, page);
             let cached = self
@@ -588,9 +588,45 @@ impl Repository {
                 bytes
             };
             let start = (at % PAGE_BYTES) as usize;
-            out.extend_from_slice(&bytes[start..(start + length - out.len()).min(bytes.len())]);
+            let length = (out.len() - filled).min(bytes.len() - start);
+            out[filled..filled + length].copy_from_slice(&bytes[start..start + length]);
+            filled += length;
         }
-        Ok(out)
+        Ok(())
+    }
+
+    fn siblings(
+        &self,
+        file: &mut File,
+        manifest: &Manifest,
+        level: usize,
+        offset: u64,
+        count: u64,
+        node: u64,
+    ) -> Result<[[u8; 32]; 3]> {
+        let group = node / 4 * 4;
+        let end = (group + 4).min(count);
+        let first = group + u64::from(node == group);
+        let last = end - u64::from(node + 1 == end);
+        let mut bytes = [0; 128];
+        if first < last {
+            // Include an interior queried node to avoid loading its page twice.
+            let length = (last - first) as usize * 32;
+            self.read_into(file, manifest, offset + first * 32, &mut bytes[..length])?;
+        }
+        let mut siblings = [ZERO_HASHES[level].to_bytes(); 3];
+        let mut slot = 0;
+        for index in group..group + 4 {
+            if index == node {
+                continue;
+            }
+            if index < count {
+                let start = (index - first) as usize * 32;
+                siblings[slot].copy_from_slice(&bytes[start..start + 32]);
+            }
+            slot += 1;
+        }
+        Ok(siblings)
     }
     pub fn witness(
         &self,
@@ -611,10 +647,13 @@ impl Repository {
         let mut position = 0;
         while low < high {
             let mid = low + (high - low) / 2;
-            let item: [u8; 40] = self
-                .read_at(&mut file, &manifest, layout.index + mid * INDEX_BYTES, 40)?
-                .try_into()
-                .expect("fixed archive index width");
+            let mut item = [0; INDEX_BYTES as usize];
+            self.read_into(
+                &mut file,
+                &manifest,
+                layout.index + mid * INDEX_BYTES,
+                &mut item,
+            )?;
             match item[..32].cmp(&key) {
                 std::cmp::Ordering::Equal => {
                     position = index_position(&item);
@@ -632,32 +671,13 @@ impl Repository {
             position < manifest.metadata.leaf_count,
             "archive index position out of bounds"
         );
-        let leaf = decode_leaf(&self.read_at(
-            &mut file,
-            &manifest,
-            position * LEAF_BYTES,
-            LEAF_BYTES as usize,
-        )?)?;
+        let mut leaf_bytes = [0; LEAF_BYTES as usize];
+        self.read_into(&mut file, &manifest, position * LEAF_BYTES, &mut leaf_bytes)?;
+        let leaf = decode_leaf(&leaf_bytes)?;
         let mut path = Vec::with_capacity(DEPTH as usize);
         let mut node = position;
         for (level, &(offset, count)) in layout.levels.iter().take(DEPTH as usize).enumerate() {
-            let mut siblings = [[0; 32]; 3];
-            let mut slot = 0;
-            for child in 0..4 {
-                if child == node % 4 {
-                    continue;
-                }
-                let index = node / 4 * 4 + child;
-                siblings[slot] = if index < count {
-                    self.read_at(&mut file, &manifest, offset + index * 32, 32)?
-                        .try_into()
-                        .expect("fixed archive node width")
-                } else {
-                    ZERO_HASHES[level].to_bytes()
-                };
-                slot += 1;
-            }
-            path.push(siblings);
+            path.push(self.siblings(&mut file, &manifest, level, offset, count, node)?);
             node /= 4;
         }
         let witness = Witness {
@@ -903,6 +923,125 @@ mod tests {
     use cnidarium::{StateDelta, TempStorage};
     fn nf(value: u64) -> Nullifier {
         Nullifier(Fq::from(value))
+    }
+
+    #[test]
+    fn sibling_spans_preserve_bytes_and_reduce_uncached_page_reads() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let data: Vec<u8> = (0..PAGE_BYTES * 3).map(|i| (i % 251) as u8).collect();
+        let path = directory.path().join("nodes");
+        fs::write(&path, &data)?;
+        let manifest = Manifest {
+            schema: 2,
+            metadata: GenerationPackMetadata {
+                protocol_version: crate::nullifier_generation::PROTOCOL_VERSION,
+                generation_index: 0,
+                generation_root: [0; 32],
+                generation_start_position: 0,
+                generation_end_position: 0,
+                leaf_count: 9,
+            },
+            byte_length: data.len() as u64,
+            digest: [1; 32],
+        };
+        for budget in [0, PAGE_BYTES as usize - 1, PAGE_BYTES as usize, 8192] {
+            let optimized =
+                Repository::new(directory.path().join(format!("span-{budget}")), budget)?;
+            let reference =
+                Repository::new(directory.path().join(format!("reference-{budget}")), budget)?;
+            let mut span_file = File::open(&path)?;
+            let mut reference_file = File::open(&path)?;
+            for offset in [
+                0,
+                PAGE_BYTES - 96,
+                PAGE_BYTES - 32,
+                PAGE_BYTES - 16,
+                PAGE_BYTES,
+            ] {
+                for count in 1..=9 {
+                    for node in 0..count {
+                        *optimized.cache.lock().expect("cache") = PageCache::default();
+                        *reference.cache.lock().expect("cache") = PageCache::default();
+                        // Compare identical cold states, then identical prior requests (warm when retained).
+                        for _ in 0..2 {
+                            let before = optimized.read_statistics().read_pages;
+                            let before_reference = reference.read_statistics().read_pages;
+                            let actual = optimized.siblings(
+                                &mut span_file,
+                                &manifest,
+                                0,
+                                offset,
+                                count,
+                                node,
+                            )?;
+                            let mut expected = [ZERO_HASHES[0].to_bytes(); 3];
+                            let mut slot = 0;
+                            for index in node / 4 * 4..node / 4 * 4 + 4 {
+                                if index == node {
+                                    continue;
+                                }
+                                if index < count {
+                                    let start = (offset + index * 32) as usize;
+                                    expected[slot].copy_from_slice(&data[start..start + 32]);
+                                    let mut old_read = [0; 32];
+                                    reference.read_into(
+                                        &mut reference_file,
+                                        &manifest,
+                                        start as u64,
+                                        &mut old_read,
+                                    )?;
+                                    assert_eq!(old_read, expected[slot]);
+                                }
+                                slot += 1;
+                            }
+                            assert_eq!(
+                                actual, expected,
+                                "budget {budget}, offset {offset}, count {count}, node {node}"
+                            );
+                            let reads = optimized.read_statistics().read_pages - before;
+                            let old_reads =
+                                reference.read_statistics().read_pages - before_reference;
+                            assert!(reads <= old_reads, "{reads} > {old_reads}");
+                            if budget == 0 && offset == 0 && count == 4 {
+                                assert_eq!((reads, old_reads), (1, 3));
+                            }
+                            assert!(optimized.read_statistics().cached_bytes <= budget);
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn sibling_spans_match_live_tree_for_empty_and_partial_groups() -> Result<()> {
+        for count in [0, 1, 2, 3, 4, 8, 35] {
+            let storage = TempStorage::new().await?;
+            let mut state = StateDelta::new(storage.latest_snapshot());
+            crate::nullifier_tree::initialize(&mut state).await?;
+            let values = (0..count).rev().map(|i| nf(i * 2)).collect::<Vec<_>>();
+            crate::nullifier_tree::insert_batch(&mut state, values.clone()).await?;
+            crate::nullifier_tree::rollover(&mut state, 30, 1 << 32).await?;
+            crate::nullifier_tree::rollover(&mut state, 60, 2 << 32).await?;
+            let archived = crate::nullifier_tree::archived_generation(&state, 0).await?;
+            let directory = tempfile::tempdir()?;
+            let repository = Repository::new(directory.path().to_path_buf(), 0)?;
+            repository.write_stream(archived, values.into_iter().map(Ok))?;
+            for target in 0..=count * 2 + 1 {
+                let (found, witness) = repository.witness(archived, nf(target))?;
+                assert_eq!(found, target % 2 == 0 && target / 2 < count);
+                if found {
+                    witness.verify_membership(nf(target), archived.generation_root)?;
+                } else {
+                    let oracle =
+                        crate::nullifier_tree::archived_nonmembership_proof(&state, 0, nf(target))
+                            .await?;
+                    assert_eq!(witness, oracle.witness);
+                }
+            }
+        }
+        Ok(())
     }
     #[tokio::test]
     async fn indexed_witnesses_reject_corruption_and_incomplete_publication() -> Result<()> {

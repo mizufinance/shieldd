@@ -10,6 +10,7 @@ use shieldd_sdk_compliance::{
     AuditEffect, AuditEffectRecord, AuditLogWrite as _, AuditSource, WithdrawalKind,
 };
 use shieldd_sdk_fee::component::FeePay as _;
+use shieldd_sdk_proof_params::historical::BatchVerifier;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
 use shieldd_sdk_sct::nullifier_generation::{empty_history_head, PROTOCOL_VERSION};
@@ -34,6 +35,8 @@ use crate::{
 
 #[cfg(test)]
 mod cancellation_tests;
+#[cfg(test)]
+mod history_tests;
 mod stateful;
 pub(crate) mod stateless;
 
@@ -364,15 +367,19 @@ pub(crate) fn verify_historical_proofs(
         .transaction_body
         .nullifier_window
         .context("old inputs require a nullifier window")?;
-    let auth_hash = tx.auth_hash();
-    old_nullifiers
-        .into_iter()
+    let mut verifier = BatchVerifier::new(registry);
+    for (nullifier, bundle) in old_nullifiers
+        .iter()
         .zip(&tx.transaction_body.historical_nullifier_proofs)
-        .map(|(nullifier, bundle)| {
-            verify_historical_nullifier_proof(nullifier, window, bundle, registry)?;
-            Ok(VerifiedHistoricalInput::new(nullifier, window, auth_hash))
-        })
-        .collect()
+    {
+        queue_historical_nullifier_proof(*nullifier, window, bundle, &mut verifier)?;
+    }
+    verifier.finish()?;
+    let auth_hash = tx.auth_hash();
+    Ok(old_nullifiers
+        .into_iter()
+        .map(|nullifier| VerifiedHistoricalInput::new(nullifier, window, auth_hash))
+        .collect())
 }
 
 pub(crate) fn verify_historical_nullifier_proof(
@@ -381,20 +388,30 @@ pub(crate) fn verify_historical_nullifier_proof(
     bundle: &shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof,
     registry: &shieldd_sdk_proof_params::pari::Registry,
 ) -> Result<()> {
+    let mut verifier = BatchVerifier::new(registry);
+    queue_historical_nullifier_proof(nullifier, window, bundle, &mut verifier)?;
+    verifier.finish()
+}
+
+fn queue_historical_nullifier_proof(
+    nullifier: Nullifier,
+    window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
+    bundle: &shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof,
+    verifier: &mut BatchVerifier<'_>,
+) -> Result<()> {
     bundle.validate_structure(window)?;
     let nullifier_bytes: [u8; 32] = nullifier.into();
     let mut expected_head = empty_history_head();
     for chunk in &bundle.completed_chunks {
-        shieldd_sdk_proof_params::historical::verify_chunk(
-            registry,
+        verifier.push(
             shieldd_sdk_proof_params::historical::ChunkClaim {
                 protocol_version: PROTOCOL_VERSION,
                 nullifier: nullifier_bytes,
                 chunk_index: chunk.chunk_index,
                 start_history_head: expected_head,
                 end_history_head: chunk.end_history_head,
-            },
-            &chunk.proof,
+            }
+            .verification(&chunk.proof)?,
         )?;
         expected_head = chunk.end_history_head;
     }
@@ -406,8 +423,7 @@ pub(crate) fn verify_historical_nullifier_proof(
             generation.generation_start_position,
             generation.generation_end_position,
         )?;
-        shieldd_sdk_proof_params::historical::verify_generation(
-            registry,
+        verifier.push(
             shieldd_sdk_proof_params::historical::GenerationClaim {
                 protocol_version: PROTOCOL_VERSION,
                 nullifier: nullifier_bytes,
@@ -417,8 +433,8 @@ pub(crate) fn verify_historical_nullifier_proof(
                 generation_end_position: generation.generation_end_position,
                 start_history_head: expected_head,
                 end_history_head,
-            },
-            &generation.proof,
+            }
+            .verification(&generation.proof)?,
         )?;
         expected_head = end_history_head;
     }
