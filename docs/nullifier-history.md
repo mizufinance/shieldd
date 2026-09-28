@@ -41,8 +41,9 @@ retain their trailing proofs until the tenth raw witness closes the chunk.
 A failed proof leaves staged work available after restart. See [Proof system](proof-system.md) for registry identity and checks.
 
 Historical verification batches each transaction's chunk and generation proofs
-separately, with at most 32 pending proofs per family. Full batches use the native
-Pari verifier; singleton remainders use individual verification. Receipts are
+separately, with at most 32 pending proofs per family. Full batches and remainders
+of 2–31 proofs use the native Pari batch verifier; singleton remainders use
+individual verification. Receipts are
 created only after every input succeeds. This reduces pairing-check invocations
 from `C + G` to `ceil(C / 32) + ceil(G / 32)` for `C` chunk and `G` generation
 proofs. It retains per-proof decoding and statement evaluation, adds bounded
