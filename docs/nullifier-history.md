@@ -40,6 +40,18 @@ the final incomplete tail needs generation proofs. Live incremental updates
 retain their trailing proofs until the tenth raw witness closes the chunk.
 A failed proof leaves staged work available after restart. See [Proof system](proof-system.md) for registry identity and checks.
 
+Historical verification batches each transaction's chunk and generation proofs
+separately, with at most 32 pending proofs per family. Full batches and remainders
+of 2–31 proofs use the native Pari batch verifier; singleton remainders use
+individual verification. Receipts are
+created only after every input succeeds. This reduces pairing-check invocations
+from `C + G` to `ceil(C / 32) + ceil(G / 32)` for `C` chunk and `G` generation
+proofs. It retains per-proof decoding and statement evaluation, adds bounded
+aggregation memory, and can defer invalid-proof rejection until its batch fills.
+Batching uses Commonware's fresh random coefficients and 128-bit randomized-check
+bound. Lower total verification latency is expected for larger batches, not
+guaranteed for every input.
+
 Full nodes store immutable indexed archives: positional leaves, a sorted
 nullifier index, and per-level Merkle nodes. A small versioned manifest binds
 the generation, root, SCT interval, lengths and file digest. Streaming builders
@@ -53,7 +65,12 @@ quarantine scratch names while holding that lock; published manifests/data and
 unrelated files are preserved. Invalid manifests are removed before rebuilding.
 
 Witness queries binary-search the index and read the leaf/path through a separate
-64 MiB page cache. Each returned witness is checked against the committed root.
+64 MiB page cache. Reads fill caller-owned buffers. Each Merkle level reads one
+span covering its existing siblings (at most 128 bytes), including an interior
+queried node only to avoid reading the same page twice. Implicit zero siblings
+need no read. This removes per-record result allocations and reduces repeated
+uncached page reads without changing archive bytes or the cache budget.
+Each returned witness is checked against the committed root.
 Missing or corrupt data is unavailable, never evidence that a nullifier is unspent.
 Repair replays the generation's block interval using retained canonical history.
 Per-block insertion intervals recover spend heights without a record per nullifier.
