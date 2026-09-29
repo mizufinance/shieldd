@@ -1,7 +1,7 @@
 use crate::{
     hash::Parameters,
-    range::{decompose, less_or_equal, less_or_equal_bounded},
-    tree::{self, Path, STATE_DEPTH, Tree},
+    range::{compare_bounded, decompose, less_or_equal, BoundedComparison},
+    tree::{self, Path, Tree, STATE_DEPTH},
 };
 use commonware_cryptography::{
     bls12381::primitives::group::Scalar,
@@ -52,6 +52,21 @@ pub struct Output<'ctx> {
     pub day_start: Var<'ctx, Scalar>,
     pub proof_context: Var<'ctx, Scalar>,
     pub flagged: BoolVar<'ctx, Scalar>,
+    pub arithmetic: Arithmetic<'ctx>,
+}
+
+/// Read-only handles for the actual amount and limit constraints.
+pub struct Arithmetic<'ctx> {
+    pub prior: Var<'ctx, Scalar>,
+    pub successor: Var<'ctx, Scalar>,
+    pub outbound: Var<'ctx, Scalar>,
+    pub limit: Var<'ctx, Scalar>,
+    pub use_real: BoolVar<'ctx, Scalar>,
+    pub prior_bits: Vec<BoolVar<'ctx, Scalar>>,
+    pub successor_bits: Vec<BoolVar<'ctx, Scalar>>,
+    pub candidate_bits: Vec<BoolVar<'ctx, Scalar>>,
+    pub limit_bits: Vec<BoolVar<'ctx, Scalar>>,
+    pub comparison: BoundedComparison<'ctx>,
 }
 fn amount(value: u128) -> Scalar {
     Scalar::from_limbs([value as u64, (value >> 64) as u64, 0, 0])
@@ -101,14 +116,26 @@ pub fn constrain<'ctx>(
     );
     let prior = var(&amount(w.prior_volume));
     let successor = var(&amount(w.successor_volume));
-    decompose(ctx, &prior, 128);
-    decompose(ctx, &successor, 128);
+    let prior_bits = decompose(ctx, &prior, 128);
+    let successor_bits = decompose(ctx, &successor, 128);
     let limit_bits = decompose(ctx, &shared.daily_limit, 128);
     let candidate = prior.clone() + &shared.outbound;
     let candidate_bits = decompose(ctx, &candidate, 128);
     equal_if(&use_real, &successor, &candidate);
-    let within = less_or_equal_bounded(ctx, &candidate_bits, &limit_bits);
-    (use_real.clone() & !within).assert_eq(&BoolVar::constant(false));
+    let comparison = compare_bounded(ctx, &candidate_bits, &limit_bits);
+    (use_real.clone() & !comparison.within.clone()).assert_eq(&BoolVar::constant(false));
+    let arithmetic = Arithmetic {
+        prior: prior.clone(),
+        successor: successor.clone(),
+        outbound: shared.outbound.clone(),
+        limit: shared.daily_limit.clone(),
+        use_real: use_real.clone(),
+        prior_bits,
+        successor_bits,
+        candidate_bits,
+        limit_bits,
+        comparison,
+    };
     equal_if(
         &(use_real.clone() & starts_new_day.clone()),
         &prior,
@@ -167,6 +194,7 @@ pub fn constrain<'ctx>(
         day_start,
         proof_context,
         flagged,
+        arithmetic,
     }
 }
 

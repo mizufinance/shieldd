@@ -4,7 +4,7 @@ use crate::{
     hash::Parameters,
     range::{decompose, less_or_equal_bounded},
     recovery, scalar,
-    tree::{self, Path, STATE_DEPTH, Tree},
+    tree::{self, Path, Tree, STATE_DEPTH},
     volume::NOTE_NULLIFIER,
 };
 use commonware_cryptography::{
@@ -208,6 +208,8 @@ pub struct OutputWitness {
 
 pub struct Output<'ctx> {
     pub note: Note<Var<'ctx, Scalar>>,
+    /// The existing amount decomposition; retaining handles adds no constraints.
+    pub amount_bits: Vec<BoolVar<'ctx, Scalar>>,
     pub commitment: Var<'ctx, Scalar>,
     pub capsule: recovery::Capsule<Var<'ctx, Scalar>>,
 }
@@ -223,7 +225,7 @@ pub fn constrain_output<'ctx>(
     w: &OutputWitness,
 ) -> Output<'ctx> {
     let note = w.note.witness(ctx);
-    decompose(ctx, &note.amount, 128);
+    let amount_bits = decompose(ctx, &note.amount, 128);
     if receiver {
         let _ = note.amount.inv();
     }
@@ -242,6 +244,7 @@ pub fn constrain_output<'ctx>(
     capsule.commitment.assert_eq(&note.recovery);
     Output {
         note,
+        amount_bits,
         commitment,
         capsule,
     }

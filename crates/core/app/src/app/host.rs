@@ -1163,6 +1163,7 @@ fn hash_bytes(hasher: &mut sha2::Sha256, bytes: &[u8]) {
 
 #[cfg(test)]
 mod tests {
+    mod snapshot_replay;
     use super::*;
     use crate::genesis::{AppState, Content};
     use crate::SUBSTORE_PREFIXES;

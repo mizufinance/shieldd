@@ -66,6 +66,22 @@ pub fn less_or_equal_bounded<'ctx>(
     a: &[BoolVar<'ctx, Scalar>],
     b: &[BoolVar<'ctx, Scalar>],
 ) -> BoolVar<'ctx, Scalar> {
+    compare_bounded(ctx, a, b).within
+}
+
+/// Original comparator variables, retained without changing its constraints.
+pub struct BoundedComparison<'ctx> {
+    pub within: BoolVar<'ctx, Scalar>,
+    pub borrow: BoolVar<'ctx, Scalar>,
+    pub difference: Var<'ctx, Scalar>,
+    pub difference_bits: Vec<BoolVar<'ctx, Scalar>>,
+}
+
+pub fn compare_bounded<'ctx>(
+    ctx: Context<'ctx, Scalar>,
+    a: &[BoolVar<'ctx, Scalar>],
+    b: &[BoolVar<'ctx, Scalar>],
+) -> BoundedComparison<'ctx> {
     assert_eq!(a.len(), b.len());
     assert!((1..=253).contains(&a.len()));
     let compose = |bits: &[BoolVar<'ctx, Scalar>]| {
@@ -86,10 +102,15 @@ pub fn less_or_equal_bounded<'ctx>(
         b_value.value(values) - &a_value.value(values)
             + &(borrow.var().value(values) * &two_to_width)
     });
-    decompose(ctx, &difference, a.len());
+    let difference_bits = decompose(ctx, &difference, a.len());
     (b_value - &a_value)
-        .assert_eq(&(difference - &(borrow.var().clone() * &Var::native(two_to_width))));
-    !borrow
+        .assert_eq(&(difference.clone() - &(borrow.var().clone() * &Var::native(two_to_width))));
+    BoundedComparison {
+        within: !borrow.clone(),
+        borrow,
+        difference,
+        difference_bits,
+    }
 }
 
 /// Compare canonical 255-bit field encodings using two bounded limbs.

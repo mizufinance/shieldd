@@ -313,7 +313,8 @@ fn disclosure_template<const N: usize>() -> disclosure::Witness<N> {
     }
 }
 
-fn template(family: Family) -> Witness {
+/// Shape-only witness used by catalogue compilation; contains no setup randomness.
+pub fn template(family: Family) -> Witness {
     match family {
         Family::Transfer => {
             let core = || encryption::Core {

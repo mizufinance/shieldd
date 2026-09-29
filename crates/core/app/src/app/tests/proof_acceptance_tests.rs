@@ -1205,3 +1205,150 @@ async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result
     }
     Ok(())
 }
+
+/// Small single-Transfer counterpart for externally generated snapshot scenarios.
+/// The cache capability is minted by actual proof verification, never fabricated.
+#[tokio::test]
+#[ignore = "requires complete local Pari registry and one genuine Transfer proof"]
+async fn snapshot_transfer_cache_replay() -> Result<()> {
+    use shieldd_sdk_compliance::{
+        admission::StaleComplianceSnapshot, ComplianceRegistryRead as _, UserAssetStatusAction,
+    };
+    let storage = build_fixture_storage().await?;
+    let fixture_path = std::env::var_os("SHIELDD_SNAPSHOT_TRANSFER").map(std::path::PathBuf::from);
+    let bytes = if let Some(path) = fixture_path.as_ref().filter(|path| path.is_file()) {
+        std::fs::read(path)?
+    } else {
+        let client = MockClient::new(test_keys::SPEND_KEY.clone())
+            .with_sync_to_storage(&storage)
+            .await?;
+        let note = client
+            .notes
+            .values()
+            .find(|note| {
+                note.asset_id() == *BASE_ASSET_ID
+                    && note.address() == test_keys::ADDRESS_0.deref().clone()
+            })
+            .context("transfer note")?
+            .clone();
+        let intent = shieldd_sdk_mock_client::TransactionIntent {
+            actions: vec![transfer_plan(
+                &client,
+                note,
+                Fr::from(1u64),
+                test_keys::ADDRESS_1.deref().clone(),
+            )?
+            .into()],
+            memo: None,
+            fee_funding: None,
+            transaction_parameters: TransactionParameters {
+                chain_id: TEST_CHAIN_ID.to_owned(),
+                ..Default::default()
+            },
+            nullifier_window: Some(test_nullifier_window()),
+        };
+        let plan = client
+            .complete_intent(intent, storage.latest_snapshot())
+            .await?;
+        let bytes = client
+            .witness_auth_build(&plan, registry())
+            .await?
+            .encode_to_vec();
+        if let Some(path) = fixture_path.as_ref() {
+            std::fs::write(path, &bytes)?;
+        }
+        bytes
+    };
+    let tx = Transaction::decode_canonical(&bytes)?;
+    anyhow::ensure!(
+        matches!(&tx.transaction_body.actions[..], [Action::Transfer(_)])
+            && tx.transaction_body.fee_funding.is_none(),
+        "SNAPSHOT_TRANSFER_SHAPE: fixture must contain exactly one body Transfer and no fee-funding proof"
+    );
+    let cache = StatelessCache::new();
+    // Verification warms the cache on a disposable execution of the unspent parent.
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let context = app.benchmark_block_context().await?;
+    app.begin_block(&cnidarium_component::BlockContext {
+        height: context.height,
+        time: context.time,
+    })
+    .await?;
+    app.deliver_tx_bytes(&bytes, Some(&cache)).await?;
+    anyhow::ensure!(
+        matches!(
+            cache.get(registry().id(), &tx_hash(&bytes), &bytes),
+            Some(CacheEntry::FullyVerified(_))
+        ),
+        "SNAPSHOT_CACHE_MISSING: proof verification did not populate the actual cache"
+    );
+    drop(app);
+
+    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    app.begin_block(&cnidarium_component::BlockContext {
+        height: context.height,
+        time: context.time,
+    })
+    .await?;
+    let target_asset = asset::Id(Fq::from(991u64));
+    let target = test_keys::FULL_VIEWING_KEY.payment_address(2u32.into());
+    let mut delta = StateDelta::new(app.state.clone());
+    delta
+        .test_only_register_asset(
+            target_asset,
+            AssetPolicy::for_test(
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                u128::MAX,
+                *shieldd_sdk_crypto::generators::SPEND_AUTH,
+            ),
+            true,
+        )
+        .await?;
+    delta
+        .test_only_add_compliance_leaf(ComplianceLeaf::registered_for_test(
+            target.clone(),
+            target_asset,
+        ))
+        .await?;
+    delta
+        .apply_user_status_action(
+            &target,
+            target_asset,
+            UserAssetStatusAction::Freeze,
+            context.height,
+        )
+        .await?;
+    app.apply(delta);
+    for unfreeze in [false, true] {
+        if unfreeze {
+            let mut delta = StateDelta::new(app.state.clone());
+            delta
+                .apply_user_status_action(
+                    &target,
+                    target_asset,
+                    UserAssetStatusAction::Unfreeze,
+                    context.height,
+                )
+                .await?;
+            app.apply(delta);
+        }
+        let before_notes = pending_note_records(&app);
+        let before_nullifiers = app.state.pending_nullifiers();
+        let before_user = app.state.get_user_tree_root().await?;
+        let error = app
+            .deliver_tx_bytes(&bytes, Some(&cache))
+            .await
+            .expect_err("SNAPSHOT_CACHE_REJECT: a cached proof crossed the freeze barrier");
+        assert_eq!(
+            error.downcast_ref::<StaleComplianceSnapshot>(),
+            Some(&StaleComplianceSnapshot::Frozen),
+            "SNAPSHOT_CACHE_REASON: rejection must be the freeze barrier: {error:#}"
+        );
+        assert_eq!(pending_note_records(&app), before_notes);
+        assert_eq!(app.state.pending_nullifiers(), before_nullifiers);
+        assert_eq!(app.state.get_user_tree_root().await?, before_user);
+        assert_no_tx_effects(&app, &tx, "cached stale-snapshot rejection").await?;
+    }
+    println!("SNAPSHOT_CACHE_REPLAY_OK genuine_transfer=1 cached_rejections=2");
+    Ok(())
+}

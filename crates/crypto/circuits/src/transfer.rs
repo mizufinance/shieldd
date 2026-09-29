@@ -8,7 +8,7 @@ use crate::{
     range::is_zero,
     registry, routing, volume,
 };
-use anyhow::{Result, ensure};
+use anyhow::{ensure, Result};
 use commonware_codec::Encode;
 use commonware_cryptography::{
     bls12381::primitives::group::Scalar,
@@ -208,6 +208,23 @@ pub fn constrain<'ctx>(
     w: &Witness,
     claimed_statement: &Scalar,
 ) -> Vec<Var<'ctx, Scalar>> {
+    constrain_observed(ctx, params, generators, w, claimed_statement).0
+}
+
+pub struct VolumeObservation<'ctx> {
+    pub arithmetic: volume::Arithmetic<'ctx>,
+    pub output_amount: Var<'ctx, Scalar>,
+    pub output_amount_bits: Vec<BoolVar<'ctx, Scalar>>,
+}
+
+/// Construct the same Transfer relation while retaining its original amount handles.
+pub fn constrain_observed<'ctx>(
+    ctx: Context<'ctx, Scalar>,
+    params: &Parameters,
+    generators: &Generators,
+    w: &Witness,
+    claimed_statement: &Scalar,
+) -> (Vec<Var<'ctx, Scalar>>, VolumeObservation<'ctx>) {
     let var = |s: &Scalar| Var::witness(ctx, |_| s.clone());
     let anchor = var(&w.anchor);
     let asset_anchor = var(&w.asset_anchor);
@@ -399,7 +416,14 @@ pub fn constrain<'ctx>(
     params
         .circuit(STATEMENT_DOMAIN, &statement.fields())
         .assert_eq(&claimed);
-    vec![claimed, blinding]
+    (
+        vec![claimed, blinding],
+        VolumeObservation {
+            arithmetic: volume.arithmetic,
+            output_amount: outputs[0].note.amount.clone(),
+            output_amount_bits: outputs[0].amount_bits.clone(),
+        },
+    )
 }
 
 #[cfg(test)]

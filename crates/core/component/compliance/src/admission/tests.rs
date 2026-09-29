@@ -5,6 +5,7 @@ use crate::{
     registry::ComplianceRegistryComponentWrite,
     state_key,
 };
+use anyhow::Context as _;
 use cnidarium::{StateDelta, StateWrite, TempStorage};
 use futures::StreamExt;
 use shieldd_sdk_crypto::Fq;
@@ -17,6 +18,48 @@ fn set_time<S: StateWrite>(state: &mut S, height: u64, seconds: i64) {
         height,
         tendermint::Time::from_unix_timestamp(seconds, 0).unwrap(),
     );
+}
+
+#[tokio::test]
+async fn equal_timestamp_retention_exceeds_the_pruning_budget() -> Result<()> {
+    let storage = TempStorage::new().await?;
+    let mut state = StateDelta::new(storage.latest_snapshot());
+    state.initialize_trees().await?;
+    state.put_compliance_params(ComplianceParameters::default());
+    let mut pairs = Vec::new();
+    for height in 1..=70 {
+        set_time(&mut state, height, 1000);
+        state.put(
+            state_key::user_tree_root().to_owned(),
+            StateCommitment(Fq::from(height)),
+        );
+        record(&mut state, height, 1000).await?;
+        let snapshot = current(&state).await?.context("current pair")?;
+        pairs.push((snapshot.user_root, snapshot.asset_root));
+        prune(&mut state, 1000).await?;
+    }
+    for (user, asset) in &pairs {
+        validate(&state, user, asset).await?;
+    }
+    assert_eq!(
+        state
+            .prefix::<ComplianceSnapshot>(state_key::admission::pairs_prefix())
+            .count()
+            .await,
+        70,
+        "SNAPSHOT_RETENTION: equal timestamps must not trigger count eviction"
+    );
+    set_time(&mut state, 71, 2801);
+    prune(&mut state, 2801).await?;
+    assert_eq!(
+        state
+            .prefix::<ComplianceSnapshot>(state_key::admission::pairs_prefix())
+            .count()
+            .await,
+        70 - PRUNE_LIMIT,
+        "SNAPSHOT_PRUNE_BUDGET: one call deletes at most 64 obsolete pairs"
+    );
+    Ok(())
 }
 
 #[tokio::test]
