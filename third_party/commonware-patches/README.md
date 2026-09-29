@@ -8,7 +8,8 @@ directory and compares every resulting file with the vendored tree. `--source`
 can supply a clean Git checkout rooted at that exact revision; modified, ignored,
 and untracked files are rejected.
 
-The patch queue contains three narrow repairs and one compiler optimization:
+The patch queue contains three narrow repairs, one compiler optimization and a
+read-only relation inspection API:
 
 - 0001 completes Pari's native `Poly`/`Domain` API transition and missing imports.
 - 0002 exposes exact verifying-key relation matching, including public columns,
@@ -19,6 +20,10 @@ The patch queue contains three narrow repairs and one compiler optimization:
 - 0005 outlines constants into one private witness constrained to equal one,
   keeping the implicit public constant column sparse. It changes compiled
   relation identities, so keys must be generated from the exact patched compiler.
+- 0006 exposes canonical square rows and original private-witness columns for
+  external verification tooling. Inspection preserves the original input layout
+  and adds no constraints. Exported identities and finite compiler controls do
+  not constitute a proof of the compiler or cryptographic backend.
 
 Compilation uses Commonware with the isolated 0004/0005 transformations.
 Witness mapping, proving, verification, transforms, MSM and decoding use native

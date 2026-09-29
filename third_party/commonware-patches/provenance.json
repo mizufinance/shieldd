@@ -218,7 +218,7 @@
     "cryptography/src/zk/mod.rs": "7a1287021123dcc701af5950538e1ba1f8042e00a8b70c9f83f1c0b425a26f3a",
     "cryptography/src/zk/pari/benches/bench.rs": "3d8a8f48f9815ae51613558d39b9efd6ff1a760ad67b0dcdf353ef2c754e2ec4",
     "cryptography/src/zk/pari/benches/pari.rs": "4432484e0cfd06b964c4bb745cf4cff13aa846133ab925f37e87ee1fe67dfa12",
-    "cryptography/src/zk/pari/circuit.rs": "cabc311936ffd8feccdf02fd097e7482faa386baaed62aedd8acb52da4ab18b7",
+    "cryptography/src/zk/pari/circuit.rs": "583694872190a2b91346e9fbce9dbcf0ec966065b5a252acffb43c8ccd2fee14",
     "cryptography/src/zk/pari/fuzz.rs": "7931233b88f69360962f741c0b357479ac75cc57af431ec415762b99529c333b",
     "cryptography/src/zk/pari/mod.rs": "f483b30d6ead4e0451b6beac889bd4049c48ccec143a08a4ef9fb8513232aeaa",
     "cryptography/src/zk/pari/poly.rs": "6abfc9fb94c9cf463f91df52f28b410386a16752f8e9e400ccc9c357a37d04e6",
@@ -357,7 +357,8 @@
     "0001-pari-polynomial-api.patch": "b777bd6b934e555414f68df111bf8d03dcce5657215492f56369c43fb76d4d82",
     "0002-pari-verifying-key-relation-shape.patch": "989be85e065ff588bafa6f0fec15c5504b06a5833da7a9c7e0e417f1e216137d",
     "0004-materialize-two-sided-square-assertions.patch": "375fc7f7aa0ef6adc88617afcdb69d8ced971180f3222f7a8c3c279f505475b5",
-    "0005-pari-constant-outline.patch": "3b877a73dd9192bab23a842f8eb1c14e524dd4b5b075407cc6748279daf32787"
+    "0005-pari-constant-outline.patch": "3b877a73dd9192bab23a842f8eb1c14e524dd4b5b075407cc6748279daf32787",
+    "0006-pari-relation-inspection.patch": "a868cd442f01e6d25683385cdc1cddd59b0dd3580135facd3ab9561f5a57adb3"
   },
   "repository": "https://github.com/commonwarexyz/monorepo",
   "revision": "1a56762927a8ad3300e0594886c28c59d9801769"

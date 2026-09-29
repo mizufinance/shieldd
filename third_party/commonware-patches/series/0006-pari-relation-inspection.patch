@@ -1,0 +1,99 @@
+--- a/cryptography/src/zk/pari/circuit.rs
++++ b/cryptography/src/zk/pari/circuit.rs
+@@ -200,6 +200,33 @@
+         &self.rows
+     }
+ 
++    /// Inspect canonical square rows without changing the selected input layout.
++    /// Each pair encodes `(A z)^2 = B z`; omitted padded rows are zero.
++    /// Column zero must equal one. This exposes constraints, not witness values.
++    pub fn constraints(
++        &self,
++    ) -> impl ExactSizeIterator<Item = (&[(u32, Scalar)], &[(u32, Scalar)])> {
++        self.rows
++            .iter()
++            .map(|row| (row.squared.as_slice(), row.linear.as_slice()))
++    }
++
++    /// Locate the private column allocated for an original circuit witness.
++    /// Public and committed aliases are linked by constraints and are not returned.
++    /// This is an index map, not a claim that an arbitrary assignment is honest.
++    pub fn witness_column(&self, witness: u32) -> Option<usize> {
++        self.value_sources
++            .iter()
++            .enumerate()
++            .skip(self.committed_start + self.committed_inputs())
++            .find_map(|(column, source)| match source {
++                ValueSource::Circuit(CircuitIdx::Witness(index)) if *index == witness => {
++                    Some(column)
++                }
++                _ => None,
++            })
++    }
++
+     /// Canonical digest binding keys and witnesses to this relation.
+     pub const fn digest(&self) -> &[u8; 32] {
+         &self.digest
+@@ -638,8 +665,7 @@
+             }
+         }
+         self.rows.push(Row {
+-            squared: LinearCombination::coordinate(0)
+-                .sub(&LinearCombination::coordinate(copy)),
++            squared: LinearCombination::coordinate(0).sub(&LinearCombination::coordinate(copy)),
+             linear: LinearCombination::zero(),
+         });
+         Ok(())
+@@ -1091,12 +1117,21 @@
+         let relation = compile(&valued.circuit, &layout).unwrap();
+         let mut assignment = compile_valued(&valued, &layout, &relation).unwrap();
+         assert!(relation.is_satisfied(&assignment));
+-        let copy = relation.value_sources.iter().enumerate().skip(1)
+-            .find_map(|(i, source)| matches!(source, ValueSource::One).then_some(i)).unwrap();
++        let copy = relation
++            .value_sources
++            .iter()
++            .enumerate()
++            .skip(1)
++            .find_map(|(i, source)| matches!(source, ValueSource::One).then_some(i))
++            .unwrap();
+         assert!(copy >= relation.committed_start + relation.committed_inputs());
+         assert_eq!(assignment.values[copy], Scalar::one());
+-        let uses_of_public_one = relation.rows.iter().flat_map(|r|
+-            r.squared.iter().chain(&r.linear)).filter(|(column, _)| *column == 0).count();
++        let uses_of_public_one = relation
++            .rows
++            .iter()
++            .flat_map(|r| r.squared.iter().chain(&r.linear))
++            .filter(|(column, _)| *column == 0)
++            .count();
+         assert_eq!(uses_of_public_one, 1);
+         assert_eq!(committed_a_rank(&relation), relation.committed_inputs());
+         for value in [Scalar::zero(), scalar(2)] {
+@@ -1254,6 +1289,26 @@
+             Some(Error::RelationMismatch)
+         );
+     }
++    #[test]
++    fn inspection_preserves_rows_and_private_witness_mapping() {
++        let (circuit, selected) = build::<Scalar>(|ctx| {
++            let x = Var::witness(ctx, |_| unreachable!("not evaluated"));
++            let y = Var::witness(ctx, |_| unreachable!("not evaluated"));
++            (x.clone() * &x).assert_eq(&y);
++            vec![x, y]
++        });
++        let layout = InputLayout::new(vec![selected[0]], vec![vec![selected[1]]]).unwrap();
++        let relation = compile(&circuit, &layout).unwrap();
++        assert_eq!(relation.constraints().len(), relation.rows.len());
++        for ((a, b), row) in relation.constraints().zip(&relation.rows) {
++            assert_eq!(a, row.squared);
++            assert_eq!(b, row.linear);
++        }
++        assert_eq!(relation.witness_column(0), Some(3));
++        assert_eq!(relation.witness_column(1), Some(4));
++        assert_eq!(relation.witness_column(2), None);
++    }
++
+     #[test]
+     fn two_sided_square_assertions_preserve_source_satisfaction() {
+         for (x_value, y_value) in [(2, 2), (0, 2), (2, 0), (0, 0), (2, 3)] {
