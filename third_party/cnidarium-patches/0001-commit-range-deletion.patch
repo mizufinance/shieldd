@@ -69,7 +69,27 @@
                      .as_ref()
 --- a/src/storage.rs
 +++ b/src/storage.rs
-@@ -446,6 +446,65 @@
+@@ -47,6 +47,19 @@
+ }
+ 
+ impl Storage {
++    /// Filesystem directory owned by this storage instance.
++    /// Persistence-edge owners may place coordinated databases beneath it.
++    /// Create a consistent RocksDB checkpoint; the application owner coordinates
++    /// it with external databases and authenticates the restored root.
++    pub fn checkpoint(&self, path: &std::path::Path) -> Result<()> {
++        rocksdb::checkpoint::Checkpoint::new(&self.0.db)?.create_checkpoint(path)?;
++        Ok(())
++    }
++
++    pub fn path(&self) -> &std::path::Path {
++        self.0.db.path()
++    }
++
+     /// Loads a storage instance from the given path, initializing it if necessary.
+     pub async fn load(path: PathBuf, default_prefixes: Vec<String>) -> Result<Self> {
+         let span = Span::current();
+@@ -446,6 +459,65 @@
          })
      }
  
@@ -135,7 +155,7 @@
      /// Commits the provided [`StateDelta`] to persistent storage as the latest
      /// version of the chain state.
      pub async fn commit(&self, delta: StateDelta<Snapshot>) -> Result<crate::RootHash> {
-@@ -535,7 +594,11 @@
+@@ -535,7 +607,11 @@
  
          tracing::debug!(new_jmt_version = ?batch.version, "committing batch to db");
  

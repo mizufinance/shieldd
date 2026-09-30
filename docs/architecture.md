@@ -4,6 +4,8 @@
 flowchart TD
     Bankd[Bankd consensus and authorization] --> ABI[C ABI / ExecutionService]
     ABI --> Host[HostExecution lifecycle]
+    Host --> Writer[PermanentWriter / coordinated durable commits]
+    Writer --> NOMT[Permanent spend nullifiers / sixteen NOMT partitions]
     Host --> App[App validation and ordered execution]
     App --> State[Cnidarium component state]
     App --> Proofs[Native Pari proof and batch verification]
@@ -19,13 +21,13 @@ flowchart TD
 | --- | --- |
 | Bankd | Canonical transaction location, block ordering, authorization, deposits, withdrawal settlement and IBC execution |
 | `ExecutionService` / C ABI | Decode typed requests, map errors, own the embedded runtime and expose committed queries |
-| `HostExecution` | Enforce legal genesis/begin/deliver/end/commit/rollback phases and bind replay-protected host effects |
+| `HostExecution` | Enforce legal genesis/begin/deliver/end/seal/commit/rollback phases and bind replay-protected host effects |
 | `App` and components | Verify transactions, execute in order, publish roots and compact data atomically |
 | Wallet | Validate supplied roots, retain owned witnesses, persist issued addresses and planning state at a fixed height |
 | Issuer scanner | Validate canonical block identities, persist detections/evidence, roll back reorgs and bound invalid outcomes |
 | Native prover | Build proof artifacts from private witnesses using the explicit Pari registry |
 
-The host supplies height and signed time and calls begin/end/commit for every
+The host supplies height, canonical block hash and signed time and calls begin/end/seal/commit for every
 host block, including blocks without pool actions. After genesis at height zero,
 begin requires the next committed height; rollback permits retrying that height.
 An interrupted or failed commit requires rollback before replaying the block or
@@ -33,12 +35,16 @@ reinitializing uncommitted content genesis; commit cannot be retried directly.
 These hooks maintain epoch and compact-block continuity; consensus remains with
 the host. State changes remain provisional until commit. Queries use committed snapshots. Component
 logic receives `StateRead`/`StateWrite`; external wallet and scanner reads use
-`PlanningIo`, `HistoricalWitnessSource`, and `ScannerSource`.
+`PlanningIo`, `NullifierAnchors`, and `ScannerSource`.
+
+Bankd validates the previous Shieldd boundary at BeginBlock and authenticates
+the frozen current root at EndBlock. Intent precedes its durable commit; queries
+publish only after all participants complete. [Permanent nullifiers](nullifier-history.md)
+owns exact recovery and finality ordering.
 
 Validator builds verify proofs without enabling native proving. `prover` enables
 native proof construction using an explicit Pari registry. Scanner
-storage is independent of validator component storage. View’s `rpc` feature adds
-the historical-witness RPC adapter.
+storage is independent of validator component storage. Wallet provider boundaries supply authenticated published nullifier roots.
 
 Bankd owns IBC clients, channels, packets and relay. Shieldd withdrawals carry
 a host transfer or execution destination and use the `shielded_withdrawal` proof.

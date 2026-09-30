@@ -37,7 +37,6 @@ impl ShieldedInputPlan {
         &self,
         fvk: &FullViewingKey,
         nullifier_key: &NullifierKey,
-        recent_position_floor: u64,
     ) -> anyhow::Result<TransferInputBody> {
         let backref = Backref::new(self.note.commit());
         let encrypted_backref = backref.encrypt(&fvk.backref_key(), &self.nullifier(nullifier_key));
@@ -46,10 +45,6 @@ impl ShieldedInputPlan {
             nullifier: self.nullifier(nullifier_key),
             encrypted_backref,
             compliance_ciphertext: Vec::new(),
-            history_required: shieldd_sdk_sct::nullifier_generation::is_old(
-                u64::from(self.position),
-                recent_position_floor,
-            )?,
         })
     }
 

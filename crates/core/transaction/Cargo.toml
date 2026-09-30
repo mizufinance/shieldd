@@ -15,6 +15,7 @@ parallel = [
     "shieldd-sdk-shielded-pool/parallel",
 ]
 [dependencies]
+shieldd-sdk-circuits.workspace = true
 shieldd-sdk-crypto.workspace = true
 ff.workspace = true
 group.workspace = true
@@ -48,7 +49,6 @@ tracing = {workspace = true}
 commonware-cryptography.workspace = true
 commonware-codec.workspace = true
 commonware-math.workspace = true
-shieldd-sdk-circuits.workspace = true
 shieldd-sdk-transaction = {path = ".", features = ["prover"]}
 shieldd-sdk-shielded-pool = { workspace = true, default-features = false, features = ["benchmark-helpers"] }
 proptest = {workspace = true}

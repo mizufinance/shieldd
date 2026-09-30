@@ -73,22 +73,10 @@ pub struct SyncWorker {
     sct: shieldd_sdk_tct::Tree,
     fvk: FullViewingKey,
     compliance_snapshot: Arc<ComplianceSnapshot>,
-    history_wake: Arc<tokio::sync::Notify>,
-    history_task: tokio::task::JoinHandle<()>,
-}
-
-impl Drop for SyncWorker {
-    fn drop(&mut self) {
-        self.history_task.abort();
-    }
 }
 
 impl SyncWorker {
-    pub async fn new(
-        storage: Storage,
-        registry: Arc<shieldd_sdk_proof_params::pari::Registry>,
-        witness_source: Arc<dyn crate::HistoricalWitnessSource>,
-    ) -> anyhow::Result<Self> {
+    pub async fn new(storage: Storage) -> anyhow::Result<Self> {
         let snapshot_height = storage.last_sync_height().await?;
         let sct = storage.state_commitment_tree().await?;
         let fvk = storage.full_viewing_key().await?;
@@ -96,42 +84,17 @@ impl SyncWorker {
             user_tree: storage.compliance_user_tree().await?,
             asset_tree: storage.compliance_asset_tree().await?,
         });
-        let mut history =
-            crate::HistoricalProofWorker::new(storage.clone(), witness_source, registry).await?;
         anyhow::ensure!(
             storage.last_sync_height().await? == snapshot_height,
             "wallet advanced while loading snapshot; recreate sync worker"
         );
-        let history_wake = Arc::new(tokio::sync::Notify::new());
-        let wake = history_wake.clone();
-        let history_task = tokio::spawn(async move {
-            loop {
-                if let Err(error) = history.update().await {
-                    tracing::warn!(
-                        ?error,
-                        "history update deferred after committed wallet state"
-                    );
-                }
-                tokio::select! {
-                    _ = wake.notified() => {},
-                    _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {},
-                }
-            }
-        });
         Ok(Self {
             storage,
             snapshot_height,
             sct,
             fvk,
             compliance_snapshot,
-            history_wake,
-            history_task,
         })
-    }
-
-    /// Schedule deferred history work without waiting for external witnesses or proving.
-    pub fn request_history_update(&self) {
-        self.history_wake.notify_one();
     }
 
     async fn prepare_compliance_block(
@@ -278,7 +241,7 @@ impl SyncWorker {
     pub async fn sync_from_provider(
         &mut self,
         provider: &dyn crate::SyncProvider,
-        anchors: &dyn crate::GenerationAnchors,
+        anchors: &dyn crate::NullifierAnchors,
         mode: &crate::SyncMode,
         host: crate::HostBlock,
     ) -> anyhow::Result<()> {
@@ -334,11 +297,7 @@ impl SyncWorker {
         &mut self,
         input: WalletBlock,
         sparse: Option<shieldd_sdk_compact_block::pages::SparseCompactBlock>,
-        remote: Option<(
-            &dyn crate::SyncProvider,
-            &dyn crate::GenerationAnchors,
-            &str,
-        )>,
+        remote: Option<(&dyn crate::SyncProvider, &dyn crate::NullifierAnchors, &str)>,
         budget: &mut shieldd_sdk_compact_block::pages::AssemblyBudget,
     ) -> anyhow::Result<()> {
         let WalletBlock {
@@ -508,7 +467,6 @@ impl SyncWorker {
         self.sct = next_sct;
         self.compliance_snapshot = next_compliance_snapshot;
         self.snapshot_height = Some(height);
-        self.request_history_update();
         Ok(())
     }
 }
@@ -562,32 +520,6 @@ fn relevant_transactions(
 }
 #[cfg(test)]
 mod compliance_projection_tests {
-    fn registry() -> Arc<shieldd_sdk_proof_params::pari::Registry> {
-        static REGISTRY: std::sync::OnceLock<Arc<shieldd_sdk_proof_params::pari::Registry>> =
-            std::sync::OnceLock::new();
-        REGISTRY
-            .get_or_init(|| {
-                Arc::new(
-                    shieldd_sdk_proof_params::pari::Registry::load(
-                        std::env::var("SHIELDD_PARI_KEYS").expect("SHIELDD_PARI_KEYS is required"),
-                    )
-                    .unwrap(),
-                )
-            })
-            .clone()
-    }
-    struct NoHistory;
-    #[async_trait::async_trait]
-    impl crate::HistoricalWitnessSource for NoHistory {
-        async fn nonmembership_proof(
-            &self,
-            _: shieldd_sdk_sct::Nullifier,
-            _: u64,
-        ) -> anyhow::Result<shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof> {
-            anyhow::bail!("fixture has no archived generations")
-        }
-    }
-
     use super::*;
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_compliance::{ComplianceLeaf, UserAssetStatus};
@@ -664,9 +596,7 @@ mod compliance_projection_tests {
         )
         .await
         .unwrap();
-        let worker = SyncWorker::new(storage, registry(), Arc::new(NoHistory))
-            .await
-            .unwrap();
+        let worker = SyncWorker::new(storage).await.unwrap();
         let before = worker.compliance_snapshot.clone();
         let block = CompactBlock {
             compliance_user_anchor: Some(before.user_tree.root()),
@@ -692,7 +622,7 @@ mod compliance_projection_tests {
             Default::default(),
         )
         .await?;
-        let worker = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+        let worker = SyncWorker::new(storage.clone()).await?;
         let policy =
             AssetPolicy::for_test(*SPEND_AUTH * Fr::from(11), 1000, *SPEND_AUTH * Fr::from(12));
         let mut event = EventAssetRegistered {
@@ -736,8 +666,8 @@ mod compliance_projection_tests {
             Default::default(),
         )
         .await?;
-        let mut first = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
-        let mut stale = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+        let mut first = SyncWorker::new(storage.clone()).await?;
+        let mut stale = SyncWorker::new(storage.clone()).await?;
         let stale_root = stale.sct.root();
         let block = CompactBlock {
             height: 0,
@@ -785,7 +715,7 @@ mod compliance_projection_tests {
             committed_root
         );
         assert_eq!(stale.sct.root(), stale_root);
-        let mut resumed = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+        let mut resumed = SyncWorker::new(storage.clone()).await?;
         resumed.scan(input()).await?;
         assert_eq!(storage.last_sync_height().await?, Some(1));
         assert_eq!(
@@ -803,8 +733,8 @@ mod compliance_projection_tests {
             Default::default(),
         )
         .await?;
-        let mut worker = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
-        for height in 0..3 {
+        let mut worker = SyncWorker::new(storage.clone()).await?;
+        for height in 0u64..3 {
             let block = CompactBlock {
                 height,
                 compliance_user_anchor: Some(worker.compliance_snapshot.user_tree.root()),
@@ -845,7 +775,7 @@ mod compliance_projection_tests {
                     updated_app_parameters: None,
                 })
                 .await?;
-            let resumed = SyncWorker::new(storage.clone(), registry(), Arc::new(NoHistory)).await?;
+            let resumed = SyncWorker::new(storage.clone()).await?;
             assert_eq!(resumed.sct.root(), worker.sct.root(), "height {height}");
             assert_eq!(
                 resumed.sct.position(),

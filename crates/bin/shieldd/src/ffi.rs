@@ -10,7 +10,7 @@ use tokio::runtime::{Builder, Runtime};
 
 use crate::{ErrorKind, ExecutionService, ServiceError};
 
-const ABI_VERSION: u32 = 3;
+const ABI_VERSION: u32 = 4;
 const STATUS_OVERLOADED: i32 = 6;
 const STATUS_SNAPSHOT_EXPIRED: i32 = 7;
 const STATUS_UNAVAILABLE: i32 = 8;
@@ -32,7 +32,6 @@ const METHOD_COMMIT: u32 = 7;
 const METHOD_ROLLBACK: u32 = 8;
 const METHOD_EXPORT_GENESIS: u32 = 9;
 const METHOD_GET_COMMITTED_STATE: u32 = 10;
-const METHOD_ARCHIVED_NULLIFIER_PROOF: u32 = 11;
 const METHOD_APPLY_COMPLIANCE_ACTION: u32 = 12;
 
 // Read-only query method IDs start at 1_000_000.
@@ -42,7 +41,8 @@ const METHOD_QUERY_COMPLIANCE_ASSET_STATUS: u32 = 1_000_002;
 const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
 const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
-const METHOD_QUERY_NULLIFIER_WINDOW: u32 = 1_000_007;
+const METHOD_QUERY_NULLIFIER_STATUS: u32 = 1_000_013;
+const METHOD_SEAL_COMMIT: u32 = 14;
 const METHOD_QUERY_COMMITTED_TRANSACTION: u32 = 1_000_008;
 const METHOD_QUERY_TRANSACTIONS_BY_HEIGHT: u32 = 1_000_009;
 const METHOD_QUERY_COMPACT_BLOCK_PAGE: u32 = 1_000_010;
@@ -52,6 +52,7 @@ const METHOD_QUERY_SPEND_STATUS_PAGE: u32 = 1_000_012;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Method {
     PublishCommitted,
+    SealCommit,
     InitGenesis,
     BeginBlock,
     Deposit,
@@ -62,7 +63,6 @@ enum Method {
     Rollback,
     ExportGenesis,
     GetCommittedState,
-    ArchivedNullifierProof,
     ApplyComplianceAction,
     QueryAppParameters,
     QueryAssetMetadataById,
@@ -70,7 +70,7 @@ enum Method {
     QueryComplianceBatchMerkleProofs,
     QueryComplianceUserLeaf,
     QueryKeyValue,
-    QueryNullifierWindow,
+    QueryNullifierStatus,
     QueryCommittedTransaction,
     QueryTransactionsByHeight,
     QueryCompactBlockPage,
@@ -200,6 +200,7 @@ impl TryFrom<u32> for Method {
     fn try_from(method: u32) -> std::result::Result<Self, Self::Error> {
         match method {
             METHOD_PUBLISH_COMMITTED => Ok(Self::PublishCommitted),
+            METHOD_SEAL_COMMIT => Ok(Self::SealCommit),
             METHOD_INIT_GENESIS => Ok(Self::InitGenesis),
             METHOD_BEGIN_BLOCK => Ok(Self::BeginBlock),
             METHOD_DEPOSIT => Ok(Self::Deposit),
@@ -210,7 +211,6 @@ impl TryFrom<u32> for Method {
             METHOD_ROLLBACK => Ok(Self::Rollback),
             METHOD_EXPORT_GENESIS => Ok(Self::ExportGenesis),
             METHOD_GET_COMMITTED_STATE => Ok(Self::GetCommittedState),
-            METHOD_ARCHIVED_NULLIFIER_PROOF => Ok(Self::ArchivedNullifierProof),
             METHOD_APPLY_COMPLIANCE_ACTION => Ok(Self::ApplyComplianceAction),
             METHOD_QUERY_APP_PARAMETERS => Ok(Self::QueryAppParameters),
             METHOD_QUERY_ASSET_METADATA_BY_ID => Ok(Self::QueryAssetMetadataById),
@@ -220,7 +220,7 @@ impl TryFrom<u32> for Method {
             }
             METHOD_QUERY_COMPLIANCE_USER_LEAF => Ok(Self::QueryComplianceUserLeaf),
             METHOD_QUERY_KEY_VALUE => Ok(Self::QueryKeyValue),
-            METHOD_QUERY_NULLIFIER_WINDOW => Ok(Self::QueryNullifierWindow),
+            METHOD_QUERY_NULLIFIER_STATUS => Ok(Self::QueryNullifierStatus),
             METHOD_QUERY_COMMITTED_TRANSACTION => Ok(Self::QueryCommittedTransaction),
             METHOD_QUERY_COMPACT_BLOCK_PAGE => Ok(Self::QueryCompactBlockPage),
             METHOD_QUERY_FILTERED_BLOCK_PAGE => Ok(Self::QueryFilteredBlockPage),
@@ -242,16 +242,12 @@ pub extern "C" fn shieldd_abi_version() -> u32 {
 pub extern "C" fn shieldd_open(
     db_path: *const u8,
     db_path_len: usize,
-    generation_pack_path: *const u8,
-    generation_pack_path_len: usize,
     out_handle: *mut *mut ShielddHandle,
 ) -> ShielddResult {
     boundary(|| {
         clear_output_handle(out_handle)?;
         let db_path = unsafe { input_bytes(db_path, db_path_len)? };
-        let generation_pack_path =
-            unsafe { input_bytes(generation_pack_path, generation_pack_path_len)? };
-        open_handle(db_path, Some(generation_pack_path), out_handle)
+        open_handle(db_path, out_handle)
     })
 }
 
@@ -267,7 +263,6 @@ fn clear_output_handle(out_handle: *mut *mut ShielddHandle) -> std::result::Resu
 
 fn open_handle(
     db_path: &[u8],
-    generation_pack_path: Option<&[u8]>,
     out_handle: *mut *mut ShielddHandle,
 ) -> std::result::Result<Vec<u8>, FfiError> {
     let path = |value: &[u8], name: &str| {
@@ -282,10 +277,6 @@ fn open_handle(
         Ok(PathBuf::from(value))
     };
     let db_path = path(db_path, "db_path")?;
-    let generation_pack_path = generation_pack_path
-        .map(|value| path(value, "generation_pack_path"))
-        .transpose()?;
-
     let key_directory = std::env::var_os("SHIELDD_PARI_KEYS").ok_or_else(|| {
         FfiError::invalid_argument("SHIELDD_PARI_KEYS must name a trusted local Pari registry")
     })?;
@@ -300,13 +291,9 @@ fn open_handle(
         .map_err(|error| {
             FfiError::internal(format!("failed to create Shieldd runtime: {error}"))
         })?;
-    let service = match generation_pack_path {
-        Some(directory) => runtime.block_on(ExecutionService::open_with_generation_packs(
-            db_path, directory, registry,
-        )),
-        None => runtime.block_on(ExecutionService::open(db_path, registry)),
-    }
-    .map_err(FfiError::service)?;
+    let service = runtime
+        .block_on(ExecutionService::open(db_path, registry))
+        .map_err(FfiError::service)?;
     let handle = Box::into_raw(Box::new(Handle {
         queries: service.queries().clone(),
         read_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(
@@ -509,7 +496,6 @@ impl Method {
         matches!(
             self,
             Self::CheckTx
-                | Self::ArchivedNullifierProof
                 | Self::QueryTransactionsByHeight
                 | Self::QueryCompactBlockPage
                 | Self::QueryFilteredBlockPage
@@ -521,7 +507,7 @@ impl Method {
                 | Self::QueryComplianceBatchMerkleProofs
                 | Self::QueryComplianceUserLeaf
                 | Self::QueryKeyValue
-                | Self::QueryNullifierWindow
+                | Self::QueryNullifierStatus
         )
     }
 }
@@ -549,11 +535,6 @@ async fn dispatch_query(
             .map_err(FfiError::service),
         Method::CheckTx => service
             .check_tx(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
-        Method::ArchivedNullifierProof => service
-            .archived_nullifier_proof(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -597,8 +578,8 @@ async fn dispatch_query(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        Method::QueryNullifierWindow => service
-            .nullifier_window(decode(request)?)
+        Method::QueryNullifierStatus => service
+            .nullifier_status(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -620,6 +601,11 @@ async fn dispatch(
                 .map_err(FfiError::service)?;
             Ok(Vec::new())
         }
+        Method::SealCommit => service
+            .seal_commit(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         Method::InitGenesis => service
             .init_genesis(decode(request)?)
             .await
@@ -709,9 +695,7 @@ mod tests {
         ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
         ComplianceBatchQuery, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
     };
-    use shieldd_sdk_proto::core::component::sct::v1::{
-        ArchivedNullifierProofRequest, NullifierWindowRequest, NullifierWindowResponse,
-    };
+    use shieldd_sdk_proto::core::component::sct::v1::{NullifierRequest, NullifierResponse};
     use shieldd_sdk_proto::core::component::shielded_pool::v1::{
         AssetMetadataByIdRequest, AssetMetadataByIdResponse,
     };
@@ -719,7 +703,7 @@ mod tests {
         ApplyComplianceActionRequest, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
         CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
         EndBlockRequest, EndBlockResponse, GetCommittedStateRequest, GetCommittedStateResponse,
-        HostSource, InitGenesisRequest, InitGenesisResponse,
+        HostSource, InitGenesisRequest, InitGenesisResponse, SealCommitRequest, SealCommitResponse,
     };
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
@@ -728,15 +712,7 @@ mod tests {
             .expect("temporary directory path is UTF-8")
             .as_bytes();
         let mut handle = ptr::null_mut();
-        let packs = directory.join("archives");
-        let packs = packs.to_str().expect("UTF-8 archive path").as_bytes();
-        let result = shieldd_open(
-            path.as_ptr(),
-            path.len(),
-            packs.as_ptr(),
-            packs.len(),
-            &mut handle,
-        );
+        let result = shieldd_open(path.as_ptr(), path.len(), &mut handle);
         assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
         free_result(result);
         assert!(!handle.is_null());
@@ -850,10 +826,7 @@ mod tests {
             (METHOD_ROLLBACK, Method::Rollback),
             (METHOD_EXPORT_GENESIS, Method::ExportGenesis),
             (METHOD_GET_COMMITTED_STATE, Method::GetCommittedState),
-            (
-                METHOD_ARCHIVED_NULLIFIER_PROOF,
-                Method::ArchivedNullifierProof,
-            ),
+            (METHOD_SEAL_COMMIT, Method::SealCommit),
             (
                 METHOD_APPLY_COMPLIANCE_ACTION,
                 Method::ApplyComplianceAction,
@@ -876,7 +849,7 @@ mod tests {
                 Method::QueryComplianceUserLeaf,
             ),
             (METHOD_QUERY_KEY_VALUE, Method::QueryKeyValue),
-            (METHOD_QUERY_NULLIFIER_WINDOW, Method::QueryNullifierWindow),
+            (METHOD_QUERY_NULLIFIER_STATUS, Method::QueryNullifierStatus),
             (
                 METHOD_QUERY_COMMITTED_TRANSACTION,
                 Method::QueryCommittedTransaction,
@@ -932,6 +905,7 @@ mod tests {
 
     fn commit_empty_block(handle: *mut ShielddHandle, height: i64) {
         let mut begin_block = BeginBlockRequest {
+            block_id: vec![height as u8; 32],
             height,
             time: Some(Default::default()),
         };
@@ -941,7 +915,14 @@ mod tests {
             .expect("test begin-block time")
             .seconds = 1_700_000_000 + height;
         let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
-        let _: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height });
+        let ended: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height });
+        let _: SealCommitResponse = call(
+            handle,
+            METHOD_SEAL_COMMIT,
+            SealCommitRequest {
+                expected: ended.prepared,
+            },
+        );
         let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
         publish(handle);
     }
@@ -992,19 +973,15 @@ mod tests {
     }
 
     #[test]
-    fn historical_witness_call_rejects_missing_nullifier() {
+    fn status_call_rejects_missing_nullifier() {
         let directory = tempfile::tempdir().expect("temporary database directory");
         let handle = open(directory.path());
         initialize(handle);
 
-        let request = ArchivedNullifierProofRequest {
-            generation_index: 0,
-            nullifier: None,
-        }
-        .encode_to_vec();
+        let request = NullifierRequest { nullifier: None }.encode_to_vec();
         let result = shieldd_call(
             handle,
-            METHOD_ARCHIVED_NULLIFIER_PROOF,
+            METHOD_QUERY_NULLIFIER_STATUS,
             request.as_ptr(),
             request.len(),
         );
@@ -1020,6 +997,7 @@ mod tests {
         let handle = open(directory.path());
         initialize(handle);
         let mut begin_block = BeginBlockRequest {
+            block_id: vec![1 as u8; 32],
             height: 1,
             time: Some(Default::default()),
         };
@@ -1215,19 +1193,17 @@ mod tests {
         assert!(key_response.value.is_some());
         assert!(key_response.proof.is_none());
 
-        let nullifier_window: NullifierWindowResponse = call(
+        let status: NullifierResponse = call(
             handle,
-            METHOD_QUERY_NULLIFIER_WINDOW,
-            NullifierWindowRequest {},
+            METHOD_QUERY_NULLIFIER_STATUS,
+            NullifierRequest {
+                nullifier: Some(shieldd_sdk_sct::Nullifier(shieldd_sdk_crypto::Fq::from(1)).into()),
+            },
         );
-        let window = nullifier_window
-            .window
-            .expect("initialized state contains a nullifier window");
-        assert_eq!(
-            window.protocol_version,
-            shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION
-        );
-        assert_eq!(window.current_generation, 0);
+        let status: shieldd_sdk_sct::permanent_nullifiers::Status =
+            status.try_into().expect("valid status proof");
+        assert!(!status.spent);
+        assert_eq!(status.boundary.height, Some(0));
         close(handle);
     }
 
@@ -1297,6 +1273,7 @@ mod tests {
         let handle = open(directory.path());
         initialize(handle);
         let mut begin_block = BeginBlockRequest {
+            block_id: vec![1 as u8; 32],
             height: 1,
             time: Some(Default::default()),
         };
@@ -1323,13 +1300,13 @@ mod tests {
     #[test]
     fn failed_open_clears_output_handle_before_validating_input() {
         let mut handle = std::ptr::dangling_mut::<ShielddHandle>();
-        let result = shieldd_open(ptr::null(), 1, ptr::null(), 0, &mut handle);
+        let result = shieldd_open(ptr::null(), 1, &mut handle);
         assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
         free_result(result);
         assert!(handle.is_null());
 
         handle = std::ptr::dangling_mut::<ShielddHandle>();
-        let result = shieldd_open(b"db".as_ptr(), 2, ptr::null(), 1, &mut handle);
+        let result = shieldd_open(ptr::null(), 0, &mut handle);
         assert_eq!(result.status, STATUS_INVALID_ARGUMENT);
         free_result(result);
         assert!(handle.is_null());

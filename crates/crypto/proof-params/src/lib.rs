@@ -1,3 +1,2 @@
-//! Native Pari key registry and canonical history verification.
-pub mod historical;
+//! Native Pari key registry.
 pub mod pari;

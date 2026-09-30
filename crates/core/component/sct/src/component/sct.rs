@@ -7,9 +7,9 @@ use cnidarium_component::Component;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 use tracing::instrument;
 
-use crate::{epoch::Epoch, genesis, nullifier_tree, params::SctParameters, state_key};
+use crate::{epoch::Epoch, genesis, params::SctParameters, state_key};
 
-use super::clock::{EpochManager, EpochRead};
+use super::clock::EpochManager;
 
 pub struct Sct {}
 
@@ -40,9 +40,6 @@ impl Component for Sct {
                         start_height: 0,
                     },
                 );
-                nullifier_tree::initialize(&mut state)
-                    .await
-                    .expect("initialize nullifier tree");
             }
             None => { /* no-op until an upgrade occurs */ }
         }
@@ -57,7 +54,7 @@ impl Component for Sct {
         state.put_block_height(begin_block.height);
         state.put_block_timestamp(begin_block.height, begin_block.time);
         state.object_put(
-            state_key::nullifier_generations::pending_block(),
+            state_key::nullifiers::pending_block(),
             super::tree::PendingNullifierBlock::default(),
         );
         state.object_delete(state_key::cache::block_materialization());
@@ -69,39 +66,13 @@ impl Component for Sct {
 
         Arc::get_mut(state)
             .expect("there's only one reference to the state")
-            .materialize_nullifier_block()
+            .seal_nullifier_block()
             .await
-            .expect("materialize block nullifiers");
+            .expect("seal block nullifiers");
     }
 
-    #[instrument(name = "sct_component", skip(state))]
-    async fn end_epoch<S: StateWrite + 'static>(state: &mut Arc<S>) -> anyhow::Result<()> {
-        let state = Arc::get_mut(state).expect("there's only one reference to the state");
-        let next_epoch = state
-            .get_current_epoch()
-            .await?
-            .index
-            .checked_add(1)
-            .ok_or_else(|| anyhow!("application epoch overflow"))?;
-        let tree_epoch = u16::try_from(next_epoch)
-            .map_err(|_| anyhow!("application epoch exceeds the SCT position range"))?;
-        let next_position = u64::from(shieldd_sdk_tct::Position::from((tree_epoch, 0, 0)));
-
-        if let Some(transition) = nullifier_tree::rollover(state, next_epoch, next_position).await?
-        {
-            state.record_proto(
-                shieldd_sdk_proto::shieldd::core::component::sct::v1::EventNullifierGenerationFrozen::from(
-                    transition.frozen,
-                ),
-            );
-            if let Some(archived) = transition.archived {
-                state.record_proto(
-                    shieldd_sdk_proto::shieldd::core::component::sct::v1::EventNullifierGenerationArchived::from(
-                        archived,
-                    ),
-                );
-            }
-        }
+    #[instrument(name = "sct_component", skip(_state))]
+    async fn end_epoch<S: StateWrite + 'static>(_state: &mut Arc<S>) -> anyhow::Result<()> {
         Ok(())
     }
 }

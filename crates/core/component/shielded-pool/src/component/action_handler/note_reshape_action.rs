@@ -43,13 +43,10 @@ fn note_reshape_extract_public(
         compliance_anchor: note_reshape.body.compliance_anchor,
         routing_tag: note_reshape.body.routing_tag,
         routing_parameter_set_id: note_reshape.body.routing_parameter_set_id,
-        recent_position_floor: context.recent_position_floor,
         inputs: inputs
             .into_iter()
-            .zip(note_reshape.body.inputs.iter())
-            .map(|(input, body_input)| NoteReshapeInputPublic {
+            .map(|input| NoteReshapeInputPublic {
                 nullifier: input.nullifier,
-                history_required: body_input.history_required,
             })
             .collect(),
         outputs: outputs
@@ -216,7 +213,7 @@ mod tests {
             )
             .expect("canonical family plan");
             let (proving_public, _) = plan
-                .note_reshape_public_private(&test_keys::FULL_VIEWING_KEY, &proofs, anchor, 0)
+                .note_reshape_public_private(&test_keys::FULL_VIEWING_KEY, &proofs, anchor)
                 .expect("derive proving public");
             let action = NoteReshape {
                 body: plan
@@ -224,7 +221,6 @@ mod tests {
                         &test_keys::FULL_VIEWING_KEY,
                         &PayloadKey::random_key(&mut rng),
                         anchor,
-                        0,
                     )
                     .expect("derive action body"),
                 auth_sig: [0; 64].into(),
@@ -233,7 +229,6 @@ mod tests {
             let context = TransactionContext {
                 anchor,
                 effect_hash: Default::default(),
-                recent_position_floor: 0,
             };
             let extracted =
                 note_reshape_extract_public(&action, &context).expect("extract verifier public");

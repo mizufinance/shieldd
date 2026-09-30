@@ -139,90 +139,61 @@ impl App {
         }
     }
 
-    /// Persists host execution state and resets snapshots for the next host call.
-    pub async fn commit(
+    /// Transfer the finalized disposable state to the persistence owner.
+    pub(super) async fn take_commit_state(
         &mut self,
-        storage: Storage,
-        generation_packs: Option<&shieldd_sdk_sct::generation_pack::GenerationPackRepository>,
-    ) -> Result<RootHash> {
+        storage: &Storage,
+    ) -> Result<StateDelta<Snapshot>> {
         self.state
-            .ensure_nullifier_block_materialized()
+            .ensure_nullifier_block_sealed()
             .context("cannot commit an open nullifier block")?;
-        let commit_start = Instant::now();
-        let flush_start = Instant::now();
-        self.flush_deferred_block_transactions()
-            .await
-            .context("flushing deferred block transactions before commit")?;
-        let flush_ms = flush_start.elapsed().as_secs_f64() * 1000.0;
-        let dummy_state = StateDelta::new(storage.latest_snapshot());
-        let previous = std::mem::replace(&mut self.state, Arc::new(dummy_state));
-        let mut state = match Arc::try_unwrap(previous) {
-            Ok(state) => state,
+        self.flush_deferred_block_transactions().await?;
+        let mut replacement = StateDelta::new(storage.latest_snapshot());
+        replacement.object_put(
+            shieldd_sdk_sct::state_key::nullifiers::reader(),
+            self.nullifier_reader(),
+        );
+        let previous = std::mem::replace(&mut self.state, Arc::new(replacement));
+        match Arc::try_unwrap(previous) {
+            Ok(state) => Ok(state),
             Err(previous) => {
                 self.state = previous;
-                anyhow::bail!("commit requires exclusive ownership of application state");
-            }
-        };
-
-        #[cfg(test)]
-        if let Some(extracted) = self.commit_extracted.take() {
-            extracted.notify_one();
-            std::future::pending::<()>().await;
-        }
-
-        let maintenance = if let Some(repository) = generation_packs {
-            match crate::nullifier_generation_packs::maintain_one_generation(&mut state, repository)
-                .await
-            {
-                Ok(maintenance) => maintenance,
-                Err(error) => {
-                    self.state = Arc::new(state);
-                    return Err(error).context("maintaining retired nullifier generation");
-                }
-            }
-        } else {
-            Default::default()
-        };
-
-        let storage_commit_start = Instant::now();
-        let batch = storage
-            .prepare_commit(state)
-            .await
-            .context("freezing application commit")?;
-        let batch = maintenance.attach(&storage, batch)?;
-        // Keep the validated file handle alive until the atomic batch is durable.
-        let jmt_root = storage
-            .commit_batch(batch)
-            .context("committing application state to storage")?;
-        if let (Some(repository), Some(generation)) =
-            (generation_packs, maintenance.completed_generation)
-        {
-            if let Err(error) = repository.forget_ready_receipt(generation) {
-                tracing::warn!(%error, generation, "could not clear committed pack readiness cache");
+                anyhow::bail!("commit requires exclusive ownership of application state")
             }
         }
-        if maintenance.completed_generation.is_some() {
-            ::metrics::counter!(crate::nullifier_generation_packs::PACK_PRUNED_GENERATIONS_TOTAL)
-                .increment(1);
-        }
-        let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
+    }
 
-        tracing::debug!(?jmt_root, "finished committing host state");
+    pub(super) fn reset_committed(
+        &mut self,
+        storage: &Storage,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+    ) {
+        let snapshot = storage.latest_snapshot();
+        self.snapshot_version = snapshot.version();
+        self.committed_snapshot = snapshot.clone();
+        let mut state = StateDelta::new(snapshot);
+        state.object_put(shieldd_sdk_sct::state_key::nullifiers::reader(), reader);
+        self.state = Arc::new(state);
+    }
 
-        let snapshot_reset_start = Instant::now();
-        let latest_snapshot = storage.latest_snapshot();
-        self.snapshot_version = latest_snapshot.version();
-        self.committed_snapshot = latest_snapshot.clone();
-        self.state = Arc::new(StateDelta::new(latest_snapshot));
-        let snapshot_reset_ms = snapshot_reset_start.elapsed().as_secs_f64() * 1000.0;
-        let total_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
-        tracing::info!(
-            commit_total_ms = total_ms,
-            commit_flush_deferred_ms = flush_ms,
-            commit_storage_commit_ms = storage_commit_ms,
-            commit_snapshot_reset_ms = snapshot_reset_ms,
-            "host_commit_phase_profile"
-        );
-        Ok(jmt_root)
+    /// Standalone test/benchmark persistence; production commits are host-owned.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub async fn commit_for_testing(&mut self, storage: Storage) -> Result<RootHash> {
+        let state = self.take_commit_state(&storage).await?;
+        let height = state.get_block_height().await?;
+        let accepted = state.pending_nullifiers().iter().copied().collect();
+        let mut writer =
+            PermanentWriter::from_reader(storage.clone(), self.nullifier_reader()).await?;
+        writer
+            .prepare(state, height, [height as u8; 32], accepted)
+            .await?;
+        writer.seal()?;
+        let committed = writer.commit()?;
+        self.reset_committed(&storage, writer.reader());
+        Ok(RootHash(
+            committed
+                .application_root
+                .context("committed root is missing")?,
+        ))
     }
 }

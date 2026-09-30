@@ -270,9 +270,20 @@ mod tests {
         tx.encode_to_vec()
     }
 
-    async fn initialized_app(snapshot: Snapshot, registry: Arc<Registry>) -> Result<App> {
-        let mut app = App::new(snapshot, registry).await?;
+    async fn initialized_app(storage: &cnidarium::Storage, registry: Arc<Registry>) -> Result<App> {
+        let reader = super::PermanentWriter::open(
+            storage.clone(),
+            &shieldd_sdk_sct::permanent_nullifiers::Config {
+                buckets: 1024,
+                cache_mib: 1,
+                preallocate: false,
+            },
+        )
+        .await?
+        .reader();
+        let mut app = App::new(storage.latest_snapshot(), registry, reader).await?;
         app.init_chain(&AppState::Content(Default::default())).await;
+        app.commit_for_testing(storage.clone()).await?;
         app.begin_block(&cnidarium_component::BlockContext {
             height: 1,
             time: Time::from_unix_timestamp(1_700_000_000, 0)?,
@@ -292,7 +303,7 @@ mod tests {
                 .build()?;
             runtime.block_on(async {
                 let storage = cnidarium::TempStorage::new().await?;
-                let mut app = initialized_app(storage.latest_snapshot(), registry).await?;
+                let mut app = initialized_app(storage.as_ref(), registry).await?;
                 // Parsing, signatures and verification must finish even though this
                 // registrar is not authorized in the initialized pool.
                 assert!(app
@@ -329,8 +340,7 @@ mod tests {
     #[tokio::test]
     async fn cancelling_delivery_releases_stateful_check_immediately() -> Result<()> {
         let storage = cnidarium::TempStorage::new().await?;
-        let mut app =
-            initialized_app(storage.latest_snapshot(), crate::app::tests::registry()).await?;
+        let mut app = initialized_app(storage.as_ref(), crate::app::tests::registry()).await?;
         let gate = Arc::new(HistoricalCheckGate::default());
         app.historical_check_gate = Some(gate.clone());
         let bytes = registration_bytes();

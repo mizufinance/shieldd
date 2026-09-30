@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define SHIELDD_ABI_VERSION 3u
+#define SHIELDD_ABI_VERSION 4u
 
 typedef struct shieldd_handle shieldd_handle_t;
 
@@ -51,10 +51,10 @@ enum shieldd_method {
   SHIELDD_METHOD_ROLLBACK = 8,
   SHIELDD_METHOD_EXPORT_GENESIS = 9,
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
-  SHIELDD_METHOD_ARCHIVED_NULLIFIER_PROOF = 11,
   SHIELDD_METHOD_APPLY_COMPLIANCE_ACTION = 12,
   /* GetCommittedStateResponse as input; empty output. Host recovery/publication only. */
   SHIELDD_METHOD_PUBLISH_COMMITTED = 13,
+  SHIELDD_METHOD_SEAL_COMMIT = 14,
 
   /* Read-only queries use IDs starting at 1000000. */
 
@@ -94,9 +94,9 @@ enum shieldd_method {
 
   /*
    * shieldd.core.component.sct.v1.
-   * NullifierWindowRequest/Response
+   * NullifierRequest/Response
    */
-  SHIELDD_METHOD_QUERY_NULLIFIER_WINDOW = 1000007,
+  SHIELDD_METHOD_QUERY_NULLIFIER_STATUS = 1000013,
   /* CommittedTransactionRequest/Response (at most 96 KiB + 16 bytes). */
   SHIELDD_METHOD_QUERY_COMMITTED_TRANSACTION = 1000008,
   /* TransactionsByHeightRequest/Response: a bounded page and continuation cursor. */
@@ -118,7 +118,6 @@ uint32_t shieldd_abi_version(void);
  */
 shieldd_result_t shieldd_open(
     const uint8_t *db_path, size_t db_path_len,
-    const uint8_t *generation_pack_path, size_t generation_pack_path_len,
     shieldd_handle_t **out_handle);
 
 /*

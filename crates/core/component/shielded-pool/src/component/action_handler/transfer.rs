@@ -45,7 +45,6 @@ pub(crate) fn transfer_extract_public(
         .map(|input| {
             Ok(TransferSpendPublic {
                 nullifier: input.nullifier,
-                history_required: input.history_required,
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -79,7 +78,6 @@ pub(crate) fn transfer_extract_public(
         compliance: transfer_compliance_public_from_parts(&ciphertext, &metadata)?,
         routing: transfer.body.routing,
         routing_parameter_set_id: transfer.body.routing_parameter_set_id,
-        recent_position_floor: context.recent_position_floor,
         volume_accumulator: VolumeAccumulatorPublic {
             nullifier: transfer.body.volume_accumulator.nullifier,
             commitment: transfer.body.volume_accumulator.commitment,

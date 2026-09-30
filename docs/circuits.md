@@ -7,7 +7,7 @@ source, with runtime projections in the shielded pool.
 
 ## Families
 
-The [catalogue](../crates/crypto/circuits/src/catalogue.rs) fixes nine relations:
+The [catalogue](../crates/crypto/circuits/src/catalogue.rs) fixes seven relations:
 
 | Relation | Proved behavior | Source |
 | --- | --- | --- |
@@ -16,13 +16,12 @@ The [catalogue](../crates/crypto/circuits/src/catalogue.rs) fixes nine relations
 | Withdrawal | Spend validity, destination/value binding, change, sender encryption and volume policy | [withdrawal.rs](../crates/crypto/circuits/src/withdrawal.rs) |
 | Seizure | Accepted note membership, recovered opening, owner/RNK and canonical nullifier | [seizure.rs](../crates/crypto/circuits/src/seizure.rs) |
 | Disclosure, one-note and 32-slot | Selected commitment openings, revealed fields, exact predicate results and selected-output totals | [disclosure.rs](../crates/crypto/circuits/src/disclosure.rs) |
-| Historical generation and chunk | Archived nullifier nonmembership and authenticated ordered coverage | [history.rs](../crates/crypto/circuits/src/history.rs) |
 
 Each relation exposes one public digest and constrains its statement opening.
 The native builder and verifier reconstruct that same statement from typed
 records. Family and key identity are enforced by the registry. [Disclosure](disclosure.md)
-defines request-driven capacity selection; [nullifier history](nullifier-history.md)
-defines chunk/tail coverage. Neither proof by itself establishes chain acceptance.
+defines request-driven capacity selection. A valid proof alone does not establish
+chain acceptance; runtime checks [permanent spentness](nullifier-history.md).
 
 ## Transfer spends and outputs
 
@@ -32,9 +31,8 @@ and position. Transmission keys bind to the IVK decomposition; randomized
 verification keys bind to the spend authorization key and action randomizer.
 One action key binds the shared owner key used by every real input. Dummy slots
 derive distinct nullifiers from the private seed, action randomizer and existing
-family/slot domains; they carry no keys or signatures. The
-statement binds the recent-position floor and the exact old-note classification
-`!is_dummy && position < recent_position_floor` for every spend.
+family/slot domains; they carry no keys or signatures. Positions retain their
+48-bit bound. Note age does not change the statement or spend relation.
 
 Output zero is a nonzero receiver note; output one is sender-owned change when
 present. Both use the shared asset and bind their note fields and recovery
@@ -70,7 +68,7 @@ as described in [compliance](compliance/flow.md#transfer-visibility).
 Detection binds the selected DK shared secret, sender-core EPK, asset, salt,
 boolean flag and reserved zero. Canonical address decomposition precedes packing.
 The selected policy facts, epoch, timestamp, salts and both core confirmations
-enter the statement. The 2×2 statement has 67 fields; their authoritative order
+enter the statement. The 2×2 statement has 64 fields; their authoritative order
 is `Statement::fields` in [transfer.rs](../crates/crypto/circuits/src/transfer.rs).
 
 Sender and receiver ownership ciphertexts bind their actual address components
@@ -95,7 +93,8 @@ DLEQ validation are enforced outside that circuit by the [seizure host path](com
 
 Circuits do not authenticate a root's freshness, sign transactions, check global
 spent state or grant external release authority. Runtime validation supplies
-admitted compliance snapshots and current nullifier windows, checks signatures and uniqueness, and applies atomic state
+admitted compliance snapshots and authenticated permanent-nullifier state, checks
+signatures and uniqueness, and applies coordinated state
 transitions. Issuer registration, scanner evidence and external PET are separate
 boundaries even when the transaction proof is valid.
 

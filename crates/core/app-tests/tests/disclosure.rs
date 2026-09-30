@@ -234,7 +234,6 @@ async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()
         "PRIVATE-MEMO".into(),
     )?;
     let intent = shieldd_sdk_mock_client::TransactionIntent {
-        nullifier_window: None,
         actions: vec![shieldd_sdk_mock_client::TransferIntent {
             spends: vec![spend],
             outputs: vec![output, change],

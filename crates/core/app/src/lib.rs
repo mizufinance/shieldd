@@ -22,7 +22,6 @@ cfg_if::cfg_if! {
         pub mod app;
         pub mod block_tx_indexing;
         pub mod metrics;
-        pub mod nullifier_generation_packs;
         pub mod stateless_cache;
         #[cfg(any(test, feature = "benchmark-helpers"))]
         pub mod test_support;

@@ -1,109 +1,110 @@
-# Nullifier history
+# Permanent spend nullifiers
 
-Protocol version 3 uses the configured native Pari registry.
+Every validator stores the complete spend-nullifier set in sixteen fixed NOMT
+partitions. Transfer, reshape, withdrawal, fee funding and seizure use the same
+spentness check regardless of note age. Day-scoped volume nullifiers retain their
+separate policy semantics. There are no generation, chunk or historical-spend
+proofs, windows, archive workers or pruning paths.
 
-## Model
+## Authentication and ordering
 
-Validators keep current and previous nullifier-generation trees. A generation
-contains 30 application epochs and uses a depth-20 quaternary Poseidon-381
-indexed tree. Retired generations are committed in order by
-`archived_history_head`.
+[The domain](../crates/core/component/sct/src/permanent_nullifiers.rs) owns exact
+key and root encodings: SHA-256 with explicit domains, canonical little-endian
+nullifier bytes, the high four key bits as partition selector, a fixed spent
+value, and an aggregate of all sixteen ordered roots. NOMT is pinned to
+`c3c0e55794500262dfde7c83b6f7455d2aeb303e`. All replicas store all partitions;
+physical bucket counts, preallocation and cache sizes are node-local.
 
-Each real input exposes whether its note is recent or old. An old input proves
-nonmembership across the complete retired prefix, without revealing its source
-generation.
+The block-local ordered log contains exactly accepted nullifiers, including
+padding and fee inputs. Duplicate checks precede sorting. Authenticated absence
+under the previous roots and the exact update witness must both verify before a
+transition can commit. A flat-index miss or successful write is insufficient.
+Proposal state and failed transactions are disposable.
 
-The public window is:
+[PermanentWriter](../crates/core/app/src/app/permanent_writer.rs) freezes the exact
+application write batch and exposes its root at EndBlock. Bankd records that root
+and the canonical FinalizeBlock hash in authenticated state before computing its
+AppHash. The root for H is consequently covered by Bankd state H; CometBFT carries
+that AppHash in the next block. This does not imply validation of H's execution
+root before the vote for H.
 
-```text
-NullifierWindow {
-    protocol_version,
-    current_generation,
-    recent_position_floor,
-    archived_generation_count,
-    archived_history_head,
-}
+Seal persists canonical insertion intent before any durable participant changes.
+Bankd then persists its pending recovery record and commits, followed by NOMT
+partitions and Shieldd application state. Only completion of every participant
+allows a ready record and public query publication. Empty blocks advance height
+and identity too. A partial commit stops execution/publication. Local metadata is
+ordering evidence; authenticated Bankd roots and identities select recovery.
+Bankd may roll back exactly one block to the authenticated previous Shieldd
+boundary. NOMT partitions ahead of Shieldd roll back one native commit. Unknown
+roots, missing history, stale schemas and unrecoverable gaps fail closed.
+
+## Queries and wallet recovery
+
+Nullifier status returns a detached membership or absence proof, all partition
+roots, and the published height/block identity. A consumer must verify it against
+an independently authenticated boundary, including the aggregate root. Reads
+retain no NOMT session after returning. Admission bounds concurrent work; a
+caller cannot retain a read session and indefinitely stall the writer.
+
+SpendStatusPage scans retained compact headers and nullifier records, at most
+64 headers and 2,048 records per call, with the configured request item limit.
+It returns spend height and a membership proof at the published tip. There is no
+additional full per-nullifier height index. Spend heights and result completeness
+remain provider trust; membership proofs authenticate only spentness. Cursors bind
+chain, query and published version and expire when publication advances. An expired
+query must be discarded and restarted. Arbitrary historical NOMT roots are not
+served. Status requests can link queried nullifiers to their requester.
+
+Seed recovery still requires retained note ciphertexts, compact history, current
+SCT witnesses and compliance data. Permanent nullifiers remove historical proof
+backfill, not these recovery requirements. See [Wallet](wallet.md).
+
+## Snapshots and maintenance
+
+The offline `shieldd-store` tool opens the exclusive database only after Bankd
+has stopped at a jointly committed boundary. Obtain ROOTHEX from the authenticated
+Bankd snapshot, not from Shieldd's local recovery record.
+
+```sh
+shieldd-store capacity DB ROOTHEX
+shieldd-store export DB SNAPSHOT ROOTHEX
+shieldd-store restore SNAPSHOT NEW_DB ROOTHEX
 ```
 
-At rollover, consensus verifies both live trees, retires the previous tree,
-updates the ordered history commitment, promotes the current tree, and creates
-an empty current tree. Export and physical pruning are node-local work.
+Export checkpoints RocksDB and copies canonical insertion history separately from
+mutable NOMT databases. Completion manifests are written last. Restore checks the
+application root, height and nullifier boundary, replays exact insertions into a
+fresh NOMT store, checks every resulting root and refuses readiness on any mismatch.
+Restore and interrupted replay destinations are disposable; restart in a fresh
+path. Restore an old snapshot only with retained canonical history and matching
+application/Bankd state through the current committed boundary before resuming.
+Never start an old nullifier store against newer Bankd state.
 
-## Proofs and storage
+Take Bankd/CometBFT backups at the same stopped boundary as Shieldd. Retain all
+canonical insertion records and note-recovery data. Copy snapshots and history to
+a separate account/failure domain with deletion-resistant retention. Configure
+backup credentials outside the validator process, restrict its account from
+removing retained objects, and test authenticated restoration before activation.
+Remote account provisioning and uploads remain deployment operations.
 
-A Pari generation proof covers one retired generation. A Pari chunk proof
-covers ten consecutive raw nonmembership witnesses; it does not recursively
-verify generation proofs. Wallets persist those witnesses before proving and
-retain up to nine generation proofs as a trailing prefix. During backfill, each
-raw witness is persisted until a complete chunk can be proved directly; only
-the final incomplete tail needs generation proofs. Live incremental updates
-retain their trailing proofs until the tenth raw witness closes the chunk.
-A failed proof leaves staged work available after restart. See [Proof system](proof-system.md) for registry identity and checks.
+`SHIELDD_NULLIFIER_STORAGE` supplies local JSON physical options. The default
+64,000 4-KiB buckets per partition allocate approximately 4.2 GB across hash tables,
+excluding value indexes, history and filesystem overhead. This is a development
+starting point, not production sizing. The fixed layout leaves source-derived
+page-count headroom; whole-set footprint and throughput remain unmeasured.
 
-Historical verification batches each transaction's chunk and generation proofs
-separately, with at most 32 pending proofs per family. Full batches and remainders
-of 2–31 proofs use the native Pari batch verifier; singleton remainders use
-individual verification. Receipts are
-created only after every input succeeds. This reduces pairing-check invocations
-from `C + G` to `ceil(C / 32) + ceil(G / 32)` for `C` chunk and `G` generation
-proofs. It retains per-proof decoding and statement evaluation, adds bounded
-aggregation memory, and can defer invalid-proof rejection until its batch fills.
-Batching uses Commonware's fresh random coefficients and 128-bit randomized-check
-bound. Lower total verification latency is expected for larger batches, not
-guaranteed for every input.
+Capacity output reports each partition's occupied buckets and warning at 70% or
+critical at 80%. The ordered writer also updates per-partition capacity/occupancy
+gauges at every completed commit. Configure the deployment alert system on their
+ratio at these thresholds; schedule maintenance before critical occupancy. Monitor filesystem capacity independently and keep at
+least 30% ordinary free space. Neither alert threshold changes consensus validity.
+Growth requires old storage plus a snapshot and a freshly replayed larger store;
+ordinary free space does not cover that temporary requirement. Set a larger bucket
+count for restore, authenticate the unchanged root, then switch directories while
+offline. Keep the previous copy until validation and a fresh backup complete.
 
-Full nodes store immutable indexed archives: positional leaves, a sorted
-nullifier index, and per-level Merkle nodes. A small versioned manifest binds
-the generation, root, SCT interval, lengths and file digest. Streaming builders
-use 64 MiB sort runs and a 16-way merge. Publication validates the complete file,
-flushes it, publishes without overwriting an existing archive, and flushes the
-directory before recording success. Startup inspects manifests; a single
-maintenance worker validates, builds and repairs archives in the background.
-Archive directory ownership is exclusive for the lifetime of the repository and
-its in-flight readers. Startup reclaims only archive-owned build, unpublished and
-quarantine scratch names while holding that lock; published manifests/data and
-unrelated files are preserved. Invalid manifests are removed before rebuilding.
-
-Witness queries binary-search the index and read the leaf/path through a separate
-64 MiB page cache. Reads fill caller-owned buffers. Each Merkle level reads one
-span covering its existing siblings (at most 128 bytes), including an interior
-queried node only to avoid reading the same page twice. Implicit zero siblings
-need no read. This removes per-record result allocations and reduces repeated
-uncached page reads without changing archive bytes or the cache budget.
-Each returned witness is checked against the committed root.
-Missing or corrupt data is unavailable, never evidence that a nullifier is unspent.
-Repair replays the generation's block interval using retained canonical history.
-Per-block insertion intervals recover spend heights without a record per nullifier.
-Spend queries binary-search the monotone generation block ranges and page only
-overlapping generations.
-
-Retirement requires complete validation in the current process. A validated file
-handle and identity remain bound to the pruning commit. The ordered writer commits
-four non-verifiable namespace range tombstones, the archive receipt and progress
-atomically, at most one eligible generation per commit. Active/previous generations
-and authenticated roots/counts remain intact. The narrow
-[Cnidarium patch](../third_party/cnidarium-patches/README.md) preserves old snapshots
-and reports invalidations to change subscribers. Background physical compaction is
-limited to one generation per second; tombstones and physical disk reclamation are
-distinct measurements. Full compact and transaction history remains retained.
-
-The main ownership boundaries are:
-
-- `crates/core/component/sct`: generation state and witness packs
-- `crates/view`: durable wallet cache and update worker
-- `crates/core/transaction`: proof bundles, authorization binding, and gas
-- `crates/core/app`: cryptographic and current-window validation
-- `crates/crypto/proof-params`: proof decoding and verification keys
-
-## Verification
-
-Tests cover lower and upper gaps, zero and maximum nullifiers, path ordering,
-roots, indices, SCT intervals, history heads, proof ordering, flags and trailing
-bytes. Full nodes must serve identical witnesses after pack reconstruction and
-restart. A mismatch in an authenticated archived prefix discards the cached
-prefix and schedules backfill from generation zero on the next worker pass.
-
-Physical compaction waits until RocksDB reports that snapshots preceding the
-retirement checkpoint have been released, including Cnidarium’s retained snapshot
-cache. Logical deletion remains immediately visible to new snapshots; old readers
-continue to see their original records. Disk usage can therefore lag retirement.
+Maintain one validator at a time, first confirming the other three are healthy.
+Do not assume another simultaneous outage fits the configured PoA fault budget.
+Measure replay time, I/O, working memory and temporary disk on deployment hardware
+before scheduling a production growth window. TPS and long soaks are later
+qualification, separate from correctness and integration gates.

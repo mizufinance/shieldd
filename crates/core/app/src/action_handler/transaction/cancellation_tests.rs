@@ -119,13 +119,6 @@ async fn cancelling_withdrawal_historical_check_releases_state_immediately() -> 
         previous_discovery_parameters: parameters.clone(),
         current_discovery_parameters: parameters,
         claimed_anchor_cache: Arc::new(ClaimedAnchorValidationCache::default()),
-        nullifier_window: shieldd_sdk_sct::nullifier_generation::NullifierWindow {
-            protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-            current_generation: 0,
-            recent_position_floor: 0,
-            archived_generation_count: 0,
-            archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
-        },
     };
     // Isolate cancellation inside the action's state read, after anchor validation.
     context

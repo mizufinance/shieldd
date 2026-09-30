@@ -16,7 +16,6 @@ pub struct Witness {
     pub compliance_anchor: Scalar,
     pub asset: Scalar,
     pub regulated: bool,
-    pub recent_floor: Scalar,
     pub balance_blinding: Scalar,
     pub routing_nonce: Scalar,
     pub routing: routing::SingleWitness,
@@ -81,7 +80,6 @@ pub fn constrain<'a>(
         nk: auth.effective_nk.clone(),
         randomizer,
         anchor: var(&w.anchor),
-        recent_floor: var(&w.recent_floor),
     };
     Facts {
         rk,

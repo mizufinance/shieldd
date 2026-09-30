@@ -251,7 +251,6 @@ where
         fee_funding,
         transaction_parameters: intent.transaction_parameters,
         memo: intent.memo,
-        nullifier_window: intent.nullifier_window,
     };
     let mut volume_heads = BTreeSet::new();
     let volumes = plan
@@ -598,7 +597,6 @@ mod tests {
             transaction_parameters: Default::default(),
             fee_funding: None,
             memo: None,
-            nullifier_window: None,
         };
         let plan = complete_plan_with_compliance(
             intent,
@@ -636,7 +634,6 @@ mod tests {
             transaction_parameters: Default::default(),
             fee_funding: Some(self_transfer_intent(&mut rng)),
             memo: None,
-            nullifier_window: None,
         };
         let plan = complete_plan_with_compliance(
             intent,
@@ -744,7 +741,6 @@ mod tests {
             transaction_parameters: Default::default(),
             fee_funding: None,
             memo: None,
-            nullifier_window: None,
         };
         let fetch = |_: Vec<ComplianceQuery>| {
             let compliance = batch.clone();

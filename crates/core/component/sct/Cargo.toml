@@ -13,11 +13,15 @@ component = [
     "cnidarium-component",
     "shieldd-sdk-proto/cnidarium",
     "tokio",
+    "dep:nomt",
 ]
 default = ["component"]
 parallel = ["shieldd-sdk-tct/parallel", "dep:rayon"]
 
 [dependencies]
+nomt = { git = "https://github.com/thrumdev/nomt", rev = "c3c0e55794500262dfde7c83b6f7455d2aeb303e", default-features = false, features = ["sha2-hasher", "serde"], optional = true }
+bitvec = "1"
+nomt-core = { git = "https://github.com/thrumdev/nomt", rev = "c3c0e55794500262dfde7c83b6f7455d2aeb303e", default-features = false, features = ["sha2-hasher", "serde"] }
 shieldd-sdk-circuits.workspace = true
 shieldd-sdk-crypto.workspace = true
 anyhow = {workspace = true}

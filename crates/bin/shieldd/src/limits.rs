@@ -10,7 +10,7 @@ pub struct ServiceLimits {
     pub read_workers: usize,
     pub query_memory_bytes: usize,
     pub check_tx_workers: usize,
-    pub archive_query_workers: usize,
+    pub nullifier_query_workers: usize,
 }
 impl Default for ServiceLimits {
     fn default() -> Self {
@@ -21,7 +21,7 @@ impl Default for ServiceLimits {
             read_workers: 8,
             query_memory_bytes: 64 * 1024 * 1024,
             check_tx_workers: 2,
-            archive_query_workers: 2,
+            nullifier_query_workers: 2,
         }
     }
 }
@@ -50,10 +50,10 @@ impl ServiceLimits {
         ensure!(
             self.read_workers > 0
                 && self.check_tx_workers > 0
-                && self.archive_query_workers > 0
+                && self.nullifier_query_workers > 0
                 && self.read_workers <= 1024
                 && self.check_tx_workers <= 1024
-                && self.archive_query_workers <= 1024,
+                && self.nullifier_query_workers <= 1024,
             "invalid worker budget"
         );
         ensure!(

@@ -66,10 +66,6 @@ async fn local_wallet_plan_preserves_inputs_outputs_context_and_insufficient_bal
         anyhow::bail!("expected ready transfer plan: {result:?}");
     };
     assert_eq!(plan.transaction_parameters.chain_id, TEST_CHAIN_ID);
-    assert_eq!(
-        plan.nullifier_window,
-        Some(wallet.nullifier_window().await?)
-    );
     let ActionPlan::Transfer(transfer) = &plan.actions[0] else {
         anyhow::bail!("expected transfer");
     };

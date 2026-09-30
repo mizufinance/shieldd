@@ -16,6 +16,10 @@ cannot represent them, so affected watch streams fail explicitly and require a
 fresh snapshot. A separate method permits bounded, host-scheduled compaction
 through the same database owner.
 
+The persistence owner can read the database path and create a consistent RocksDB
+checkpoint to coordinate permanent-nullifier snapshot export. Shieldd authenticates
+the restored application root before replaying nullifier history.
+
 On upgrades, reproduce the upstream archive, re-evaluate this patch, and run its
-range-deletion tests plus Shieldd retirement/restart tests. The patch grants no
+range-deletion tests plus Shieldd coordinated commit/restart and snapshot tests. The patch grants no
 range deletion to readable application deltas.

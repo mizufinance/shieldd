@@ -5,10 +5,12 @@ mod candidate;
 mod delivery;
 mod host;
 mod lifecycle;
+mod permanent_writer;
 pub use batch_input::{BatchCandidate, BatchPreparation, BatchVerdict, PreparedBatch};
+pub use permanent_writer::{CommitBoundary, PermanentWriter};
 
 pub use self::host::{
-    HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostExecution,
+    HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostEndBlock, HostExecution,
     HostExecutionPhase, HostExecutionResponse, HostNoteSeizureResult, HostTxResponse,
     HostWithdrawal,
 };
@@ -23,6 +25,7 @@ use async_trait::async_trait;
 use cnidarium::{ArcStateDeltaExt, Snapshot, StateDelta, StateRead, StateWrite, Storage};
 use cnidarium_component::Component;
 use commonware_parallel::Sequential;
+#[cfg(any(test, feature = "benchmark-helpers"))]
 use jmt::RootHash;
 use prost::bytes::Bytes;
 use prost::Message as _;
@@ -53,8 +56,7 @@ use tendermint::Time;
 use tracing::{instrument, Instrument};
 
 use crate::action_handler::transaction::{
-    check_and_execute, check_historical_with_context, verify_historical_nullifier_proof,
-    HistoricalCheckContext,
+    check_and_execute, check_historical_with_context, HistoricalCheckContext,
 };
 use crate::action_handler::AppActionHandler;
 use crate::block_tx_indexing::BlockTxIndexingMode;
@@ -524,7 +526,7 @@ impl App {
         profile.end_block_ms = end_block_start.elapsed().as_secs_f64() * 1000.0;
 
         let commit_start = Instant::now();
-        let _root_hash = self.commit(storage, None).await?;
+        let _root_hash = self.commit_for_testing(storage).await?;
         profile.commit_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
 
         Ok(profile)
@@ -716,18 +718,28 @@ impl App {
     }
 
     /// Constructs an application only when populated state matches the configured proof keys.
-    pub async fn new(snapshot: Snapshot, registry: Arc<Registry>) -> Result<Self> {
+    pub async fn new(
+        snapshot: Snapshot,
+        registry: Arc<Registry>,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+    ) -> Result<Self> {
         crate::registry_binding::check(&snapshot, registry.id()).await?;
-        Ok(Self::from_snapshot(snapshot, registry))
+        Ok(Self::from_snapshot(snapshot, registry, reader))
     }
 
-    fn from_snapshot(snapshot: Snapshot, registry: Arc<Registry>) -> Self {
+    fn from_snapshot(
+        snapshot: Snapshot,
+        registry: Arc<Registry>,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+    ) -> Self {
         tracing::debug!("initializing App instance");
         let snapshot_version = snapshot.version();
 
         // We perform the `Arc` wrapping of `State` here to ensure
         // there should be no unexpected copies elsewhere.
-        let state = Arc::new(StateDelta::new(snapshot.clone()));
+        let mut state = StateDelta::new(snapshot.clone());
+        state.object_put(shieldd_sdk_sct::state_key::nullifiers::reader(), reader);
+        let state = Arc::new(state);
 
         Self {
             #[cfg(test)]
@@ -743,13 +755,19 @@ impl App {
         }
     }
 
+    pub fn nullifier_reader(&self) -> shieldd_sdk_sct::permanent_nullifiers::Reader {
+        self.state
+            .object_get(shieldd_sdk_sct::state_key::nullifiers::reader())
+            .expect("App owns a nullifier reader")
+    }
+
     pub fn set_block_tx_indexing_mode(&mut self, mode: BlockTxIndexingMode) {
         self.block_tx_indexing_mode = mode;
     }
 
     pub async fn is_ready(state: Snapshot) -> bool {
-        if let Err(error) = shieldd_sdk_sct::nullifier_tree::verify_committed_roots(&state).await {
-            tracing::error!(?error, "nullifier tree root check failed");
+        if let Err(error) = shieldd_sdk_sct::permanent_nullifiers::read_boundary(&state).await {
+            tracing::error!(?error, "permanent nullifier boundary check failed");
             return false;
         }
         if let Err(error) = state.verify_committed_sct_root().await {

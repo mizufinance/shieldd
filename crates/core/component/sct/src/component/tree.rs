@@ -17,7 +17,7 @@ use tracing::instrument;
 
 use crate::{
     component::{clock::EpochRead, sct::StateReadExt},
-    event, nullifier_tree, state_key, CommitmentSource, Nullifier,
+    event, state_key, CommitmentSource, Nullifier,
 };
 
 /// The consensus maximum number of nullifiers in one block.
@@ -28,18 +28,16 @@ pub const MAX_NULLIFIERS_PER_BLOCK: usize = 32_768;
 pub(super) enum PendingNullifierBlock {
     /// Transactions may validate and append ordered nullifiers.
     Open {
-        generation: Option<crate::nullifier_generation::NullifierTreeId>,
         ordered: imbl::Vector<Nullifier>,
         membership: imbl::OrdSet<Nullifier>,
     },
-    /// The ordered nullifiers have been materialized in the active generation.
-    Materialized { ordered: imbl::Vector<Nullifier> },
+    /// The accepted insertion sequence is frozen for the persistence owner.
+    Sealed { ordered: imbl::Vector<Nullifier> },
 }
 
 impl Default for PendingNullifierBlock {
     fn default() -> Self {
         Self::Open {
-            generation: None,
             ordered: imbl::Vector::new(),
             membership: imbl::OrdSet::new(),
         }
@@ -49,14 +47,14 @@ impl Default for PendingNullifierBlock {
 impl PendingNullifierBlock {
     fn ordered(&self) -> &imbl::Vector<Nullifier> {
         match self {
-            Self::Open { ordered, .. } | Self::Materialized { ordered, .. } => ordered,
+            Self::Open { ordered, .. } | Self::Sealed { ordered, .. } => ordered,
         }
     }
 
     fn contains(&self, nullifier: &Nullifier) -> bool {
         match self {
             Self::Open { membership, .. } => membership.contains(nullifier),
-            Self::Materialized { .. } => false,
+            Self::Sealed { ordered } => ordered.contains(nullifier),
         }
     }
 }
@@ -74,15 +72,14 @@ async fn stage_nullifiers<S: StateWrite + ?Sized>(
         );
     }
     let pending = state
-        .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        .object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
         .unwrap_or_default();
     let PendingNullifierBlock::Open {
-        generation: staged_generation,
         mut ordered,
         mut membership,
     } = pending
     else {
-        anyhow::bail!("cannot stage nullifiers after block materialization");
+        anyhow::bail!("cannot stage nullifiers after block sealing");
     };
     ensure!(
         ordered.len().saturating_add(nullifiers.len()) <= MAX_NULLIFIERS_PER_BLOCK,
@@ -97,32 +94,16 @@ async fn stage_nullifiers<S: StateWrite + ?Sized>(
     if check_durable {
         for (nullifier, spent) in nullifiers
             .iter()
-            .zip(nullifier_tree::contains_batch(state, nullifiers).await?)
+            .zip(state.contains_nullifiers(nullifiers).await?)
         {
             ensure!(!spent, "nullifier {nullifier} was already spent");
         }
     }
-    let generation = nullifier_tree::generation_state(state).await?;
-    if let Some(staged_generation) = staged_generation {
-        ensure!(
-            staged_generation == generation.current_tree,
-            "nullifier generation changed while the block was open"
-        );
-    }
-    let durable_count = nullifier_tree::current_leaf_count(state).await?;
-    ensure!(
-        durable_count
-            .saturating_add(ordered.len() as u64)
-            .saturating_add(nullifiers.len() as u64)
-            <= crate::indexed_nullifier_tree::CAPACITY,
-        "nullifier generation is full"
-    );
     ordered.extend(nullifiers.iter().copied());
     membership.extend(nullifiers.iter().copied());
     state.object_put(
-        state_key::nullifier_generations::pending_block(),
+        state_key::nullifiers::pending_block(),
         PendingNullifierBlock::Open {
-            generation: Some(generation.current_tree),
             ordered,
             membership,
         },
@@ -510,7 +491,7 @@ pub trait SctRead: StateRead {
         self.get(&state_key::tree::anchor_by_height(height)).await
     }
 
-    /// Verify that the SCT materialized in NV storage matches the committed root.
+    /// Verify that the SCT sealed in NV storage matches the committed root.
     async fn verify_committed_sct_root(&self) -> Result<()> {
         let Ok(height) = self.get_block_height().await else {
             return Ok(());
@@ -529,19 +510,22 @@ pub trait SctRead: StateRead {
     /// Return whether the specified nullifier has been spent.
     async fn is_nullifier_spent(&self, nullifier: Nullifier) -> Result<bool> {
         if self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+            .object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
             .is_some_and(|pending| pending.contains(&nullifier))
         {
             return Ok(true);
         }
-        nullifier_tree::is_spent(self, nullifier).await
+        Ok(self.contains_nullifiers(&[nullifier]).await?[0])
     }
 
-    /// Check a batch through the direct spent-marker index without constructing proofs.
+    /// Authenticate committed spentness, then include disposable block insertions.
     async fn contains_nullifiers(&self, nullifiers: &[Nullifier]) -> Result<Vec<bool>> {
-        let mut spent = nullifier_tree::contains_batch(self, nullifiers).await?;
-        if let Some(pending) = self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        let reader = self
+            .object_get::<crate::permanent_nullifiers::Reader>(state_key::nullifiers::reader())
+            .context("permanent nullifier reader is missing")?;
+        let mut spent = reader.contains(self, nullifiers).await?;
+        if let Some(pending) =
+            self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
         {
             for (nullifier, spent) in nullifiers.iter().zip(&mut spent) {
                 *spent |= pending.contains(nullifier);
@@ -552,29 +536,25 @@ pub trait SctRead: StateRead {
 
     /// Return the set of nullifiers that have been spent in the current block.
     fn pending_nullifiers(&self) -> imbl::Vector<Nullifier> {
-        self.object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
             .map(|pending| pending.ordered().clone())
             .unwrap_or_default()
     }
 
-    /// Return whether an active block has materialized its staged nullifiers.
-    fn nullifier_block_is_materialized(&self) -> bool {
+    /// Return whether an active block has sealed its staged nullifiers.
+    fn nullifier_block_is_sealed(&self) -> bool {
         matches!(
-            self.object_get::<PendingNullifierBlock>(
-                state_key::nullifier_generations::pending_block()
-            ),
-            Some(PendingNullifierBlock::Materialized { .. })
+            self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block()),
+            Some(PendingNullifierBlock::Sealed { .. })
         )
     }
 
     /// Reject persistence or compact-block finalization while an active block is still open.
-    fn ensure_nullifier_block_materialized(&self) -> Result<()> {
-        match self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
-        {
-            None | Some(PendingNullifierBlock::Materialized { .. }) => Ok(()),
+    fn ensure_nullifier_block_sealed(&self) -> Result<()> {
+        match self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block()) {
+            None | Some(PendingNullifierBlock::Sealed { .. }) => Ok(()),
             Some(PendingNullifierBlock::Open { .. }) => {
-                anyhow::bail!("block nullifiers have not been materialized")
+                anyhow::bail!("block nullifiers have not been sealed")
             }
         }
     }
@@ -747,7 +727,7 @@ pub trait SctManager: StateWrite {
         for (offset, (expected_position, _)) in entries.iter().enumerate() {
             ensure!(
                 u64::from(*expected_position) == u64::from(start) + offset as u64,
-                "deferred SCT position drifted before block materialization"
+                "deferred SCT position drifted before block sealing"
             );
         }
 
@@ -815,43 +795,19 @@ pub trait SctManager: StateWrite {
         stage_nullifiers(self, nullifiers, true).await
     }
 
-    /// Materialize the ordered nullifier block exactly once.
-    async fn materialize_nullifier_block(&mut self) -> Result<()> {
+    /// Freeze the ordered nullifier block exactly once, without writing NOMT.
+    async fn seal_nullifier_block(&mut self) -> Result<()> {
         let pending = self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+            .object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
             .unwrap_or_default();
         match pending {
-            PendingNullifierBlock::Materialized { .. } => {
-                anyhow::bail!("nullifier block was already materialized")
+            PendingNullifierBlock::Sealed { .. } => {
+                anyhow::bail!("nullifier block was already sealed")
             }
-            PendingNullifierBlock::Open {
-                generation: staged_generation,
-                ordered,
-                ..
-            } => {
-                let before = nullifier_tree::generation_state(self).await?;
-                if let Some(staged_generation) = staged_generation {
-                    ensure!(
-                        staged_generation == before.current_tree,
-                        "nullifier generation changed before block materialization"
-                    );
-                }
-                let height = self.get_block_height().await?;
-                let first_position = nullifier_tree::current_leaf_count(self).await?;
-                nullifier_tree::insert_batch(self, ordered.iter().copied()).await?;
-                nullifier_tree::record_block_insertions(
-                    self,
-                    nullifier_tree::InsertionInterval {
-                        height,
-                        generation: before.current_generation,
-                        first_position,
-                        count: ordered.len() as u64,
-                    },
-                )
-                .await?;
+            PendingNullifierBlock::Open { ordered, .. } => {
                 self.object_put(
-                    state_key::nullifier_generations::pending_block(),
-                    PendingNullifierBlock::Materialized { ordered },
+                    state_key::nullifiers::pending_block(),
+                    PendingNullifierBlock::Sealed { ordered },
                 );
                 Ok(())
             }
@@ -867,7 +823,7 @@ pub trait SctManager: StateWrite {
         &mut self,
         end_epoch: bool,
     ) -> Result<(block::Root, Option<epoch::Root>)> {
-        self.ensure_nullifier_block_materialized()?;
+        self.ensure_nullifier_block_sealed()?;
         let height = self.get_block_height().await?;
 
         let mut tree = self.get_sct().await;
@@ -1170,15 +1126,35 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn nullifiers_are_visible_before_one_shot_materialization() -> Result<()> {
+    async fn nullifiers_are_visible_before_one_shot_sealing() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         state.put_proto(
             crate::state_key::block_manager::block_height().to_owned(),
             1u64,
         );
-        nullifier_tree::initialize(&mut state).await?;
-        let starting = nullifier_tree::generation_state(&state).await?;
+        let directory = tempfile::tempdir()?;
+        let mut store = crate::permanent_nullifiers::Store::open(
+            &directory.path().join("nomt"),
+            &crate::permanent_nullifiers::Config {
+                buckets: 1024,
+                cache_mib: 1,
+                preallocate: false,
+            },
+            true,
+        )?;
+        let initial = crate::permanent_nullifiers::Boundary::default();
+        store.recover(&initial)?;
+        let genesis = store.prepare(0, [0; 32], &initial, vec![])?;
+        crate::permanent_nullifiers::stage_boundary(&mut state, genesis.transition()).await?;
+        let starting = genesis.transition().next.clone();
+        store.persist_intent(&genesis)?;
+        store.commit(genesis)?;
+        store.complete(&starting)?;
+        state.object_put(
+            state_key::nullifiers::reader(),
+            crate::permanent_nullifiers::Reader(std::sync::Arc::new(std::sync::RwLock::new(store))),
+        );
         let nullifiers = [
             Nullifier(shieldd_sdk_crypto::Fq::from(7u64)),
             Nullifier(shieldd_sdk_crypto::Fq::from(3u64)),
@@ -1190,8 +1166,8 @@ mod tests {
 
         state.nullify_all(&nullifiers, source).await?;
         assert_eq!(
-            nullifier_tree::generation_state(&state).await?.current_root,
-            starting.current_root
+            crate::permanent_nullifiers::read_boundary(&state).await?,
+            starting
         );
         assert_eq!(
             state
@@ -1204,17 +1180,20 @@ mod tests {
         for nullifier in nullifiers {
             assert!(state.is_nullifier_spent(nullifier).await?);
         }
-        assert!(state.ensure_nullifier_block_materialized().is_err());
+        assert!(state.ensure_nullifier_block_sealed().is_err());
 
-        state.materialize_nullifier_block().await?;
-        assert!(state.nullifier_block_is_materialized());
-        state.ensure_nullifier_block_materialized()?;
-        assert_ne!(
-            nullifier_tree::generation_state(&state).await?.current_root,
-            starting.current_root
+        state.seal_nullifier_block().await?;
+        assert!(state.nullifier_block_is_sealed());
+        state.ensure_nullifier_block_sealed()?;
+        assert_eq!(
+            crate::permanent_nullifiers::read_boundary(&state).await?,
+            starting,
+            "sealing a disposable block must not publish its insertions"
         );
-        assert_eq!(nullifier_tree::current_leaf_count(&state).await?, 4);
-        assert!(state.materialize_nullifier_block().await.is_err());
+        for nullifier in nullifiers {
+            assert!(state.is_nullifier_spent(nullifier).await?);
+        }
+        assert!(state.seal_nullifier_block().await.is_err());
         Ok(())
     }
 
@@ -1336,7 +1315,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sct_delete_range_deletes_only_materialized_rows() {
+    async fn sct_delete_range_deletes_only_sealed_rows() {
         let storage = TempStorage::new().await.unwrap();
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         let inside = tct::Position::from(7u64);

@@ -56,10 +56,8 @@ pub(crate) fn extract_public(
         target_timestamp: shieldd_sdk_crypto::Fq::from(data.target_timestamp),
         inputs: inputs
             .into_iter()
-            .zip(data.inputs.iter())
-            .map(|(input, body_input)| ShieldedWithdrawalInputPublic {
+            .map(|input| ShieldedWithdrawalInputPublic {
                 nullifier: input.nullifier,
-                history_required: body_input.history_required,
             })
             .collect(),
         change_output: ShieldedWithdrawalChangePublic {
@@ -80,7 +78,6 @@ pub(crate) fn extract_public(
         routing_tag: data.routing_tag,
         routing_parameter_set_id: data.routing_parameter_set_id,
         withdrawal_compliance_ciphertext: data.withdrawal_compliance_ciphertext.clone(),
-        recent_position_floor: context.recent_position_floor,
         volume_accumulator: crate::VolumeAccumulatorPublic {
             nullifier: data.volume_accumulator.nullifier,
             commitment: data.volume_accumulator.commitment,

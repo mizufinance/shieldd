@@ -12,9 +12,6 @@ use shieldd_sdk_keys::test_keys::SEED_PHRASE;
 use shieldd_sdk_keys::{Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_sct::nullifier_generation::{
-    empty_history_head, NullifierWindow, PROTOCOL_VERSION,
-};
 use shieldd_sdk_shielded_pool::{
     Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedHostWithdrawalPlan, ShieldedInputPlan,
     ShieldedOutputPlan, TransferPlan,
@@ -257,7 +254,6 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
             transaction_parameters: params,
             fee_funding: None,
             memo: None,
-            nullifier_window: None,
         };
         for action in &mut plan.actions {
             let (nonce, randomizer) = match action {
@@ -275,15 +271,7 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
             *nonce = Fr::random(&mut OsRng);
             *randomizer = Fr::random(&mut OsRng);
         }
-        if plan.num_spends() > 0 {
-            plan.nullifier_window = Some(NullifierWindow {
-                protocol_version: PROTOCOL_VERSION,
-                current_generation: 0,
-                recent_position_floor: 0,
-                archived_generation_count: 0,
-                archived_history_head: empty_history_head(),
-            });
-        }
+        if plan.num_spends() > 0 {}
         plan
     })
 }

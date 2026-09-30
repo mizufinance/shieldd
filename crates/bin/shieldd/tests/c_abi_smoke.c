@@ -35,15 +35,6 @@ int main(int argc, char **argv) {
     return 10;
   }
   free_result(&result);
-  handle = (shieldd_handle_t *)(uintptr_t)1;
-  result = shieldd_open_with_generation_packs(
-      (const uint8_t *)argv[1], strlen(argv[1]), NULL, 1, &handle);
-  if (result.status != SHIELDD_STATUS_INVALID_ARGUMENT || handle != NULL) {
-    free_result(&result);
-    return 11;
-  }
-  free_result(&result);
-
   result = shieldd_open((const uint8_t *)argv[1], strlen(argv[1]), &handle);
   if (result.status != SHIELDD_STATUS_OK) {
     print_error(&result);
@@ -85,8 +76,8 @@ int main(int argc, char **argv) {
   free_result(&result);
 
   result =
-      shieldd_call(handle, SHIELDD_METHOD_QUERY_NULLIFIER_WINDOW, NULL, 0);
-  if (result.status != SHIELDD_STATUS_INTERNAL || result.error.len == 0) {
+      shieldd_call(handle, SHIELDD_METHOD_QUERY_NULLIFIER_STATUS, NULL, 0);
+  if (result.status != SHIELDD_STATUS_INVALID_ARGUMENT || result.error.len == 0) {
     print_error(&result);
     free_result(&result);
     result = shieldd_close(handle);

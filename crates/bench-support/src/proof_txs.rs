@@ -240,7 +240,6 @@ pub async fn build_proof_transactions(
                     chain_id: TEST_CHAIN_ID.to_string(),
                     ..Default::default()
                 },
-                nullifier_window: None,
             };
 
             let plan = client.complete_intent(intent, snapshot).await?;

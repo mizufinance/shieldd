@@ -326,7 +326,6 @@ impl TransferPlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         anchor: tct::Root,
-        recent_position_floor: u64,
     ) -> anyhow::Result<TransferBody> {
         self.validate()?;
         let (routing, _) = self.routing();
@@ -344,7 +343,7 @@ impl TransferPlan {
         let inputs = self
             .spends
             .iter()
-            .map(|spend| spend.action_input_body(fvk, &nullifier_key, recent_position_floor))
+            .map(|spend| spend.action_input_body(fvk, &nullifier_key))
             .collect::<anyhow::Result<Vec<_>>>()?;
         let mut inputs = inputs;
         pad_to_len(&mut inputs, PADDED_TRANSFER_INPUTS, |slot| {
@@ -356,7 +355,6 @@ impl TransferPlan {
                 encrypted_backref: crate::Backref::new(dummy_note.commit())
                     .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
-                history_required: false,
             }
         });
 
@@ -434,7 +432,6 @@ impl TransferPlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: &[tct::Proof],
         anchor: tct::Root,
-        recent_position_floor: u64,
     ) -> Result<(TransferProofPublic, TransferProofPrivate), crate::ProofError> {
         self.validate()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
@@ -471,12 +468,6 @@ impl TransferPlan {
             .map(|spend| {
                 Ok(TransferSpendPublic {
                     nullifier: spend.nullifier(&nullifier_key),
-
-                    history_required: shieldd_sdk_sct::nullifier_generation::is_old(
-                        u64::from(spend.position),
-                        recent_position_floor,
-                    )
-                    .map_err(|error| crate::ProofError::InvalidPublicInput(error.to_string()))?,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -484,8 +475,6 @@ impl TransferPlan {
         pad_to_len(&mut input_publics, PADDED_TRANSFER_INPUTS, |slot| {
             TransferSpendPublic {
                 nullifier: self.synthetic_dummy_nullifier(slot),
-
-                history_required: false,
             }
         });
 
@@ -581,7 +570,6 @@ impl TransferPlan {
                 compliance: compliance.public,
                 routing,
                 routing_parameter_set_id: self.routing_parameters.id(),
-                recent_position_floor,
                 volume_accumulator: crate::VolumeAccumulatorPublic {
                     nullifier: volume_payload.nullifier,
                     commitment: volume_payload.commitment,
@@ -623,19 +611,14 @@ impl TransferPlan {
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
-        recent_position_floor: u64,
         registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Transfer, crate::ProofError> {
         let body = self
-            .transfer_body(fvk, memo_key, anchor, recent_position_floor)
+            .transfer_body(fvk, memo_key, anchor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
-        let (public, private) = self.transfer_public_private(
-            fvk,
-            &state_commitment_proofs,
-            anchor,
-            recent_position_floor,
-        )?;
+        let (public, private) =
+            self.transfer_public_private(fvk, &state_commitment_proofs, anchor)?;
         let proof = TransferProof::prove(public, private, registry)?;
 
         Ok(Transfer {
@@ -652,10 +635,9 @@ impl TransferPlan {
         anchor: tct::Root,
         memo_key: &PayloadKey,
         proof: TransferProof,
-        recent_position_floor: u64,
     ) -> Result<Transfer, crate::ProofError> {
         let body = self
-            .transfer_body(fvk, memo_key, anchor, recent_position_floor)
+            .transfer_body(fvk, memo_key, anchor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
         Ok(Transfer {
@@ -874,7 +856,6 @@ mod tests {
                 &base.fvk,
                 &PayloadKey::random_key(&mut OsRng),
                 tct::Tree::default().root(),
-                0,
             )
             .unwrap();
         let ct = TransferComplianceCiphertext::from_bytes(&body.outputs[0].compliance_ciphertext)
@@ -968,7 +949,7 @@ mod tests {
             .expect("transfer plan should be valid");
 
         let error = plan
-            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor, 0)
+            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor)
             .expect_err("proof materialization must require one proof per real spend");
         assert!(error
             .to_string()
@@ -1046,7 +1027,6 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &PayloadKey::random_key(&mut OsRng),
                 tct::Tree::default().root(),
-                0,
             )
             .expect("complete plan should materialize");
         assert_eq!(body.asset_anchor, new_asset_anchor);
@@ -1068,7 +1048,6 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &PayloadKey::random_key(&mut OsRng),
                 anchor,
-                0,
             )
             .expect("transfer body should build");
         let effect_hash = body.effect_hash();
@@ -1111,7 +1090,7 @@ mod tests {
         let expected_change = plan.outputs[1].output_note(plan.payload_key()).commit();
 
         let (_public, private) = plan
-            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[proof], anchor, 0)
+            .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[proof], anchor)
             .expect("transfer public/private inputs should build");
 
         assert_eq!(
@@ -1129,7 +1108,7 @@ mod tests {
         let mut rng = OsRng;
         let memo_key = PayloadKey::random_key(&mut rng);
         let body = plan
-            .transfer_body(&test_keys::FULL_VIEWING_KEY, &memo_key, anchor, 0)
+            .transfer_body(&test_keys::FULL_VIEWING_KEY, &memo_key, anchor)
             .expect("transfer body should build");
 
         assert!(body

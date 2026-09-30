@@ -21,7 +21,6 @@ pub struct TransferInputBody {
     pub nullifier: Nullifier,
     pub encrypted_backref: EncryptedBackref,
     pub compliance_ciphertext: Vec<u8>,
-    pub history_required: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -151,7 +150,6 @@ impl From<TransferInputBody> for pb::TransferInputBody {
             nullifier: Some(msg.nullifier.into()),
             encrypted_backref: msg.encrypted_backref.into(),
             compliance_ciphertext: msg.compliance_ciphertext,
-            history_required: msg.history_required,
         }
     }
 }
@@ -175,7 +173,6 @@ impl TryFrom<pb::TransferInputBody> for TransferInputBody {
                 .context("malformed nullifier")?,
             encrypted_backref,
             compliance_ciphertext: proto.compliance_ciphertext,
-            history_required: proto.history_required,
         })
     }
 }

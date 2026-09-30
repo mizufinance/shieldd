@@ -8,10 +8,7 @@ use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
-use shieldd_sdk_sct::{
-    nullifier_generation::{HistoricalNullifierProof, NullifierWindow},
-    Nullifier,
-};
+use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 
 use crate::{
@@ -435,8 +432,6 @@ fn capsule_release_challenge(
 pub struct NoteSeizureProofPublic {
     pub authorization: NoteSeizureAuthorizationBody,
     pub anchor: tct::Root,
-    pub history_required: bool,
-    pub recent_position_floor: u64,
     pub recovery_capsule: RecoveryCapsule,
     pub recovery_seed: Fq,
     pub rnk_commitment: Fq,
@@ -491,12 +486,6 @@ impl NoteSeizureProofPrivate {
                 &note_commitment,
             ) == public.authorization.nullifier,
             "note seizure canonical nullifier mismatch"
-        );
-        ensure!(
-            public.history_required
-                == (u64::from(self.state_commitment_proof.position())
-                    < public.recent_position_floor),
-            "note seizure history classification mismatch"
         );
         let plaintext = public
             .recovery_capsule
@@ -600,39 +589,16 @@ pub struct NoteSeizure {
     pub authorization: NoteSeizureAuthorizationBody,
     pub authority_signature: Signature<SpendAuth>,
     pub anchor: tct::Root,
-    pub history_required: bool,
-    pub recent_position_floor: u64,
     pub recovery_capsule: RecoveryCapsule,
     pub rnk_commitment: Fq,
     pub capsule_release: CapsuleReleaseEvidence,
     pub proof: NoteSeizureProof,
-    pub nullifier_window: NullifierWindow,
-    pub historical_nullifier_proof: Option<HistoricalNullifierProof>,
 }
 
 impl NoteSeizure {
     pub fn validate(&self) -> Result<()> {
         self.authorization.validate()?;
         self.recovery_capsule.validate()?;
-        self.nullifier_window.validate()?;
-        ensure!(
-            self.recent_position_floor == self.nullifier_window.recent_position_floor,
-            "note seizure recent position floor differs from its nullifier window"
-        );
-        match (self.history_required, &self.historical_nullifier_proof) {
-            (true, Some(proof)) => {
-                ensure!(
-                    proof.nullifier == self.authorization.nullifier,
-                    "historical proof nullifier differs from note seizure nullifier"
-                );
-                proof.validate_structure(self.nullifier_window)?;
-            }
-            (true, None) => anyhow::bail!("old note seizure requires a historical proof"),
-            (false, Some(_)) => {
-                anyhow::bail!("recent note seizure must not include a historical proof")
-            }
-            (false, None) => {}
-        }
         Ok(())
     }
 
@@ -640,8 +606,6 @@ impl NoteSeizure {
         NoteSeizureProofPublic {
             authorization: self.authorization.clone(),
             anchor: self.anchor,
-            history_required: self.history_required,
-            recent_position_floor: self.recent_position_floor,
             recovery_capsule: self.recovery_capsule.clone(),
             recovery_seed,
             rnk_commitment: self.rnk_commitment,
@@ -672,8 +636,6 @@ impl TryFrom<pb::NoteSeizure> for NoteSeizure {
                 .context("note seizure is missing anchor")?
                 .try_into()
                 .context("invalid note seizure anchor")?,
-            history_required: value.history_required,
-            recent_position_floor: value.recent_position_floor,
             recovery_capsule: value
                 .recovery_capsule
                 .context("note seizure is missing recovery capsule")?
@@ -687,14 +649,6 @@ impl TryFrom<pb::NoteSeizure> for NoteSeizure {
                 .proof
                 .context("note seizure is missing ZK proof")?
                 .try_into()?,
-            nullifier_window: value
-                .nullifier_window
-                .context("note seizure is missing nullifier window")?
-                .try_into()?,
-            historical_nullifier_proof: value
-                .historical_nullifier_proof
-                .map(TryInto::try_into)
-                .transpose()?,
         };
         seizure.validate()?;
         Ok(seizure)
@@ -707,13 +661,9 @@ impl From<NoteSeizure> for pb::NoteSeizure {
             authorization: Some(value.authorization.into()),
             authority_signature: Some(value.authority_signature.into()),
             anchor: Some(value.anchor.into()),
-            history_required: value.history_required,
-            recent_position_floor: value.recent_position_floor,
             recovery_capsule: Some(value.recovery_capsule.into()),
             rnk_commitment: value.rnk_commitment.to_bytes().to_vec(),
             proof: Some(value.proof.into()),
-            nullifier_window: Some(value.nullifier_window.into()),
-            historical_nullifier_proof: value.historical_nullifier_proof.map(Into::into),
             capsule_release: Some(value.capsule_release.into()),
         }
     }
@@ -995,8 +945,6 @@ mod tests {
         let public = NoteSeizureProofPublic {
             authorization: body,
             anchor: state_commitment_proof.root(),
-            history_required: false,
-            recent_position_floor: 0,
             recovery_capsule: capsule,
             recovery_seed: opening.seed,
             rnk_commitment: shieldd_sdk_compliance::compliance_nullifier_key_commitment(rnk),

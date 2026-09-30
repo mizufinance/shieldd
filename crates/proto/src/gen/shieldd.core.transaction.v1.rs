@@ -41,16 +41,6 @@ pub struct TransactionBody {
     /// This field will be present if and only if the transaction has outputs.
     #[prost(message, optional, tag = "5")]
     pub memo: ::core::option::Option<MemoCiphertext>,
-    /// Exact consensus nullifier window used by every proof-bound input.
-    #[prost(message, optional, tag = "6")]
-    pub nullifier_window: ::core::option::Option<
-        super::super::component::sct::v1::NullifierWindow,
-    >,
-    /// Complete retired-prefix proofs, one for each old real nullifier.
-    #[prost(message, repeated, tag = "7")]
-    pub historical_nullifier_proofs: ::prost::alloc::vec::Vec<
-        super::super::component::sct::v1::HistoricalNullifierProof,
-    >,
 }
 impl ::prost::Name for TransactionBody {
     const NAME: &'static str = "TransactionBody";
@@ -373,16 +363,6 @@ pub struct TransactionBodyView {
     /// outputs in the actions of this transaction.
     #[prost(message, optional, tag = "5")]
     pub memo_view: ::core::option::Option<MemoView>,
-    /// Exact consensus nullifier window used by the transaction proofs.
-    #[prost(message, optional, tag = "6")]
-    pub nullifier_window: ::core::option::Option<
-        super::super::component::sct::v1::NullifierWindow,
-    >,
-    /// Authorization-bound retired-prefix proof attachments.
-    #[prost(message, repeated, tag = "7")]
-    pub historical_nullifier_proofs: ::prost::alloc::vec::Vec<
-        super::super::component::sct::v1::HistoricalNullifierProof,
-    >,
 }
 impl ::prost::Name for TransactionBodyView {
     const NAME: &'static str = "TransactionBodyView";
@@ -468,11 +448,6 @@ pub struct WitnessData {
     pub state_commitment_proofs: ::prost::alloc::vec::Vec<
         super::super::super::crypto::tct::v1::StateCommitmentProof,
     >,
-    /// Complete retired-prefix proofs for the old real nullifiers in the plan.
-    #[prost(message, repeated, tag = "3")]
-    pub historical_nullifier_proofs: ::prost::alloc::vec::Vec<
-        super::super::component::sct::v1::HistoricalNullifierProof,
-    >,
 }
 impl ::prost::Name for WitnessData {
     const NAME: &'static str = "WitnessData";
@@ -503,11 +478,6 @@ pub struct TransactionPlan {
     /// The memo plan for this transaction.
     #[prost(message, optional, tag = "5")]
     pub memo: ::core::option::Option<MemoPlan>,
-    /// Exact consensus nullifier window used to classify the planned inputs.
-    #[prost(message, optional, tag = "6")]
-    pub nullifier_window: ::core::option::Option<
-        super::super::component::sct::v1::NullifierWindow,
-    >,
 }
 impl ::prost::Name for TransactionPlan {
     const NAME: &'static str = "TransactionPlan";

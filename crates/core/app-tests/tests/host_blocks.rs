@@ -24,6 +24,7 @@ async fn host_commits_empty_blocks_with_exact_supplied_height_and_time() -> anyh
             .unwrap();
         host.execute_block(
             HostBlock {
+                block_id: [height as u8; 32],
                 height: height as i64,
                 time,
             },

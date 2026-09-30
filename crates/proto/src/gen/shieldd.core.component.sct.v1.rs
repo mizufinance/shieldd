@@ -137,146 +137,6 @@ impl ::prost::Name for Nullifier {
         "/shieldd.core.component.sct.v1.Nullifier".into()
     }
 }
-/// Canonical storage identity for a Poseidon indexed nullifier generation tree.
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct NullifierTreeId {
-    #[prost(uint64, tag = "1")]
-    pub generation: u64,
-}
-impl ::prost::Name for NullifierTreeId {
-    const NAME: &'static str = "NullifierTreeId";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierTreeId".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierTreeId".into()
-    }
-}
-/// Consensus state for the two active nullifier generations and retired history.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullifierGenerationState {
-    #[prost(uint32, tag = "1")]
-    pub protocol_version: u32,
-    #[prost(uint64, tag = "2")]
-    pub activation_epoch: u64,
-    #[prost(uint64, tag = "3")]
-    pub current_generation: u64,
-    #[prost(message, optional, tag = "4")]
-    pub current_tree: ::core::option::Option<NullifierTreeId>,
-    #[prost(bytes = "vec", tag = "5")]
-    pub current_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "6")]
-    pub current_start_position: u64,
-    #[prost(message, optional, tag = "7")]
-    pub previous_tree: ::core::option::Option<NullifierTreeId>,
-    #[prost(bytes = "vec", tag = "8")]
-    pub previous_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "9")]
-    pub recent_position_floor: u64,
-    #[prost(uint64, tag = "10")]
-    pub archived_generation_count: u64,
-    #[prost(bytes = "vec", tag = "11")]
-    pub archived_history_head: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for NullifierGenerationState {
-    const NAME: &'static str = "NullifierGenerationState";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierGenerationState".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierGenerationState".into()
-    }
-}
-/// Public transaction projection of nullifier generation state.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullifierWindow {
-    #[prost(uint32, tag = "1")]
-    pub protocol_version: u32,
-    #[prost(uint64, tag = "2")]
-    pub current_generation: u64,
-    #[prost(uint64, tag = "3")]
-    pub recent_position_floor: u64,
-    #[prost(uint64, tag = "4")]
-    pub archived_generation_count: u64,
-    #[prost(bytes = "vec", tag = "5")]
-    pub archived_history_head: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for NullifierWindow {
-    const NAME: &'static str = "NullifierWindow";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierWindow".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierWindow".into()
-    }
-}
-/// One suite-identified Pari proof of nonmembership in a retired generation.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GenerationNonmembershipProof {
-    #[prost(uint64, tag = "1")]
-    pub generation_index: u64,
-    #[prost(bytes = "vec", tag = "2")]
-    pub generation_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "3")]
-    pub generation_start_position: u64,
-    #[prost(uint64, tag = "4")]
-    pub generation_end_position: u64,
-    #[prost(bytes = "vec", tag = "5")]
-    pub proof: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for GenerationNonmembershipProof {
-    const NAME: &'static str = "GenerationNonmembershipProof";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.GenerationNonmembershipProof".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.GenerationNonmembershipProof".into()
-    }
-}
-/// One Pari proof covering ten raw generation nonmembership witnesses.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct HistoricalChunkProof {
-    #[prost(uint64, tag = "1")]
-    pub chunk_index: u64,
-    #[prost(bytes = "vec", tag = "2")]
-    pub end_history_head: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "3")]
-    pub proof: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for HistoricalChunkProof {
-    const NAME: &'static str = "HistoricalChunkProof";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.HistoricalChunkProof".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.HistoricalChunkProof".into()
-    }
-}
-/// Complete retired-prefix proof for one public nullifier.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct HistoricalNullifierProof {
-    #[prost(message, optional, tag = "1")]
-    pub nullifier: ::core::option::Option<Nullifier>,
-    #[prost(message, repeated, tag = "2")]
-    pub completed_chunks: ::prost::alloc::vec::Vec<HistoricalChunkProof>,
-    #[prost(message, repeated, tag = "3")]
-    pub tail: ::prost::alloc::vec::Vec<GenerationNonmembershipProof>,
-}
-impl ::prost::Name for HistoricalNullifierProof {
-    const NAME: &'static str = "HistoricalNullifierProof";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.HistoricalNullifierProof".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.HistoricalNullifierProof".into()
-    }
-}
 /// Event recording a new commitment added to the SCT.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EventCommitment {
@@ -363,58 +223,6 @@ impl ::prost::Name for EventBlockRoot {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.sct.v1.EventBlockRoot".into()
-    }
-}
-/// Event emitted when the current generation becomes the retained previous tree.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventNullifierGenerationFrozen {
-    #[prost(uint64, tag = "1")]
-    pub generation_index: u64,
-    #[prost(uint64, tag = "2")]
-    pub application_epoch_start: u64,
-    #[prost(uint64, tag = "3")]
-    pub application_epoch_end: u64,
-    #[prost(uint64, tag = "4")]
-    pub generation_start_position: u64,
-    #[prost(uint64, tag = "5")]
-    pub generation_end_position: u64,
-    #[prost(bytes = "vec", tag = "6")]
-    pub generation_root: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for EventNullifierGenerationFrozen {
-    const NAME: &'static str = "EventNullifierGenerationFrozen";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.EventNullifierGenerationFrozen".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.EventNullifierGenerationFrozen".into()
-    }
-}
-/// Event emitted when the previous generation enters the committed retired history.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventNullifierGenerationArchived {
-    #[prost(uint64, tag = "1")]
-    pub generation_index: u64,
-    #[prost(uint64, tag = "2")]
-    pub generation_start_position: u64,
-    #[prost(uint64, tag = "3")]
-    pub generation_end_position: u64,
-    #[prost(bytes = "vec", tag = "4")]
-    pub generation_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "5")]
-    pub archived_generation_count: u64,
-    #[prost(bytes = "vec", tag = "6")]
-    pub archived_history_head: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for EventNullifierGenerationArchived {
-    const NAME: &'static str = "EventNullifierGenerationArchived";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.EventNullifierGenerationArchived".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.EventNullifierGenerationArchived".into()
     }
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -555,12 +363,77 @@ impl ::prost::Name for SctFrontierResponse {
         "/shieldd.core.component.sct.v1.SctFrontierResponse".into()
     }
 }
+/// Permanent nullifier root at an authenticated application boundary.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PermanentNullifierBoundary {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+    #[prost(bytes = "vec", tag = "2")]
+    pub block_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", repeated, tag = "3")]
+    pub partition_roots: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub aggregate_root: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for PermanentNullifierBoundary {
+    const NAME: &'static str = "PermanentNullifierBoundary";
+    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.sct.v1.PermanentNullifierBoundary".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.sct.v1.PermanentNullifierBoundary".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NullifierLeaf {
+    #[prost(bytes = "vec", tag = "1")]
+    pub key_path: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub value_hash: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for NullifierLeaf {
+    const NAME: &'static str = "NullifierLeaf";
+    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.sct.v1.NullifierLeaf".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.sct.v1.NullifierLeaf".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NullifierPathProof {
+    /// Root-to-leaf order, at most 256 fixed-width hashes.
+    #[prost(bytes = "vec", repeated, tag = "3")]
+    pub siblings: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+    #[prost(oneof = "nullifier_path_proof::Terminal", tags = "1, 2")]
+    pub terminal: ::core::option::Option<nullifier_path_proof::Terminal>,
+}
+/// Nested message and enum types in `NullifierPathProof`.
+pub mod nullifier_path_proof {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Terminal {
+        #[prost(message, tag = "1")]
+        Leaf(super::NullifierLeaf),
+        #[prost(bytes, tag = "2")]
+        Terminator(::prost::alloc::vec::Vec<u8>),
+    }
+}
+impl ::prost::Name for NullifierPathProof {
+    const NAME: &'static str = "NullifierPathProof";
+    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.sct.v1.NullifierPathProof".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.sct.v1.NullifierPathProof".into()
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NullifierRequest {
     #[prost(message, optional, tag = "1")]
     pub nullifier: ::core::option::Option<Nullifier>,
-    #[prost(bool, tag = "2")]
-    pub with_proof: bool,
 }
 impl ::prost::Name for NullifierRequest {
     const NAME: &'static str = "NullifierRequest";
@@ -574,12 +447,14 @@ impl ::prost::Name for NullifierRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NullifierResponse {
-    #[prost(bool, tag = "1")]
+    #[prost(message, optional, tag = "1")]
+    pub nullifier: ::core::option::Option<Nullifier>,
+    #[prost(bool, tag = "2")]
     pub spent: bool,
-    #[prost(message, optional, tag = "2")]
-    pub window: ::core::option::Option<NullifierWindow>,
-    #[prost(message, repeated, tag = "3")]
-    pub active_lookups: ::prost::alloc::vec::Vec<NullifierTreeLookup>,
+    #[prost(message, optional, tag = "3")]
+    pub boundary: ::core::option::Option<PermanentNullifierBoundary>,
+    #[prost(message, optional, tag = "4")]
+    pub proof: ::core::option::Option<NullifierPathProof>,
 }
 impl ::prost::Name for NullifierResponse {
     const NAME: &'static str = "NullifierResponse";
@@ -589,158 +464,6 @@ impl ::prost::Name for NullifierResponse {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.sct.v1.NullifierResponse".into()
-    }
-}
-/// Lookup result against one active nullifier tree.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullifierTreeLookup {
-    #[prost(message, optional, tag = "1")]
-    pub tree: ::core::option::Option<NullifierTreeId>,
-    #[prost(bytes = "vec", tag = "2")]
-    pub root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bool, tag = "3")]
-    pub spent: bool,
-    /// Present only when NullifierRequest.with_proof = true.
-    #[prost(message, optional, tag = "4")]
-    pub proof: ::core::option::Option<IndexedNullifierWitness>,
-}
-impl ::prost::Name for NullifierTreeLookup {
-    const NAME: &'static str = "NullifierTreeLookup";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierTreeLookup".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierTreeLookup".into()
-    }
-}
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct NullifierWindowRequest {}
-impl ::prost::Name for NullifierWindowRequest {
-    const NAME: &'static str = "NullifierWindowRequest";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierWindowRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierWindowRequest".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullifierWindowResponse {
-    #[prost(message, optional, tag = "1")]
-    pub window: ::core::option::Option<NullifierWindow>,
-}
-impl ::prost::Name for NullifierWindowResponse {
-    const NAME: &'static str = "NullifierWindowResponse";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierWindowResponse".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierWindowResponse".into()
-    }
-}
-/// Retained archive lookup used to construct a generation proof locally.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ArchivedNullifierProofRequest {
-    #[prost(uint64, tag = "1")]
-    pub generation_index: u64,
-    #[prost(message, optional, tag = "2")]
-    pub nullifier: ::core::option::Option<Nullifier>,
-}
-impl ::prost::Name for ArchivedNullifierProofRequest {
-    const NAME: &'static str = "ArchivedNullifierProofRequest";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.ArchivedNullifierProofRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.ArchivedNullifierProofRequest".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct IndexedNullifierLeaf {
-    #[prost(bytes = "vec", tag = "1")]
-    pub value: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "2")]
-    pub next_index: u64,
-    #[prost(bytes = "vec", tag = "3")]
-    pub next_value: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bool, tag = "4")]
-    pub is_lower_sentinel: bool,
-    #[prost(bool, tag = "5")]
-    pub is_terminal: bool,
-}
-impl ::prost::Name for IndexedNullifierLeaf {
-    const NAME: &'static str = "IndexedNullifierLeaf";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.IndexedNullifierLeaf".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.IndexedNullifierLeaf".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct IndexedNullifierPathLayer {
-    /// The three siblings in left-to-right order with the path child omitted.
-    #[prost(bytes = "vec", repeated, tag = "1")]
-    pub siblings: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
-}
-impl ::prost::Name for IndexedNullifierPathLayer {
-    const NAME: &'static str = "IndexedNullifierPathLayer";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.IndexedNullifierPathLayer".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.IndexedNullifierPathLayer".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct IndexedNullifierWitness {
-    #[prost(uint64, tag = "1")]
-    pub leaf_position: u64,
-    #[prost(message, optional, tag = "2")]
-    pub leaf: ::core::option::Option<IndexedNullifierLeaf>,
-    /// Exactly 20 bottom-to-root quaternary layers.
-    #[prost(message, repeated, tag = "3")]
-    pub auth_path: ::prost::alloc::vec::Vec<IndexedNullifierPathLayer>,
-}
-impl ::prost::Name for IndexedNullifierWitness {
-    const NAME: &'static str = "IndexedNullifierWitness";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.IndexedNullifierWitness".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.IndexedNullifierWitness".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ArchivedNullifierProofResponse {
-    #[prost(uint32, tag = "1")]
-    pub protocol_version: u32,
-    #[prost(uint64, tag = "2")]
-    pub generation_index: u64,
-    #[prost(bytes = "vec", tag = "3")]
-    pub generation_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "4")]
-    pub generation_start_position: u64,
-    #[prost(uint64, tag = "5")]
-    pub generation_end_position: u64,
-    #[prost(message, optional, tag = "6")]
-    pub witness: ::core::option::Option<IndexedNullifierWitness>,
-}
-impl ::prost::Name for ArchivedNullifierProofResponse {
-    const NAME: &'static str = "ArchivedNullifierProofResponse";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.ArchivedNullifierProofResponse".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.ArchivedNullifierProofResponse".into()
     }
 }
 /// Trusted-provider spend discovery; absence is not a completeness proof.
@@ -771,12 +494,8 @@ pub struct SpentNullifier {
     pub nullifier: ::core::option::Option<Nullifier>,
     #[prost(uint64, tag = "2")]
     pub height: u64,
-    #[prost(uint64, tag = "3")]
-    pub generation: u64,
-    #[prost(bytes = "vec", tag = "4")]
-    pub generation_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "5")]
-    pub witness: ::core::option::Option<IndexedNullifierWitness>,
+    #[prost(message, optional, tag = "3")]
+    pub status: ::core::option::Option<NullifierResponse>,
 }
 impl ::prost::Name for SpentNullifier {
     const NAME: &'static str = "SpentNullifier";
@@ -1072,64 +791,6 @@ pub mod query_service_client {
                     GrpcMethod::new(
                         "shieldd.core.component.sct.v1.QueryService",
                         "Nullifier",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn nullifier_window(
-            &mut self,
-            request: impl tonic::IntoRequest<super::NullifierWindowRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::NullifierWindowResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.sct.v1.QueryService/NullifierWindow",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.sct.v1.QueryService",
-                        "NullifierWindow",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn archived_nullifier_proof(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ArchivedNullifierProofRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ArchivedNullifierProofResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.core.component.sct.v1.QueryService/ArchivedNullifierProof",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "shieldd.core.component.sct.v1.QueryService",
-                        "ArchivedNullifierProof",
                     ),
                 );
             self.inner.unary(req, path, codec).await

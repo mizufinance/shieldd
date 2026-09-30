@@ -24,26 +24,20 @@ use shieldd_sdk_proto::{
             ComplianceBatchMerkleProofsRequest, ComplianceBatchMerkleProofsResponse,
             ComplianceUserLeafRequest, ComplianceUserLeafResponse,
         },
-        sct::v1::{
-            ArchivedNullifierProofRequest, ArchivedNullifierProofResponse, NullifierWindowRequest,
-            NullifierWindowResponse,
-        },
+        sct::v1::{NullifierRequest, NullifierResponse},
         shielded_pool::v1::{AssetMetadataByIdRequest, AssetMetadataByIdResponse},
     },
     execution_client::v1::{CheckTxRequest, CheckTxResponse, GetCommittedStateResponse},
 };
 use shieldd_sdk_sct::{
-    component::clock::EpochRead as _, generation_pack::GenerationPackRepository, nullifier_tree,
+    component::clock::EpochRead as _,
+    permanent_nullifiers::{self, Boundary, Reader},
     Nullifier,
 };
-use std::{
-    collections::VecDeque,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 struct PublishedState {
     snapshot: Snapshot,
-    versions: VecDeque<u64>,
 }
 
 /// Published snapshots are shared with readers; no query takes the execution lock.
@@ -51,17 +45,17 @@ pub struct QueryService {
     pub(crate) limits: crate::ServiceLimits,
     storage: RwLock<Option<Storage>>,
     published: RwLock<Option<PublishedState>>,
-    generation_packs: RwLock<Option<GenerationPackRepository>>,
+    nullifiers: RwLock<Option<Reader>>,
     registry: Arc<Registry>,
     cache: Arc<StatelessCache>,
     check_slots: Arc<tokio::sync::Semaphore>,
-    pub(crate) archive_slots: Arc<tokio::sync::Semaphore>,
+    pub(crate) nullifier_slots: Arc<tokio::sync::Semaphore>,
     pub(crate) historical_sct: crate::historical_sct::HistoricalSct,
 }
 impl QueryService {
     pub(crate) fn new(
         storage: Storage,
-        generation_packs: Option<GenerationPackRepository>,
+        nullifiers: Reader,
         registry: Arc<Registry>,
         cache: Arc<StatelessCache>,
         limits: crate::ServiceLimits,
@@ -69,29 +63,30 @@ impl QueryService {
         Self {
             storage: RwLock::new(Some(storage)),
             published: RwLock::new(None),
-            generation_packs: RwLock::new(generation_packs),
+            nullifiers: RwLock::new(Some(nullifiers)),
             registry,
             cache,
             check_slots: Arc::new(tokio::sync::Semaphore::new(limits.check_tx_workers)),
-            archive_slots: Arc::new(tokio::sync::Semaphore::new(limits.archive_query_workers)),
+            nullifier_slots: Arc::new(tokio::sync::Semaphore::new(limits.nullifier_query_workers)),
             historical_sct: crate::historical_sct::HistoricalSct::new(64 * 1024 * 1024),
             limits,
         }
     }
-    pub(crate) fn generation_packs(&self) -> Option<GenerationPackRepository> {
-        self.generation_packs
+    pub(crate) fn nullifiers(&self) -> Result<Reader, ServiceError> {
+        self.nullifiers
             .read()
-            .expect("archive lock poisoned")
+            .expect("nullifier reader lock poisoned")
             .clone()
+            .ok_or_else(ServiceError::closed)
     }
     pub(crate) fn close(&self) {
-        self.generation_packs
+        self.nullifiers
             .write()
-            .expect("archive lock poisoned")
+            .expect("nullifier reader lock poisoned")
             .take();
         self.storage.write().expect("storage lock poisoned").take();
         self.check_slots.close();
-        self.archive_slots.close();
+        self.nullifier_slots.close();
         *self.published.write().expect("publication lock poisoned") = None;
     }
     pub(crate) fn snapshot(&self) -> Result<Snapshot, ServiceError> {
@@ -106,28 +101,7 @@ impl QueryService {
                 ))
             })
     }
-    pub(crate) fn snapshot_version(&self, version: u64) -> Result<Snapshot, ServiceError> {
-        {
-            let published = self.published.read().expect("publication lock poisoned");
-            let state = published
-                .as_ref()
-                .ok_or_else(ServiceError::snapshot_expired)?;
-            if version == state.snapshot.version() {
-                return Ok(state.snapshot.clone());
-            }
-            // Forged cursors cannot select a durable snapshot that was never published.
-            if !state.versions.contains(&version) {
-                return Err(ServiceError::snapshot_expired());
-            }
-        }
-        self.storage
-            .read()
-            .expect("storage lock poisoned")
-            .as_ref()
-            .ok_or_else(ServiceError::closed)?
-            .snapshot(version)
-            .ok_or_else(ServiceError::snapshot_expired)
-    }
+
     /// Bankd calls this only after its own commit and durable recovery record succeed.
     pub async fn publish_committed(
         &self,
@@ -145,7 +119,17 @@ impl QueryService {
             .await
             .map_err(ServiceError::internal)?;
         let root = snapshot.root_hash().await.map_err(ServiceError::internal)?;
-        if height != expected.height || root.0.as_slice() != expected.root_hash {
+        let boundary = permanent_nullifiers::read_boundary(&snapshot)
+            .await
+            .map_err(ServiceError::unavailable)?;
+        self.nullifiers()?
+            .validate_boundary(&boundary)
+            .map_err(ServiceError::unavailable)?;
+        if height != expected.height
+            || root.0.as_slice() != expected.root_hash
+            || boundary.height != Some(height)
+            || boundary.block_id.as_slice() != expected.block_id
+        {
             return Err(ServiceError::failed_precondition(anyhow::anyhow!(
                 "publication does not match durable Shieldd state"
             )));
@@ -159,17 +143,7 @@ impl QueryService {
                 "publication moved backwards"
             )));
         }
-        let mut versions = published
-            .as_ref()
-            .map(|state| state.versions.clone())
-            .unwrap_or_default();
-        if versions.back() != Some(&snapshot.version()) {
-            versions.push_back(snapshot.version());
-        }
-        while versions.len() > 10 {
-            versions.pop_front();
-        }
-        *published = Some(PublishedState { snapshot, versions });
+        *published = Some(PublishedState { snapshot });
         Ok(())
     }
     pub async fn check_tx(&self, request: CheckTxRequest) -> Result<CheckTxResponse, ServiceError> {
@@ -182,6 +156,7 @@ impl QueryService {
             self.snapshot()?,
             self.registry.clone(),
             self.cache.clone(),
+            self.nullifiers()?,
             &request.tx,
         )
         .await
@@ -620,70 +595,38 @@ impl QueryService {
         })
     }
 
-    pub async fn nullifier_window(
+    pub async fn nullifier_status(
         &self,
-        _request: NullifierWindowRequest,
-    ) -> std::result::Result<NullifierWindowResponse, ServiceError> {
-        let snapshot = self.snapshot()?;
-        let generation = shieldd_sdk_sct::nullifier_tree::generation_state(&snapshot)
-            .await
-            .map_err(|error| {
-                ServiceError::internal(anyhow::anyhow!("could not read nullifier window: {error}"))
-            })?;
-        Ok(NullifierWindowResponse {
-            window: Some(generation.window().into()),
-        })
-    }
-
-    pub async fn archived_nullifier_proof(
-        &self,
-        request: ArchivedNullifierProofRequest,
-    ) -> std::result::Result<ArchivedNullifierProofResponse, ServiceError> {
+        request: NullifierRequest,
+    ) -> Result<NullifierResponse, ServiceError> {
         let nullifier = request
             .nullifier
             .context("missing nullifier")
             .and_then(Nullifier::try_from)
             .map_err(ServiceError::invalid_argument)?;
-        let repository = self.generation_packs().ok_or_else(|| {
-            ServiceError::failed_precondition(anyhow::anyhow!(
-                "historical witness storage is not configured"
-            ))
-        })?;
-        let state = self.snapshot()?;
-        let archived = nullifier_tree::archived_generation(&state, request.generation_index)
+        let boundary = permanent_nullifiers::read_boundary(&self.snapshot()?)
             .await
-            .map_err(ServiceError::failed_precondition)?;
-        drop(state);
+            .map_err(ServiceError::unavailable)?;
+        self.status(nullifier, boundary).await
+    }
+    pub(crate) async fn status(
+        &self,
+        nullifier: Nullifier,
+        boundary: Boundary,
+    ) -> Result<NullifierResponse, ServiceError> {
         let permit = self
-            .archive_slots
+            .nullifier_slots
             .clone()
             .try_acquire_owned()
             .map_err(|_| ServiceError::overloaded())?;
-        let reader = repository.clone();
-        let result = tokio::task::spawn_blocking(move || {
+        let reader = self.nullifiers()?;
+        tokio::task::spawn_blocking(move || {
             let _permit = permit;
-            reader
-                .nonmembership_proof(archived, nullifier)
-                .map(|proof| *proof)
+            reader.status(nullifier, &boundary)?.try_into()
         })
         .await
-        .context("archive query task failed")
-        .map_err(ServiceError::internal)?;
-        let proof = match result {
-            Ok(proof) => proof,
-            Err(error)
-                if error
-                    .downcast_ref::<shieldd_sdk_sct::nullifier_generation::ArchivedNullifierSpent>()
-                    .is_some() =>
-            {
-                return Err(ServiceError::failed_precondition(error))
-            }
-            Err(error) => {
-                repository.request_repair(archived.generation_index);
-                return Err(ServiceError::unavailable(error));
-            }
-        };
-        Ok(proof.into())
+        .map_err(|e| ServiceError::internal(e.into()))?
+        .map_err(ServiceError::unavailable)
     }
 }
 

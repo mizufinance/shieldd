@@ -27,6 +27,7 @@ const HOST_NOTE_SEIZURE_DOMAIN: &[u8] = b"shieldd.host_note_seizure";
 
 #[derive(Clone, Debug)]
 pub struct HostBlock {
+    pub block_id: [u8; 32],
     pub height: i64,
     pub time: Time,
 }
@@ -38,6 +39,7 @@ pub enum HostExecutionPhase {
     InitializedCheckpointGenesis,
     InBlock,
     EndedBlock,
+    SealedBlock,
     CommitInterrupted,
 }
 
@@ -104,6 +106,7 @@ pub struct HostCommit {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostCommittedState {
+    pub block_id: [u8; 32],
     pub height: u64,
     pub root_hash: Vec<u8>,
 }
@@ -116,7 +119,13 @@ pub struct HostExecution {
     app: App,
     stateless_cache: Arc<StatelessCache>,
     phase: HostExecutionPhase,
-    generation_packs: Option<shieldd_sdk_sct::generation_pack::GenerationPackRepository>,
+    writer: PermanentWriter,
+    block_id: Option<[u8; 32]>,
+}
+
+pub struct HostEndBlock {
+    pub events: Vec<abci::Event>,
+    pub prepared: CommitBoundary,
 }
 
 #[derive(Debug)]
@@ -248,23 +257,60 @@ impl HostExecution {
         stateless_cache: Arc<StatelessCache>,
         registry: Arc<Registry>,
     ) -> Result<Self> {
-        let mut app = App::new(storage.latest_snapshot(), registry).await?;
-        app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        let config = if cfg!(test) {
+            shieldd_sdk_sct::permanent_nullifiers::Config {
+                buckets: 1024,
+                cache_mib: 1,
+                preallocate: false,
+            }
+        } else {
+            Default::default()
+        };
+        Self::with_config(storage, stateless_cache, registry, &config).await
+    }
 
+    pub async fn with_config(
+        storage: Storage,
+        stateless_cache: Arc<StatelessCache>,
+        registry: Arc<Registry>,
+        config: &shieldd_sdk_sct::permanent_nullifiers::Config,
+    ) -> Result<Self> {
+        crate::app_version::check_app_version(&storage).await?;
+        let writer = PermanentWriter::open(storage.clone(), config).await?;
+        Self::from_writer(storage, stateless_cache, registry, writer).await
+    }
+
+    #[cfg(test)]
+    pub(super) async fn with_reader(
+        storage: Storage,
+        stateless_cache: Arc<StatelessCache>,
+        registry: Arc<Registry>,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+    ) -> Result<Self> {
+        let writer = PermanentWriter::from_reader(storage.clone(), reader).await?;
+        Self::from_writer(storage, stateless_cache, registry, writer).await
+    }
+
+    async fn from_writer(
+        storage: Storage,
+        stateless_cache: Arc<StatelessCache>,
+        registry: Arc<Registry>,
+        writer: PermanentWriter,
+    ) -> Result<Self> {
+        let mut app = App::new(storage.latest_snapshot(), registry, writer.reader()).await?;
+        app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         Ok(Self {
             storage,
             app,
             stateless_cache,
             phase: HostExecutionPhase::Idle,
-            generation_packs: None,
+            writer,
+            block_id: None,
         })
     }
 
-    pub fn set_generation_packs(
-        &mut self,
-        repository: shieldd_sdk_sct::generation_pack::GenerationPackRepository,
-    ) {
-        self.generation_packs = Some(repository);
+    pub fn nullifier_reader(&self) -> shieldd_sdk_sct::permanent_nullifiers::Reader {
+        self.writer.reader()
     }
 
     pub fn phase(&self) -> HostExecutionPhase {
@@ -339,6 +385,9 @@ impl HostExecution {
         let height = snapshot.get_block_height().await?;
         let root_hash = snapshot.root_hash().await?;
         Ok(HostCommittedState {
+            block_id: shieldd_sdk_sct::permanent_nullifiers::read_boundary(&snapshot)
+                .await?
+                .block_id,
             height,
             root_hash: root_hash.0.to_vec(),
         })
@@ -379,6 +428,7 @@ impl HostExecution {
             time: block.time,
         };
         let events = self.app.begin_block(&begin_block).await?;
+        self.block_id = Some(block.block_id);
         self.phase = HostExecutionPhase::InBlock;
         Ok(HostExecutionResponse { events })
     }
@@ -424,6 +474,7 @@ impl HostExecution {
             self.storage.latest_snapshot(),
             self.app.registry.clone(),
             self.stateless_cache.clone(),
+            self.writer.reader(),
             tx_bytes,
         )
         .await
@@ -434,9 +485,10 @@ impl HostExecution {
         snapshot: cnidarium::Snapshot,
         registry: Arc<Registry>,
         cache: Arc<StatelessCache>,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
         tx_bytes: &[u8],
     ) -> Result<HostTxResponse> {
-        let mut app = App::new(snapshot, registry).await?;
+        let mut app = App::new(snapshot, registry, reader).await?;
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         Ok(
             match app.deliver_tx_bytes(tx_bytes, Some(cache.as_ref())).await {
@@ -494,7 +546,7 @@ impl HostExecution {
     }
 
     /// Finishes the current host block without producing validator set updates.
-    pub async fn end_block(&mut self, height: i64) -> Result<HostExecutionResponse> {
+    pub async fn end_block(&mut self, height: i64) -> Result<HostEndBlock> {
         ensure!(
             self.phase == HostExecutionPhase::InBlock,
             "end_block called while host execution phase is {:?}",
@@ -507,36 +559,89 @@ impl HostExecution {
             "end_block height differs from the open block"
         );
         let events = self.app.end_block(height).await;
+        self.phase = HostExecutionPhase::CommitInterrupted;
+        let state = self.app.take_commit_state(&self.storage).await?;
+        let accepted = state.pending_nullifiers().iter().copied().collect();
+        let prepared = self
+            .writer
+            .prepare(
+                state,
+                height,
+                self.block_id.context("active block identity is missing")?,
+                accepted,
+            )
+            .await?;
         self.phase = HostExecutionPhase::EndedBlock;
-        Ok(HostExecutionResponse { events })
+        Ok(HostEndBlock { events, prepared })
     }
 
-    /// Commits execution state without standalone chain halt or upgrade handling.
+    pub fn prepared_commit(&self) -> Result<&CommitBoundary> {
+        self.writer.prepared()
+    }
+    pub fn previous_commit(&self) -> Result<&CommitBoundary> {
+        self.writer.committed()
+    }
+
+    /// Persist recovery intent before Bankd makes any durable change.
+    pub fn seal_commit(&mut self) -> Result<CommitBoundary> {
+        ensure!(
+            self.phase == HostExecutionPhase::EndedBlock,
+            "seal_commit requires a finalized block"
+        );
+        self.phase = HostExecutionPhase::CommitInterrupted;
+        let next = self.writer.seal()?;
+        self.phase = HostExecutionPhase::SealedBlock;
+        Ok(next)
+    }
+
+    /// Commit the exact root already authenticated and committed by Bankd.
     pub async fn commit(&mut self) -> Result<HostCommit> {
         ensure!(
             matches!(
                 self.phase,
-                HostExecutionPhase::InitializedGenesis | HostExecutionPhase::EndedBlock
+                HostExecutionPhase::InitializedGenesis | HostExecutionPhase::SealedBlock
             ),
             "commit called while host execution phase is {:?}",
             self.phase
         );
-
+        let genesis = self.phase == HostExecutionPhase::InitializedGenesis;
         self.phase = HostExecutionPhase::CommitInterrupted;
-        let root_hash = self
-            .app
-            .commit(self.storage.clone(), self.generation_packs.as_ref())
-            .await?;
+        #[cfg(test)]
+        if let Some(extracted) = self.app.commit_extracted.take() {
+            extracted.notify_one();
+            std::future::pending::<()>().await;
+        }
+        if genesis {
+            let state = self.app.take_commit_state(&self.storage).await?;
+            let accepted = state.pending_nullifiers().iter().copied().collect();
+            // Genesis is the distinguished height-zero boundary, before a block hash exists.
+            self.writer.prepare(state, 0, [0; 32], accepted).await?;
+            self.writer.seal()?;
+        }
+        let committed = self.writer.commit()?;
+        self.app
+            .reset_committed(&self.storage, self.writer.reader());
+        self.block_id = None;
         self.phase = HostExecutionPhase::Idle;
         Ok(HostCommit {
-            root_hash: root_hash.0.to_vec(),
+            root_hash: committed
+                .application_root
+                .context("committed application root is missing")?
+                .to_vec(),
         })
     }
 
     pub async fn rollback(&mut self) -> Result<()> {
-        let mut app = App::new(self.storage.latest_snapshot(), self.app.registry.clone()).await?;
+        self.writer.recover_current().await?;
+        let mut app = App::new(
+            self.storage.latest_snapshot(),
+            self.app.registry.clone(),
+            self.writer.reader(),
+        )
+        .await?;
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         self.app = app;
+        self.block_id = None;
         self.phase = HostExecutionPhase::Idle;
         Ok(())
     }
@@ -548,9 +653,11 @@ impl HostExecution {
             app,
             stateless_cache,
             phase: _,
-            generation_packs: _,
+            writer,
+            block_id: _,
         } = self;
         drop(app);
+        drop(writer);
         drop(stateless_cache);
         storage.release().await;
     }
@@ -790,22 +897,7 @@ impl App {
             "note seizure RNK commitment differs from the current compliance leaf"
         );
 
-        let current_window = shieldd_sdk_sct::nullifier_tree::generation_state(&state_tx)
-            .await?
-            .window();
-        ensure!(
-            seizure.nullifier_window == current_window,
-            "note seizure nullifier window is stale"
-        );
         state_tx.check_claimed_anchor(seizure.anchor).await?;
-        if let Some(history) = seizure.historical_nullifier_proof.as_ref() {
-            verify_historical_nullifier_proof(
-                authorization.nullifier,
-                current_window,
-                history,
-                &self.registry,
-            )?;
-        }
 
         let authorization_commitment = authorization.commitment()?;
         let release = CapsuleReleaseRequest {
@@ -1204,6 +1296,7 @@ mod tests {
 
     fn host_block(height: i64) -> HostBlock {
         HostBlock {
+            block_id: [height as u8; 32],
             height,
             time: Time::from_unix_timestamp(1_700_000_000, 0).expect("valid host block time"),
         }
@@ -1447,6 +1540,7 @@ mod tests {
         first.time = Time::from_unix_timestamp(2000, 0)?;
         host.begin_block(first).await?;
         host.end_block(1).await?;
+        host.seal_commit()?;
         host.commit().await?;
         let version = storage.latest_version();
         let mut next = host_block(2);
@@ -1497,11 +1591,12 @@ mod tests {
             }
             storage.commit(state).await?;
             let stored_version = storage.latest_version();
-            let mut host =
-                HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-            assert!(host.begin_block(host_block(1)).await.is_err());
-            assert_eq!(host.phase(), HostExecutionPhase::Idle);
-            assert_eq!(host.app.state.get_block_height().await?, 0);
+            assert!(
+                HostExecution::new(storage.deref().clone(), crate::app::tests::registry())
+                    .await
+                    .is_err(),
+                "incompatible state must be rejected before opening execution"
+            );
             assert_eq!(storage.latest_version(), stored_version);
         }
         Ok(())
@@ -1628,6 +1723,7 @@ mod tests {
         .await
         .is_err());
         host.end_block(1).await?;
+        host.seal_commit()?;
         host.commit().await?;
         let checkpoint = host.export_genesis().await?;
         let saved_pair = admission::current(&storage.latest_snapshot())
@@ -1657,6 +1753,7 @@ mod tests {
         host.apply_compliance_action(request).await?;
         assert_eq!(admission::epoch(&*host.app.state).await?, 2);
         host.end_block(2).await?;
+        host.seal_commit()?;
         host.commit().await?;
         Ok(())
     }
@@ -1710,9 +1807,7 @@ mod tests {
             .witness(note_commitment)
             .context("witnessing the seized note")?;
         state_tx.write_sct(1, witness_tree, block_root, None).await;
-        let nullifier_window = shieldd_sdk_sct::nullifier_tree::generation_state(&state_tx)
-            .await?
-            .window();
+
         host.app.apply(state_tx);
 
         let nullifier = shieldd_sdk_sct::Nullifier::derive(
@@ -1760,8 +1855,6 @@ mod tests {
         let proof_public = NoteSeizureProofPublic {
             authorization: authorization.clone(),
             anchor: state_commitment_proof.root(),
-            history_required: false,
-            recent_position_floor: nullifier_window.recent_position_floor,
             recovery_capsule: recovery_capsule.clone(),
             recovery_seed: opening.seed,
             rnk_commitment: compliance_nullifier_key_commitment(rnk),
@@ -1781,14 +1874,10 @@ mod tests {
             authority_signature: authority_sk
                 .sign(rand_core::OsRng, &authorization.signing_bytes()?),
             anchor: proof_public.anchor,
-            history_required: false,
-            recent_position_floor: nullifier_window.recent_position_floor,
             recovery_capsule,
             rnk_commitment: proof_public.rnk_commitment,
             capsule_release,
             proof,
-            nullifier_window,
-            historical_nullifier_proof: None,
         };
         let before_audit = host.app.state.get_audit_log_state().await?;
         let mut invalid_seizure = seizure.clone();
@@ -1862,6 +1951,7 @@ mod tests {
             ParsedHostDeposit::parse(host.app.state.get_chain_id().await?, request.clone())?;
         host.deposit(request.clone()).await?;
         host.end_block(1).await?;
+        host.seal_commit()?;
         cancel_extracted_commit(&mut host).await?;
 
         assert!(
@@ -1880,6 +1970,7 @@ mod tests {
         assert!(!replay.events.is_empty());
         assert!(host.deposit(request).await?.events.is_empty());
         host.end_block(1).await?;
+        host.seal_commit()?;
         host.commit().await?;
         drop(host);
         let host =
@@ -1901,6 +1992,7 @@ mod tests {
         host.commit().await?;
         host.begin_block(host_block(1)).await?;
         host.end_block(1).await?;
+        host.seal_commit()?;
         storage
             .commit(StateDelta::new(storage.latest_snapshot()))
             .await?;
@@ -1910,7 +2002,7 @@ mod tests {
             .await
             .expect_err("stale application snapshot must fail");
         assert!(
-            format!("{error:#}").contains("delta forked from version"),
+            format!("{error:#}").contains("application changed after commit preparation"),
             "{error:#}"
         );
         assert_eq!(host.phase(), HostExecutionPhase::CommitInterrupted);
@@ -1919,6 +2011,7 @@ mod tests {
         host.rollback().await?;
         host.begin_block(host_block(1)).await?;
         host.end_block(1).await?;
+        host.seal_commit()?;
         host.commit().await?;
         assert_eq!(host.committed_state().await?.height, 1);
         Ok(())
@@ -1984,6 +2077,7 @@ mod tests {
         for height in [1, 2] {
             host.begin_block(host_block(height)).await?;
             host.end_block(height).await?;
+            host.seal_commit()?;
             host.commit().await?;
         }
         let committed = host.committed_state().await?;
@@ -1995,6 +2089,7 @@ mod tests {
         }
         host.begin_block(host_block(3)).await?;
         host.end_block(3).await?;
+        host.seal_commit()?;
         host.commit().await?;
         assert_eq!(host.committed_state().await?.height, 3);
         Ok(())
@@ -2009,6 +2104,7 @@ mod tests {
         for height in 1..=committed_height {
             host.begin_block(host_block(height)).await?;
             host.end_block(height).await?;
+            host.seal_commit()?;
             host.commit().await?;
         }
         let committed = host.committed_state().await?;
@@ -2032,6 +2128,7 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.begin_block(host_block(next)).await?;
         host.end_block(next).await?;
+        host.seal_commit()?;
         host.commit().await?;
         assert_eq!(host.committed_state().await?.height, next as u64);
         Ok(())
@@ -2058,6 +2155,7 @@ mod tests {
         assert!(host.end_block(2).await.is_err());
         assert_eq!(host.phase(), HostExecutionPhase::InBlock);
         host.end_block(1).await?;
+        host.seal_commit()?;
         host.commit().await?;
         Ok(())
     }
@@ -2101,6 +2199,12 @@ mod tests {
 
         host.end_block(1).await?;
         assert_eq!(host.phase(), HostExecutionPhase::EndedBlock);
+        assert!(
+            host.commit().await.is_err(),
+            "commit requires durable recovery intent"
+        );
+        host.seal_commit()?;
+        assert_eq!(host.phase(), HostExecutionPhase::SealedBlock);
         let block_commit = host.commit().await?;
         assert_eq!(block_commit.root_hash.len(), 32);
         assert_eq!(host.phase(), HostExecutionPhase::Idle);

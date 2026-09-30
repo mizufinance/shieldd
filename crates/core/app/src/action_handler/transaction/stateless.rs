@@ -249,13 +249,11 @@ mod tests {
                         nullifier: Nullifier(Fq::from(1u64)),
                         encrypted_backref: EncryptedBackref::dummy(),
                         compliance_ciphertext: Vec::new(),
-                        history_required: false,
                     },
                     TransferInputBody {
                         nullifier: Nullifier(Fq::from(2u64)),
                         encrypted_backref: EncryptedBackref::dummy(),
                         compliance_ciphertext: Vec::new(),
-                        history_required: false,
                     },
                 ],
                 outputs: Vec::new(),

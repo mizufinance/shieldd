@@ -6,23 +6,12 @@ import "cosmos/base/v1beta1/coin.proto";
 import "google/protobuf/timestamp.proto";
 import "shieldd/core/asset/v1/asset.proto";
 import "shieldd/core/app/v1/app.proto";
-import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/compliance/v1/compliance.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
 import "shieldd/core/keys/v1/keys.proto";
 
 // Protobuf payloads for Bankd's in-process Shieldd C ABI.
 // Method IDs and query payload types are defined in crates/bin/shieldd/include/shieldd.h.
-
-// ArchivedNullifierProofRequest carries the component query across the host-chain boundary.
-message ArchivedNullifierProofRequest {
-  shieldd.core.component.sct.v1.ArchivedNullifierProofRequest request = 1;
-}
-
-// ArchivedNullifierProofResponse carries the component result across the host-chain boundary.
-message ArchivedNullifierProofResponse {
-  shieldd.core.component.sct.v1.ArchivedNullifierProofResponse response = 1;
-}
 
 // InitGenesisRequest carries the Shieldd genesis payload controlled by the host
 // chain.
@@ -42,6 +31,8 @@ message BeginBlockRequest {
   int64 height = 1;
   // Host-chain block time.
   google.protobuf.Timestamp time = 2;
+  // Canonical CometBFT block hash supplied by FinalizeBlock.
+  bytes block_id = 3;
 }
 
 // BeginBlockResponse contains non-consensus events emitted by Shieldd.
@@ -195,6 +186,8 @@ message EndBlockRequest {
 message EndBlockResponse {
   // Events emitted during end-block execution.
   repeated Event events = 1;
+  // Exact frozen application commitment to authenticate in Bankd at this height.
+  GetCommittedStateResponse prepared = 2;
 }
 
 // Event describes a non-consensus execution event emitted by Shieldd.
@@ -235,6 +228,7 @@ message GetCommittedStateResponse {
   uint64 height = 1;
   // Committed Shieldd application root hash.
   bytes root_hash = 2;
+  bytes block_id = 3;
 }
 
 // RollbackRequest is empty because rollback applies to the current pending
@@ -251,4 +245,13 @@ message ExportGenesisRequest {}
 message ExportGenesisResponse {
   // Exported Shieldd genesis state.
   shieldd.core.app.v1.GenesisAppState genesis = 1;
+}
+
+// Persist Shieldd/NOMT recovery intent before the host's first durable change.
+message SealCommitRequest {
+  GetCommittedStateResponse expected = 1;
+}
+message SealCommitResponse {
+  GetCommittedStateResponse previous = 1;
+  GetCommittedStateResponse next = 2;
 }

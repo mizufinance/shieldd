@@ -314,7 +314,6 @@ async fn build_spend_tx(
             chain_id: chain_id.to_owned(),
             ..Default::default()
         },
-        nullifier_window: None,
     };
 
     let plan = client

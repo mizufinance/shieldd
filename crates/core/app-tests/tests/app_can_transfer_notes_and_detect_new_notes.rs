@@ -9,7 +9,7 @@ use {
     shieldd_sdk_mock_client::MockClient,
     shieldd_sdk_num::Amount,
     shieldd_sdk_proto::DomainType,
-    shieldd_sdk_sct::component::tree::SctRead as _,
+    shieldd_sdk_sct::permanent_nullifiers::read_boundary,
     shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan},
     shieldd_sdk_transaction::{memo::MemoPlaintext, plan::MemoPlan, TransactionParameters},
 };
@@ -82,7 +82,6 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
     };
 
     let intent = shieldd_sdk_mock_client::TransactionIntent {
-        nullifier_window: None,
         actions: vec![transfer.into()],
         memo: Some(MemoPlan::new(
             &mut OsRng,
@@ -103,12 +102,32 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
         .await?;
 
     let pre_tx_snapshot = storage.latest_snapshot();
+    let before_boundary = read_boundary(&pre_tx_snapshot).await?;
+    for nf in tx.spent_nullifiers() {
+        let status = test_node
+            .execution
+            .nullifier_reader()
+            .0
+            .read()
+            .unwrap()
+            .status(nf, &before_boundary)?;
+        status.verify(&before_boundary)?;
+        assert!(!status.spent);
+    }
     test_node.execute(vec![tx.encode_to_vec()]).await?;
     let post_tx_snapshot = storage.latest_snapshot();
 
+    let after_boundary = read_boundary(&post_tx_snapshot).await?;
     for nf in tx.spent_nullifiers() {
-        assert!(!pre_tx_snapshot.is_nullifier_spent(nf).await?);
-        assert!(post_tx_snapshot.is_nullifier_spent(nf).await?);
+        let status = test_node
+            .execution
+            .nullifier_reader()
+            .0
+            .read()
+            .unwrap()
+            .status(nf, &after_boundary)?;
+        status.verify(&after_boundary)?;
+        assert!(status.spent);
     }
 
     client.sync_to_latest(post_tx_snapshot).await?;

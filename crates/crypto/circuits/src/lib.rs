@@ -11,7 +11,6 @@ pub mod encryption;
 mod fixtures;
 pub mod group;
 pub mod hash;
-pub mod history;
 pub mod map;
 pub mod note;
 pub mod proof;

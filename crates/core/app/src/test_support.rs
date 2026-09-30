@@ -25,7 +25,17 @@ impl TestHost {
         time: tendermint::Time,
         registry: std::sync::Arc<shieldd_sdk_proof_params::pari::Registry>,
     ) -> Result<Self> {
-        let mut execution = HostExecution::new(storage, registry).await?;
+        let mut execution = HostExecution::with_config(
+            storage,
+            std::sync::Arc::new(crate::stateless_cache::StatelessCache::new()),
+            registry,
+            &shieldd_sdk_sct::permanent_nullifiers::Config {
+                buckets: 1024,
+                cache_mib: 1,
+                preallocate: false,
+            },
+        )
+        .await?;
         execution.init_genesis(genesis).await?;
         execution.commit().await?;
         Ok(Self {
@@ -38,6 +48,7 @@ impl TestHost {
     pub async fn execute(&mut self, txs: Vec<Vec<u8>>) -> Result<BlockResult> {
         let block = HostBlock {
             height: self.next_height,
+            block_id: [self.next_height as u8; 32],
             time: self.next_time,
         };
         self.execute_block(block, txs).await
@@ -66,6 +77,7 @@ impl TestHost {
             transactions.push(response);
         }
         self.execution.end_block(height).await?;
+        self.execution.seal_commit()?;
         let commit = self.execution.commit().await?;
         self.next_height = next_height;
         self.next_time = next_time;

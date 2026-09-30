@@ -47,6 +47,19 @@ struct Inner {
 }
 
 impl Storage {
+    /// Filesystem directory owned by this storage instance.
+    /// Persistence-edge owners may place coordinated databases beneath it.
+    /// Create a consistent RocksDB checkpoint; the application owner coordinates
+    /// it with external databases and authenticates the restored root.
+    pub fn checkpoint(&self, path: &std::path::Path) -> Result<()> {
+        rocksdb::checkpoint::Checkpoint::new(&self.0.db)?.create_checkpoint(path)?;
+        Ok(())
+    }
+
+    pub fn path(&self) -> &std::path::Path {
+        self.0.db.path()
+    }
+
     /// Loads a storage instance from the given path, initializing it if necessary.
     pub async fn load(path: PathBuf, default_prefixes: Vec<String>) -> Result<Self> {
         let span = Span::current();

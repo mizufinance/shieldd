@@ -12,7 +12,7 @@ use shieldd_sdk_proto::{
     cnidarium::v1::KeyValueRequest,
     core::{
         app::v1::AppParametersRequest,
-        component::{compact_block::v1::CompactBlockPageRequest, sct::v1::NullifierWindowRequest},
+        component::{compact_block::v1::CompactBlockPageRequest, sct::v1::NullifierRequest},
     },
     execution_client::v1::*,
 };
@@ -35,6 +35,7 @@ fn deposit() -> DepositRequest {
 async fn begin(service: &mut ExecutionService, height: i64) -> Result<()> {
     let mut request = BeginBlockRequest {
         height,
+        block_id: vec![height as u8; 32],
         time: Some(Default::default()),
     };
     request.time.as_mut().context("time")?.seconds = 1_700_000_000 + height;
@@ -58,7 +59,11 @@ async fn snapshot(service: &ExecutionService) -> Result<Vec<u8>> {
         .await?
         .encode_length_delimited(&mut bytes)?;
     queries
-        .nullifier_window(NullifierWindowRequest {})
+        .nullifier_status(NullifierRequest {
+            nullifier: Some(
+                shieldd_sdk_sct::Nullifier(shieldd_sdk_crypto::Fq::from(999u64)).into(),
+            ),
+        })
         .await?
         .encode_length_delimited(&mut bytes)?;
     for key in [
@@ -102,7 +107,12 @@ async fn seed(db: &Path) -> Result<ExecutionService> {
     service.commit(CommitRequest {}).await?;
     begin(&mut service, 1).await?;
     service.deposit(deposit()).await?;
-    service.end_block(EndBlockRequest { height: 1 }).await?;
+    let ended = service.end_block(EndBlockRequest { height: 1 }).await?;
+    service
+        .seal_commit(SealCommitRequest {
+            expected: ended.prepared,
+        })
+        .await?;
     service.commit(CommitRequest {}).await?;
     service.close().await?;
     let storage = Storage::load(db.to_path_buf(), SUBSTORE_PREFIXES.to_vec()).await?;

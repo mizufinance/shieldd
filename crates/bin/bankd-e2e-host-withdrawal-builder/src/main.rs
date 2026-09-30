@@ -194,7 +194,6 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
             chain_id: opt.chain_id,
             ..Default::default()
         },
-        nullifier_window: None,
     };
 
     let snapshot = storage.latest_snapshot();
