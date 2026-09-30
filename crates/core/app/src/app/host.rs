@@ -1796,18 +1796,26 @@ mod tests {
             .test_only_register_asset(asset_id, policy.clone(), true)
             .await?;
         state_tx.test_only_add_compliance_leaf(leaf).await?;
-        let leaf = state_tx
-            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 1)
-            .await?
-            .leaf;
         let mut witness_tree = state_tx.get_sct().await;
         witness_tree.insert(tct::Witness::Keep, note_commitment)?;
-        let block_root = witness_tree.end_block()?;
-        let state_commitment_proof = witness_tree
+        state_tx.write_sct_cache(witness_tree);
+        host.app.apply(state_tx);
+        host.end_block(1).await?;
+        host.seal_commit()?;
+        host.commit().await?;
+        let state_commitment_proof = host
+            .app
+            .state
+            .get_sct()
+            .await
             .witness(note_commitment)
             .context("witnessing the seized note")?;
-        state_tx.write_sct(1, witness_tree, block_root, None).await;
-
+        host.begin_block(host_block(2)).await?;
+        let mut state_tx = StateDelta::new(host.app.state.clone());
+        let leaf = state_tx
+            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 2)
+            .await?
+            .leaf;
         host.app.apply(state_tx);
 
         let nullifier = shieldd_sdk_sct::Nullifier::derive(
@@ -1883,7 +1891,7 @@ mod tests {
         let mut invalid_seizure = seizure.clone();
         invalid_seizure.capsule_release.recovered_point += Element::generator();
         let invalid = SeizeNoteRequest {
-            source: Some(host_source(0)),
+            source: Some(host_source_at(2, 0)),
             seizure: Some(invalid_seizure.into()),
         };
         let error = host
@@ -1904,7 +1912,7 @@ mod tests {
         );
 
         let request = SeizeNoteRequest {
-            source: Some(host_source(0)),
+            source: Some(host_source_at(2, 0)),
             seizure: Some(seizure.into()),
         };
 
@@ -1918,7 +1926,7 @@ mod tests {
         );
 
         let mut duplicate = request.clone();
-        duplicate.source = Some(host_source(1));
+        duplicate.source = Some(host_source_at(2, 1));
         assert!(host
             .seize_note(duplicate)
             .await
@@ -1933,6 +1941,22 @@ mod tests {
             host.app.state.verify_audit_log().await?.length,
             before_audit.length + 2
         );
+
+        host.end_block(2).await?;
+        host.seal_commit()?;
+        host.commit().await?;
+        let boundary =
+            shieldd_sdk_sct::permanent_nullifiers::read_boundary(&storage.latest_snapshot())
+                .await?;
+        let status = host.nullifier_reader().status(nullifier, &boundary)?;
+        status.verify(&boundary)?;
+        assert!(status.spent);
+        drop(host);
+        let reopened =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        let status = reopened.nullifier_reader().status(nullifier, &boundary)?;
+        status.verify(&boundary)?;
+        assert!(status.spent);
 
         Ok(())
     }

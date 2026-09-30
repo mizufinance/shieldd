@@ -14,6 +14,8 @@ use commonware_cryptography::{
 };
 use shieldd_sdk_crypto::domains;
 
+pub const STATEMENT_FIELDS: usize = 20;
+
 #[derive(Clone)]
 pub struct Statement<F> {
     pub anchor: F,

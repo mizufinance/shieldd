@@ -45,8 +45,6 @@ service ViewService {
   // Query for the current app parameters.
   rpc AppParameters(AppParametersRequest) returns (AppParametersResponse);
 
-  // Query for the exact nullifier-generation planning window.
-
   // Query for the current gas prices.
   rpc GasPrices(GasPricesRequest) returns (GasPricesResponse);
 

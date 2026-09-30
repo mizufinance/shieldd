@@ -17,7 +17,8 @@ use crate::{
 };
 
 pub const NOTE_SEIZURE_PROOF_LABEL: &str = "note_seizure";
-pub const NOTE_SEIZURE_STATEMENT_FIELD_COUNT: usize = 22;
+pub const NOTE_SEIZURE_STATEMENT_FIELD_COUNT: usize =
+    shieldd_sdk_circuits::seizure::STATEMENT_FIELDS;
 pub const MAX_NOTE_SEIZURE_CHAIN_ID_BYTES: usize = 128;
 const NOTE_SEIZURE_AUTHORIZATION_DOMAIN: &[u8] = b"shieldd.note_seizure.authorization";
 const NOTE_SEIZURE_AUTHORIZATION_COMMITMENT_DOMAIN: &[u8] =
@@ -957,6 +958,12 @@ mod tests {
 
         private.validate_against(&public).unwrap();
         let witness = crate::pari::seizure(&public, &private).unwrap();
+        let parameters = shieldd_sdk_circuits::hash::Parameters::load().unwrap();
+        let generators = shieldd_sdk_circuits::map::Generators::derive(&parameters);
+        assert_eq!(
+            witness.digest(&parameters, &generators).unwrap(),
+            shieldd_sdk_circuits::encoding::field(&public.statement_hash().unwrap())
+        );
         assert!(shieldd_sdk_circuits::catalogue::evaluate(&witness)
             .unwrap()
             .is_satisfied());
