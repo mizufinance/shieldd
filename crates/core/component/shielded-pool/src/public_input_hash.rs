@@ -273,7 +273,11 @@ pub fn shielded_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq> {
     )
 }
 pub fn note_seizure_statement_hash(fields: &[Fq]) -> Result<Fq> {
-    hash(domains::SEIZURE_STATEMENT, fields, seizure::STATEMENT_FIELDS)
+    hash(
+        domains::SEIZURE_STATEMENT,
+        fields,
+        seizure::STATEMENT_FIELDS,
+    )
 }
 pub fn transfer_statement_hash_from_public(p: &TransferProofPublic) -> Result<Fq> {
     transfer_statement_hash(&transfer_statement_fields(p)?)
