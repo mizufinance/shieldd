@@ -572,7 +572,7 @@ impl Store {
         let bytes = serde_json::to_vec(transition)?;
         if path.exists() {
             ensure!(
-                fs::read(path)? == bytes,
+                read_record(File::open(path)?)? == bytes,
                 "nullifier recovery record conflicts with committed history"
             );
         } else {

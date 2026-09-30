@@ -271,7 +271,6 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
             *nonce = Fr::random(&mut OsRng);
             *randomizer = Fr::random(&mut OsRng);
         }
-        if plan.num_spends() > 0 {}
         plan
     })
 }

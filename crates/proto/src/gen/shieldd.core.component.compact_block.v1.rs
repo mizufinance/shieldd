@@ -60,7 +60,7 @@ pub struct CompactBlock {
     /// Actions reference canonical payload positions instead of repeating ciphertexts.
     #[prost(message, repeated, tag = "16")]
     pub routing_actions: ::prost::alloc::vec::Vec<RoutingAction>,
-    /// Exact nullifier-generation window, emitted at genesis and app-epoch boundaries.
+    /// First SCT position occupied by this block's state payloads.
     #[prost(uint64, tag = "19")]
     pub state_payload_start_position: u64,
     /// Paired admission metadata; absent only before the first consensus timestamp.
