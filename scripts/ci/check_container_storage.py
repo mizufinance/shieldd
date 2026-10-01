@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE = ROOT / "deployments/seccomp/nomt.json"
@@ -32,11 +33,16 @@ def main():
     if Path("/nix").exists():
         base += ["--mount", "type=bind,source=/nix,target=/nix,readonly"]
     def run(profile, test, ignored=False):
-        cmd = base + (["--security-opt", f"seccomp={profile}"] if profile else [])
+        name = "shieldd-storage-gate-" + uuid.uuid4().hex
+        cmd = base + ["--name", name] + (["--security-opt", f"seccomp={profile}"] if profile else [])
         cmd += ["ubuntu:24.04", binary, test, "--exact", "--test-threads=1"]
         if ignored:
             cmd += ["--ignored"]
-        result = subprocess.run(cmd, check=True, timeout=180, text=True, stdout=subprocess.PIPE)
+        try:
+            result = subprocess.run(cmd, check=True, timeout=180, text=True, stdout=subprocess.PIPE)
+        finally:
+            subprocess.run(["docker", "rm", "--force", name], timeout=15,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print(result.stdout, end="", flush=True)
         if "1 passed; 0 failed" not in result.stdout:
             raise SystemExit("container storage gate must execute its selected test")
