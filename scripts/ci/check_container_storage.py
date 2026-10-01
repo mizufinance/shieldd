@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Exercise the real NOMT storage boundary with and without Linux I/O permission."""
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import uuid
 
@@ -22,6 +24,8 @@ def phase(value):
 def main():
     phase(f"Docker CLI available={shutil.which('docker') is not None}")
     subprocess.run(["docker", "version", "--format", "{{.Server.Version}}"], check=True, timeout=15)
+    if sys.argv[1:] == ["--check-runtime"]:
+        return
     phase("Select current SCT test binary")
     command = ["cargo", "test", "--locked", "--profile", "ci", "--workspace",
                "--all-features", "--no-run", "--message-format=json"]
@@ -44,8 +48,10 @@ def main():
             "--cpus", "2", "--mount", f"type=bind,source={ROOT},target=/workspace,readonly"]
     if Path("/nix").exists():
         base += ["--mount", "type=bind,source=/nix,target=/nix,readonly"]
-    def run(profile, test, denied=None):
-        phase(f"Run {denied or 'write/read/reopen'}")
+        base += ["--env", f"LD_LIBRARY_PATH={os.environ.get('LD_LIBRARY_PATH', '')}"]
+    def run(profile, test, denied=None, list_only=False):
+        label = "binary discovery" if list_only else denied or "write/read/reopen"
+        phase(f"Run {label}")
         name = "shieldd-storage-gate-" + uuid.uuid4().hex
         cmd = base + ["--name", name] + (["--security-opt", f"seccomp={profile}"] if profile else [])
         if denied:
@@ -53,21 +59,30 @@ def main():
         cmd += ["ubuntu:24.04", binary, test, "--exact", "--test-threads=1"]
         if denied:
             cmd += ["--ignored"]
+        if list_only:
+            cmd += ["--list"]
         try:
             result = subprocess.run(cmd, check=True, timeout=180, text=True, stdout=subprocess.PIPE)
         finally:
             subprocess.run(["docker", "rm", "--force", name], timeout=15,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print(result.stdout, end="", flush=True)
-        if "1 passed; 0 failed" not in result.stdout:
+        if list_only:
+            if result.stdout.count(f"{TEST}: test") != 1:
+                raise SystemExit("container must discover exactly one selected refusal test")
+        elif "1 passed; 0 failed" not in result.stdout:
             raise SystemExit("container storage gate must execute its selected test")
-        phase(f"Passed {denied or 'write/read/reopen'}")
+        phase(f"Passed {label}")
 
-    run(None, TEST, denied="io_uring_setup")
+    run(PROFILE, TEST, list_only=True)
     with tempfile.TemporaryDirectory(prefix="shieldd-seccomp-") as directory:
         setup_only = json.loads(PROFILE.read_text())
         rule = setup_only["syscalls"][-1]
         assert rule["names"] == ["io_uring_setup", "io_uring_enter"]
+        baseline = json.loads(PROFILE.read_text())
+        baseline["syscalls"].pop()
+        blocked = Path(directory) / "blocked.json"
+        blocked.write_text(json.dumps(baseline))
+        run(blocked, TEST, denied="io_uring_setup")
         rule["names"] = ["io_uring_setup"]
         path = Path(directory) / "setup-only.json"
         path.write_text(json.dumps(setup_only))

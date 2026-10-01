@@ -85,6 +85,9 @@ jobs:
         with:
           free-disk: "true"
 
+      - name: Check container runtime availability
+        run: nix develop .#ci --command python3 scripts/ci/check_container_storage.py --check-runtime
+
       - name: Select development Pari registry
         run: printf 'SHIELDD_PARI_KEYS=%s\n' "$RUNNER_TEMP/shieldd-pari-keys" >> "$GITHUB_ENV"
 
