@@ -134,6 +134,12 @@ jobs:
       - name: Check current state persistence
         run: nix develop .#ci --command bash scripts/ci/check_state_persistence.sh
 
+      - name: Check Linux container storage permissions
+        run: nix develop .#ci --command python3 scripts/ci/check_container_storage.py
+        env:
+          CARGO_BUILD_JOBS: 2
+          RAYON_NUM_THREADS: 2
+
       - name: Run real Pari proof tests
         run: nix develop .#ci --command just pari-proof-tests
 

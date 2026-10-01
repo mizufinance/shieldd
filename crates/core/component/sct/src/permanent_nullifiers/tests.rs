@@ -8,6 +8,26 @@ fn config() -> Config {
         preallocate: false,
     }
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore = "requires a container denying io_uring; run by the container storage gate"]
+fn unavailable_io_uring_creates_no_store() -> Result<()> {
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("store");
+    let error = Store::open(&path, &config(), true)
+        .err()
+        .context("denied I/O must refuse storage startup")?;
+    assert!(
+        error.to_string().contains("permitted io_uring"),
+        "{error:#}"
+    );
+    assert!(
+        !path.exists(),
+        "refused startup must not create partial state"
+    );
+    Ok(())
+}
 fn nf(value: u64) -> Nullifier {
     Nullifier(Fq::from(value))
 }

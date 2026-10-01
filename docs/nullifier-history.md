@@ -15,6 +15,12 @@ value, and an aggregate of all sixteen ordered roots. NOMT is pinned to
 `c3c0e55794500262dfde7c83b6f7455d2aeb303e`. All replicas store all partitions;
 physical bucket counts, preallocation and cache sizes are node-local.
 
+Linux storage requires kernel 6.0 or newer and permission for `io_uring_setup`
+and `io_uring_enter`. Startup checks this before creating nullifier state.
+Containers use the [NOMT seccomp profile](../deployments/seccomp/README.md);
+Docker's default profile denies this I/O backend. Offline maintenance has the
+same requirement. macOS uses NOMT's synchronous backend.
+
 The block-local ordered log contains exactly accepted nullifiers, including
 padding and fee inputs. Duplicate checks precede sorting. Authenticated absence
 under the previous roots and the exact update witness must both verify before a

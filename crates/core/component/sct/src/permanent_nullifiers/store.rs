@@ -210,6 +210,18 @@ impl Store {
             config.cache_mib > 0 && config.cache_mib.checked_mul(1024 * 1024).is_some(),
             "nullifier cache size is invalid"
         );
+        // NOMT starts its Linux workers asynchronously. Reject unsupported I/O
+        // before creating state, rather than discovering dead workers at commit.
+        #[cfg(target_os = "linux")]
+        {
+            let ring = io_uring::IoUring::<io_uring::squeue::Entry, io_uring::cqueue::Entry>::builder()
+                .setup_single_issuer()
+                .build(1024)
+                .context("permanent nullifier storage requires Linux 6.0+ and permitted io_uring_setup")?;
+            ring.submitter()
+                .submit()
+                .context("permanent nullifier storage requires permitted io_uring_enter")?;
+        }
         if create {
             ensure!(!directory.exists(), "nullifier store already exists");
             fs::create_dir_all(directory)?;

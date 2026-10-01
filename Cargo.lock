@@ -7182,6 +7182,7 @@ dependencies = [
  "hex",
  "ibc-types",
  "imbl 7.0.2",
+ "io-uring",
  "metrics",
  "nomt",
  "nomt-core",

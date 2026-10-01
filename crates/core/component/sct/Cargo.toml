@@ -14,6 +14,7 @@ component = [
     "shieldd-sdk-proto/cnidarium",
     "tokio",
     "dep:nomt",
+    "dep:io-uring",
     "dep:ibc-types",
 ]
 default = ["component"]
@@ -54,6 +55,9 @@ tempfile = {workspace = true}
 tokio = {workspace = true, optional = true, features = ["rt"]}
 tracing = {workspace = true}
 chrono = { workspace = true, default-features = false, features = ["serde", "now"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+io-uring = { version = "=0.6.4", optional = true }
 
 [dev-dependencies]
 getrandom = {workspace = true}
