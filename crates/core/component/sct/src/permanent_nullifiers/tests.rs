@@ -14,7 +14,10 @@ fn config() -> Config {
 #[ignore = "requires a container denying io_uring; run by the container storage gate"]
 fn unavailable_io_uring_creates_no_store() -> Result<()> {
     let denied = std::env::var("SHIELDD_EXPECT_IO_URING_DENIAL")?;
-    assert!(matches!(denied.as_str(), "io_uring_setup" | "io_uring_enter"));
+    assert!(matches!(
+        denied.as_str(),
+        "io_uring_setup" | "io_uring_enter"
+    ));
     let directory = tempfile::tempdir()?;
     let path = directory.path().join("store");
     let error = Store::open(&path, &config(), true)
