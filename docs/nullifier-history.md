@@ -35,14 +35,15 @@ that AppHash in the next block. This does not imply validation of H's execution
 root before the vote for H.
 
 Seal persists canonical insertion intent before any durable participant changes.
-Bankd then persists its pending recovery record and commits, followed by NOMT
-partitions and Shieldd application state. Only completion of every participant
-allows a ready record and public query publication. Empty blocks advance height
-and identity too. A partial commit stops execution/publication. Local metadata is
-ordering evidence; authenticated Bankd roots and identities select recovery.
-Bankd may roll back exactly one block to the authenticated previous Shieldd
-boundary. NOMT partitions ahead of Shieldd roll back one native commit. Unknown
-roots, missing history, stale schemas and unrecoverable gaps fail closed.
+Bankd then commits, followed by NOMT partitions and Shieldd application state.
+Only completion of every participant allows public query publication. Empty blocks
+advance height and identity too. A partial commit stops execution/publication.
+Authenticated current/previous Bankd roots and identities select recovery; Bankd
+needs no separate recovery file. Before rolling back exactly one block, Bankd
+verifies the retained target state and the current/target CometBFT AppHashes.
+Interrupted rollback resumes only from the authenticated target. NOMT partitions
+ahead of Shieldd roll back one native commit. Unknown roots, missing history,
+stale schemas and unrecoverable gaps fail closed.
 
 ## Queries and wallet recovery
 
