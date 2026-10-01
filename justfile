@@ -45,6 +45,12 @@ commonware-test:
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-cryptography --lib --no-default-features --features std,bls12381 zk::pari -- --test-threads=1
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-cryptography --lib --no-default-features --features std,bls12381 zk::circuit -- --test-threads=1
 
+chunks-test:
+    CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --manifest-path third_party/imbl-sized-chunks-0.1.3/Cargo.toml --all-features -- --test-threads=2
+    CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --manifest-path third_party/imbl-sized-chunks-0.2.0/Cargo.toml --all-features -- --test-threads=2
+    CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo check --locked --manifest-path third_party/imbl-sized-chunks-0.1.3/Cargo.toml --no-default-features
+    CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo check --locked --manifest-path third_party/imbl-sized-chunks-0.2.0/Cargo.toml --no-default-features
+
 pari-proof-tests:
     SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci --workspace --all-features -- --ignored --skip generate_transaction_signing_test_vectors --test-threads=1
 

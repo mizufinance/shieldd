@@ -173,9 +173,8 @@ pub struct ExecutionBlockProfile {
 
 /// The Shieldd application, written as a bundle of [`Component`]s.
 ///
-/// The [`App`] is not a [`Component`], but
-/// it constructs the components and exposes a [`commit`](App::commit) that
-/// commits the changes to the persistent storage and resets its subcomponents.
+/// The [`App`] constructs and executes components. The permanent-state writer
+/// owns sealing and durable commits at the coordinated host boundary.
 pub struct App {
     #[cfg(test)]
     commit_extracted: Option<Arc<tokio::sync::Notify>>,

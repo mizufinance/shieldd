@@ -107,6 +107,9 @@ jobs:
       - name: Run pinned Commonware Pari and compiler tests
         run: nix develop .#ci --command just commonware-test
 
+      - name: Check immutable collection safety patches
+        run: nix develop .#ci --command just chunks-test
+
       - name: Build and run Rust tests
         run: >-
           nix develop .#ci --command python3 scripts/ci/run_with_annotation.py

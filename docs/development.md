@@ -11,6 +11,7 @@ Rust/Commonware. Run commands from the repository root.
 | `just docs-check` | Local Markdown links and exact filename casing, including repository skills |
 | `just ci-test` | Workspace tests with an explicitly selected registry |
 | `just commonware-test` | Pinned Commonware Pari and circuit compiler tests |
+| `just chunks-test` | Immutable collection safety regressions and `no_std` checks |
 | `just pari-proof-tests` | Serial ignored proof gates, including Disclosure app/CLI tests; workspace all features |
 | `just features-check` | Independent crate feature boundaries |
 | `just proto-lint` | Protobuf API naming, enum defaults and schema conventions |
