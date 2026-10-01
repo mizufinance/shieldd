@@ -72,19 +72,8 @@ impl PermanentWriter {
             Storage::load(destination.to_path_buf(), crate::SUBSTORE_PREFIXES.to_vec()).await?;
         let snapshot = storage.latest_snapshot();
         ensure!(
-            snapshot.root_hash().await?.0 == expected_root,
-            "restored application root mismatch"
-        );
-        ensure!(
-            snapshot.get_block_height().await?
-                == expected
-                    .nullifiers
-                    .height
-                    .context("snapshot height is missing")?,
-            "snapshot application height mismatch"
-        );
-        ensure!(
-            nullifiers::read_boundary(&snapshot).await? == expected.nullifiers,
+            nullifiers::read_committed_boundary(&snapshot, expected_root).await?
+                == expected.nullifiers,
             "snapshot nullifier boundary mismatch"
         );
         let mut store = Store::open(&destination.join("permanent-nullifiers"), config, true)?;

@@ -70,6 +70,7 @@ tokio                            = { workspace = true, features = ["full", "trac
 tracing                          = { workspace = true }
 
 [dev-dependencies]
+rocksdb = "0.21"
 commonware-math.workspace = true
 commonware-codec.workspace = true
 commonware-cryptography.workspace = true

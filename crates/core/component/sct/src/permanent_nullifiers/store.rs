@@ -808,6 +808,43 @@ const BOUNDARY_KEY: &str = "sct/permanent-nullifiers/boundary";
 const ROOT_KEY: &str = "sct/permanent-nullifiers/root";
 const FORMAT_KEY: &str = "sct/permanent-nullifiers/format";
 
+/// Authenticate the committed boundary before selecting a NOMT recovery target.
+/// JMT value-index reads alone do not authenticate bytes to the stored root.
+pub async fn read_committed_boundary(
+    snapshot: &cnidarium::Snapshot,
+    application_root: [u8; 32],
+) -> Result<Boundary> {
+    use crate::component::clock::EpochRead as _;
+    use ibc_types::core::commitment::{MerklePath, MerkleRoot};
+
+    ensure!(
+        snapshot.root_hash().await?.0 == application_root,
+        "application root disagrees with host commitment"
+    );
+    for key in [BOUNDARY_KEY, ROOT_KEY, FORMAT_KEY] {
+        let (value, proof) = snapshot.get_with_proof(key.as_bytes().to_vec()).await?;
+        proof
+            .verify_membership(
+                &[cnidarium::ics23_spec()],
+                MerkleRoot {
+                    hash: application_root.to_vec(),
+                },
+                MerklePath {
+                    key_path: vec![key.into()],
+                },
+                value.context("committed nullifier boundary key is missing")?,
+                0,
+            )
+            .with_context(|| format!("authenticate permanent nullifier key {key}"))?;
+    }
+    let boundary = read_boundary(snapshot).await?;
+    ensure!(
+        boundary.height == Some(snapshot.get_block_height().await?),
+        "application and nullifier heights disagree"
+    );
+    Ok(boundary)
+}
+
 /// Read a boundary authenticated by the application's state commitment.
 /// Missing state is unavailable; only `stage_boundary` may initialize genesis.
 pub async fn read_boundary<S: cnidarium::StateRead + ?Sized>(state: &S) -> Result<Boundary> {

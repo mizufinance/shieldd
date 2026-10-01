@@ -102,8 +102,8 @@ impl Status {
 mod store;
 #[cfg(feature = "component")]
 pub use store::{
-    read_boundary, stage_boundary, Config, History, PartitionCapacity, Prepared, Reader, Store,
-    Transition,
+    read_boundary, read_committed_boundary, stage_boundary, Config, History, PartitionCapacity,
+    Prepared, Reader, Store, Transition,
 };
 
 mod codec;

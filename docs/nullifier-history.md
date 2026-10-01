@@ -73,8 +73,11 @@ shieldd-store restore SNAPSHOT NEW_DB ROOTHEX
 
 Export checkpoints RocksDB and copies canonical insertion history separately from
 mutable NOMT databases. Completion manifests are written last. Restore checks the
-application root, height and nullifier boundary, replays exact insertions into a
-fresh NOMT store, checks every resulting root and refuses readiness on any mismatch.
+application root and verifies Merkle membership of the format, boundary and
+aggregate-root records, checks the height against that authenticated boundary,
+and then replays exact insertions into a fresh NOMT store.
+Recovery uses the same authenticated boundary checks. Every resulting NOMT root
+is checked; any mismatch refuses readiness.
 Restore and interrupted replay destinations are disposable; restart in a fresh
 path. Restore an old snapshot only with retained canonical history and matching
 application/Bankd state through the current committed boundary before resuming.

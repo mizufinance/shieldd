@@ -32,7 +32,7 @@ fn bench_nullifier_storage(c: &mut Criterion) {
             cache_mib: 8,
             preallocate: false,
         };
-        let mut store = Store::open(directory.path(), &config, true).unwrap();
+        let mut store = Store::open(&directory.path().join("nullifiers"), &config, true).unwrap();
         let mut boundary = Boundary::default();
         store.recover(&boundary).unwrap();
         for (height, chunk) in (0..size).collect::<Vec<_>>().chunks(32768).enumerate() {

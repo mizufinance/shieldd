@@ -14,6 +14,7 @@ component = [
     "shieldd-sdk-proto/cnidarium",
     "tokio",
     "dep:nomt",
+    "dep:ibc-types",
 ]
 default = ["component"]
 parallel = ["shieldd-sdk-tct/parallel", "dep:rayon"]
@@ -34,6 +35,7 @@ cnidarium-component = {workspace = true, optional = true, default-features = tru
 hex = {workspace = true}
 futures = {workspace = true}
 imbl = {workspace = true}
+ibc-types = {workspace = true, optional = true}
 metrics = {workspace = true}
 once_cell = {workspace = true}
 pbjson-types = {workspace = true}

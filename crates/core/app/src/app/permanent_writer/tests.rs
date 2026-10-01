@@ -263,3 +263,139 @@ async fn snapshot_restores_application_and_all_partitions_against_host_root() ->
     assert_eq!(writer.committed()?, &expected);
     Ok(())
 }
+
+#[tokio::test]
+async fn snapshot_rejects_rewritten_spentness_under_the_original_host_root() -> Result<()> {
+    use sha2::{Digest, Sha256};
+
+    let storage = TempStorage::new_with_prefixes(crate::SUBSTORE_PREFIXES.to_vec()).await?;
+    let directory = tempfile::tempdir()?;
+    let mut writer = PermanentWriter::open(storage.as_ref().clone(), &config()).await?;
+    genesis(&mut writer, &storage).await?;
+    writer
+        .prepare(block(&storage, 1), 1, [1; 32], vec![nf(1)])
+        .await?;
+    writer.seal()?;
+    let committed = writer.commit()?;
+    let export = directory.path().join("export");
+    writer.export_snapshot(&export, &committed).await?;
+    let control = PermanentWriter::restore_snapshot(
+        &export,
+        &directory.path().join("control"),
+        &config(),
+        committed.application_root.unwrap(),
+    )
+    .await?;
+    assert!(control.status(nf(1), &committed)?.spent);
+
+    let mut forged = committed.clone();
+    forged.nullifiers.roots = nullifiers::Roots::default();
+    std::fs::write(
+        export.join("shieldd-snapshot.json"),
+        serde_json::to_vec(&forged)?,
+    )?;
+    std::fs::write(
+        export.join("nullifiers/checkpoint.json"),
+        serde_json::to_vec(&forged.nullifiers)?,
+    )?;
+    let record_path = export.join("nullifiers/00000000000000000001.json");
+    let mut record: nullifiers::Transition = serde_json::from_slice(&std::fs::read(&record_path)?)?;
+    record.nullifiers.clear();
+    record.next = forged.nullifiers.clone();
+    std::fs::write(record_path, serde_json::to_vec(&record)?)?;
+
+    // Corrupt only the flat value index, preserving every JMT node and root.
+    let application = export.join("application");
+    let options = rocksdb::Options::default();
+    let families = rocksdb::DB::list_cf(&options, &application)?;
+    let db = rocksdb::DB::open_cf(&options, &application, families)?;
+    let values = db.cf_handle("substore--jmt-values").unwrap();
+    for (key, value) in [
+        (
+            "sct/permanent-nullifiers/boundary",
+            serde_json::to_vec(&forged.nullifiers)?,
+        ),
+        (
+            "sct/permanent-nullifiers/root",
+            forged.nullifiers.roots.commitment().to_vec(),
+        ),
+    ] {
+        let mut versioned_key = Sha256::digest(key.as_bytes()).to_vec();
+        versioned_key.extend_from_slice(&storage.latest_snapshot().version().to_be_bytes());
+        assert!(db.get_cf(values, &versioned_key)?.is_some());
+        // Cnidarium's value column stores Borsh Option<Vec<u8>>.
+        let mut encoded = vec![1];
+        encoded.extend_from_slice(&(value.len() as u32).to_le_bytes());
+        encoded.extend_from_slice(&value);
+        db.put_cf(values, versioned_key, encoded)?;
+    }
+    db.flush()?;
+    drop(db);
+
+    let result = PermanentWriter::restore_snapshot(
+        &export,
+        &directory.path().join("tampered"),
+        &config(),
+        committed.application_root.unwrap(),
+    )
+    .await;
+    if let Ok(restored) = &result {
+        assert!(
+            !restored.status(nf(1), &forged)?.spent,
+            "the forged history removes the original spend"
+        );
+    }
+    assert!(
+        result.is_err(),
+        "tampered spentness must fail authentication before becoming ready"
+    );
+    let error = result.err().unwrap();
+    assert!(error
+        .to_string()
+        .contains("authenticate permanent nullifier key"));
+    let tampered = directory.path().join("tampered");
+    assert!(!tampered.join("permanent-nullifiers").exists());
+    let recovery = directory.path().join("recovery");
+    std::fs::create_dir(&recovery)?;
+    for entry in std::fs::read_dir(export.join("application"))? {
+        let entry = entry?;
+        std::fs::copy(entry.path(), recovery.join(entry.file_name()))?;
+    }
+    let corrupted = Storage::load(recovery.clone(), crate::SUBSTORE_PREFIXES.to_vec()).await?;
+    assert_eq!(
+        corrupted.latest_snapshot().root_hash().await?.0,
+        committed.application_root.unwrap()
+    );
+    let nomt_path = recovery.join("permanent-nullifiers");
+    let mut store = Store::open(&nomt_path, &config(), true)?;
+    store.restore(&export.join("nullifiers"), &forged.nullifiers)?;
+    assert!(
+        PermanentWriter::recover(corrupted.clone(), store, committed.application_root)
+            .await
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("authenticate permanent nullifier key")
+    );
+    let mut recovering = PermanentWriter {
+        storage: corrupted,
+        nullifiers: std::sync::Arc::new(std::sync::RwLock::new(Store::open(
+            &nomt_path,
+            &config(),
+            false,
+        )?)),
+        phase: Phase::Ready(forged),
+    };
+    assert!(recovering
+        .recover_current()
+        .await
+        .err()
+        .unwrap()
+        .to_string()
+        .contains("authenticate permanent nullifier key"));
+    assert!(
+        recovering.committed().is_err(),
+        "failed recovery must remain interrupted"
+    );
+    Ok(())
+}

@@ -75,14 +75,11 @@ impl PermanentWriter {
                 application_root: None,
             }
         } else {
-            let boundary = nullifiers::read_boundary(&snapshot).await?;
-            ensure!(
-                boundary.height == Some(snapshot.get_block_height().await?),
-                "application and nullifier heights disagree"
-            );
+            let root = snapshot.root_hash().await?.0;
+            let boundary = nullifiers::read_committed_boundary(&snapshot, root).await?;
             CommitBoundary {
                 nullifiers: boundary,
-                application_root: Some(snapshot.root_hash().await?.0),
+                application_root: Some(root),
             }
         };
         self.nullifiers
@@ -123,11 +120,7 @@ impl PermanentWriter {
                 expected_application_root == Some(root),
                 "application root disagrees with host commitment"
             );
-            let boundary = nullifiers::read_boundary(&snapshot).await?;
-            ensure!(
-                boundary.height == Some(snapshot.get_block_height().await?),
-                "application and nullifier heights disagree"
-            );
+            let boundary = nullifiers::read_committed_boundary(&snapshot, root).await?;
             CommitBoundary {
                 nullifiers: boundary,
                 application_root: Some(root),
