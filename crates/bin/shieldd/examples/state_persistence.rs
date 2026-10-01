@@ -187,7 +187,12 @@ async fn main() -> Result<()> {
             service.deposit(deposit()).await.is_err(),
             "historical host source accepted in a new block"
         );
-        service.end_block(EndBlockRequest { height: 2 }).await?;
+        let ended = service.end_block(EndBlockRequest { height: 2 }).await?;
+        service
+            .seal_commit(SealCommitRequest {
+                expected: ended.prepared,
+            })
+            .await?;
         service.commit(CommitRequest {}).await?;
         let after = snapshot(&service).await?;
         service.close().await?;
