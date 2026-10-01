@@ -51,7 +51,9 @@ run under `ci` does not establish a separate `--release` test run. Follow the sh
 PR CI runs ordinary workspace tests and `just pari-proof-tests`. Both use the same
 workspace/all-features build graph, including the pcli binary.
 The proof gate selects ignored tests and skips the transaction signing-vector
-generator, which writes fixtures rather than asserting behavior. Ordinary
+generator, which writes fixtures rather than asserting behavior.
+The denied-I/O fixture runs in the separate container storage gate and is also
+excluded from the proof selection. Ordinary
 `cargo test` skips ignored tests, and neither command proves
 live Bankd/Orbis compatibility. The locked Orbis image is currently unsupported;
 see the [external contract](jubjub-external-contract.md).

@@ -52,7 +52,7 @@ chunks-test:
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo check --locked --manifest-path third_party/imbl-sized-chunks-0.2.0/Cargo.toml --no-default-features
 
 pari-proof-tests:
-    SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci --workspace --all-features -- --ignored --skip generate_transaction_signing_test_vectors --test-threads=1
+    SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci --workspace --all-features -- --ignored --skip generate_transaction_signing_test_vectors --skip unavailable_io_uring_creates_no_store --test-threads=1
 
 ci-preflight: check rustdocs-check features-check commonware-test ci-test pari-proof-tests
 
