@@ -2,6 +2,7 @@
 """Exercise the real NOMT storage boundary with and without Linux I/O permission."""
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import uuid
@@ -9,9 +10,19 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE = ROOT / "deployments/seccomp/nomt.json"
 TEST = "permanent_nullifiers::store::tests::unavailable_io_uring_creates_no_store"
+PHASE = "Docker availability"
+
+
+def phase(value):
+    global PHASE
+    PHASE = value
+    print(f"::notice title=Container storage gate::{value}", flush=True)
 
 
 def main():
+    phase(f"Docker CLI available={shutil.which('docker') is not None}")
+    subprocess.run(["docker", "version", "--format", "{{.Server.Version}}"], check=True, timeout=15)
+    phase("Select current SCT test binary")
     command = ["cargo", "test", "--locked", "--profile", "ci", "--workspace",
                "--all-features", "--no-run", "--message-format=json"]
     binaries = []
@@ -27,12 +38,14 @@ def main():
     if len(binaries) != 1:
         raise SystemExit("expected exactly one current SCT test binary")
     binary = "/workspace/" + str(binaries[0].relative_to(ROOT))
+    phase("Pull container runtime")
     subprocess.run(["docker", "pull", "ubuntu:24.04"], check=True, timeout=180)
     base = ["docker", "run", "--rm", "--network", "none", "--memory", "1g",
             "--cpus", "2", "--mount", f"type=bind,source={ROOT},target=/workspace,readonly"]
     if Path("/nix").exists():
         base += ["--mount", "type=bind,source=/nix,target=/nix,readonly"]
     def run(profile, test, denied=None):
+        phase(f"Run {denied or 'write/read/reopen'}")
         name = "shieldd-storage-gate-" + uuid.uuid4().hex
         cmd = base + ["--name", name] + (["--security-opt", f"seccomp={profile}"] if profile else [])
         if denied:
@@ -48,6 +61,7 @@ def main():
         print(result.stdout, end="", flush=True)
         if "1 passed; 0 failed" not in result.stdout:
             raise SystemExit("container storage gate must execute its selected test")
+        phase(f"Passed {denied or 'write/read/reopen'}")
 
     run(None, TEST, denied="io_uring_setup")
     with tempfile.TemporaryDirectory(prefix="shieldd-seccomp-") as directory:
@@ -62,4 +76,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, ValueError, subprocess.SubprocessError, SystemExit) as error:
+        code = getattr(error, "returncode", None)
+        print(f"::error title=Container storage gate::{PHASE}; {type(error).__name__}; exit={code}", flush=True)
+        raise
