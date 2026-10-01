@@ -110,9 +110,22 @@ jobs:
       - name: Check immutable collection safety patches
         run: nix develop .#ci --command just chunks-test
 
-      - name: Build and run Rust tests
+      - name: Build Rust test binaries
         run: >-
-          nix develop .#ci --command python3 scripts/ci/run_with_annotation.py
+          nix develop .#ci --command python3 scripts/ci/watch_resources.py
+          --title "Rust test compilation"
+          -- python3 scripts/ci/run_with_annotation.py
+          --title "Rust test compilation"
+          -- cargo test --locked --profile ci --workspace --all-features --no-run
+        env:
+          CARGO_BUILD_JOBS: 2
+          RAYON_NUM_THREADS: 2
+
+      - name: Run Rust workspace tests
+        run: >-
+          nix develop .#ci --command python3 scripts/ci/watch_resources.py
+          --title "Rust workspace tests"
+          -- python3 scripts/ci/run_with_annotation.py
           --title "Rust workspace tests"
           -- just ci-test
         env:
