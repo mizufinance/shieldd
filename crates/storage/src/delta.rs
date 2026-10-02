@@ -106,6 +106,7 @@ impl<S: StateRead> StateDelta<S> {
     }
 }
 
+#[cfg(feature = "persistent")]
 impl StateDelta<crate::Snapshot> {
     /// Authenticate every committed neighbor needed by newly staged writes
     /// before the enclosing SDK cache may be adopted. Persistent-map diff skips

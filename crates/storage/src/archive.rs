@@ -2,7 +2,9 @@
 //! Full records and proof nodes are raw data; only the count/peaks enter NOMT.
 pub mod proof;
 
-use crate::{Effect, Effects, Space, ValueCommitment};
+#[cfg(feature = "persistent")]
+use crate::{Effect, Effects};
+use crate::{Space, ValueCommitment};
 use anyhow::{ensure, Context, Result};
 use sha2::{Digest, Sha256};
 
