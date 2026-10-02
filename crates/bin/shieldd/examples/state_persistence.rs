@@ -131,7 +131,7 @@ async fn finish(service: &mut ExecutionService, height: i64) -> Result<()> {
             receipt_digest: frozen.receipt_digest,
         })
         .await?;
-    service.check_persistence()?;
+    service.await_materializer().await?;
     Ok(())
 }
 #[tokio::main]

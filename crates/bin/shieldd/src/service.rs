@@ -134,6 +134,7 @@ pub struct ExecutionService {
     execution: Option<HostExecution>,
     queries: Arc<crate::query::QueryService>,
     storage: Option<Storage>,
+    materializer: Option<tokio::task::JoinHandle<Result<()>>>,
     materializer_failure: Option<String>,
     registry: Arc<Registry>,
 }
@@ -223,6 +224,7 @@ impl ExecutionService {
             execution: Some(execution),
             queries,
             storage: Some(storage),
+            materializer: None,
             materializer_failure: None,
             registry,
         })
@@ -250,7 +252,7 @@ impl ExecutionService {
         &mut self,
         request: BeginBlockRequest,
     ) -> std::result::Result<BeginBlockResponse, ServiceError> {
-        self.check_persistence()?;
+        self.await_materializer().await?;
         let block = decode_host_block(request).map_err(ServiceError::invalid_argument)?;
 
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
@@ -477,7 +479,7 @@ impl ExecutionService {
                 receipt_digest: digest.to_vec(),
             })
             .await?;
-            self.check_persistence()?;
+            self.await_materializer().await?;
         }
         self.queries.publish_committed(decided.clone()).await?;
         Ok(RecoverDecidedResponse {
@@ -548,9 +550,26 @@ impl ExecutionService {
             next: Some(next),
         })
     }
-    pub fn check_persistence(&self) -> std::result::Result<(), ServiceError> {
+    pub async fn await_materializer(&mut self) -> std::result::Result<(), ServiceError> {
         if let Some(failure) = &self.materializer_failure {
             return Err(ServiceError::unavailable(anyhow::anyhow!(failure.clone())));
+        }
+        if let Some(job) = self.materializer.as_mut() {
+            let result = job
+                .await
+                .context("native materializer panicked")
+                .and_then(|result| result);
+            self.materializer.take();
+            if let Err(error) = result {
+                let failure = format!(
+                    "decided native materialization failed; restart through recovery: {error:#}"
+                );
+                self.materializer_failure = Some(failure.clone());
+                return Err(ServiceError::unavailable(anyhow::anyhow!(failure)));
+            }
+            self.scope_execution()?
+                .finish_materialization()
+                .map_err(ServiceError::unavailable)?;
         }
         Ok(())
     }
@@ -558,7 +577,7 @@ impl ExecutionService {
         &mut self,
         request: MaterializeRequest,
     ) -> std::result::Result<MaterializeResponse, ServiceError> {
-        self.check_persistence()?;
+        self.await_materializer().await?;
         let queries = self.queries.clone();
         if request.height == 0 && request.receipt_digest.is_empty() {
             let _boundary = queries.mutation_boundary().await;
@@ -590,28 +609,30 @@ impl ExecutionService {
             .ok_or_else(ServiceError::closed)?
             .clone();
         queries.decide_boundary();
-        // Return only after native durability and publication match the SDK decision.
-        let _boundary = queries.mutation_boundary().await;
-        let result: Result<()> = async {
-            let copy = storage.clone();
-            tokio::task::spawn_blocking(move || storage.materialize(prepared))
-                .await
-                .context("native persistence worker panicked")??;
-            self.execution_mut()?.finish_materialization()?;
-            queries.checkpoints.capture(copy, &manifest).await;
-            queries.publish_committed(expected).await?;
-            Ok(())
-        }
-        .await;
-        if let Err(error) = result {
-            let failure =
-                format!("decided native persistence failed; restart through recovery: {error:#}");
-            self.materializer_failure = Some(failure.clone());
-            queries.checkpoints.fail(&failure);
-            queries.fail_materialization(failure.clone());
-            let _ = queries.verification.stop().await;
-            return Err(ServiceError::unavailable(anyhow::anyhow!(failure)));
-        }
+        self.materializer = Some(tokio::spawn(async move {
+            // Drain old proof sessions in the background, after acknowledging
+            // the durable SDK decision. H+1 still joins this complete job.
+            let _boundary = queries.mutation_boundary().await;
+            let result = async {
+                let copy = storage.clone();
+                tokio::task::spawn_blocking(move || storage.materialize(prepared))
+                    .await
+                    .context("native persistence worker panicked")??;
+                queries.checkpoints.capture(copy, &manifest).await;
+                queries
+                    .publish_committed(expected)
+                    .await
+                    .map_err(anyhow::Error::from)?;
+                Ok(())
+            }
+            .await;
+            if let Err(error) = &result {
+                queries.checkpoints.fail(&format!("{error:#}"));
+                queries.fail_materialization(format!("{error:#}"));
+                let _ = queries.verification.stop().await;
+            }
+            result
+        }));
         Ok(MaterializeResponse {
             decided: Some(decided),
         })
@@ -620,7 +641,7 @@ impl ExecutionService {
         &mut self,
         _request: GetCommittedStateRequest,
     ) -> std::result::Result<GetCommittedStateResponse, ServiceError> {
-        self.check_persistence()?;
+        self.await_materializer().await?;
         let execution = self.execution.as_ref().ok_or_else(ServiceError::closed)?;
         let committed = execution
             .committed_state()
@@ -713,7 +734,7 @@ impl ExecutionService {
         shieldd_sdk_proto::execution_client::v1::RestoreCheckpointResponse,
         ServiceError,
     > {
-        self.check_persistence()?;
+        self.await_materializer().await?;
         self.queries
             .verification
             .stop()
@@ -829,7 +850,7 @@ impl ExecutionService {
             .stop()
             .await
             .map_err(ServiceError::unavailable);
-        let completion = self.check_persistence();
+        let completion = self.await_materializer().await;
         self.queries
             .checkpoints
             .join()
