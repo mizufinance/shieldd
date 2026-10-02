@@ -751,6 +751,11 @@ async fn dispatch(
     request: &[u8],
 ) -> std::result::Result<Vec<u8>, FfiError> {
     match method {
+        Method::Freeze => service
+            .freeze(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         Method::ReserveQueuedDeposit => service
             .reserve_queued_deposit(decode(request)?)
             .await
