@@ -567,7 +567,7 @@ impl ExecutionService {
                 self.materializer_failure = Some(failure.clone());
                 return Err(ServiceError::unavailable(anyhow::anyhow!(failure)));
             }
-            self.scope_execution()?
+            self.execution_mut()?
                 .finish_materialization()
                 .map_err(ServiceError::unavailable)?;
         }
