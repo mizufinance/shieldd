@@ -2,6 +2,7 @@ syntax = "proto3";
 package shieldd.storage.v1;
 service QueryService {
   rpc KeyValue(KeyValueRequest) returns (KeyValueResponse);
+  rpc ArchiveRange(ArchiveRangeRequest) returns (ArchiveRangeResponse);
 }
 message KeyValueRequest {
   string key = 1;
@@ -17,3 +18,14 @@ message KeyValueResponse {
 
 // A full-key, inclusive-start/exclusive-end page within one retained block
 // prefix. The proof verifies membership, ordering and pagination completeness.
+message ArchiveRangeRequest {
+ uint64 height = 1;
+ bytes prefix = 2;
+ bytes start = 3;
+ optional bytes end = 4;
+ uint32 limit = 5;
+}
+message ArchiveRangeResponse {
+ // Rust-owned canonical range proof; includes full records and next-page key.
+ bytes proof = 1;
+}

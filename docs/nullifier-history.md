@@ -54,10 +54,15 @@ State and nullifier proofs carry participant identity and the manifest. Consumer
 verify through shared Rust/native/WASM code against a separately authenticated
 SDK Shieldd commitment. A proof's own manifest is not a trust anchor.
 
-Retained compact/ciphertext/routing/transaction records remain full raw values
-with NOMT value commitments and authenticated ordering. Filtered pages remain
-opt-in trusted-provider discovery; spend-height metadata retains its provider-trust
-contract. This prototype retains wallet and transaction history from genesis.
+Retained compact/ciphertext/routing/transaction records have sorted per-block
+Merkle commitments accumulated in an MMR. Only its count and peaks enter
+application state. Local proof nodes and indexes are derived. `ArchiveRange`
+returns canonical proofs of records, rank neighbors, block identity, an MMR path
+and the NOMT proof of MMR state. The verifier binds exact prefix, inclusive start,
+exclusive end and page limit, and returns the proven continuation key. This
+supports mid-history membership and range completeness. Existing filtered pages
+remain opt-in trusted-provider discovery; spend-height metadata also retains its
+provider-trust contract. This prototype retains archive history from genesis.
 
 ## Checkpoints and offline maintenance
 
@@ -73,8 +78,8 @@ shieldd-store grow DB permanent-00 BUCKETS ROOTHEX
 
 Export captures a RocksDB checkpoint and quiesced active NOMT files at one
 published boundary. Validation checks complete sorted NOMT export, roots/counts,
-raw-value completeness and native SCT/compliance
-commitments. Restore validates a private destination before
+raw-value commitments, retained archive completeness and native SCT/compliance
+commitments. Restore rebuilds derived indexes in a private destination before
 publication. Live replacement uses atomic same-filesystem directory exchange.
 SDK state-sync requires the Shieldd extension exactly once; its boundary must
 match the restored SDK state.
