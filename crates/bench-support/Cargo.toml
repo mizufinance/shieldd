@@ -9,7 +9,7 @@ edition = { workspace = true }
 publish = false
 
 [dependencies]
-shieldd-sdk-storage = { workspace = true, features = ["persistent"] }
+shieldd-sdk-storage = { workspace = true, features = ["test-support"] }
 shieldd-sdk-circuits.workspace = true
 shieldd-sdk-crypto.workspace = true
 reddsa.workspace = true
