@@ -1,5 +1,5 @@
 use crate::service::*;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use shieldd_sdk_app::genesis::{AppState, Content};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::test_keys::ADDRESS_0;
@@ -16,8 +16,8 @@ use shieldd_sdk_proto::core::component::{
     shielded_pool::v1::AssetMetadataByIdRequest as ComponentAssetMetadataByIdRequest,
 };
 use shieldd_sdk_proto::execution_client::v1::{
-    BeginBlockRequest, CheckTxRequest, DeliverTxRequest, DiscardRequest, EndBlockRequest,
-    FreezeRequest, InitGenesisRequest, MaterializeRequest,
+    BeginBlockRequest, CheckTxRequest, DeliverTxRequest, EndBlockRequest, FreezeRequest,
+    InitGenesisRequest, MaterializeRequest,
 };
 use shieldd_sdk_proto::execution_client::v1::{
     GetCommittedStateRequest, GetCommittedStateResponse,
@@ -79,20 +79,15 @@ async fn execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
         .seconds = 1_700_000_000;
     begin_fixture(&mut client, begin_block).await?;
 
-    let scope = client.open_scope(0)?;
     let response = client
-        .deliver_tx(
-            scope,
-            DeliverTxRequest {
-                tx: b"not a shieldd transaction".to_vec(),
-                position: None,
-            },
-        )
+        .deliver_tx(DeliverTxRequest {
+            tx: b"not a shieldd transaction".to_vec(),
+            position: None,
+        })
         .await?;
 
     assert_eq!(response.code, 1);
     assert!(response.log.contains("decoding transaction"));
-    client.close_scope(scope, false)?;
     end_fixture(&mut client, 1).await?;
     materialize_fixture(&mut client).await?;
     let accepted = client
@@ -542,7 +537,7 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
 
 async fn begin_fixture(client: &mut ExecutionService, request: BeginBlockRequest) -> Result<()> {
     use prost::Message as _;
-    client.reserve_call(0, 2, &request.encode_to_vec())?;
+    client.reserve_call(2, &request.encode_to_vec())?;
     let response = client.begin_block(request).await?;
     client.finish_call(0, &response.encode_to_vec())?;
     Ok(())
@@ -550,7 +545,7 @@ async fn begin_fixture(client: &mut ExecutionService, request: BeginBlockRequest
 async fn end_fixture(client: &mut ExecutionService, height: i64) -> Result<()> {
     use prost::Message as _;
     let request = EndBlockRequest { height };
-    client.reserve_call(0, 6, &request.encode_to_vec())?;
+    client.reserve_call(6, &request.encode_to_vec())?;
     let response = client.end_block(request).await?;
     client.finish_call(0, &response.encode_to_vec())?;
     Ok(())

@@ -23,16 +23,13 @@ digest, the replay-receipt digest and boundary header in the SDK Shieldd module.
 The exact normal SDK Commit metadata `WriteSync` batch also writes one private
 receipt blob. That SDK commit is the authoritative block decision.
 
-SDK message caches and EVM savepoints own matching disposable native scopes.
-Successful effects are adopted only after the enclosing SDK operation succeeds;
-failed messages, post handlers, gas checks, panics and EVM reverts discard writes.
-Reads, transcript entries and resource charges survive that discard. Simulation,
-tracing and disposable calls cannot adopt into canonical state. Writable scope
-capabilities belong to the exact SDK multistore; inherited capabilities through
-unpaired caches fail closed.
+Each native mutation saves its application overlay and restores it on failure.
+Read observations and resource charges survive failed calls. Bankd permits native
+mutations only during FinalizeBlock; SDK simulations cannot mutate canonical
+native state. General rollback coordination across SDK/EVM/IBC caches is tracked
+separately in [Bankd #355](https://github.com/mizufinance/bankd/issues/355).
 
-Freeze authenticates committed observations from successful, failed and aborted
-calls before SDK durability. NOMT participants then materialize, followed by one
+Freeze authenticates committed observations from successful and failed calls before SDK durability. NOMT participants then materialize, followed by one
 synced RocksDB values/manifest batch. Public SDK and native queries wait for a
 matched boundary. SDK Commit returns after native materialization and proof-session draining
 complete. The next block starts from this matched durable boundary.
@@ -43,7 +40,7 @@ and do not impose a block admission limit.
 
 Startup reconciles before normal traffic. If SDK H is durable and raw Shieldd is
 H−1, the receipt must match its SDK-authenticated digest. Only changed NOMT
-participants that advanced are rewound, then native calls and scope outcomes are
+participants that advanced are rewound, then native calls and their outcomes are
 replayed and outputs, canonical deltas and every root are compared. SDK transfers
 and EVM execution are never replayed by this procedure. Native stores retain two
 undo boundaries. All persistence jobs join before recovery or shutdown.
@@ -101,9 +98,7 @@ index. Increasing shard count alone does not satisfy this qualification.
 ## Admission and performance limits
 
 The shared nullifier cap is 131,072 per block; per-transaction limits are unchanged.
-Protocol-versioned recording allows 131,072 calls, 262,144 scopes, depth 1,024 and
-64 MiB encoded receipts, with a separate 128 MiB observation cap. Closing records,
-EndBlock work and queued deposits reserve capacity before side effects. Failed
+Protocol-versioned recording allows 131,072 calls and 64 MiB encoded receipts, with a separate 128 MiB observation cap. EndBlock work and queued deposits reserve capacity before side effects. Failed
 and aborted work is charged. Decoded artifacts have a configurable local memory
 ceiling; exhaustion cancels processing rather than changing transaction validity.
 

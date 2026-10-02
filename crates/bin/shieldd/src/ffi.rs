@@ -10,7 +10,7 @@ use tokio::runtime::{Builder, Runtime};
 
 use crate::{ErrorKind, ExecutionService, ServiceError};
 
-const ABI_VERSION: u32 = 5;
+const ABI_VERSION: u32 = 6;
 const STATUS_OVERLOADED: i32 = 6;
 const STATUS_SNAPSHOT_EXPIRED: i32 = 7;
 const STATUS_UNAVAILABLE: i32 = 8;
@@ -43,11 +43,6 @@ const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
 const METHOD_QUERY_PUBLISHED_BOUNDARY: u32 = 1_000_015;
 const METHOD_QUERY_NULLIFIER_STATUS: u32 = 1_000_013;
 const METHOD_FREEZE: u32 = 14;
-const METHOD_OPEN_SCOPE: u32 = 15;
-const METHOD_PREPARE_SCOPE: u32 = 16;
-const METHOD_CLOSE_SCOPE: u32 = 17;
-const METHOD_SNAPSHOT_SCOPE: u32 = 18;
-const METHOD_REVERT_SCOPE: u32 = 19;
 const METHOD_RECOVER_DECIDED: u32 = 20;
 const METHOD_START_VERIFICATION: u32 = 21;
 const METHOD_RESERVE_QUEUED_DEPOSIT: u32 = 22;
@@ -64,11 +59,6 @@ const METHOD_QUERY_SPEND_STATUS_PAGE: u32 = 1_000_012;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u32)]
 enum Method {
-    OpenScope = 15,
-    PrepareScope = 16,
-    CloseScope = 17,
-    SnapshotScope = 18,
-    RevertScope = 19,
     RecoverDecided = 20,
     StartVerification = 21,
     ReserveQueuedDeposit = 22,
@@ -237,11 +227,6 @@ impl TryFrom<u32> for Method {
 
     fn try_from(method: u32) -> std::result::Result<Self, Self::Error> {
         match method {
-            METHOD_OPEN_SCOPE => Ok(Self::OpenScope),
-            METHOD_PREPARE_SCOPE => Ok(Self::PrepareScope),
-            METHOD_CLOSE_SCOPE => Ok(Self::CloseScope),
-            METHOD_SNAPSHOT_SCOPE => Ok(Self::SnapshotScope),
-            METHOD_REVERT_SCOPE => Ok(Self::RevertScope),
             METHOD_RECOVER_DECIDED => Ok(Self::RecoverDecided),
             METHOD_START_VERIFICATION => Ok(Self::StartVerification),
             METHOD_RESERVE_QUEUED_DEPOSIT => Ok(Self::ReserveQueuedDeposit),
@@ -368,7 +353,6 @@ fn open_handle(
 #[no_mangle]
 pub extern "C" fn shieldd_call(
     handle: *mut ShielddHandle,
-    scope: u64,
     method: u32,
     request: *const u8,
     request_len: usize,
@@ -402,11 +386,6 @@ pub extern "C" fn shieldd_call(
         }
         let request = unsafe { input_bytes(request, request_len)? };
         if matches!(method, Method::AwaitCheckpoint | Method::ReleaseCheckpoint) {
-            if scope != 0 {
-                return Err(FfiError::invalid_argument(
-                    "checkpoint operations do not accept writable scopes",
-                ));
-            }
             use shieldd_sdk_proto::execution_client::v1::*;
             return match method {
                 Method::AwaitCheckpoint => {
@@ -433,11 +412,6 @@ pub extern "C" fn shieldd_call(
             };
         }
         if method == Method::StartVerification {
-            if scope != 0 {
-                return Err(FfiError::invalid_argument(
-                    "stateless verification does not accept a writable scope",
-                ));
-            }
             let response = handle
                 .runtime
                 .block_on(handle.queries.start_verification(decode(request)?))
@@ -478,7 +452,7 @@ pub extern "C" fn shieldd_call(
         } else {
             let response = handle.runtime.block_on(async {
                 let mut service = handle.service.lock().await;
-                recorded_dispatch(&mut service, scope, method, request).await
+                recorded_dispatch(&mut service, method, request).await
             })?;
             Ok(ShielddBuffer::from_vec(response))
         }
@@ -704,41 +678,37 @@ async fn dispatch_query(
 
 async fn recorded_dispatch(
     service: &mut ExecutionService,
-    scope: u64,
     method: Method,
     request: &[u8],
 ) -> Result<Vec<u8>, FfiError> {
-    if matches!(
-        method,
-        Method::ScheduleCheckpoint | Method::RestoreCheckpoint
-    ) {
-        if scope != 0 {
-            return Err(FfiError::invalid_argument(
-                "checkpoint operations do not accept writable scopes",
-            ));
-        }
-        return dispatch(service, scope, method, request).await;
-    }
-    if !matches!(method, Method::CloseScope) {
-        service.check_persistence().map_err(FfiError::service)?;
-    }
+    service.check_persistence().map_err(FfiError::service)?;
     let recording = service
-        .reserve_call(scope, method as u32, request)
+        .reserve_call(method as u32, request)
         .map_err(FfiError::service)?;
-    let mut result = dispatch(service, scope, method, request).await;
-    if matches!(
+    let mutation = matches!(
         method,
         Method::Deposit
             | Method::DeliverTx
             | Method::ApplyComplianceAction
             | Method::ReserveQueuedDeposit
-    ) {
-        service
-            .authenticate_disposable_result(scope)
-            .map_err(FfiError::service)?;
+    );
+    if mutation {
+        service.begin_native_call().map_err(FfiError::service)?;
     }
-    if recording && result.is_ok() {
-        if let Err(error) = service.reserve_scope_reads(scope) {
+    let mut result = dispatch(service, method, request).await;
+    if mutation {
+        let success = match &result {
+            Ok(output) if matches!(method, Method::DeliverTx) => {
+                shieldd_sdk_proto::execution_client::v1::DeliverTxResponse::decode(
+                    output.as_slice(),
+                )
+                .map(|response| response.code == 0)
+                .unwrap_or(false)
+            }
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        if let Err(error) = service.finish_native_call(success) {
             result = Err(FfiError::service(error));
         }
     }
@@ -758,86 +728,31 @@ pub(crate) async fn replay(
     service: &mut ExecutionService,
     receipt: &shieldd_sdk_storage::Receipt,
 ) -> Result<(), FfiError> {
-    use shieldd_sdk_storage::ReplayAction;
-    let mut scopes = std::collections::BTreeMap::<u32, u64>::new();
-    scopes.insert(0, 0);
     for step in &receipt.steps {
-        match step.action {
-            ReplayAction::Open => {
-                let parent = *scopes
-                    .get(&step.parent)
-                    .ok_or_else(|| FfiError::internal("replay parent is missing"))?;
-                let scope = service
-                    .open_reserved_scope(parent, step.finalization)
-                    .map_err(FfiError::service)?;
-                if scopes.insert(step.scope, scope).is_some() {
-                    return Err(FfiError::internal("reused replay scope"));
-                }
-            }
-            ReplayAction::Prepare => service
-                .prepare_scope(scopes[&step.scope])
-                .map_err(FfiError::service)?,
-            ReplayAction::Close => service
-                .close_scope(scopes[&step.scope], step.adopt)
-                .map_err(FfiError::service)?,
-            ReplayAction::Snapshot => {
-                let point = service
-                    .snapshot_scope(scopes[&step.scope])
-                    .map_err(FfiError::service)?;
-                if point != u64::from(step.point) {
-                    return Err(FfiError::internal("replay savepoint differs"));
-                }
-            }
-            ReplayAction::Revert => service
-                .revert_scope(scopes[&step.scope], u64::from(step.point))
-                .map_err(FfiError::service)?,
-            ReplayAction::Call => {
-                let scope = *scopes
-                    .get(&step.scope)
-                    .ok_or_else(|| FfiError::internal("replay call owner is missing"))?;
-                let result = Box::pin(recorded_dispatch(
-                    service,
-                    scope,
-                    Method::try_from(step.method)?,
-                    &step.input,
-                ))
-                .await;
-                let (outcome, output) = match result {
-                    Ok(output) => (STATUS_OK as u32, output),
-                    Err(error) => (error.status as u32, error.message.into_bytes()),
-                };
-                if outcome != step.outcome
-                    || shieldd_sdk_storage::receipt_response_digest(outcome, &output) != step.output
-                {
-                    return Err(FfiError::internal(
-                        "native replay response differs from decided receipt",
-                    ));
-                }
-            }
-        }
+        let result = Box::pin(recorded_dispatch(
+            service,
+            Method::try_from(step.method)?,
+            &step.input,
+        ))
+        .await;
+        let (outcome, output) = match result {
+            Ok(output) => (STATUS_OK as u32, output),
+            Err(error) => (error.status as u32, error.message.into_bytes()),
+        };
+        shieldd_sdk_storage::Receipt::compare_response(step, outcome, &output)
+            .map_err(|error| FfiError::internal(error.to_string()))?;
     }
     Ok(())
 }
 
 async fn dispatch(
     service: &mut ExecutionService,
-    scope: u64,
     method: Method,
     request: &[u8],
 ) -> std::result::Result<Vec<u8>, FfiError> {
-    use shieldd_sdk_proto::execution_client::v1::*;
-    if matches!(
-        method,
-        Method::Deposit
-            | Method::DeliverTx
-            | Method::ApplyComplianceAction
-            | Method::ReserveQueuedDeposit
-    ) {
-        service.require_scope(scope).map_err(FfiError::service)?;
-    }
     match method {
         Method::ReserveQueuedDeposit => service
-            .reserve_queued_deposit(scope, decode(request)?)
+            .reserve_queued_deposit(decode(request)?)
             .await
             .map(|r| r.encode_to_vec())
             .map_err(FfiError::service),
@@ -861,76 +776,6 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        Method::OpenScope => {
-            let request: OpenScopeRequest = decode(request)?;
-            let scope_id = if request.disposable {
-                if request.finalization {
-                    return Err(FfiError::invalid_argument(
-                        "disposable roots cannot reserve finalization capacity",
-                    ));
-                }
-                if scope != 0 {
-                    return Err(FfiError::invalid_argument(
-                        "disposable roots cannot have a parent",
-                    ));
-                }
-                let root = request.committed_root.try_into().map_err(|_| {
-                    FfiError::invalid_argument("simulation committed root must be 32 bytes")
-                })?;
-                let timestamp = request
-                    .time
-                    .ok_or_else(|| FfiError::invalid_argument("simulation time is missing"))?;
-                let nanos = u32::try_from(timestamp.nanos).map_err(|_| {
-                    FfiError::invalid_argument("simulation nanoseconds are negative")
-                })?;
-                let time = tendermint::Time::from_unix_timestamp(timestamp.seconds, nanos)
-                    .map_err(|_| FfiError::invalid_argument("simulation time is invalid"))?;
-                service
-                    .open_disposable_scope(request.height, root, time)
-                    .await
-            } else {
-                if request.height != 0
-                    || !request.committed_root.is_empty()
-                    || request.time.is_some()
-                {
-                    return Err(FfiError::invalid_argument(
-                        "height is only valid for disposable roots",
-                    ));
-                }
-                service.open_reserved_scope(scope, request.finalization)
-            }
-            .map_err(FfiError::service)?;
-            Ok(OpenScopeResponse { scope_id }.encode_to_vec())
-        }
-        Method::PrepareScope => {
-            let _: PrepareScopeRequest = decode(request)?;
-            service.prepare_scope(scope).map_err(FfiError::service)?;
-            Ok(PrepareScopeResponse {}.encode_to_vec())
-        }
-        Method::CloseScope => {
-            let request: CloseScopeRequest = decode(request)?;
-            service
-                .close_scope(scope, request.adopt)
-                .map_err(FfiError::service)?;
-            Ok(CloseScopeResponse {}.encode_to_vec())
-        }
-        Method::SnapshotScope => {
-            let _: SnapshotScopeRequest = decode(request)?;
-            let savepoint_id = service.snapshot_scope(scope).map_err(FfiError::service)?;
-            Ok(SnapshotScopeResponse { savepoint_id }.encode_to_vec())
-        }
-        Method::RevertScope => {
-            let request: RevertScopeRequest = decode(request)?;
-            service
-                .revert_scope(scope, request.savepoint_id)
-                .map_err(FfiError::service)?;
-            Ok(RevertScopeResponse {}.encode_to_vec())
-        }
-        Method::Freeze => service
-            .freeze(decode(request)?)
-            .await
-            .map(|response| response.encode_to_vec())
-            .map_err(FfiError::service),
         Method::InitGenesis => service
             .init_genesis(decode(request)?)
             .await
@@ -942,12 +787,12 @@ async fn dispatch(
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
         Method::Deposit => service
-            .deposit(scope, decode(request)?)
+            .deposit(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
         Method::DeliverTx => service
-            .deliver_tx(scope, decode(request)?)
+            .deliver_tx(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -977,7 +822,7 @@ async fn dispatch(
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
         Method::ApplyComplianceAction => service
-            .apply_compliance_action(scope, decode(request)?)
+            .apply_compliance_action(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -1029,10 +874,6 @@ mod tests {
         FreezeRequest, FreezeResponse, GetCommittedStateRequest, GetCommittedStateResponse,
         HostSource, InitGenesisRequest, InitGenesisResponse, MaterializeRequest,
         MaterializeResponse,
-    };
-    use shieldd_sdk_proto::execution_client::v1::{
-        CloseScopeRequest, CloseScopeResponse, OpenScopeRequest, OpenScopeResponse,
-        PrepareScopeRequest, PrepareScopeResponse,
     };
     use shieldd_sdk_proto::storage::v1::{KeyValueRequest, KeyValueResponse};
 
@@ -1090,7 +931,6 @@ mod tests {
         let reader = std::thread::spawn(move || {
             let response = shieldd_call(
                 address as *mut ShielddHandle,
-                0,
                 METHOD_QUERY_APP_PARAMETERS,
                 ptr::null(),
                 0,
@@ -1104,7 +944,7 @@ mod tests {
         reader.join().unwrap();
         assert_eq!(result.unwrap(), STATUS_OK);
         // Admission stays available even while callers retain every read response.
-        let baseline = shieldd_call(handle, 0, METHOD_CHECK_TX, ptr::null(), 0);
+        let baseline = shieldd_call(handle, METHOD_CHECK_TX, ptr::null(), 0);
         let expected_status = baseline.status;
         let expected_error = error_text(&baseline);
         assert_ne!(expected_status, STATUS_OVERLOADED);
@@ -1113,11 +953,11 @@ mod tests {
         for _ in 0..raw.queries.limits.read_memory_bytes()
             / raw.queries.limits.reservation_bytes() as usize
         {
-            let response = shieldd_call(handle, 0, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
+            let response = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
             assert_eq!(response.status, STATUS_OK);
             held.push(response);
         }
-        let overloaded = shieldd_call(handle, 0, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
+        let overloaded = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
         assert_eq!(overloaded.status, STATUS_OVERLOADED);
         free_result(overloaded);
         let slots = raw
@@ -1125,7 +965,7 @@ mod tests {
             .clone()
             .try_acquire_many_owned(raw.queries.limits.read_workers as u32)
             .unwrap();
-        let check = shieldd_call(handle, 0, METHOD_CHECK_TX, ptr::null(), 0);
+        let check = shieldd_call(handle, METHOD_CHECK_TX, ptr::null(), 0);
         assert_eq!(
             check.status, expected_status,
             "public reads starved CheckTx"
@@ -1134,7 +974,7 @@ mod tests {
         free_result(check);
         drop(slots);
         free_result(held.pop().unwrap());
-        let admitted = shieldd_call(handle, 0, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
+        let admitted = shieldd_call(handle, METHOD_QUERY_APP_PARAMETERS, ptr::null(), 0);
         assert_eq!(admitted.status, STATUS_OK);
         held.push(admitted);
         close(handle);
@@ -1157,11 +997,6 @@ mod tests {
             (METHOD_EXPORT_GENESIS, Method::ExportGenesis),
             (METHOD_GET_COMMITTED_STATE, Method::GetCommittedState),
             (METHOD_FREEZE, Method::Freeze),
-            (METHOD_OPEN_SCOPE, Method::OpenScope),
-            (METHOD_PREPARE_SCOPE, Method::PrepareScope),
-            (METHOD_CLOSE_SCOPE, Method::CloseScope),
-            (METHOD_SNAPSHOT_SCOPE, Method::SnapshotScope),
-            (METHOD_REVERT_SCOPE, Method::RevertScope),
             (
                 METHOD_APPLY_COMPLIANCE_ACTION,
                 Method::ApplyComplianceAction,
@@ -1214,54 +1049,15 @@ mod tests {
         Request: Message,
         Response: Message + Default,
     {
-        let mutation = matches!(
-            method,
-            METHOD_DEPOSIT | METHOD_DELIVER_TX | METHOD_APPLY_COMPLIANCE_ACTION
-        );
-        let scope = if mutation {
-            let opened: OpenScopeResponse =
-                call(handle, METHOD_OPEN_SCOPE, OpenScopeRequest::default());
-            opened.scope_id
-        } else {
-            0
-        };
-        let response = call_at(handle, scope, method, request);
-        if mutation {
-            let _: PrepareScopeResponse = call_at(
-                handle,
-                scope,
-                METHOD_PREPARE_SCOPE,
-                PrepareScopeRequest::default(),
-            );
-            let _: CloseScopeResponse = call_at(
-                handle,
-                scope,
-                METHOD_CLOSE_SCOPE,
-                CloseScopeRequest { adopt: true },
-            );
-        }
-        response
-    }
-
-    fn call_at<Request, Response>(
-        handle: *mut ShielddHandle,
-        scope: u64,
-        method: u32,
-        request: Request,
-    ) -> Response
-    where
-        Request: Message,
-        Response: Message + Default,
-    {
         let request = request.encode_to_vec();
-        let result = shieldd_call(handle, scope, method, request.as_ptr(), request.len());
+        let result = shieldd_call(handle, method, request.as_ptr(), request.len());
         assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
-        let response = if result.response.len == 0 {
+        let bytes = if result.response.len == 0 {
             &[][..]
         } else {
             unsafe { slice::from_raw_parts(result.response.data, result.response.len) }
         };
-        let response = Response::decode(response).expect("valid protobuf response");
+        let response = Response::decode(bytes).expect("valid protobuf response");
         free_result(result);
         response
     }
@@ -1289,7 +1085,7 @@ mod tests {
     }
 
     #[test]
-    fn decided_receipt_replays_owned_rejection_and_aborted_calls_once() {
+    fn decided_receipt_replays_rejections_and_failed_calls_once() {
         use shieldd_sdk_proto::execution_client::v1::{
             RecoverDecidedRequest, RecoverDecidedResponse, StartVerificationRequest,
             StartVerificationResponse, VerificationCandidate, VerificationPosition,
@@ -1320,10 +1116,8 @@ mod tests {
         };
         begin.time.as_mut().unwrap().seconds = 1_700_000_001;
         let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin);
-        let scope: OpenScopeResponse = call(handle, METHOD_OPEN_SCOPE, OpenScopeRequest::default());
-        let rejected: DeliverTxResponse = call_at(
+        let rejected: DeliverTxResponse = call(
             handle,
-            scope.scope_id,
             METHOD_DELIVER_TX,
             DeliverTxRequest {
                 tx: invalid,
@@ -1331,30 +1125,11 @@ mod tests {
             },
         );
         assert_ne!(rejected.code, 0);
-        let _: CloseScopeResponse = call_at(
-            handle,
-            scope.scope_id,
-            METHOD_CLOSE_SCOPE,
-            CloseScopeRequest { adopt: false },
-        );
-        let scope: OpenScopeResponse = call(handle, METHOD_OPEN_SCOPE, OpenScopeRequest::default());
         let request =
             shieldd_sdk_proto::execution_client::v1::DepositRequest::default().encode_to_vec();
-        let failed = shieldd_call(
-            handle,
-            scope.scope_id,
-            METHOD_DEPOSIT,
-            request.as_ptr(),
-            request.len(),
-        );
+        let failed = shieldd_call(handle, METHOD_DEPOSIT, request.as_ptr(), request.len());
         assert_eq!(failed.status, STATUS_INVALID_ARGUMENT);
         free_result(failed);
-        let _: CloseScopeResponse = call_at(
-            handle,
-            scope.scope_id,
-            METHOD_CLOSE_SCOPE,
-            CloseScopeRequest { adopt: false },
-        );
         let _: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height: 1 });
         let frozen: FreezeResponse = call(handle, METHOD_FREEZE, FreezeRequest {});
         let decided = frozen.next.clone().unwrap();
@@ -1370,7 +1145,6 @@ mod tests {
         .encode_to_vec();
         let result = shieldd_call(
             handle,
-            0,
             METHOD_RECOVER_DECIDED,
             request.as_ptr(),
             request.len(),
@@ -1434,7 +1208,7 @@ mod tests {
         let handle = open(directory.path());
 
         for _ in 0..2 {
-            let result = shieldd_call(handle, 0, METHOD_DISCARD, ptr::null(), 0);
+            let result = shieldd_call(handle, METHOD_DISCARD, ptr::null(), 0);
             assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
             assert_eq!(result.response.len, 0);
             free_result(result);
@@ -1448,7 +1222,7 @@ mod tests {
 
     #[test]
     fn invalid_inputs_return_c_safe_statuses() {
-        let null_handle = shieldd_call(ptr::null_mut(), 0, METHOD_DISCARD, ptr::null(), 0);
+        let null_handle = shieldd_call(ptr::null_mut(), METHOD_DISCARD, ptr::null(), 0);
         assert_eq!(null_handle.status, STATUS_INVALID_ARGUMENT);
         assert!(error_text(&null_handle).contains("handle must not be null"));
         free_result(null_handle);
@@ -1458,7 +1232,6 @@ mod tests {
         let malformed = [0x80];
         let invalid_proto = shieldd_call(
             handle,
-            0,
             METHOD_BEGIN_BLOCK,
             malformed.as_ptr(),
             malformed.len(),
@@ -1467,7 +1240,7 @@ mod tests {
         assert!(error_text(&invalid_proto).contains("invalid protobuf request"));
         free_result(invalid_proto);
 
-        let unknown = shieldd_call(handle, 0, u32::MAX, ptr::null(), 0);
+        let unknown = shieldd_call(handle, u32::MAX, ptr::null(), 0);
         assert_eq!(unknown.status, STATUS_INVALID_ARGUMENT);
         assert!(error_text(&unknown).contains("unknown Shieldd method"));
         free_result(unknown);
@@ -1483,7 +1256,6 @@ mod tests {
         let request = NullifierRequest { nullifier: None }.encode_to_vec();
         let result = shieldd_call(
             handle,
-            0,
             METHOD_QUERY_NULLIFIER_STATUS,
             request.as_ptr(),
             request.len(),
@@ -1511,8 +1283,6 @@ mod tests {
             .seconds = 1_700_000_001;
         let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
 
-        let opened: OpenScopeResponse =
-            call(handle, METHOD_OPEN_SCOPE, OpenScopeRequest::default());
         let request = ApplyComplianceActionRequest {
             source: Some(HostSource {
                 height: 1,
@@ -1525,7 +1295,6 @@ mod tests {
         .encode_to_vec();
         let result = shieldd_call(
             handle,
-            opened.scope_id,
             METHOD_APPLY_COMPLIANCE_ACTION,
             request.as_ptr(),
             request.len(),
@@ -1538,12 +1307,6 @@ mod tests {
             "unexpected rejection: {error}"
         );
         free_result(result);
-        let _: CloseScopeResponse = call_at(
-            handle,
-            opened.scope_id,
-            METHOD_CLOSE_SCOPE,
-            CloseScopeRequest { adopt: false },
-        );
         close(handle);
     }
 
@@ -1558,7 +1321,7 @@ mod tests {
                 std::thread::spawn(move || {
                     let handle = handle_address as *mut ShielddHandle;
                     for _ in 0..16 {
-                        let result = shieldd_call(handle, 0, METHOD_DISCARD, ptr::null(), 0);
+                        let result = shieldd_call(handle, METHOD_DISCARD, ptr::null(), 0);
                         assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
                         free_result(result);
                     }
@@ -1615,7 +1378,6 @@ mod tests {
         let request = AppParametersRequest {}.encode_to_vec();
         let uninitialized = shieldd_call(
             handle,
-            0,
             METHOD_QUERY_APP_PARAMETERS,
             request.as_ptr(),
             request.len(),
@@ -1759,7 +1521,6 @@ mod tests {
         .encode_to_vec();
         let result = shieldd_call(
             handle,
-            0,
             METHOD_QUERY_COMPACT_BLOCK_PAGE,
             request.as_ptr(),
             request.len(),

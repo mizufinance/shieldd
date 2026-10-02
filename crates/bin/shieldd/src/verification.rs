@@ -17,8 +17,7 @@ struct Position {
 impl Position {
     fn decode(position: &VerificationPosition) -> Result<Self> {
         ensure!(
-            !position.message_path.is_empty()
-                && position.message_path.len() <= shieldd_sdk_storage::MAX_DEPTH,
+            !position.message_path.is_empty() && position.message_path.len() <= 1024,
             "invalid SDK verification position"
         );
         Ok(Self {

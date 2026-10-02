@@ -145,61 +145,10 @@ impl Drop for ExecutionService {
 }
 
 impl ExecutionService {
-    fn scope_execution(&mut self) -> std::result::Result<&mut HostExecution, ServiceError> {
+    fn execution_mut(&mut self) -> std::result::Result<&mut HostExecution, ServiceError> {
         self.execution.as_mut().ok_or_else(|| {
             ServiceError::failed_precondition(anyhow::anyhow!("execution service is closed"))
         })
-    }
-
-    pub fn open_scope(&mut self, parent: u64) -> std::result::Result<u64, ServiceError> {
-        self.scope_execution()?
-            .open_scope(parent)
-            .map_err(ServiceError::failed_precondition)
-    }
-    pub fn open_reserved_scope(
-        &mut self,
-        parent: u64,
-        finalization: bool,
-    ) -> std::result::Result<u64, ServiceError> {
-        self.scope_execution()?
-            .open_reserved_scope(parent, finalization)
-            .map_err(ServiceError::failed_precondition)
-    }
-    pub async fn open_disposable_scope(
-        &mut self,
-        height: u64,
-        root: [u8; 32],
-        time: tendermint::Time,
-    ) -> std::result::Result<u64, ServiceError> {
-        self.scope_execution()?
-            .open_disposable_scope(height, root, time)
-            .await
-            .map_err(ServiceError::failed_precondition)
-    }
-    pub fn require_scope(&mut self, id: u64) -> std::result::Result<(), ServiceError> {
-        self.scope_execution()?
-            .require_scope(id)
-            .map_err(ServiceError::failed_precondition)
-    }
-    pub fn prepare_scope(&mut self, id: u64) -> std::result::Result<(), ServiceError> {
-        self.scope_execution()?
-            .prepare_scope(id)
-            .map_err(ServiceError::failed_precondition)
-    }
-    pub fn close_scope(&mut self, id: u64, adopt: bool) -> std::result::Result<(), ServiceError> {
-        self.scope_execution()?
-            .close_scope(id, adopt)
-            .map_err(ServiceError::failed_precondition)
-    }
-    pub fn snapshot_scope(&mut self, id: u64) -> std::result::Result<u64, ServiceError> {
-        self.scope_execution()?
-            .snapshot_scope(id)
-            .map_err(ServiceError::failed_precondition)
-    }
-    pub fn revert_scope(&mut self, id: u64, point: u64) -> std::result::Result<(), ServiceError> {
-        self.scope_execution()?
-            .revert_scope(id, point)
-            .map_err(ServiceError::failed_precondition)
     }
 
     pub fn queries(&self) -> &Arc<crate::query::QueryService> {
@@ -317,7 +266,6 @@ impl ExecutionService {
 
     pub async fn reserve_queued_deposit(
         &mut self,
-        scope: u64,
         request: shieldd_sdk_proto::execution_client::v1::ReserveQueuedDepositRequest,
     ) -> std::result::Result<
         shieldd_sdk_proto::execution_client::v1::ReserveQueuedDepositResponse,
@@ -327,20 +275,19 @@ impl ExecutionService {
             .deposit
             .context("queued deposit input is missing")
             .map_err(ServiceError::invalid_argument)?;
-        self.scope_execution()?
-            .reserve_queued_deposit(scope, request)
+        self.execution_mut()?
+            .reserve_queued_deposit(request)
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(Default::default())
     }
     pub async fn deposit(
         &mut self,
-        scope: u64,
         request: DepositRequest,
     ) -> std::result::Result<DepositResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
-            .deposit_at(scope, request)
+            .deposit(request)
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(response.response)
@@ -348,12 +295,11 @@ impl ExecutionService {
 
     pub async fn apply_compliance_action(
         &mut self,
-        scope: u64,
         request: ApplyComplianceActionRequest,
     ) -> std::result::Result<ApplyComplianceActionResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
-            .apply_compliance_action_at(scope, request)
+            .apply_compliance_action(request)
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(response.response)
@@ -382,7 +328,6 @@ impl ExecutionService {
 
     pub async fn deliver_tx(
         &mut self,
-        scope: u64,
         request: DeliverTxRequest,
     ) -> std::result::Result<DeliverTxResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
@@ -400,10 +345,10 @@ impl ExecutionService {
         let response = match &verified {
             Some(artifact) => {
                 execution
-                    .deliver_owned_at(scope, &request.tx, artifact.result.clone())
+                    .deliver_owned(&request.tx, artifact.result.clone())
                     .await
             }
-            None => execution.deliver_tx_at(scope, &request.tx).await,
+            None => execution.deliver_tx(&request.tx).await,
         }
         .map_err(ServiceError::failed_precondition)?;
 
@@ -511,7 +456,7 @@ impl ExecutionService {
                     "receipt boundaries differ from the SDK decision"
                 )));
             }
-            self.scope_execution()?
+            self.execution_mut()?
                 .start_replay(&receipt)
                 .await
                 .map_err(ServiceError::unavailable)?;
@@ -519,7 +464,7 @@ impl ExecutionService {
                 .await
                 .map_err(|error| ServiceError::unavailable(anyhow::anyhow!(error.to_string())))?;
             let replayed = self
-                .scope_execution()?
+                .execution_mut()?
                 .freeze()
                 .map_err(ServiceError::unavailable)?;
             if replayed.1 != digest || replayed.0 != request.receipt {
@@ -542,25 +487,21 @@ impl ExecutionService {
 
     pub fn reserve_call(
         &mut self,
-        scope: u64,
         method: u32,
         input: &[u8],
     ) -> std::result::Result<bool, ServiceError> {
-        self.scope_execution()?
-            .reserve_call(scope, method, input)
+        self.execution_mut()?
+            .reserve_call(method, input)
             .map_err(ServiceError::failed_precondition)
     }
-    pub fn authenticate_disposable_result(
-        &mut self,
-        scope: u64,
-    ) -> std::result::Result<(), ServiceError> {
-        self.scope_execution()?
-            .authenticate_disposable_result(scope)
-            .map_err(ServiceError::unavailable)
+    pub fn begin_native_call(&mut self) -> std::result::Result<(), ServiceError> {
+        self.execution_mut()?
+            .begin_native_call()
+            .map_err(ServiceError::failed_precondition)
     }
-    pub fn reserve_scope_reads(&mut self, scope: u64) -> std::result::Result<(), ServiceError> {
-        self.scope_execution()?
-            .reserve_scope_reads(scope)
+    pub fn finish_native_call(&mut self, success: bool) -> std::result::Result<(), ServiceError> {
+        self.execution_mut()?
+            .finish_native_call(success)
             .map_err(ServiceError::failed_precondition)
     }
     pub fn finish_call(
@@ -568,7 +509,7 @@ impl ExecutionService {
         outcome: u32,
         output: &[u8],
     ) -> std::result::Result<(), ServiceError> {
-        self.scope_execution()?
+        self.execution_mut()?
             .finish_call(outcome, output)
             .map_err(ServiceError::internal)
     }
@@ -621,7 +562,7 @@ impl ExecutionService {
         let queries = self.queries.clone();
         if request.height == 0 && request.receipt_digest.is_empty() {
             let _boundary = queries.mutation_boundary().await;
-            self.scope_execution()?
+            self.execution_mut()?
                 .materialize_genesis()
                 .await
                 .map_err(ServiceError::failed_precondition)?;
@@ -637,7 +578,7 @@ impl ExecutionService {
             ServiceError::invalid_argument(anyhow::anyhow!("receipt digest must be 32 bytes"))
         })?;
         let prepared = self
-            .scope_execution()?
+            .execution_mut()?
             .take_decided(request.height, digest)
             .map_err(ServiceError::failed_precondition)?;
         let decided = commit_boundary(prepared.next().clone()).map_err(ServiceError::internal)?;
@@ -656,7 +597,7 @@ impl ExecutionService {
             tokio::task::spawn_blocking(move || storage.materialize(prepared))
                 .await
                 .context("native persistence worker panicked")??;
-            self.scope_execution()?.finish_materialization()?;
+            self.execution_mut()?.finish_materialization()?;
             queries.checkpoints.capture(copy, &manifest).await;
             queries.publish_committed(expected).await?;
             Ok(())
@@ -742,7 +683,7 @@ impl ExecutionService {
         {
             storage.manifest().ok_or_else(ServiceError::closed)?
         } else {
-            self.scope_execution()?
+            self.execution_mut()?
                 .prepared_commit()
                 .map_err(ServiceError::failed_precondition)?
                 .clone()

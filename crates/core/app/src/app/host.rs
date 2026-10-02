@@ -122,22 +122,13 @@ pub struct HostExecution {
     recorder: Option<shieldd_sdk_storage::Recorder>,
     frozen_receipt: Option<(Vec<u8>, [u8; 32])>,
     block_id: Option<[u8; 32]>,
-    scopes: super::scope::Scopes,
-    disposable: std::collections::BTreeMap<u64, DisposableView>,
-    view_owners: std::collections::BTreeMap<u64, u64>,
-    next_scope_id: u64,
+    pending_call: Option<super::call::SavedState>,
     finalization_reads: Option<shieldd_sdk_storage::DeferredReadCredit>,
     queued_reads: std::collections::BTreeMap<
         [u8; 32],
         std::collections::VecDeque<(usize, shieldd_sdk_storage::DeferredReadCredit)>,
     >,
     active_queued_reads: Option<shieldd_sdk_storage::DeferredReadGuard>,
-}
-
-struct DisposableView {
-    boundary: [u8; 32],
-    app: App,
-    scopes: super::scope::Scopes,
 }
 
 pub struct HostEndBlock {
@@ -329,10 +320,7 @@ impl HostExecution {
             recorder: None,
             frozen_receipt: None,
             block_id: None,
-            scopes: super::scope::Scopes::default(),
-            disposable: Default::default(),
-            view_owners: Default::default(),
-            next_scope_id: 0,
+            pending_call: None,
             finalization_reads: None,
             queued_reads: Default::default(),
             active_queued_reads: None,
@@ -346,233 +334,39 @@ impl HostExecution {
         self.phase
     }
 
-    fn allocate_scope(&mut self) -> Result<u64> {
-        self.next_scope_id = self
-            .next_scope_id
-            .checked_add(1)
-            .context("scope capability overflow")?;
-        Ok(self.next_scope_id)
+    pub fn begin_native_call(&mut self) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock && self.pending_call.is_none(),
+            "native call requires an idle open block"
+        );
+        self.pending_call = Some(self.app.save_call()?);
+        Ok(())
     }
-
-    pub fn open_scope(&mut self, parent: u64) -> Result<u64> {
-        self.open_reserved_scope(parent, false)
-    }
-    pub fn open_reserved_scope(&mut self, parent: u64, finalization: bool) -> Result<u64> {
-        let id = self.allocate_scope()?;
-        if let Some(root) = self.view_owners.get(&parent).copied() {
-            ensure!(
-                !finalization,
-                "disposable child cannot consume finalization capacity"
-            );
-            let view = self.disposable.get_mut(&root).expect("owned view exists");
-            view.scopes.open(&mut view.app, parent, id)?;
-            self.view_owners.insert(id, root);
-            return Ok(id);
+    pub fn finish_native_call(&mut self, success: bool) -> Result<()> {
+        let saved = self
+            .pending_call
+            .take()
+            .context("native call is not active")?;
+        if !success {
+            self.app.restore_call(saved);
+            return Ok(());
         }
-        ensure!(
-            self.phase == HostExecutionPhase::InBlock,
-            "scope requires an open block"
-        );
-        self.recorder
-            .as_mut()
-            .context("block transcript is missing")?
-            .open_reserved(id, parent, finalization)?;
-        self.scopes
-            .open_reserved(&mut self.app, parent, id, finalization)
-    }
-
-    pub async fn open_disposable_scope(
-        &mut self,
-        height: u64,
-        root: [u8; 32],
-        time: Time,
-    ) -> Result<u64> {
-        ensure!(
-            self.disposable.len() < 16,
-            "disposable execution admission exhausted"
-        );
-        ensure!(
-            self.storage.latest_version() != u64::MAX,
-            "simulation requires initialized storage"
-        );
-        ensure!(
-            self.storage
-                .manifest()
-                .context("simulation boundary is missing")?
-                .digest()?
-                == root,
-            "simulation SDK and native boundaries differ"
-        );
-        let current_epoch = self.storage.latest_snapshot().get_current_epoch().await?;
-        let mut app = App::from_snapshot(
-            self.storage.latest_snapshot(),
-            self.app.registry.clone(),
-            self.nullifier_reader(),
-        );
-        app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
-        use shieldd_sdk_sct::component::clock::EpochManager as _;
-        let state = Arc::get_mut(&mut app.state).expect("new disposable state");
-        state.put_block_height(height);
-        state.put_block_timestamp(height, time);
-        state.put_epoch_by_height(height, current_epoch);
-        let id = self.allocate_scope()?;
-        let mut scopes = super::scope::Scopes::default();
-        scopes.open(&mut app, 0, id)?;
-        self.disposable.insert(
-            id,
-            DisposableView {
-                boundary: root,
-                app,
-                scopes,
-            },
-        );
-        self.view_owners.insert(id, id);
-        Ok(id)
-    }
-
-    pub fn require_scope(&mut self, id: u64) -> Result<()> {
-        if let Some(root) = self.view_owners.get(&id) {
-            ensure!(
-                self.disposable[root].boundary
-                    == self
-                        .storage
-                        .manifest()
-                        .context("simulation boundary is missing")?
-                        .digest()?,
-                "disposable view expired at materialization"
-            );
-            return self
-                .disposable
-                .get_mut(root)
-                .expect("owned view exists")
-                .scopes
-                .writable(id);
-        }
-        self.scopes.writable(id)
-    }
-    pub fn authenticate_disposable_result(&self, id: u64) -> Result<()> {
-        if let Some(root) = self.view_owners.get(&id) {
-            let view = &self.disposable[root];
-            let read = view
-                .app
-                .state
-                .read_view()
-                .context("disposable read view is missing")?;
-            let manifest = read
-                .manifest
-                .as_deref()
-                .context("disposable manifest is missing")?;
-            let forest = self.storage.forest().read();
-            ensure!(
-                self.storage.manifest().as_ref() == Some(manifest),
-                "disposable view expired at materialization"
-            );
-            forest.authenticate_result(manifest, &read.observations)?;
+        if let Err(error) = self.app.reserve_call_writes(&saved) {
+            self.app.restore_call(saved);
+            return Err(error);
         }
         Ok(())
     }
-    pub fn reserve_scope_reads(&mut self, id: u64) -> Result<()> {
-        if id == 0 || self.view_owners.contains_key(&id) {
-            return Ok(());
-        }
-        self.scopes.reserve_writes(&self.app, id)
-    }
-    pub fn prepare_scope(&mut self, id: u64) -> Result<()> {
-        if let Some(root) = self.view_owners.get(&id) {
-            let view = self.disposable.get_mut(root).expect("owned view exists");
-            return view.scopes.prepare(&view.app, id);
-        }
-        self.scopes.prepare(&self.app, id)?;
-        self.recorder
-            .as_mut()
-            .context("block transcript is missing")?
-            .prepare(id)
-    }
-    pub fn close_scope(&mut self, id: u64, adopt: bool) -> Result<()> {
-        if let Some(root) = self.view_owners.get(&id).copied() {
-            ensure!(
-                id != root || !adopt,
-                "disposable execution cannot become canonical"
-            );
-            let view = self.disposable.get_mut(&root).expect("owned view exists");
-            view.scopes.close(&mut view.app, id, adopt)?;
-            self.view_owners.remove(&id);
-            if id == root {
-                self.disposable.remove(&root);
-            }
-            return Ok(());
-        }
-        self.recorder
-            .as_mut()
-            .context("block transcript is missing")?
-            .close(id, adopt)?;
-        self.scopes.close(&mut self.app, id, adopt)
-    }
-    pub fn snapshot_scope(&mut self, id: u64) -> Result<u64> {
-        if let Some(root) = self.view_owners.get(&id) {
-            let view = self.disposable.get_mut(root).expect("owned view exists");
-            return view.scopes.snapshot(&mut view.app, id);
-        }
-        let point = self.scopes.next_savepoint(id)?;
-        self.recorder
-            .as_mut()
-            .context("block transcript is missing")?
-            .snapshot(id, u32::try_from(point)?)?;
-        self.scopes.snapshot(&mut self.app, id)
-    }
-    pub fn revert_scope(&mut self, id: u64, point: u64) -> Result<()> {
-        if let Some(root) = self.view_owners.get(&id) {
-            let view = self.disposable.get_mut(root).expect("owned view exists");
-            return view.scopes.revert(&mut view.app, id, point);
-        }
-        self.recorder
-            .as_mut()
-            .context("block transcript is missing")?
-            .revert(id, u32::try_from(point)?)?;
-        self.scopes.revert(&mut self.app, id, point)
-    }
-
-    fn app_at_scope(&mut self, id: u64) -> Result<&mut App> {
-        self.require_scope(id)?;
-        if let Some(root) = self.view_owners.get(&id) {
-            return Ok(&mut self
-                .disposable
-                .get_mut(root)
-                .expect("owned view exists")
-                .app);
-        }
-        ensure!(
-            self.phase == HostExecutionPhase::InBlock,
-            "native mutation requires an open block"
-        );
-        Ok(&mut self.app)
-    }
-    pub async fn deposit_at(
+    pub async fn deliver_owned(
         &mut self,
-        id: u64,
-        request: DepositRequest,
-    ) -> Result<HostDepositResult> {
-        self.app_at_scope(id)?.deposit(request).await
-    }
-    pub async fn apply_compliance_action_at(
-        &mut self,
-        id: u64,
-        request: ApplyComplianceActionRequest,
-    ) -> Result<HostComplianceActionResult> {
-        self.app_at_scope(id)?
-            .apply_compliance_action(request)
-            .await
-    }
-    pub async fn deliver_tx_at(&mut self, id: u64, tx_bytes: &[u8]) -> Result<HostTxResponse> {
-        Self::execute_delivery(self.app_at_scope(id)?, tx_bytes, None).await
-    }
-    pub async fn deliver_owned_at(
-        &mut self,
-        id: u64,
         tx_bytes: &[u8],
         verified: std::result::Result<Arc<crate::stateless_cache::VerifiedTxArtifact>, String>,
     ) -> Result<HostTxResponse> {
-        Self::execute_delivery(self.app_at_scope(id)?, tx_bytes, Some(verified)).await
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock,
+            "delivery requires an open block"
+        );
+        Self::execute_delivery(&mut self.app, tx_bytes, Some(verified)).await
     }
 
     /// Initializes execution state from content genesis or verifies a checkpoint root.
@@ -707,8 +501,7 @@ impl HostExecution {
             height,
             time: block.time,
         };
-        self.scopes.reset()?;
-        // Bounded compliance pruning plus the SCT/epoch/fee/discovery/MMR
+        // Bounded compliance pruning plus the SCT/epoch/fee/discovery
         // constants and their four-observation ordering reservations.
         let reads = self
             .app
@@ -856,8 +649,8 @@ impl HostExecution {
     /// Finishes the current host block without producing validator set updates.
     pub async fn end_block(&mut self, height: i64) -> Result<HostEndBlock> {
         ensure!(
-            self.scopes.is_empty(),
-            "end_block has unclosed execution scopes"
+            self.pending_call.is_none(),
+            "end_block has an unfinished native call"
         );
         ensure!(
             self.phase == HostExecutionPhase::InBlock,
@@ -917,9 +710,7 @@ impl HostExecution {
     }
     pub async fn start_replay(&mut self, receipt: &shieldd_sdk_storage::Receipt) -> Result<()> {
         ensure!(
-            self.phase == HostExecutionPhase::Idle
-                && self.scopes.is_empty()
-                && self.disposable.is_empty(),
+            self.phase == HostExecutionPhase::Idle && self.pending_call.is_none(),
             "recovery requires quiescent native execution"
         );
         self.storage
@@ -927,7 +718,6 @@ impl HostExecution {
         self.prepared = None;
         self.recorder = None;
         self.frozen_receipt = None;
-        self.scopes.reset()?;
         self.app = App::new(
             self.storage.latest_snapshot(),
             self.app.registry.clone(),
@@ -938,13 +728,12 @@ impl HostExecution {
             .set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         Ok(())
     }
-    pub fn reserve_call(&mut self, scope: u64, method: u32, input: &[u8]) -> Result<bool> {
+    pub fn reserve_call(&mut self, method: u32, input: &[u8]) -> Result<bool> {
         if method == 2 {
             ensure!(self.recorder.is_none(), "block transcript already exists");
             self.recorder = Some(Default::default());
         }
-        let disposable = self.view_owners.contains_key(&scope);
-        if disposable || !matches!(method, 2 | 3 | 5 | 6 | 12 | 22) {
+        if !matches!(method, 2 | 3 | 5 | 6 | 12 | 22) {
             return Ok(false);
         }
         let queued = if method == 3 {
@@ -967,31 +756,26 @@ impl HostExecution {
             self.recorder
                 .as_mut()
                 .context("block transcript is missing")?
-                .reserve_deferred_call(scope, method, input, capacity)?;
+                .reserve_deferred_call(method, input, capacity)?;
         } else {
             self.recorder
                 .as_mut()
                 .context("block transcript is missing")?
-                .reserve_call(scope, method, input)?;
+                .reserve_call(method, input)?;
         }
         Ok(true)
     }
-    pub async fn reserve_queued_deposit(
-        &mut self,
-        scope: u64,
-        request: DepositRequest,
-    ) -> Result<()> {
-        self.require_scope(scope)?;
-        let disposable = self.view_owners.contains_key(&scope);
-        let app = self.app_at_scope(scope)?;
+    pub async fn reserve_queued_deposit(&mut self, request: DepositRequest) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock,
+            "admission requires an open block"
+        );
+        let app = &mut self.app;
         let chain = app.state.get_chain_id().await?;
         let parsed = ParsedHostDeposit::parse(chain, request.clone())?;
         parsed
             .source
             .validate_height(app.state.get_block_height().await?)?;
-        if disposable {
-            return Ok(());
-        }
         use prost::Message as _;
         // EndBlock supplies a uint32 message index and the queued bit (8 bytes).
         let capacity = request
@@ -1116,9 +900,7 @@ impl HostExecution {
             self.frozen_receipt.is_none(),
             "frozen decision requires reconciliation"
         );
-        self.scopes.abort_all(&mut self.app);
-        self.disposable.clear();
-        self.view_owners.clear();
+        self.pending_call = None;
         self.prepared = None;
         self.recorder = None;
         let mut app = App::new(
@@ -1145,16 +927,11 @@ impl HostExecution {
             recorder: _,
             frozen_receipt: _,
             block_id: _,
-            scopes,
-            disposable,
-            view_owners: _,
-            next_scope_id: _,
+            pending_call: _,
             finalization_reads: _,
             queued_reads: _,
             active_queued_reads: _,
         } = self;
-        drop(scopes);
-        drop(disposable);
         drop(app);
         drop(prepared);
         drop(stateless_cache);
@@ -2101,155 +1878,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn disposable_scope_uses_committed_state_and_preserves_candidate() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit_for_testing().await?;
-        host.begin_block_for_testing(host_block(1)).await?;
-        let owner = host.open_scope(0)?;
-        let canonical = host.deposit(deposit_request(0)).await?;
-        assert!(!canonical.events.is_empty());
-        host.prepare_scope(owner)?;
-        host.close_scope(owner, true)?;
-
-        let root = host
-            .storage
-            .manifest()
-            .context("committed manifest")?
-            .digest()?;
-        let simulation = host
-            .open_disposable_scope(1, root, host_block(1).time)
-            .await?;
-        // The pending deposit is absent from the simulation's committed view.
-        assert!(!host
-            .deposit_at(simulation, deposit_request(0))
-            .await?
-            .events
-            .is_empty());
-        assert_eq!(host.phase(), HostExecutionPhase::InBlock);
-        let child = host.open_scope(simulation)?;
-        host.deposit_at(child, deposit_request(1)).await?;
-        host.prepare_scope(child)?;
-        host.close_scope(child, true)?;
-        host.prepare_scope(simulation)?;
-        assert!(host.close_scope(simulation, true).is_err());
-        host.close_scope(simulation, false)?;
-        assert_eq!(host.phase(), HostExecutionPhase::InBlock);
-
-        let owner = host.open_scope(0)?;
-        assert!(host.deposit(deposit_request(0)).await?.events.is_empty());
-        assert!(!host.deposit(deposit_request(1)).await?.events.is_empty());
-        host.close_scope(owner, false)?;
-        host.end_block(1).await?;
-
-        host.commit_for_testing().await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn owned_scopes_discard_nested_deposits_and_receipts() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit_for_testing().await?;
-        host.begin_block_for_testing(host_block(1)).await?;
-
-        let outer = host.open_scope(0)?;
-        host.deposit(deposit_request(0)).await?;
-        let inner = host.open_scope(outer)?;
-        host.deposit(deposit_request(1)).await?;
-        assert!(host.close_scope(inner, true).is_err());
-        host.prepare_scope(inner)?;
-        assert!(host.require_scope(inner).is_err());
-        host.close_scope(inner, true)?;
-        host.close_scope(outer, false)?;
-
-        // An aborted deposit must not leave its idempotency receipt or note.
-        // Retrying each source executes it rather than returning cached events.
-        for index in 0..2 {
-            let scope = host.open_scope(0)?;
-            assert_ne!(scope, outer);
-            assert!(!host
-                .deposit(deposit_request(index))
-                .await?
-                .events
-                .is_empty());
-            host.prepare_scope(scope)?;
-            host.close_scope(scope, true)?;
-        }
-        host.end_block(1).await?;
-
-        host.commit_for_testing().await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn disposable_views_do_not_own_canonical_lifecycle_or_scope_stack() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit_for_testing().await?;
-        let root = host
-            .storage
-            .manifest()
-            .context("committed manifest")?
-            .digest()?;
-        let simulation = host
-            .open_disposable_scope(1, root, host_block(1).time)
-            .await?;
-        let simulated_child = host.open_scope(simulation)?;
-        host.deposit_at(simulated_child, deposit_request(0)).await?;
-        host.begin_block_for_testing(host_block(1)).await?;
-        let canonical = host.open_scope(0)?;
-        host.deposit_at(canonical, deposit_request(0)).await?;
-        host.prepare_scope(canonical)?;
-        host.close_scope(canonical, true)?;
-        host.end_block(1).await?;
-
-        host.commit_for_testing().await?;
-        assert_eq!(host.phase(), HostExecutionPhase::Idle);
-        assert_eq!(host.committed_state().await?.height, 1);
-        host.close_scope(simulated_child, false)?;
-        host.close_scope(simulation, false)?;
-        assert!(host.disposable.is_empty() && host.view_owners.is_empty());
-        assert_eq!(host.phase(), HostExecutionPhase::Idle);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn scope_savepoints_restore_writes_and_reject_stale_owners() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit_for_testing().await?;
-        host.begin_block_for_testing(host_block(1)).await?;
-        let owner = host.open_scope(0)?;
-        let point = host.snapshot_scope(owner)?;
-        host.deposit(deposit_request(0)).await?;
-        let later = host.snapshot_scope(owner)?;
-        host.deposit(deposit_request(1)).await?;
-        host.revert_scope(owner, point)?;
-        assert!(host.revert_scope(owner, later).is_err());
-        host.revert_scope(owner, point)?;
-        assert!(!host.deposit(deposit_request(0)).await?.events.is_empty());
-        assert!(host.end_block(1).await.is_err());
-        assert!(host.require_scope(0).is_err());
-        assert!(host.open_scope(owner + 1).is_err());
-        host.close_scope(owner, false)?;
-        assert!(host.require_scope(owner).is_err());
-        host.discard().await?;
-        host.begin_block_for_testing(host_block(1)).await?;
-        assert_ne!(host.open_scope(0)?, owner);
-        host.discard().await?;
-        Ok(())
-    }
-
-    #[tokio::test]
     async fn deposit_mints_note_and_exact_replay_returns_same_result() -> Result<()> {
         let storage = temp_storage().await;
         let mut host =
@@ -2268,6 +1896,35 @@ mod tests {
         assert_eq!(replay.response.deposit_id, first.response.deposit_id);
         assert!(replay.events.is_empty());
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn failed_native_call_restores_deposit_effects_and_replay_marker() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(host_genesis()).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
+
+        host.begin_native_call()?;
+        let first = host.deposit(deposit_request(0)).await?;
+        assert!(!first.events.is_empty());
+        host.finish_native_call(false)?;
+
+        host.begin_native_call()?;
+        let retry = host.deposit(deposit_request(0)).await?;
+        assert_eq!(retry.response.deposit_id, first.response.deposit_id);
+        assert!(
+            !retry.events.is_empty(),
+            "failed call left an idempotency marker"
+        );
+        host.finish_native_call(true)?;
+        let replay = host.deposit(deposit_request(0)).await?;
+        assert!(replay.events.is_empty(), "successful call was not retained");
+        host.end_block(1).await?;
+        host.commit_for_testing().await?;
         Ok(())
     }
 

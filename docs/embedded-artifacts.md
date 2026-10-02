@@ -8,8 +8,8 @@ directly. Bankd serves public queries and executes IBC; Shieldd reads committed
 snapshots. Host withdrawals use the shared `shielded_withdrawal` proof family
 and return value to Bankd for transfer or execution.
 
-ABI 5 passes an explicit writable scope capability; zero is read-only. Its one
-application directory contains RocksDB values and a NOMT forest. Local storage and proof registries are
+ABI 6 serializes native mutations and restores their application overlay on failure.
+Its one application directory contains RocksDB values and a NOMT forest. Local storage and proof registries are
 incompatible with older data: reset and resynchronize, without migration paths.
 
 Compact-page RPCs return distinct full/filtered response envelopes containing a

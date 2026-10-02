@@ -1,11 +1,11 @@
 mod batch_input;
 #[cfg(any(test, feature = "benchmark-helpers"))]
 mod benchmark_config;
+mod call;
 mod candidate;
 mod delivery;
 mod host;
 mod lifecycle;
-mod scope;
 pub use batch_input::{BatchCandidate, BatchPreparation, BatchVerdict, PreparedBatch};
 
 pub use self::host::{

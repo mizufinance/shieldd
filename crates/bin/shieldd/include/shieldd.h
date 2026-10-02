@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define SHIELDD_ABI_VERSION 5u
+#define SHIELDD_ABI_VERSION 6u
 
 typedef struct shieldd_handle shieldd_handle_t;
 
@@ -54,11 +54,6 @@ enum shieldd_method {
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
   SHIELDD_METHOD_APPLY_COMPLIANCE_ACTION = 12,
   SHIELDD_METHOD_FREEZE = 14,
-  SHIELDD_METHOD_OPEN_SCOPE = 15,
-  SHIELDD_METHOD_PREPARE_SCOPE = 16,
-  SHIELDD_METHOD_CLOSE_SCOPE = 17,
-  SHIELDD_METHOD_SNAPSHOT_SCOPE = 18,
-  SHIELDD_METHOD_REVERT_SCOPE = 19,
   SHIELDD_METHOD_RECOVER_DECIDED = 20,
   SHIELDD_METHOD_START_VERIFICATION = 21,
   SHIELDD_METHOD_RESERVE_QUEUED_DEPOSIT = 22,
@@ -137,13 +132,12 @@ shieldd_result_t shieldd_open(
 /*
  * Executes one protobuf request. Execution is ordered; queries use the last
  * published committed snapshot under bounded admission.
- * scope is an explicit writable capability for domain mutations. Zero is
- * read-only; lifecycle methods and OpenScope create or select their own owner.
+ * Each domain mutation is atomic within native execution.
  *
  * request may be NULL only when request_len is zero. On success, response is
  * the protobuf encoding for method. On failure, error is a UTF-8 message.
  */
-shieldd_result_t shieldd_call(shieldd_handle_t *handle, uint64_t scope, uint32_t method,
+shieldd_result_t shieldd_call(shieldd_handle_t *handle, uint32_t method,
                               const uint8_t *request, size_t request_len);
 
 /*

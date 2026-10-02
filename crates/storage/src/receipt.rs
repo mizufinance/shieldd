@@ -1,33 +1,15 @@
-use crate::{Manifest, MAX_CALLS, MAX_DEPTH, MAX_RECEIPT_BYTES, MAX_SCOPES};
+use crate::{Manifest, MAX_CALLS, MAX_RECEIPT_BYTES};
 use anyhow::{ensure, Context, Result};
 use prost::{bytes::Bytes, Message};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ReplayAction {
-    Open = 1,
-    Prepare = 2,
-    Close = 3,
-    Snapshot = 4,
-    Revert = 5,
-    Call = 6,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReplayStep {
-    pub action: ReplayAction,
-    pub scope: u32,
-    pub parent: u32,
-    pub point: u32,
-    pub adopt: bool,
-    pub finalization: bool,
     pub method: u32,
     pub input: Bytes,
     pub outcome: u32,
     pub output: [u8; 32],
 }
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Receipt {
     pub previous: Manifest,
@@ -35,7 +17,6 @@ pub struct Receipt {
     pub steps: Vec<ReplayStep>,
     pub delta: [u8; 32],
 }
-
 #[derive(Clone, PartialEq, Message)]
 struct ReceiptRecord {
     #[prost(uint32, tag = "1")]
@@ -52,48 +33,14 @@ struct ReceiptRecord {
 #[derive(Clone, PartialEq, Message)]
 struct StepRecord {
     #[prost(uint32, tag = "1")]
-    action: u32,
-    #[prost(uint32, tag = "2")]
-    scope: u32,
-    #[prost(uint32, tag = "3")]
-    parent: u32,
-    #[prost(uint32, tag = "4")]
-    point: u32,
-    #[prost(bool, tag = "5")]
-    adopt: bool,
-    #[prost(uint32, tag = "6")]
     method: u32,
-    #[prost(bytes = "bytes", tag = "7")]
+    #[prost(bytes = "bytes", tag = "2")]
     input: Bytes,
-    #[prost(uint32, tag = "8")]
+    #[prost(uint32, tag = "3")]
     outcome: u32,
-    #[prost(bytes = "vec", tag = "9")]
+    #[prost(bytes = "vec", tag = "4")]
     output: Vec<u8>,
-    #[prost(bool, tag = "10")]
-    finalization: bool,
 }
-
-impl From<&ReplayStep> for StepRecord {
-    fn from(s: &ReplayStep) -> Self {
-        Self {
-            action: s.action as u32,
-            scope: s.scope,
-            parent: s.parent,
-            point: s.point,
-            adopt: s.adopt,
-            finalization: s.finalization,
-            method: s.method,
-            input: s.input.clone(),
-            outcome: s.outcome,
-            output: if s.action == ReplayAction::Call {
-                s.output.to_vec()
-            } else {
-                Vec::new()
-            },
-        }
-    }
-}
-
 pub fn response_digest(outcome: u32, response: &[u8]) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update(b"shieldd.native-response.v1\0");
@@ -101,331 +48,102 @@ pub fn response_digest(outcome: u32, response: &[u8]) -> [u8; 32] {
     hash.update(response);
     hash.finalize().into()
 }
-
-struct Scope {
-    capability: u64,
-    ordinal: u32,
-    prepared: bool,
-    finalization: bool,
-    points: BTreeSet<u32>,
-}
-
-/// Canonical ordinals are independent of process capabilities and RPC traffic.
-/// Failed/aborted work stays in the transcript and consumes the same budget.
+/// Failed native calls remain in the replay transcript and consume capacity.
 pub struct Recorder {
     steps: Vec<ReplayStep>,
-    stack: Vec<Scope>,
-    opened: usize,
     calls: usize,
     charged: usize,
-    closing: usize,
     pending: Option<usize>,
-    failed: bool,
     future_calls: usize,
-    finalization_opened: bool,
 }
-
-// Reserve protobuf framing, both manifests, canonical effects, and the final
-// EndBlock call before domain side effects consume any of the receipt budget.
 const HEADER_RESERVATION: usize = 16 * 1024;
-const CLOSING_RESERVATION: usize = 64;
-
 impl Default for Recorder {
     fn default() -> Self {
         Self {
             steps: Vec::new(),
-            stack: Vec::new(),
-            opened: 0,
             calls: 0,
             charged: HEADER_RESERVATION,
-            closing: 0,
             pending: None,
-            failed: false,
             future_calls: 0,
-            finalization_opened: false,
         }
     }
 }
-
 impl Recorder {
     fn ready(&self) -> Result<()> {
-        ensure!(
-            !self.failed && self.pending.is_none(),
-            "recorder is failed or has an unfinished call"
-        );
+        ensure!(self.pending.is_none(), "unfinished native call");
         Ok(())
     }
     fn charge(&mut self, bytes: usize) -> Result<()> {
-        self.ready()?;
-        self.charge_reserved(bytes)
-    }
-    fn charge_reserved(&mut self, bytes: usize) -> Result<()> {
-        ensure!(!self.failed, "recorder has failed");
         let next = self
             .charged
             .checked_add(bytes)
             .context("receipt accounting overflow")?;
-        if !next
-            .checked_add(self.closing)
-            .is_some_and(|size| size <= MAX_RECEIPT_BYTES)
-        {
+        if next > MAX_RECEIPT_BYTES {
             return Err(crate::ProtocolLimitExceeded("encoded receipt limit exceeded").into());
         }
         self.charged = next;
         Ok(())
     }
-    fn active(&self, capability: u64) -> Result<u32> {
-        let scope = self
-            .stack
-            .last()
-            .context("native call has no recorded owner")?;
-        ensure!(
-            scope.capability == capability && !scope.prepared,
-            "recorded capability is not writable"
-        );
-        Ok(scope.ordinal)
-    }
-    fn push(&mut self, step: ReplayStep) {
-        self.steps.push(step);
-    }
-    fn step(action: ReplayAction, scope: u32) -> ReplayStep {
-        ReplayStep {
-            action,
-            scope,
-            parent: 0,
-            point: 0,
-            adopt: false,
-            finalization: false,
-            method: 0,
-            input: Bytes::new(),
-            outcome: 0,
-            output: [0; 32],
-        }
-    }
-    pub fn open(&mut self, capability: u64, parent: u64) -> Result<()> {
-        self.open_reserved(capability, parent, false)
-    }
-    pub fn open_reserved(
-        &mut self,
-        capability: u64,
-        parent: u64,
-        finalization: bool,
-    ) -> Result<()> {
+    pub fn reserve_call(&mut self, method: u32, input: &[u8]) -> Result<()> {
         self.ready()?;
         ensure!(
-            !finalization || (parent == 0 && self.stack.is_empty() && !self.finalization_opened),
-            "invalid finalization scope reservation"
+            matches!(method, 2 | 3 | 5 | 6 | 12 | 22),
+            "invalid native replay method"
         );
-        ensure!(
-            capability != 0 && self.stack.iter().all(|s| s.capability != capability),
-            "invalid or reused recorded capability"
-        );
-        let parent = if self.stack.is_empty() {
-            ensure!(parent == 0, "recorded root has a parent");
-            0
-        } else {
-            self.active(parent)?
-        };
-        if self.opened
-            >= if finalization {
-                MAX_SCOPES
-            } else {
-                MAX_SCOPES - 2
-            }
-            || self.stack.len() >= MAX_DEPTH
-        {
-            return Err(crate::ProtocolLimitExceeded("recorder scope limit exceeded").into());
-        }
-        if finalization {
-            self.finalization_opened = true;
-        } else {
-            self.charge(64 + CLOSING_RESERVATION)?;
-        }
-        if !finalization {
-            self.closing += CLOSING_RESERVATION;
-        }
-        self.opened += 1;
-        let ordinal = self.opened as u32;
-        let mut step = Self::step(ReplayAction::Open, ordinal);
-        step.parent = parent;
-        step.finalization = finalization;
-        self.push(step);
-        self.stack.push(Scope {
-            capability,
-            ordinal,
-            prepared: false,
-            finalization,
-            points: BTreeSet::new(),
-        });
-        Ok(())
-    }
-    pub fn prepare(&mut self, capability: u64) -> Result<()> {
-        self.ready()?;
-        let ordinal = self.active(capability)?;
-        // Both prepare and close were reserved at scope creation.
-        self.push(Self::step(ReplayAction::Prepare, ordinal));
-        self.stack.last_mut().expect("active owner").prepared = true;
-        Ok(())
-    }
-    pub fn close(&mut self, capability: u64, adopt: bool) -> Result<()> {
-        self.ready()?;
-        let owner = self.stack.last().context("no recorded owner to close")?;
-        ensure!(
-            owner.capability == capability && (!adopt || owner.prepared),
-            "recorded scope cannot be closed or adopted"
-        );
-        let finalization = owner.finalization;
-        let mut step = Self::step(ReplayAction::Close, owner.ordinal);
-        step.adopt = adopt;
-        self.push(step);
-        self.stack.pop();
-        if !finalization {
-            self.closing -= CLOSING_RESERVATION;
-        }
-        Ok(())
-    }
-    pub fn snapshot(&mut self, capability: u64, point: u32) -> Result<()> {
-        let ordinal = self.active(capability)?;
-        let finalization = self
-            .stack
-            .last()
-            .is_some_and(|s| s.finalization && s.points.is_empty());
-        if self.opened
-            >= if finalization {
-                MAX_SCOPES
-            } else {
-                MAX_SCOPES - 2
-            }
-        {
-            return Err(crate::ProtocolLimitExceeded("recorder savepoint limit exceeded").into());
-        }
-        ensure!(
-            !self
-                .stack
-                .last()
-                .expect("active owner")
-                .points
-                .contains(&point),
-            "reused recorded savepoint"
-        );
-        if !finalization {
-            self.charge(64)?;
-        }
-        self.opened += 1;
-        self.stack
-            .last_mut()
-            .expect("active owner")
-            .points
-            .insert(point);
-        let mut step = Self::step(ReplayAction::Snapshot, ordinal);
-        step.point = point;
-        self.push(step);
-        Ok(())
-    }
-    pub fn revert(&mut self, capability: u64, point: u32) -> Result<()> {
-        let ordinal = self.active(capability)?;
-        ensure!(
-            self.stack
-                .last()
-                .expect("active owner")
-                .points
-                .contains(&point),
-            "unknown or invalidated recorded savepoint"
-        );
-        self.charge(64)?;
-        self.stack
-            .last_mut()
-            .expect("active owner")
-            .points
-            .retain(|p| *p <= point);
-        let mut step = Self::step(ReplayAction::Revert, ordinal);
-        step.point = point;
-        self.push(step);
-        Ok(())
-    }
-    /// Reserve the complete input and response digest before calling native code.
-    pub fn reserve_call(&mut self, capability: u64, method: u32, input: &[u8]) -> Result<()> {
-        self.reserve_input(capability, method, input.len(), || {
-            Bytes::copy_from_slice(input)
-        })
-    }
-    fn reserve_input(
-        &mut self,
-        capability: u64,
-        method: u32,
-        input_len: usize,
-        input: impl FnOnce() -> Bytes,
-    ) -> Result<()> {
-        let scope = if capability == 0 {
-            ensure!(
-                self.stack.is_empty() && matches!(method, 2 | 6),
-                "unowned native mutation"
-            );
-            0
-        } else {
-            self.active(capability)?
-        };
         if method == 6 {
             ensure!(
-                input_len <= 4096,
-                "EndBlock input exceeds its reserved framing"
+                input.len() <= 4096 && self.calls < MAX_CALLS,
+                "EndBlock reservation exceeded"
             );
-            ensure!(
-                self.calls < MAX_CALLS,
-                "reserved EndBlock call is unavailable"
-            );
-            self.ready()?;
         } else {
             if self.calls + self.future_calls >= MAX_CALLS - 1 {
                 return Err(crate::ProtocolLimitExceeded("native call count exceeded").into());
             }
             self.charge(
-                input_len
+                input
+                    .len()
                     .checked_add(128)
-                    .context("native input accounting overflow")?,
+                    .context("input size overflow")?,
             )?;
         }
-        self.calls += 1;
-        let mut step = Self::step(ReplayAction::Call, scope);
-        step.method = method;
-        step.input = input();
-        self.pending = Some(self.steps.len());
-        self.push(step);
+        self.push(method, input);
         Ok(())
     }
-    /// Called by the recorded enqueue admission before any SDK escrow write.
-    pub fn reserve_future_call(&mut self, input_capacity: usize) -> Result<()> {
+    fn push(&mut self, method: u32, input: &[u8]) {
+        self.calls += 1;
+        self.pending = Some(self.steps.len());
+        self.steps.push(ReplayStep {
+            method,
+            input: Bytes::copy_from_slice(input),
+            outcome: 0,
+            output: [0; 32],
+        });
+    }
+    pub fn reserve_future_call(&mut self, capacity: usize) -> Result<()> {
         if self.calls + self.future_calls >= MAX_CALLS - 1 {
             return Err(crate::ProtocolLimitExceeded("deferred native call count exceeded").into());
         }
-        self.charge_reserved(
-            input_capacity
+        self.charge(
+            capacity
                 .checked_add(128)
-                .context("deferred receipt size overflow")?,
+                .context("deferred size overflow")?,
         )?;
         self.future_calls += 1;
         Ok(())
     }
     pub fn reserve_deferred_call(
         &mut self,
-        capability: u64,
         method: u32,
         input: &[u8],
         capacity: usize,
     ) -> Result<()> {
         self.ready()?;
         ensure!(
-            self.future_calls > 0 && input.len() <= capacity,
-            "deferred call exceeds its reserved input"
+            method == 3 && self.future_calls > 0 && input.len() <= capacity,
+            "invalid deferred call reservation"
         );
-        let scope = self.active(capability)?;
         self.future_calls -= 1;
-        self.calls += 1;
-        let mut step = Self::step(ReplayAction::Call, scope);
-        step.method = method;
-        step.input = Bytes::copy_from_slice(input);
-        self.pending = Some(self.steps.len());
-        self.push(step);
+        self.push(method, input);
         Ok(())
     }
     pub fn finish_call(&mut self, outcome: u32, response: &[u8]) -> Result<()> {
@@ -433,20 +151,12 @@ impl Recorder {
             .pending
             .take()
             .context("native response has no reserved call")?;
-        let step = &mut self.steps[index];
-        step.outcome = outcome;
-        step.output = response_digest(outcome, response);
+        self.steps[index].outcome = outcome;
+        self.steps[index].output = response_digest(outcome, response);
         Ok(())
-    }
-    pub fn fail(&mut self) {
-        self.failed = true;
     }
     pub fn finish(self, previous: Manifest, next: Manifest, delta: [u8; 32]) -> Result<Receipt> {
         self.ready()?;
-        ensure!(
-            self.stack.is_empty() && self.closing == 0,
-            "receipt has unclosed scopes"
-        );
         let receipt = Receipt {
             previous,
             next,
@@ -457,14 +167,22 @@ impl Recorder {
         Ok(receipt)
     }
 }
-
 impl Receipt {
     fn record(&self) -> Result<ReceiptRecord> {
         Ok(ReceiptRecord {
-            version: 1,
+            version: 2,
             previous: self.previous.encode()?,
             next: self.next.encode()?,
-            steps: self.steps.iter().map(StepRecord::from).collect(),
+            steps: self
+                .steps
+                .iter()
+                .map(|s| StepRecord {
+                    method: s.method,
+                    input: s.input.clone(),
+                    outcome: s.outcome,
+                    output: s.output.to_vec(),
+                })
+                .collect(),
             delta: self.delta.to_vec(),
         })
     }
@@ -484,7 +202,7 @@ impl Receipt {
         );
         let record = ReceiptRecord::decode(bytes)?;
         ensure!(
-            record.version == 1 && record.encode_to_vec() == bytes,
+            record.version == 2 && record.encode_to_vec() == bytes,
             "noncanonical or unsupported receipt"
         );
         let receipt = Self {
@@ -493,42 +211,19 @@ impl Receipt {
             delta: record
                 .delta
                 .try_into()
-                .map_err(|_| anyhow::anyhow!("invalid canonical delta digest"))?,
+                .map_err(|_| anyhow::anyhow!("invalid delta digest"))?,
             steps: record
                 .steps
                 .into_iter()
                 .map(|s| {
-                    let action = match s.action {
-                        1 => ReplayAction::Open,
-                        2 => ReplayAction::Prepare,
-                        3 => ReplayAction::Close,
-                        4 => ReplayAction::Snapshot,
-                        5 => ReplayAction::Revert,
-                        6 => ReplayAction::Call,
-                        _ => anyhow::bail!("unknown replay action"),
-                    };
-                    let output = if action == ReplayAction::Call {
-                        s.output
-                            .try_into()
-                            .map_err(|_| anyhow::anyhow!("invalid native response digest"))?
-                    } else {
-                        ensure!(
-                            s.output.is_empty(),
-                            "scope action carries a native response"
-                        );
-                        [0; 32]
-                    };
                     Ok(ReplayStep {
-                        action,
-                        scope: s.scope,
-                        parent: s.parent,
-                        point: s.point,
-                        adopt: s.adopt,
-                        finalization: s.finalization,
                         method: s.method,
                         input: s.input,
                         outcome: s.outcome,
-                        output,
+                        output: s
+                            .output
+                            .try_into()
+                            .map_err(|_| anyhow::anyhow!("invalid response digest"))?,
                     })
                 })
                 .collect::<Result<_>>()?,
@@ -541,15 +236,13 @@ impl Receipt {
     }
     pub fn encoded_digest(bytes: &[u8]) -> [u8; 32] {
         let mut hash = Sha256::new();
-        hash.update(b"shieldd.replay-receipt.v1\0");
+        hash.update(b"shieldd.replay-receipt.v2\0");
         hash.update(bytes);
         hash.finalize().into()
     }
     pub fn compare_response(step: &ReplayStep, outcome: u32, bytes: &[u8]) -> Result<()> {
         ensure!(
-            step.action == ReplayAction::Call
-                && step.outcome == outcome
-                && step.output == response_digest(outcome, bytes),
+            step.outcome == outcome && step.output == response_digest(outcome, bytes),
             "native replay response mismatch"
         );
         Ok(())
@@ -557,120 +250,32 @@ impl Receipt {
     pub fn validate(&self) -> Result<()> {
         self.next.follows(&self.previous)?;
         ensure!(
+            (2..=MAX_CALLS).contains(&self.steps.len()),
+            "invalid receipt call count"
+        );
+        ensure!(
             self.steps
                 .first()
-                .is_some_and(|s| s.action == ReplayAction::Call && s.scope == 0 && s.method == 2)
+                .is_some_and(|s| s.method == 2 && s.outcome == 0)
                 && self
                     .steps
                     .last()
-                    .is_some_and(|s| s.action == ReplayAction::Call
-                        && s.scope == 0
-                        && s.method == 6),
-            "receipt is missing its block lifecycle inputs"
+                    .is_some_and(|s| s.method == 6 && s.outcome == 0),
+            "receipt is missing successful block lifecycle inputs"
         );
-        ensure!(
-            self.steps
-                .iter()
-                .filter(|s| s.action == ReplayAction::Call && s.method == 2)
-                .count()
-                == 1
-                && self
-                    .steps
-                    .iter()
-                    .filter(|s| s.action == ReplayAction::Call && s.method == 6)
-                    .count()
-                    == 1,
-            "repeated receipt lifecycle input"
-        );
-        let mut recorder = Recorder::default();
-        let mut owners = BTreeMap::new();
-        for step in &self.steps {
-            match step.action {
-                ReplayAction::Open => {
-                    ensure!(
-                        step.point == 0
-                            && !step.adopt
-                            && step.method == 0
-                            && step.input.is_empty()
-                            && step.outcome == 0
-                            && step.output == [0; 32],
-                        "open carries unrelated fields"
-                    );
-                    ensure!(
-                        !owners.contains_key(&step.scope),
-                        "reused canonical scope ordinal"
-                    );
-                    recorder.open_reserved(
-                        step.scope as u64,
-                        step.parent as u64,
-                        step.finalization,
-                    )?;
-                    ensure!(
-                        recorder.stack.last().expect("opened owner").ordinal == step.scope,
-                        "noncanonical scope ordinal"
-                    );
-                    owners.insert(step.scope, ());
-                }
-                ReplayAction::Call => {
-                    ensure!(
-                        step.parent == 0
-                            && step.point == 0
-                            && !step.adopt
-                            && !step.finalization
-                            && matches!(step.method, 2 | 3 | 5 | 6 | 12 | 22),
-                        "invalid native replay method or call fields"
-                    );
-                    recorder.reserve_input(
-                        step.scope as u64,
-                        step.method,
-                        step.input.len(),
-                        || step.input.clone(),
-                    )?;
-                    recorder.pending = None;
-                }
-                action => {
-                    ensure!(
-                        step.parent == 0
-                            && !step.finalization
-                            && step.method == 0
-                            && step.input.is_empty()
-                            && step.outcome == 0
-                            && step.output == [0; 32],
-                        "scope action carries call fields"
-                    );
-                    match action {
-                        ReplayAction::Prepare => {
-                            ensure!(
-                                step.point == 0 && !step.adopt,
-                                "prepare carries unrelated fields"
-                            );
-                            recorder.prepare(step.scope as u64)?;
-                        }
-                        ReplayAction::Close => {
-                            ensure!(step.point == 0, "close carries a savepoint");
-                            recorder.close(step.scope as u64, step.adopt)?;
-                        }
-                        ReplayAction::Snapshot => {
-                            ensure!(!step.adopt, "snapshot carries adoption");
-                            recorder.snapshot(step.scope as u64, step.point)?;
-                        }
-                        ReplayAction::Revert => {
-                            ensure!(!step.adopt, "revert carries adoption");
-                            recorder.revert(step.scope as u64, step.point)?;
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-            }
+        for step in &self.steps[1..self.steps.len() - 1] {
+            ensure!(
+                matches!(step.method, 3 | 5 | 12 | 22) && step.outcome <= 9,
+                "invalid receipt native method or status"
+            );
         }
         ensure!(
-            recorder.stack.is_empty(),
-            "receipt ends with an owned scope"
+            self.record()?.encoded_len() <= MAX_RECEIPT_BYTES,
+            "receipt exceeds canonical size limit"
         );
         Ok(())
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -701,83 +306,50 @@ mod tests {
         next.previous = previous.digest().unwrap();
         (previous, next)
     }
-    #[test]
-    fn mandatory_calls_and_finalization_scope_keep_their_reserved_capacity() {
-        let mut recorder = Recorder::default();
-        recorder.open(1, 0).unwrap();
-        recorder.calls = MAX_CALLS - 2;
-        recorder.reserve_future_call(32).unwrap();
-        assert!(recorder
-            .reserve_call(1, 3, b"ordinary")
-            .unwrap_err()
-            .is::<crate::ProtocolLimitExceeded>());
-        recorder
-            .reserve_deferred_call(1, 3, b"deferred", 32)
-            .unwrap();
-        recorder.finish_call(0, b"ok").unwrap();
-        recorder.close(1, false).unwrap();
-        recorder.opened = MAX_SCOPES - 2;
-        recorder.charged = MAX_RECEIPT_BYTES;
-        assert!(recorder.open(2, 0).is_err());
-        recorder.open_reserved(2, 0, true).unwrap();
-        recorder.snapshot(2, 0).unwrap();
-        assert!(recorder.snapshot(2, 1).is_err());
-        recorder.prepare(2).unwrap();
-        recorder.close(2, true).unwrap();
-        recorder.reserve_call(0, 6, b"end").unwrap();
-        recorder.finish_call(0, b"ok").unwrap();
-        assert_eq!(recorder.calls, MAX_CALLS);
-        assert_eq!(recorder.opened, MAX_SCOPES);
-        assert_eq!(recorder.charged, MAX_RECEIPT_BYTES);
-    }
 
     #[test]
-    fn receipt_keeps_failed_calls_and_abort_without_process_identifiers() {
-        let record = |capability| {
-            let mut recorder = Recorder::default();
-            recorder.reserve_call(0, 2, b"begin").unwrap();
-            recorder.finish_call(0, b"").unwrap();
-            recorder.open(capability, 0).unwrap();
-            recorder.snapshot(capability, 0).unwrap();
-            recorder.reserve_call(capability, 3, b"same input").unwrap();
-            recorder.finish_call(1, b"").unwrap();
-            recorder.revert(capability, 0).unwrap();
-            recorder.close(capability, false).unwrap();
-            recorder.reserve_call(0, 6, b"end").unwrap();
-            recorder.finish_call(0, b"").unwrap();
-            let (previous, next) = manifests();
-            recorder.finish(previous, next, [3; 32]).unwrap()
-        };
-        let receipt = record(1);
-        assert_eq!(receipt.encode().unwrap(), record(100_000).encode().unwrap());
+    fn receipt_keeps_failed_calls_and_rejects_substitution() {
+        let mut recorder = Recorder::default();
+        for (method, outcome) in [(2, 0), (3, 1), (6, 0)] {
+            recorder.reserve_call(method, b"input").unwrap();
+            recorder.finish_call(outcome, b"response").unwrap();
+        }
+        let (previous, next) = manifests();
+        let receipt = recorder.finish(previous, next, [3; 32]).unwrap();
         assert_eq!(
             Receipt::decode(&receipt.encode().unwrap()).unwrap(),
             receipt
         );
-        assert!(Receipt::compare_response(&receipt.steps[3], 0, b"").is_err());
+        assert!(Receipt::compare_response(&receipt.steps[1], 0, b"response").is_err());
         let mut corrupt = receipt.encode().unwrap();
         corrupt.extend_from_slice(&[48, 1]);
         assert!(Receipt::decode(&corrupt).is_err());
     }
     #[test]
-    fn receipt_reserves_closing_before_effects_and_rejects_unfinished_calls() {
+    fn reserved_deposit_and_end_block_survive_call_limit() {
         let mut recorder = Recorder::default();
-        recorder.reserve_call(0, 2, b"begin").unwrap();
+        recorder.calls = MAX_CALLS - 2;
+        recorder.reserve_future_call(32).unwrap();
+        assert!(recorder.reserve_call(3, b"ordinary").is_err());
+        recorder.reserve_deferred_call(3, b"deposit", 32).unwrap();
         recorder.finish_call(0, b"").unwrap();
-        recorder.open(1, 0).unwrap();
-        recorder.charged = MAX_RECEIPT_BYTES - recorder.closing;
-        assert!(recorder.reserve_call(1, 3, b"large input").is_err());
-        recorder.prepare(1).unwrap();
-        recorder.close(1, true).unwrap();
-        recorder.reserve_call(0, 6, b"end").unwrap();
+        recorder.charged = MAX_RECEIPT_BYTES;
+        recorder.reserve_call(6, b"end").unwrap();
         recorder.finish_call(0, b"").unwrap();
-        let (previous, next) = manifests();
-        recorder.finish(previous, next, [4; 32]).unwrap();
+        assert_eq!(recorder.calls, MAX_CALLS);
+    }
+    #[test]
+    fn receipt_rejects_unfinished_calls_and_repeated_lifecycle() {
         let mut recorder = Recorder::default();
-        recorder.open(1, 0).unwrap();
-        recorder.reserve_call(1, 3, b"").unwrap();
-        assert!(recorder.close(1, false).is_err());
+        recorder.reserve_call(2, b"begin").unwrap();
         let (previous, next) = manifests();
-        assert!(recorder.finish(previous, next, [4; 32]).is_err());
+        assert!(recorder.finish(previous, next, [0; 32]).is_err());
+        let mut recorder = Recorder::default();
+        for method in [2, 2, 6] {
+            recorder.reserve_call(method, b"").unwrap();
+            recorder.finish_call(0, b"").unwrap();
+        }
+        let (previous, next) = manifests();
+        assert!(recorder.finish(previous, next, [0; 32]).is_err());
     }
 }

@@ -40,9 +40,7 @@ pub use query_error::{QueryError, QueryErrorKind};
 #[cfg(feature = "persistent")]
 pub use raw::{ordered_effects, RawStore, Snapshot};
 pub use read::{ReadView, StateRead};
-pub use receipt::{
-    response_digest as receipt_response_digest, Receipt, Recorder, ReplayAction, ReplayStep,
-};
+pub use receipt::{response_digest as receipt_response_digest, Receipt, Recorder, ReplayStep};
 #[cfg(feature = "persistent")]
 pub use store::{BlockBoundary, Prepared, Storage};
 #[cfg(feature = "test-support")]
@@ -51,8 +49,6 @@ pub use write::StateWrite;
 
 pub const MAX_NULLIFIERS_PER_BLOCK: usize = 131_072;
 pub const MAX_CALLS: usize = 131_072;
-pub const MAX_SCOPES: usize = 262_144;
-pub const MAX_DEPTH: usize = 1_024;
 pub const MAX_RECEIPT_BYTES: usize = 64 * 1024 * 1024;
 pub const MAX_OBSERVATION_BYTES: usize = 128 * 1024 * 1024;
 pub const PROOF_CHUNK_TRANSACTIONS: usize = 128;

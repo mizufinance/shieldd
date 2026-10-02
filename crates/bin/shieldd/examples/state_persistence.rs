@@ -36,7 +36,7 @@ async fn begin(service: &mut ExecutionService, height: i64) -> Result<()> {
         time: Some(Default::default()),
     };
     request.time.as_mut().context("time")?.seconds = 1_700_000_000 + height;
-    service.reserve_call(0, 2, &request.encode_to_vec())?;
+    service.reserve_call(2, &request.encode_to_vec())?;
     let response = service.begin_block(request).await?;
     service.finish_call(0, &response.encode_to_vec())?;
     Ok(())
@@ -110,19 +110,18 @@ async fn seed(db: &Path) -> Result<ExecutionService> {
         })
         .await?;
     begin(&mut service, 1).await?;
-    let scope = service.open_scope(0)?;
     let request = deposit();
-    service.reserve_call(scope, 3, &request.encode_to_vec())?;
-    let response = service.deposit(scope, request).await?;
+    service.reserve_call(3, &request.encode_to_vec())?;
+    service.begin_native_call()?;
+    let response = service.deposit(request).await?;
+    service.finish_native_call(true)?;
     service.finish_call(0, &response.encode_to_vec())?;
-    service.prepare_scope(scope)?;
-    service.close_scope(scope, true)?;
     finish(&mut service, 1).await?;
     Ok(service)
 }
 async fn finish(service: &mut ExecutionService, height: i64) -> Result<()> {
     let request = EndBlockRequest { height };
-    service.reserve_call(0, 6, &request.encode_to_vec())?;
+    service.reserve_call(6, &request.encode_to_vec())?;
     let response = service.end_block(request).await?;
     service.finish_call(0, &response.encode_to_vec())?;
     let frozen = service.freeze(FreezeRequest {}).await?;
@@ -132,7 +131,7 @@ async fn finish(service: &mut ExecutionService, height: i64) -> Result<()> {
             receipt_digest: frozen.receipt_digest,
         })
         .await?;
-    service.await_materializer().await?;
+    service.check_persistence()?;
     Ok(())
 }
 #[tokio::main]

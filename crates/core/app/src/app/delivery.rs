@@ -96,7 +96,7 @@ impl App {
         } else {
             "checktx_uncached"
         };
-        // Failed reads remain charged through scope abort. Consensus delivery
+        // Failed reads remain charged after a failed call. Consensus delivery
         // and receipt replay must observe exactly the same reads, so stateless
         // rejection precedes all historical checks regardless of scheduling.
         let artifact_result =
