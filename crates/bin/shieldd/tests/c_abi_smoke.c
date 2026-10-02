@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
   }
   free_result(&result);
 
-  result = shieldd_call(handle, SHIELDD_METHOD_ROLLBACK, NULL, 0);
+  result = shieldd_call(handle, 0, SHIELDD_METHOD_ROLLBACK, NULL, 0);
   if (result.status != SHIELDD_STATUS_OK) {
     print_error(&result);
     free_result(&result);
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
   free_result(&result);
 
   result =
-      shieldd_call(handle, SHIELDD_METHOD_GET_COMMITTED_STATE, NULL, 0);
+      shieldd_call(handle, 0, SHIELDD_METHOD_GET_COMMITTED_STATE, NULL, 0);
   if (result.status != SHIELDD_STATUS_FAILED_PRECONDITION) {
     print_error(&result);
     free_result(&result);
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   free_result(&result);
 
   result =
-      shieldd_call(handle, SHIELDD_METHOD_QUERY_APP_PARAMETERS, NULL, 0);
+      shieldd_call(handle, 0, SHIELDD_METHOD_QUERY_APP_PARAMETERS, NULL, 0);
   if (result.status != SHIELDD_STATUS_FAILED_PRECONDITION) {
     print_error(&result);
     free_result(&result);
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
   free_result(&result);
 
   result =
-      shieldd_call(handle, SHIELDD_METHOD_QUERY_NULLIFIER_STATUS, NULL, 0);
+      shieldd_call(handle, 0, SHIELDD_METHOD_QUERY_NULLIFIER_STATUS, NULL, 0);
   if (result.status != SHIELDD_STATUS_INVALID_ARGUMENT || result.error.len == 0) {
     print_error(&result);
     free_result(&result);

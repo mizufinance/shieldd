@@ -35,6 +35,7 @@ pub enum ErrorKind {
     SnapshotExpired,
     Unavailable,
     Internal,
+    ProtocolLimit,
 }
 
 #[derive(Debug)]
@@ -59,7 +60,14 @@ impl ServiceError {
     }
 
     pub fn kind(&self) -> ErrorKind {
-        self.kind
+        if self
+            .source
+            .is::<shieldd_sdk_storage::ProtocolLimitExceeded>()
+        {
+            ErrorKind::ProtocolLimit
+        } else {
+            self.kind
+        }
     }
 
     pub(crate) fn invalid_argument(source: anyhow::Error) -> Self {
@@ -129,6 +137,54 @@ impl Drop for ExecutionService {
 }
 
 impl ExecutionService {
+    fn scope_execution(&mut self) -> std::result::Result<&mut HostExecution, ServiceError> {
+        self.execution.as_mut().ok_or_else(|| {
+            ServiceError::failed_precondition(anyhow::anyhow!("execution service is closed"))
+        })
+    }
+
+    pub fn open_scope(&mut self, parent: u64) -> std::result::Result<u64, ServiceError> {
+        self.scope_execution()?
+            .open_scope(parent)
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub async fn open_disposable_scope(
+        &mut self,
+        height: u64,
+        root: [u8; 32],
+        time: tendermint::Time,
+    ) -> std::result::Result<u64, ServiceError> {
+        self.scope_execution()?
+            .open_disposable_scope(height, root, time)
+            .await
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn require_scope(&mut self, id: u64) -> std::result::Result<(), ServiceError> {
+        self.scope_execution()?
+            .require_scope(id)
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn prepare_scope(&mut self, id: u64) -> std::result::Result<(), ServiceError> {
+        self.scope_execution()?
+            .prepare_scope(id)
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn close_scope(&mut self, id: u64, adopt: bool) -> std::result::Result<(), ServiceError> {
+        self.scope_execution()?
+            .close_scope(id, adopt)
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn snapshot_scope(&mut self, id: u64) -> std::result::Result<u64, ServiceError> {
+        self.scope_execution()?
+            .snapshot_scope(id)
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn revert_scope(&mut self, id: u64, point: u64) -> std::result::Result<(), ServiceError> {
+        self.scope_execution()?
+            .revert_scope(id, point)
+            .map_err(ServiceError::failed_precondition)
+    }
+
     pub fn queries(&self) -> &Arc<crate::query::QueryService> {
         &self.queries
     }
@@ -249,11 +305,12 @@ impl ExecutionService {
 
     pub async fn deposit(
         &mut self,
+        scope: u64,
         request: DepositRequest,
     ) -> std::result::Result<DepositResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
-            .deposit(request)
+            .deposit_at(scope, request)
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(response.response)
@@ -261,11 +318,12 @@ impl ExecutionService {
 
     pub async fn apply_compliance_action(
         &mut self,
+        scope: u64,
         request: ApplyComplianceActionRequest,
     ) -> std::result::Result<ApplyComplianceActionResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
-            .apply_compliance_action(request)
+            .apply_compliance_action_at(scope, request)
             .await
             .map_err(ServiceError::invalid_argument)?;
         Ok(response.response)
@@ -294,11 +352,12 @@ impl ExecutionService {
 
     pub async fn deliver_tx(
         &mut self,
+        scope: u64,
         request: DeliverTxRequest,
     ) -> std::result::Result<DeliverTxResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
-            .deliver_tx(&request.tx)
+            .deliver_tx_at(scope, &request.tx)
             .await
             .map_err(ServiceError::failed_precondition)?;
 

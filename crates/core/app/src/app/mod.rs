@@ -6,6 +6,7 @@ mod delivery;
 mod host;
 mod lifecycle;
 mod permanent_writer;
+mod scope;
 pub use batch_input::{BatchCandidate, BatchPreparation, BatchVerdict, PreparedBatch};
 pub use permanent_writer::{CommitBoundary, PermanentWriter};
 

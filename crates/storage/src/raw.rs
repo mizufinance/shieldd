@@ -1,0 +1,691 @@
+use crate::effects::{committed_value, storage_key};
+use crate::{
+    application_key, Effect, Effects, Manifest, Observations, ObservedValue, ParticipantChange,
+    Space, StateRead, ValueCommitment,
+};
+use anyhow::{ensure, Context, Result};
+use futures::{future::Ready, stream::BoxStream, StreamExt};
+use nomt_core::hasher::{Sha2Hasher, ValueHasher};
+use rocksdb::{Direction, IteratorMode, WriteBatch, WriteOptions, DB};
+use std::{
+    any::{Any, TypeId},
+    ops::{Bound, RangeBounds},
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
+const MANIFEST_KEY: &[u8] = b"\xffmanifest.v1";
+
+/// The RocksDB snapshot is dropped before its owning Arc. Its borrow is kept
+/// private and no borrowed database object escapes this owner.
+struct RawSnapshot {
+    snapshot: rocksdb::Snapshot<'static>,
+    _database: Arc<DB>,
+}
+impl RawSnapshot {
+    fn new(database: Arc<DB>) -> Self {
+        let snapshot = database.snapshot();
+        // SAFETY: Arc keeps the DB at a stable address, this type exposes only
+        // owned reads, and Rust drops fields in declaration order.
+        let snapshot = unsafe {
+            std::mem::transmute::<rocksdb::Snapshot<'_>, rocksdb::Snapshot<'static>>(snapshot)
+        };
+        Self {
+            snapshot,
+            _database: database,
+        }
+    }
+    fn get(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        Ok(self.snapshot.get(storage_key(space, key))?)
+    }
+    fn predecessor(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let start = storage_key(space, key);
+        for entry in self
+            .snapshot
+            .iterator(IteratorMode::From(&start, Direction::Reverse))
+        {
+            let (candidate, _) = entry?;
+            if candidate.as_ref() == start {
+                continue;
+            }
+            if candidate.first().copied() != Some(space as u8) {
+                return Ok(None);
+            }
+            return Ok(Some(candidate[1..].to_vec()));
+        }
+        Ok(None)
+    }
+}
+
+#[derive(Clone)]
+pub struct Snapshot {
+    raw: Arc<RawSnapshot>,
+    manifest: Option<Arc<Manifest>>,
+    observations: Observations,
+}
+impl Snapshot {
+    pub fn manifest(&self) -> Option<&Manifest> {
+        self.manifest.as_deref()
+    }
+    pub fn observations(&self) -> &Observations {
+        &self.observations
+    }
+    pub fn version(&self) -> u64 {
+        self.manifest().map_or(u64::MAX, |m| m.height)
+    }
+    pub fn root_hash(&self) -> Result<[u8; 32]> {
+        self.manifest()
+            .context("state has no committed manifest")?
+            .digest()
+    }
+    /// A new execution/query view uses its own ledger. Overlay branches clone
+    /// the existing view instead, retaining observations through write discard.
+    pub fn new_view(&self) -> Self {
+        Self {
+            raw: self.raw.clone(),
+            manifest: self.manifest.clone(),
+            observations: Observations::default(),
+        }
+    }
+    pub(crate) fn canonical_entries(
+        &self,
+    ) -> impl Iterator<Item = Result<([u8; 32], Vec<u8>)>> + '_ {
+        self.raw
+            .snapshot
+            .iterator(IteratorMode::Start)
+            .filter_map(|entry| match entry {
+                Err(error) => Some(Err(error.into())),
+                Ok((key, value)) => {
+                    if key.as_ref() == MANIFEST_KEY {
+                        return None;
+                    }
+                    Some((|| {
+                        let space = Space::try_from(u32::from(
+                            *key.first().context("empty raw storage key")?,
+                        ))?;
+                        ensure!(key.len() > 1, "empty canonical storage key");
+                        Ok((
+                            application_key(space, &key[1..]),
+                            ValueCommitment::new(&value).encode().to_vec(),
+                        ))
+                    })())
+                }
+            })
+    }
+    fn observed(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let value = self.raw.get(space, key).inspect_err(|_| self.observations.poison())?;
+        let commitment = committed_value(value.as_deref());
+        self.observations.record(ObservedValue {
+            participant: 0,
+            key: application_key(space, key),
+            value: commitment.as_deref().map(Sha2Hasher::hash_value),
+        })?;
+        Ok(value)
+    }
+    fn value(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        ensure!(
+            space != Space::Order && !key.is_empty(),
+            "invalid application key"
+        );
+        self.observed(space, key)
+    }
+    fn successor(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let order_key = order_key(space, key);
+        let value = self.observed(Space::Order, &order_key)?;
+        if value.is_none() && key.is_empty() {
+            return Ok(None);
+        }
+        decode_link(&value.context("authenticated ordering link is missing")?)
+    }
+    fn first_at(&self, space: Space, lower: &[u8]) -> Result<Option<Vec<u8>>> {
+        let previous = self.raw.predecessor(space, lower)
+            .inspect_err(|_| self.observations.poison())?.unwrap_or_default();
+        if !previous.is_empty() {
+            ensure!(
+                previous.as_slice() < lower,
+                "ordering predecessor is not below lower bound"
+            );
+            ensure!(
+                self.value(space, &previous)?.is_some(),
+                "ordering predecessor value is missing"
+            );
+        }
+        let next = self.successor(space, &previous)?;
+        ensure!(
+            next.as_deref().is_none_or(|k| k >= lower),
+            "raw predecessor omitted committed keys"
+        );
+        Ok(next)
+    }
+    fn entries(
+        &self,
+        space: Space,
+        prefix: Vec<u8>,
+        lower: Vec<u8>,
+        end: Bound<Vec<u8>>,
+    ) -> BoxStream<'static, Result<(Vec<u8>, Vec<u8>)>> {
+        let view = self.clone();
+        futures::stream::unfold(
+            (view, None::<Option<Vec<u8>>>, prefix, lower, end, false),
+            move |(view, position, prefix, lower, end, done)| async move {
+                if done {
+                    return None;
+                }
+                let result = (|| -> Result<Option<(Vec<u8>, Vec<u8>, Option<Vec<u8>>)>> {
+                    let next = match position {
+                        None => view.first_at(space, &lower)?,
+                        Some(next) => next,
+                    };
+                    let Some(key) = next else {
+                        return Ok(None);
+                    };
+                    if !key.starts_with(&prefix)
+                        || match &end {
+                            Bound::Included(end) => key > *end,
+                            Bound::Excluded(end) => key >= *end,
+                            Bound::Unbounded => false,
+                        }
+                    {
+                        return Ok(None);
+                    }
+                    let value = view
+                        .value(space, &key)?
+                        .context("committed ordered value is missing")?;
+                    let next = view.successor(space, &key)?;
+                    ensure!(
+                        next.as_ref().is_none_or(|next| next > &key),
+                        "authenticated ordering is not strictly increasing"
+                    );
+                    Ok(Some((key, value, next)))
+                })();
+                match result {
+                    Ok(Some((key, value, next))) => Some((
+                        Ok((key, value)),
+                        (view, Some(next), prefix, lower, end, false),
+                    )),
+                    Ok(None) => None,
+                    Err(error) => {
+                        view.observations.poison();
+                        Some((Err(error), (view, Some(None), prefix, lower, end, true)))
+                    },
+                }
+            },
+        )
+        .boxed()
+    }
+}
+
+/// A full-value store. Only materialization writes the boundary metadata; the
+/// SDK receipt remains the sole durable decision outside this store.
+pub struct RawStore {
+    database: Arc<DB>,
+    path: PathBuf,
+}
+impl RawStore {
+    pub fn open(path: &Path) -> Result<Self> {
+        let mut options = rocksdb::Options::default();
+        options.create_if_missing(true);
+        Ok(Self {
+            database: Arc::new(DB::open(&options, path)?),
+            path: path.into(),
+        })
+    }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+    pub fn latest_snapshot(&self) -> Result<Snapshot> {
+        let raw = Arc::new(RawSnapshot::new(self.database.clone()));
+        let manifest = raw
+            .snapshot
+            .get(MANIFEST_KEY)?
+            .map(|bytes| Manifest::decode(&bytes).map(Arc::new))
+            .transpose()?;
+        Ok(Snapshot {
+            raw,
+            manifest,
+            observations: Observations::default(),
+        })
+    }
+    pub fn materialize(&self, effects: &Effects, manifest: &Manifest) -> Result<()> {
+        effects.validate()?;
+        manifest.validate()?;
+        let mut batch = WriteBatch::default();
+        for effect in &effects.0 {
+            let key = storage_key(effect.space, &effect.key);
+            match &effect.value {
+                Some(value) => batch.put(key, value),
+                None => batch.delete(key),
+            }
+        }
+        batch.put(MANIFEST_KEY, manifest.encode()?);
+        let mut options = WriteOptions::default();
+        options.set_sync(true);
+        self.database.write_opt(batch, &options)?;
+        Ok(())
+    }
+    pub fn checkpoint(&self, path: &Path) -> Result<()> {
+        rocksdb::checkpoint::Checkpoint::new(&self.database)?.create_checkpoint(path)?;
+        Ok(())
+    }
+}
+
+fn order_key(space: Space, key: &[u8]) -> Vec<u8> {
+    storage_key(space, key)
+}
+fn encode_link(next: Option<&[u8]>) -> Vec<u8> {
+    match next {
+        None => vec![0],
+        Some(next) => {
+            let mut value = Vec::with_capacity(9 + next.len());
+            value.push(1);
+            value.extend_from_slice(&(next.len() as u64).to_be_bytes());
+            value.extend_from_slice(next);
+            value
+        }
+    }
+}
+fn decode_link(value: &[u8]) -> Result<Option<Vec<u8>>> {
+    if value == [0] {
+        return Ok(None);
+    }
+    ensure!(value.len() >= 10 && value[0] == 1, "invalid ordering link");
+    let length = u64::from_be_bytes(value[1..9].try_into()?);
+    ensure!(
+        length == (value.len() - 9) as u64,
+        "ordering link length mismatch"
+    );
+    Ok(Some(value[9..].to_vec()))
+}
+
+/// Update only neighboring authenticated links. A sorted pass remembers the
+/// surviving predecessor, avoiding quadratic work across runs of deletions.
+pub fn ordered_effects(view: &Snapshot, mut effects: Effects) -> Result<Effects> {
+    effects.validate()?;
+    ensure!(
+        effects.0.iter().all(|e| e.space != Space::Order),
+        "ordering updates must be derived"
+    );
+    let mut links = std::collections::BTreeMap::<Vec<u8>, Option<Vec<u8>>>::new();
+    let mut previous_space = None;
+    let mut last_processed = Vec::new();
+    let mut surviving = Vec::new();
+    for effect in &effects.0 {
+        if previous_space != Some(effect.space) {
+            previous_space = Some(effect.space);
+            last_processed.clear();
+            surviving.clear();
+        }
+        let old_predecessor = view
+            .raw
+            .predecessor(effect.space, &effect.key)?
+            .unwrap_or_default();
+        let predecessor = if old_predecessor > last_processed {
+            old_predecessor
+        } else {
+            surviving.clone()
+        };
+        if !predecessor.is_empty() && predecessor > last_processed {
+            ensure!(
+                view.value(effect.space, &predecessor)?.is_some(),
+                "ordering predecessor is missing"
+            );
+        }
+        let predecessor_link = order_key(effect.space, &predecessor);
+        let next = match links.get(&predecessor_link) {
+            Some(value) => decode_link(
+                value
+                    .as_ref()
+                    .context("surviving predecessor was deleted")?,
+            )?,
+            None => view.successor(effect.space, &predecessor)?,
+        };
+        ensure!(
+            next.as_ref().is_none_or(|next| next >= &effect.key),
+            "raw ordering omitted a predecessor"
+        );
+        let old = view.value(effect.space, &effect.key)?;
+        let exists = old.is_some();
+        ensure!(
+            exists == (next.as_ref() == Some(&effect.key)),
+            "raw value and authenticated ordering disagree"
+        );
+        match (exists, effect.value.is_some()) {
+            (false, true) => {
+                links.insert(predecessor_link, Some(encode_link(Some(&effect.key))));
+                links.insert(
+                    order_key(effect.space, &effect.key),
+                    Some(encode_link(next.as_deref())),
+                );
+            }
+            (true, false) => {
+                let following = view.successor(effect.space, &effect.key)?;
+                ensure!(
+                    following.as_ref().is_none_or(|next| next > &effect.key),
+                    "ordering successor is not increasing"
+                );
+                links.insert(predecessor_link, Some(encode_link(following.as_deref())));
+                links.insert(order_key(effect.space, &effect.key), None);
+            }
+            _ => {}
+        }
+        surviving = if effect.value.is_some() {
+            effect.key.clone()
+        } else {
+            predecessor
+        };
+        last_processed = effect.key.clone();
+    }
+    effects
+        .0
+        .extend(links.into_iter().map(|(key, value)| Effect {
+            space: Space::Order,
+            key,
+            value,
+        }));
+    effects.validate()?;
+    Ok(effects)
+}
+impl Effects {
+    pub fn application_changes(&self) -> Result<Vec<ParticipantChange>> {
+        self.validate()?;
+        let mut changes = self
+            .0
+            .iter()
+            .map(|e| ParticipantChange {
+                key: application_key(e.space, &e.key),
+                value: committed_value(e.value.as_deref()),
+            })
+            .collect::<Vec<_>>();
+        changes.sort_by_key(|c| c.key);
+        ensure!(
+            changes.windows(2).all(|w| w[0].key != w[1].key),
+            "application key collision"
+        );
+        Ok(changes)
+    }
+}
+
+impl StateRead for Snapshot {
+    fn read_view(&self) -> Option<crate::ReadView> {
+        Some(crate::ReadView {
+            manifest: self.manifest.clone(),
+            observations: self.observations.clone(),
+        })
+    }
+    type GetRawFut = Ready<Result<Option<Vec<u8>>>>;
+    type PrefixRawStream = BoxStream<'static, Result<(String, Vec<u8>)>>;
+    type PrefixKeysStream = BoxStream<'static, Result<String>>;
+    type NonconsensusPrefixRawStream = BoxStream<'static, Result<(Vec<u8>, Vec<u8>)>>;
+    type NonconsensusRangeRawStream = Self::NonconsensusPrefixRawStream;
+    fn get_raw(&self, key: &str) -> Self::GetRawFut {
+        futures::future::ready(self.value(Space::Application, key.as_bytes()))
+    }
+    fn nonverifiable_get_raw(&self, key: &[u8]) -> Self::GetRawFut {
+        futures::future::ready(self.value(Space::Raw, key))
+    }
+    fn object_get<T: Any + Send + Sync + Clone>(&self, _key: &'static str) -> Option<T> {
+        None
+    }
+    fn object_type(&self, _key: &'static str) -> Option<TypeId> {
+        None
+    }
+    fn prefix_raw(&self, prefix: &str) -> Self::PrefixRawStream {
+        self.entries(
+            Space::Application,
+            prefix.as_bytes().to_vec(),
+            prefix.as_bytes().to_vec(),
+            Bound::Unbounded,
+        )
+        .map(|entry| entry.and_then(|(key, value)| Ok((String::from_utf8(key)?, value))))
+        .boxed()
+    }
+    fn prefix_keys(&self, prefix: &str) -> Self::PrefixKeysStream {
+        self.prefix_raw(prefix)
+            .map(|entry| entry.map(|(key, _)| key))
+            .boxed()
+    }
+    fn nonverifiable_prefix_raw(&self, prefix: &[u8]) -> Self::NonconsensusPrefixRawStream {
+        self.entries(
+            Space::Raw,
+            prefix.to_vec(),
+            prefix.to_vec(),
+            Bound::Unbounded,
+        )
+    }
+    fn nonverifiable_range_raw(
+        &self,
+        prefix: Option<&[u8]>,
+        range: impl RangeBounds<Vec<u8>>,
+    ) -> Result<Self::NonconsensusRangeRawStream> {
+        let prefix = prefix.unwrap_or_default().to_vec();
+        let append = |suffix: &[u8]| {
+            let mut key = prefix.clone();
+            key.extend_from_slice(suffix);
+            key
+        };
+        let start = match range.start_bound() {
+            Bound::Unbounded => prefix.clone(),
+            Bound::Included(start) => append(start),
+            Bound::Excluded(start) => {
+                let mut key = append(start);
+                key.push(0);
+                key
+            }
+        };
+        let end = match range.end_bound() {
+            Bound::Unbounded => Bound::Unbounded,
+            Bound::Included(end) => Bound::Included(append(end)),
+            Bound::Excluded(end) => Bound::Excluded(append(end)),
+        };
+        Ok(self.entries(Space::Raw, prefix, start, end))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Forest, ForestConfig, Participant, ParticipantId, ParticipantKind};
+    use std::collections::BTreeMap;
+    fn empty() -> Manifest {
+        Manifest {
+            chain_id: "raw-test".into(),
+            protocol: [1; 32],
+            height: 0,
+            block_id: [0; 32],
+            previous: [0; 32],
+            participants: std::iter::once(Participant {
+                kind: ParticipantKind::Application,
+                generation: 0,
+                root: [0; 32],
+                count: 0,
+            })
+            .chain((0..16).map(|generation| Participant {
+                kind: ParticipantKind::Permanent,
+                generation,
+                root: [0; 32],
+                count: 0,
+            }))
+            .collect(),
+        }
+    }
+    fn apply(
+        store: &RawStore,
+        forest: &Forest,
+        previous: &Manifest,
+        effects: Effects,
+        height: u64,
+    ) -> Manifest {
+        let view = store.latest_snapshot().unwrap();
+        let effects = ordered_effects(&view, effects).unwrap();
+        forest
+            .authenticate_reads(previous, view.observations())
+            .unwrap();
+        let update = forest
+            .prepare(
+                &previous.participants,
+                BTreeMap::from([(
+                    ParticipantId::APPLICATION,
+                    effects.application_changes().unwrap(),
+                )]),
+            )
+            .unwrap();
+        let mut manifest = previous.clone();
+        manifest.participants = update.next.clone();
+        manifest.height = height;
+        if height > 0 {
+            manifest.previous = previous.digest().unwrap();
+            manifest.block_id = [height as u8; 32];
+        }
+        forest.materialize(update).unwrap();
+        store.materialize(&effects, &manifest).unwrap();
+        manifest
+    }
+    fn put(space: Space, key: &[u8], value: Option<&[u8]>) -> Effect {
+        Effect {
+            space,
+            key: key.to_vec(),
+            value: value.map(Vec::from),
+        }
+    }
+    #[tokio::test]
+    async fn ordered_reads_detect_omissions_corruption_and_survive_owner_drop() {
+        let temp = tempfile::tempdir().unwrap();
+        let store = RawStore::open(&temp.path().join("raw")).unwrap();
+        let forest = Forest::open(
+            &temp.path().join("forest"),
+            ForestConfig {
+                buckets: 1024,
+                cache_mib: 1,
+                preallocate: false,
+                materialization_workers: 2,
+            },
+            None,
+        )
+        .unwrap();
+        let manifest = apply(
+            &store,
+            &forest,
+            &empty(),
+            Effects(vec![
+                put(Space::Application, b"a", Some(b"a-value")),
+                put(Space::Application, b"b", Some(b"b-value")),
+                put(Space::Application, b"c", Some(b"c-value")),
+                put(Space::Raw, b"raw/a", Some(b"raw")),
+            ]),
+            0,
+        );
+        let view = store.latest_snapshot().unwrap();
+        let rows = view
+            .prefix_raw("")
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(
+            rows.iter().map(|r| r.0.as_str()).collect::<Vec<_>>(),
+            vec!["a", "b", "c"]
+        );
+        assert!(view.get_raw("absent").await.unwrap().is_none());
+        forest
+            .authenticate_reads(&manifest, view.observations())
+            .unwrap();
+        // A forged successor skips b but its recorded commitment cannot pass Freeze.
+        store
+            .database
+            .put(
+                storage_key(Space::Order, &order_key(Space::Application, b"a")),
+                encode_link(Some(b"c")),
+            )
+            .unwrap();
+        let forged = store.latest_snapshot().unwrap();
+        let rows = forged
+            .prefix_raw("")
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(rows.len(), 2);
+        assert!(forest
+            .authenticate_reads(&manifest, forged.observations())
+            .is_err());
+        // A point read of a corrupted value is rejected even when its length is unchanged.
+        store
+            .database
+            .put(storage_key(Space::Application, b"b"), b"x-value")
+            .unwrap();
+        let corrupt = store.latest_snapshot().unwrap();
+        assert_eq!(corrupt.get_raw("b").await.unwrap().unwrap(), b"x-value");
+        assert!(forest
+            .authenticate_reads(&manifest, corrupt.observations())
+            .is_err());
+        assert!(forest
+            .validate_application_values(&manifest.participants[0], corrupt.canonical_entries())
+            .is_err());
+        let held = view.new_view();
+        drop(store);
+        assert_eq!(held.get_raw("b").await.unwrap().unwrap(), b"b-value");
+        forest
+            .authenticate_reads(&manifest, held.observations())
+            .unwrap();
+    }
+    #[tokio::test]
+    async fn sorted_neighbor_updates_handle_insertions_runs_of_deletions_and_ranges() {
+        let temp = tempfile::tempdir().unwrap();
+        let store = RawStore::open(&temp.path().join("raw")).unwrap();
+        let forest = Forest::open(
+            &temp.path().join("forest"),
+            ForestConfig {
+                buckets: 1024,
+                cache_mib: 1,
+                preallocate: false,
+                materialization_workers: 2,
+            },
+            None,
+        )
+        .unwrap();
+        let manifest = apply(
+            &store,
+            &forest,
+            &empty(),
+            Effects(
+                (0..1000)
+                    .map(|i| put(Space::Raw, format!("prefix/{i:04}").as_bytes(), Some(b"v")))
+                    .collect(),
+            ),
+            0,
+        );
+        let mut changes = (0..999)
+            .map(|i| put(Space::Raw, format!("prefix/{i:04}").as_bytes(), None))
+            .collect::<Vec<_>>();
+        changes.push(put(Space::Raw, b"prefix/1000", Some(b"new")));
+        let manifest = apply(&store, &forest, &manifest, Effects(changes), 1);
+        let view = store.latest_snapshot().unwrap();
+        let rows = view
+            .nonverifiable_range_raw(Some(b"prefix/"), b"0999".to_vec()..b"1001".to_vec())
+            .unwrap()
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(
+            rows.iter().map(|r| r.0.as_slice()).collect::<Vec<_>>(),
+            vec![b"prefix/0999".as_slice(), b"prefix/1000".as_slice()]
+        );
+        forest
+            .authenticate_reads(&manifest, view.observations())
+            .unwrap();
+        let view = store.latest_snapshot().unwrap();
+        let inclusive = view
+            .nonverifiable_range_raw(Some(b"prefix/"), b"0999".to_vec()..=b"0999".to_vec())
+            .unwrap()
+            .collect::<Vec<_>>()
+            .await;
+        assert_eq!(inclusive.len(), 1);
+        forest
+            .authenticate_reads(&manifest, view.observations())
+            .unwrap();
+    }
+}

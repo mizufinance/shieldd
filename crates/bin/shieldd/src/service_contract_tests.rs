@@ -83,14 +83,19 @@ async fn execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
         .seconds = 1_700_000_000;
     client.begin_block(begin_block).await?;
 
+    let scope = client.open_scope(0)?;
     let response = client
-        .deliver_tx(DeliverTxRequest {
-            tx: b"not a shieldd transaction".to_vec(),
-        })
+        .deliver_tx(
+            scope,
+            DeliverTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            },
+        )
         .await?;
 
     assert_eq!(response.code, 1);
     assert!(response.log.contains("decoding transaction"));
+    client.close_scope(scope, false)?;
     let ended = client.end_block(EndBlockRequest { height: 1 }).await?;
     client
         .seal_commit(SealCommitRequest {

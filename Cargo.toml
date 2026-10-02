@@ -24,6 +24,7 @@ members = [
   "crates/bin/pcli",
   "crates/bin/shieldd",
   "crates/cnidarium-component",
+  "crates/storage",
   "crates/core/app",
   "crates/core/app-tests",
   "crates/core/asset",
@@ -67,6 +68,7 @@ repository = "https://github.com/mizufinance/shieldd"
 license    = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
+shieldd-sdk-storage = { path = "crates/storage", default-features = false }
 shieldd-sdk-crypto = { path = "crates/crypto/primitives" }
 shieldd-sdk-circuits = { path = "crates/crypto/circuits" }
 commonware-cryptography = { path = "third_party/commonware/cryptography", default-features = false, features = ["std", "bls12381"] }

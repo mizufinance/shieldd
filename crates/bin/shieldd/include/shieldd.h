@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define SHIELDD_ABI_VERSION 4u
+#define SHIELDD_ABI_VERSION 5u
 
 typedef struct shieldd_handle shieldd_handle_t;
 
@@ -34,6 +34,7 @@ enum shieldd_status {
   SHIELDD_STATUS_OVERLOADED = 6,
   SHIELDD_STATUS_SNAPSHOT_EXPIRED = 7,
   SHIELDD_STATUS_UNAVAILABLE = 8,
+  SHIELDD_STATUS_PROTOCOL_LIMIT = 9,
 };
 
 /*
@@ -55,6 +56,11 @@ enum shieldd_method {
   /* GetCommittedStateResponse as input; empty output. Host recovery/publication only. */
   SHIELDD_METHOD_PUBLISH_COMMITTED = 13,
   SHIELDD_METHOD_SEAL_COMMIT = 14,
+  SHIELDD_METHOD_OPEN_SCOPE = 15,
+  SHIELDD_METHOD_PREPARE_SCOPE = 16,
+  SHIELDD_METHOD_CLOSE_SCOPE = 17,
+  SHIELDD_METHOD_SNAPSHOT_SCOPE = 18,
+  SHIELDD_METHOD_REVERT_SCOPE = 19,
 
   /* Read-only queries use IDs starting at 1000000. */
 
@@ -123,11 +129,13 @@ shieldd_result_t shieldd_open(
 /*
  * Executes one protobuf request. Execution is ordered; queries use the last
  * published committed snapshot under bounded admission.
+ * scope is an explicit writable capability for domain mutations. Zero is
+ * read-only; lifecycle methods and OpenScope create or select their own owner.
  *
  * request may be NULL only when request_len is zero. On success, response is
  * the protobuf encoding for method. On failure, error is a UTF-8 message.
  */
-shieldd_result_t shieldd_call(shieldd_handle_t *handle, uint32_t method,
+shieldd_result_t shieldd_call(shieldd_handle_t *handle, uint64_t scope, uint32_t method,
                               const uint8_t *request, size_t request_len);
 
 /*

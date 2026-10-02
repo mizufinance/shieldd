@@ -121,6 +121,15 @@ pub struct HostExecution {
     phase: HostExecutionPhase,
     writer: PermanentWriter,
     block_id: Option<[u8; 32]>,
+    scopes: super::scope::Scopes,
+    disposable: std::collections::BTreeMap<u64, DisposableView>,
+    view_owners: std::collections::BTreeMap<u64, u64>,
+    next_scope_id: u64,
+}
+
+struct DisposableView {
+    app: App,
+    scopes: super::scope::Scopes,
 }
 
 pub struct HostEndBlock {
@@ -306,6 +315,10 @@ impl HostExecution {
             phase: HostExecutionPhase::Idle,
             writer,
             block_id: None,
+            scopes: super::scope::Scopes::default(),
+            disposable: Default::default(),
+            view_owners: Default::default(),
+            next_scope_id: 0,
         })
     }
 
@@ -315,6 +328,156 @@ impl HostExecution {
 
     pub fn phase(&self) -> HostExecutionPhase {
         self.phase
+    }
+
+    fn allocate_scope(&mut self) -> Result<u64> {
+        self.next_scope_id = self
+            .next_scope_id
+            .checked_add(1)
+            .context("scope capability overflow")?;
+        Ok(self.next_scope_id)
+    }
+
+    pub fn open_scope(&mut self, parent: u64) -> Result<u64> {
+        let id = self.allocate_scope()?;
+        if let Some(root) = self.view_owners.get(&parent).copied() {
+            let view = self.disposable.get_mut(&root).expect("owned view exists");
+            view.scopes.open(&mut view.app, parent, id)?;
+            self.view_owners.insert(id, root);
+            return Ok(id);
+        }
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock,
+            "scope requires an open block"
+        );
+        self.scopes.open(&mut self.app, parent, id)
+    }
+
+    pub async fn open_disposable_scope(
+        &mut self,
+        height: u64,
+        root: [u8; 32],
+        time: Time,
+    ) -> Result<u64> {
+        ensure!(
+            self.disposable.len() < 16,
+            "disposable execution admission exhausted"
+        );
+        ensure!(
+            self.storage.latest_version() != u64::MAX,
+            "simulation requires initialized storage"
+        );
+        ensure!(
+            self.writer.committed()?.application_root == Some(root),
+            "simulation SDK and native boundaries differ"
+        );
+        let current_epoch = self.storage.latest_snapshot().get_current_epoch().await?;
+        let mut app = App::from_snapshot(
+            self.storage.latest_snapshot(),
+            self.app.registry.clone(),
+            self.writer.reader(),
+        );
+        app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
+        use shieldd_sdk_sct::component::clock::EpochManager as _;
+        let state = Arc::get_mut(&mut app.state).expect("new disposable state");
+        state.put_block_height(height);
+        state.put_block_timestamp(height, time);
+        state.put_epoch_by_height(height, current_epoch);
+        let id = self.allocate_scope()?;
+        let mut scopes = super::scope::Scopes::default();
+        scopes.open(&mut app, 0, id)?;
+        self.disposable.insert(id, DisposableView { app, scopes });
+        self.view_owners.insert(id, id);
+        Ok(id)
+    }
+
+    pub fn require_scope(&mut self, id: u64) -> Result<()> {
+        if let Some(root) = self.view_owners.get(&id) {
+            return self
+                .disposable
+                .get_mut(root)
+                .expect("owned view exists")
+                .scopes
+                .writable(id);
+        }
+        self.scopes.writable(id)
+    }
+    pub fn prepare_scope(&mut self, id: u64) -> Result<()> {
+        if let Some(root) = self.view_owners.get(&id) {
+            return self
+                .disposable
+                .get_mut(root)
+                .expect("owned view exists")
+                .scopes
+                .prepare(id);
+        }
+        self.scopes.prepare(id)
+    }
+    pub fn close_scope(&mut self, id: u64, adopt: bool) -> Result<()> {
+        if let Some(root) = self.view_owners.get(&id).copied() {
+            ensure!(
+                id != root || !adopt,
+                "disposable execution cannot become canonical"
+            );
+            let view = self.disposable.get_mut(&root).expect("owned view exists");
+            view.scopes.close(&mut view.app, id, adopt)?;
+            self.view_owners.remove(&id);
+            if id == root {
+                self.disposable.remove(&root);
+            }
+            return Ok(());
+        }
+        self.scopes.close(&mut self.app, id, adopt)
+    }
+    pub fn snapshot_scope(&mut self, id: u64) -> Result<u64> {
+        if let Some(root) = self.view_owners.get(&id) {
+            let view = self.disposable.get_mut(root).expect("owned view exists");
+            return view.scopes.snapshot(&mut view.app, id);
+        }
+        self.scopes.snapshot(&mut self.app, id)
+    }
+    pub fn revert_scope(&mut self, id: u64, point: u64) -> Result<()> {
+        if let Some(root) = self.view_owners.get(&id) {
+            let view = self.disposable.get_mut(root).expect("owned view exists");
+            return view.scopes.revert(&mut view.app, id, point);
+        }
+        self.scopes.revert(&mut self.app, id, point)
+    }
+
+    fn app_at_scope(&mut self, id: u64) -> Result<&mut App> {
+        self.require_scope(id)?;
+        if let Some(root) = self.view_owners.get(&id) {
+            return Ok(&mut self
+                .disposable
+                .get_mut(root)
+                .expect("owned view exists")
+                .app);
+        }
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock,
+            "native mutation requires an open block"
+        );
+        Ok(&mut self.app)
+    }
+    pub async fn deposit_at(
+        &mut self,
+        id: u64,
+        request: DepositRequest,
+    ) -> Result<HostDepositResult> {
+        self.app_at_scope(id)?.deposit(request).await
+    }
+    pub async fn apply_compliance_action_at(
+        &mut self,
+        id: u64,
+        request: ApplyComplianceActionRequest,
+    ) -> Result<HostComplianceActionResult> {
+        self.app_at_scope(id)?
+            .apply_compliance_action(request)
+            .await
+    }
+    pub async fn deliver_tx_at(&mut self, id: u64, tx_bytes: &[u8]) -> Result<HostTxResponse> {
+        let cache = self.stateless_cache.clone();
+        Self::execute_delivery(self.app_at_scope(id)?, &cache, tx_bytes).await
     }
 
     /// Initializes execution state from content genesis or verifies a checkpoint root.
@@ -427,6 +590,7 @@ impl HostExecution {
             height,
             time: block.time,
         };
+        self.scopes.reset()?;
         let events = self.app.begin_block(&begin_block).await?;
         self.block_id = Some(block.block_id);
         self.phase = HostExecutionPhase::InBlock;
@@ -505,33 +669,34 @@ impl HostExecution {
             self.phase
         );
 
+        Self::execute_delivery(&mut self.app, &self.stateless_cache, tx_bytes).await
+    }
+
+    async fn execute_delivery(
+        app: &mut App,
+        cache: &StatelessCache,
+        tx_bytes: &[u8],
+    ) -> Result<HostTxResponse> {
         let tx = match super::delivery::DecodedTransaction::decode(tx_bytes) {
             Ok(tx) => tx,
             Err(error) => return Ok(HostTxResponse::rejected(error)),
         };
-        let withdrawals = match self.resolve_host_withdrawals(tx.tx()).await {
+        let withdrawals = match Self::resolve_host_withdrawals(app, tx.tx()).await {
             Ok(withdrawals) => withdrawals,
             Err(error) => return Ok(HostTxResponse::rejected(error)),
         };
 
-        Ok(
-            match self
-                .app
-                .deliver_decoded_tx(tx, Some(self.stateless_cache.as_ref()))
-                .await
-            {
-                Ok(events) => HostTxResponse::accepted(events, withdrawals),
-                Err(error) => HostTxResponse::rejected(error),
-            },
-        )
+        Ok(match app.deliver_decoded_tx(tx, Some(cache)).await {
+            Ok(events) => HostTxResponse::accepted(events, withdrawals),
+            Err(error) => HostTxResponse::rejected(error),
+        })
     }
 
-    async fn resolve_host_withdrawals(&self, tx: &Transaction) -> Result<Vec<HostWithdrawal>> {
+    async fn resolve_host_withdrawals(app: &App, tx: &Transaction) -> Result<Vec<HostWithdrawal>> {
         let mut withdrawals = Vec::new();
         for action in tx.shielded_host_withdrawals() {
             let value = action.body.withdrawal.value;
-            let metadata = self
-                .app
+            let metadata = app
                 .state
                 .denom_metadata_by_asset(&value.asset_id)
                 .await
@@ -547,6 +712,10 @@ impl HostExecution {
 
     /// Finishes the current host block without producing validator set updates.
     pub async fn end_block(&mut self, height: i64) -> Result<HostEndBlock> {
+        ensure!(
+            self.scopes.is_empty(),
+            "end_block has unclosed execution scopes"
+        );
         ensure!(
             self.phase == HostExecutionPhase::InBlock,
             "end_block called while host execution phase is {:?}",
@@ -632,6 +801,9 @@ impl HostExecution {
     }
 
     pub async fn rollback(&mut self) -> Result<()> {
+        self.scopes.abort_all(&mut self.app);
+        self.disposable.clear();
+        self.view_owners.clear();
         self.writer.recover_current().await?;
         let mut app = App::new(
             self.storage.latest_snapshot(),
@@ -655,7 +827,13 @@ impl HostExecution {
             phase: _,
             writer,
             block_id: _,
+            scopes,
+            disposable,
+            view_owners: _,
+            next_scope_id: _,
         } = self;
+        drop(scopes);
+        drop(disposable);
         drop(app);
         drop(writer);
         drop(stateless_cache);
@@ -1603,6 +1781,155 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn disposable_scope_uses_committed_state_and_preserves_candidate() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        host.begin_block(host_block(1)).await?;
+        let owner = host.open_scope(0)?;
+        let canonical = host.deposit(deposit_request(0)).await?;
+        assert!(!canonical.events.is_empty());
+        host.prepare_scope(owner)?;
+        host.close_scope(owner, true)?;
+
+        let root = host
+            .writer
+            .committed()?
+            .application_root
+            .context("committed root")?;
+        let simulation = host
+            .open_disposable_scope(1, root, host_block(1).time)
+            .await?;
+        // The pending deposit is absent from the simulation's committed view.
+        assert!(!host
+            .deposit_at(simulation, deposit_request(0))
+            .await?
+            .events
+            .is_empty());
+        assert_eq!(host.phase(), HostExecutionPhase::InBlock);
+        let child = host.open_scope(simulation)?;
+        host.deposit_at(child, deposit_request(1)).await?;
+        host.prepare_scope(child)?;
+        host.close_scope(child, true)?;
+        host.prepare_scope(simulation)?;
+        assert!(host.close_scope(simulation, true).is_err());
+        host.close_scope(simulation, false)?;
+        assert_eq!(host.phase(), HostExecutionPhase::InBlock);
+
+        let owner = host.open_scope(0)?;
+        assert!(host.deposit(deposit_request(0)).await?.events.is_empty());
+        assert!(!host.deposit(deposit_request(1)).await?.events.is_empty());
+        host.close_scope(owner, false)?;
+        host.end_block(1).await?;
+        host.seal_commit()?;
+        host.commit().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn owned_scopes_discard_nested_deposits_and_receipts() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        host.begin_block(host_block(1)).await?;
+
+        let outer = host.open_scope(0)?;
+        host.deposit(deposit_request(0)).await?;
+        let inner = host.open_scope(outer)?;
+        host.deposit(deposit_request(1)).await?;
+        assert!(host.close_scope(inner, true).is_err());
+        host.prepare_scope(inner)?;
+        assert!(host.require_scope(inner).is_err());
+        host.close_scope(inner, true)?;
+        host.close_scope(outer, false)?;
+
+        // An aborted deposit must not leave its idempotency receipt or note.
+        // Retrying each source executes it rather than returning cached events.
+        for index in 0..2 {
+            let scope = host.open_scope(0)?;
+            assert_ne!(scope, outer);
+            assert!(!host
+                .deposit(deposit_request(index))
+                .await?
+                .events
+                .is_empty());
+            host.prepare_scope(scope)?;
+            host.close_scope(scope, true)?;
+        }
+        host.end_block(1).await?;
+        host.seal_commit()?;
+        host.commit().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn disposable_views_do_not_own_canonical_lifecycle_or_scope_stack() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        let root = host
+            .writer
+            .committed()?
+            .application_root
+            .context("committed root")?;
+        let simulation = host
+            .open_disposable_scope(1, root, host_block(1).time)
+            .await?;
+        let simulated_child = host.open_scope(simulation)?;
+        host.deposit_at(simulated_child, deposit_request(0)).await?;
+        host.begin_block(host_block(1)).await?;
+        let canonical = host.open_scope(0)?;
+        host.deposit_at(canonical, deposit_request(0)).await?;
+        host.prepare_scope(canonical)?;
+        host.close_scope(canonical, true)?;
+        host.end_block(1).await?;
+        host.seal_commit()?;
+        host.commit().await?;
+        assert_eq!(host.phase(), HostExecutionPhase::Idle);
+        assert_eq!(host.committed_state().await?.height, 1);
+        host.close_scope(simulated_child, false)?;
+        host.close_scope(simulation, false)?;
+        assert!(host.disposable.is_empty() && host.view_owners.is_empty());
+        assert_eq!(host.phase(), HostExecutionPhase::Idle);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn scope_savepoints_restore_writes_and_reject_stale_owners() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        host.begin_block(host_block(1)).await?;
+        let owner = host.open_scope(0)?;
+        let point = host.snapshot_scope(owner)?;
+        host.deposit(deposit_request(0)).await?;
+        let later = host.snapshot_scope(owner)?;
+        host.deposit(deposit_request(1)).await?;
+        host.revert_scope(owner, point)?;
+        assert!(host.revert_scope(owner, later).is_err());
+        host.revert_scope(owner, point)?;
+        assert!(!host.deposit(deposit_request(0)).await?.events.is_empty());
+        assert!(host.end_block(1).await.is_err());
+        assert!(host.require_scope(0).is_err());
+        assert!(host.open_scope(owner + 1).is_err());
+        host.close_scope(owner, false)?;
+        assert!(host.require_scope(owner).is_err());
+        host.rollback().await?;
+        host.begin_block(host_block(1)).await?;
+        assert_ne!(host.open_scope(0)?, owner);
+        host.rollback().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn deposit_mints_note_and_exact_replay_returns_same_result() -> Result<()> {
         let storage = temp_storage().await;
         let mut host =
@@ -2287,9 +2614,9 @@ mod tests {
         host.begin_block(host_block(1)).await?;
         host.deposit(deposit_request(0)).await?;
 
-        let withdrawals = host
-            .resolve_host_withdrawals(&host_withdrawal_transaction())
-            .await?;
+        let withdrawals =
+            HostExecution::resolve_host_withdrawals(&host.app, &host_withdrawal_transaction())
+                .await?;
 
         assert_eq!(withdrawals.len(), 1);
         assert!(matches!(
@@ -2331,7 +2658,7 @@ mod tests {
             Action::ShieldedHostWithdrawal(execution),
         ];
 
-        let withdrawals = host.resolve_host_withdrawals(&tx).await?;
+        let withdrawals = HostExecution::resolve_host_withdrawals(&host.app, &tx).await?;
 
         assert!(matches!(
             withdrawals[0].destination,

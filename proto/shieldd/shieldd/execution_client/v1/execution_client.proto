@@ -13,8 +13,25 @@ import "shieldd/core/keys/v1/keys.proto";
 // Protobuf payloads for Bankd's in-process Shieldd C ABI.
 // Method IDs and query payload types are defined in crates/bin/shieldd/include/shieldd.h.
 
-// InitGenesisRequest carries the Shieldd genesis payload controlled by the host
-// chain.
+// Disposable roots execute against committed state and can only be aborted.
+// Children inherit their parent's execution view.
+message OpenScopeRequest {
+  bool disposable = 1;
+  uint64 height = 2;
+  bytes committed_root = 3;
+  google.protobuf.Timestamp time = 4;
+}
+message OpenScopeResponse { uint64 scope_id = 1; }
+message PrepareScopeRequest {}
+message PrepareScopeResponse {}
+message CloseScopeRequest { bool adopt = 1; }
+message CloseScopeResponse {}
+message SnapshotScopeRequest {}
+message SnapshotScopeResponse { uint64 savepoint_id = 1; }
+message RevertScopeRequest { uint64 savepoint_id = 1; }
+message RevertScopeResponse {}
+
+// InitGenesisRequest carries the Shieldd genesis payload controlled by the host chain.
 message InitGenesisRequest {
   // Genesis state to initialize, either full content or a checkpoint.
   shieldd.core.app.v1.GenesisAppState genesis = 1;

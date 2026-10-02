@@ -1,0 +1,27 @@
+[package]
+name = "shieldd-sdk-storage"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+futures.workspace = true
+imbl.workspace = true
+parking_lot.workspace = true
+prost.workspace = true
+sha2.workspace = true
+tendermint.workspace = true
+bitvec = "1"
+nomt-core = { git = "https://github.com/AntoineCyr/nomt", rev = "4232b9b3a805492509c40e278570d3fc9f38b8c6", default-features = false, features = ["sha2-hasher"] }
+nomt = { git = "https://github.com/AntoineCyr/nomt", rev = "4232b9b3a805492509c40e278570d3fc9f38b8c6", default-features = false, features = ["sha2-hasher"], optional = true }
+rocksdb = { version = "0.21", optional = true }
+
+[features]
+default = ["persistent"]
+persistent = ["dep:nomt", "dep:rocksdb"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+tempfile.workspace = true

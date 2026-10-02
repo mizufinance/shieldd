@@ -4465,7 +4465,7 @@ dependencies = [
 [[package]]
 name = "nomt"
 version = "1.0.5"
-source = "git+https://github.com/thrumdev/nomt?rev=c3c0e55794500262dfde7c83b6f7455d2aeb303e#c3c0e55794500262dfde7c83b6f7455d2aeb303e"
+source = "git+https://github.com/AntoineCyr/nomt?rev=4232b9b3a805492509c40e278570d3fc9f38b8c6#4232b9b3a805492509c40e278570d3fc9f38b8c6"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -4492,7 +4492,7 @@ dependencies = [
 [[package]]
 name = "nomt-core"
 version = "1.0.5"
-source = "git+https://github.com/thrumdev/nomt?rev=c3c0e55794500262dfde7c83b6f7455d2aeb303e#c3c0e55794500262dfde7c83b6f7455d2aeb303e"
+source = "git+https://github.com/AntoineCyr/nomt?rev=4232b9b3a805492509c40e278570d3fc9f38b8c6#4232b9b3a805492509c40e278570d3fc9f38b8c6"
 dependencies = [
  "arrayvec",
  "bitvec",
@@ -6625,6 +6625,7 @@ dependencies = [
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-transaction",
  "tempfile",
@@ -6698,6 +6699,7 @@ dependencies = [
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-transaction",
  "shieldd-sdk-txhash",
@@ -7256,6 +7258,25 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "shieldd-sdk-storage"
+version = "2.1.0"
+dependencies = [
+ "anyhow",
+ "bitvec",
+ "futures",
+ "imbl 7.0.2",
+ "nomt",
+ "nomt-core",
+ "parking_lot",
+ "prost 0.13.4",
+ "rocksdb",
+ "sha2 0.10.8",
+ "tempfile",
+ "tendermint",
+ "tokio",
 ]
 
 [[package]]
