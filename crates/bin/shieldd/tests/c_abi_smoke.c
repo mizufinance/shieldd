@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
   }
   free_result(&result);
 
-  result = shieldd_call(handle, SHIELDD_METHOD_ROLLBACK, NULL, 0);
+  result = shieldd_call(handle, SHIELDD_METHOD_DISCARD, NULL, 0);
   if (result.status != SHIELDD_STATUS_OK) {
     print_error(&result);
     free_result(&result);
