@@ -117,8 +117,10 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # Git origins are pinned per-rev/branch in Cargo.lock; this list gates which
 # origins are permitted at all.
 allow-git = [
-    # Permanent nullifier storage and proof primitives, pinned to an exact rev.
-    "https://github.com/thrumdev/nomt",
+    # NOMT persistence/proof extensions and storage allocation accounting.
+    # Both forks are pinned to exact revisions in the dependency manifests.
+    "https://github.com/AntoineCyr/nomt",
+    "https://github.com/AntoineCyr/imbl",
     # Pinned Orbis protocol and client dependencies.
     "https://github.com/sourcenetwork/orbis-rs",
 ]
