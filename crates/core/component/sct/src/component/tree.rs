@@ -1,8 +1,8 @@
 use anyhow::{anyhow, ensure, Context, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
 use futures::{Stream, StreamExt};
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 use shieldd_sdk_tct as tct;
 use std::{
     collections::BTreeSet,
@@ -17,29 +17,27 @@ use tracing::instrument;
 
 use crate::{
     component::{clock::EpochRead, sct::StateReadExt},
-    event, nullifier_tree, state_key, CommitmentSource, Nullifier,
+    event, state_key, CommitmentSource, Nullifier,
 };
 
 /// The consensus maximum number of nullifiers in one block.
-pub const MAX_NULLIFIERS_PER_BLOCK: usize = 32_768;
+pub const MAX_NULLIFIERS_PER_BLOCK: usize = shieldd_sdk_storage::MAX_NULLIFIERS_PER_BLOCK;
 
 /// Block-scoped nullifier state. Durable tree writes happen only at block finalization.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum PendingNullifierBlock {
     /// Transactions may validate and append ordered nullifiers.
     Open {
-        generation: Option<crate::nullifier_generation::NullifierTreeId>,
         ordered: imbl::Vector<Nullifier>,
         membership: imbl::OrdSet<Nullifier>,
     },
-    /// The ordered nullifiers have been materialized in the active generation.
-    Materialized { ordered: imbl::Vector<Nullifier> },
+    /// The accepted insertion sequence is frozen for the persistence owner.
+    Sealed { ordered: imbl::Vector<Nullifier> },
 }
 
 impl Default for PendingNullifierBlock {
     fn default() -> Self {
         Self::Open {
-            generation: None,
             ordered: imbl::Vector::new(),
             membership: imbl::OrdSet::new(),
         }
@@ -49,14 +47,14 @@ impl Default for PendingNullifierBlock {
 impl PendingNullifierBlock {
     fn ordered(&self) -> &imbl::Vector<Nullifier> {
         match self {
-            Self::Open { ordered, .. } | Self::Materialized { ordered, .. } => ordered,
+            Self::Open { ordered, .. } | Self::Sealed { ordered, .. } => ordered,
         }
     }
 
     fn contains(&self, nullifier: &Nullifier) -> bool {
         match self {
             Self::Open { membership, .. } => membership.contains(nullifier),
-            Self::Materialized { .. } => false,
+            Self::Sealed { ordered } => ordered.contains(nullifier),
         }
     }
 }
@@ -74,20 +72,29 @@ async fn stage_nullifiers<S: StateWrite + ?Sized>(
         );
     }
     let pending = state
-        .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        .object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
         .unwrap_or_default();
     let PendingNullifierBlock::Open {
-        generation: staged_generation,
         mut ordered,
         mut membership,
     } = pending
     else {
-        anyhow::bail!("cannot stage nullifiers after block materialization");
+        anyhow::bail!("cannot stage nullifiers after block sealing");
     };
-    ensure!(
-        ordered.len().saturating_add(nullifiers.len()) <= MAX_NULLIFIERS_PER_BLOCK,
-        "block nullifier limit exceeded"
-    );
+    let volume_count = state
+        .object_get::<usize>(shieldd_sdk_storage::PENDING_VOLUME_COUNT)
+        .unwrap_or_default();
+    if ordered
+        .len()
+        .saturating_add(nullifiers.len())
+        .saturating_add(volume_count)
+        > MAX_NULLIFIERS_PER_BLOCK
+    {
+        return Err(shieldd_sdk_storage::ProtocolLimitExceeded(
+            "combined block nullifier limit exceeded",
+        )
+        .into());
+    }
     for nullifier in nullifiers {
         ensure!(
             !membership.contains(nullifier),
@@ -97,32 +104,16 @@ async fn stage_nullifiers<S: StateWrite + ?Sized>(
     if check_durable {
         for (nullifier, spent) in nullifiers
             .iter()
-            .zip(nullifier_tree::contains_batch(state, nullifiers).await?)
+            .zip(state.contains_nullifiers(nullifiers).await?)
         {
             ensure!(!spent, "nullifier {nullifier} was already spent");
         }
     }
-    let generation = nullifier_tree::generation_state(state).await?;
-    if let Some(staged_generation) = staged_generation {
-        ensure!(
-            staged_generation == generation.current_tree,
-            "nullifier generation changed while the block was open"
-        );
-    }
-    let durable_count = nullifier_tree::current_leaf_count(state).await?;
-    ensure!(
-        durable_count
-            .saturating_add(ordered.len() as u64)
-            .saturating_add(nullifiers.len() as u64)
-            <= crate::indexed_nullifier_tree::CAPACITY,
-        "nullifier generation is full"
-    );
     ordered.extend(nullifiers.iter().copied());
     membership.extend(nullifiers.iter().copied());
     state.object_put(
-        state_key::nullifier_generations::pending_block(),
+        state_key::nullifiers::pending_block(),
         PendingNullifierBlock::Open {
-            generation: Some(generation.current_tree),
             ordered,
             membership,
         },
@@ -177,11 +168,11 @@ fn ensure_block_capacity(
     Ok(())
 }
 
-struct SctNvStorage<'a, S: ?Sized> {
+struct SctWriter<'a, S: ?Sized> {
     state: &'a mut S,
 }
 
-impl<'a, S: ?Sized> SctNvStorage<'a, S> {
+impl<'a, S: ?Sized> SctWriter<'a, S> {
     fn new(state: &'a mut S) -> Self {
         Self { state }
     }
@@ -219,6 +210,15 @@ fn decode_commitment_value(bytes: Vec<u8>) -> Result<tct::StateCommitment> {
         .map_err(|_| anyhow!("stored SCT commitment is not a field element"))
 }
 
+fn checked_position(bytes: &str) -> Result<tct::Position> {
+    let position = bytes.parse::<u64>()?;
+    ensure!(
+        position < 1u64 << 48,
+        "SCT position exceeds canonical tree capacity"
+    );
+    Ok(position.into())
+}
+
 fn decode_hash_row(key: &[u8], bytes: Vec<u8>) -> Result<(tct::Position, u8, Hash)> {
     let key = std::str::from_utf8(key).context("SCT hash key is not UTF-8")?;
     let suffix = key
@@ -228,7 +228,7 @@ fn decode_hash_row(key: &[u8], bytes: Vec<u8>) -> Result<(tct::Position, u8, Has
         .split_once('/')
         .ok_or_else(|| anyhow!("SCT hash key missing height: {key}"))?;
     Ok((
-        position.parse::<u64>()?.into(),
+        checked_position(position)?,
         height.parse::<u8>()?,
         decode_hash_value(bytes)?,
     ))
@@ -242,10 +242,7 @@ fn decode_commitment_row(
     let suffix = key
         .strip_prefix(state_key::tree::incremental_commitment_prefix())
         .unwrap_or(key);
-    Ok((
-        suffix.parse::<u64>()?.into(),
-        decode_commitment_value(bytes)?,
-    ))
+    Ok((checked_position(suffix)?, decode_commitment_value(bytes)?))
 }
 
 fn prefix_range(prefix: &str) -> RangeFrom<Vec<u8>> {
@@ -254,7 +251,7 @@ fn prefix_range(prefix: &str) -> RangeFrom<Vec<u8>> {
 }
 
 #[async_trait]
-impl<S: StateRead + Send + Sync + ?Sized> TctAsyncRead for SctNvStorage<'_, S> {
+impl<S: StateRead + Send + Sync + ?Sized> TctAsyncRead for SctWriter<'_, S> {
     type Error = anyhow::Error;
 
     type HashesStream<'b>
@@ -283,50 +280,35 @@ impl<S: StateRead + Send + Sync + ?Sized> TctAsyncRead for SctNvStorage<'_, S> {
         )
     }
 
-    async fn hash(&mut self, position: tct::Position, height: u8) -> Result<Option<Hash>> {
-        self.state
-            .nonverifiable_get_raw(state_key::tree::incremental_hash(position, height).as_bytes())
-            .await?
-            .map(decode_hash_value)
-            .transpose()
+    // AsyncWrite requires AsyncRead, but consensus node reads use the
+    // authenticated loader, never this incremental serialization adapter.
+    async fn hash(&mut self, _position: tct::Position, _height: u8) -> Result<Option<Hash>> {
+        anyhow::bail!("SCT node reads require the authenticated loader")
     }
-
     fn hashes(&mut self) -> Self::HashesStream<'_> {
-        self.state
-            .nonverifiable_range_raw(
-                Some(state_key::tree::incremental_hash_prefix().as_bytes()),
-                prefix_range(state_key::tree::incremental_hash_prefix()),
-            )
-            .expect("valid SCT hash storage range")
-            .map(|result| result.and_then(|(key, bytes)| decode_hash_row(&key, bytes)))
-            .boxed()
+        futures::stream::once(async {
+            Err(anyhow!("SCT node reads require the authenticated loader"))
+        })
+        .boxed()
     }
-
     async fn commitment(
         &mut self,
-        position: tct::Position,
+        _position: tct::Position,
     ) -> Result<Option<tct::StateCommitment>> {
-        self.state
-            .nonverifiable_get_raw(state_key::tree::incremental_commitment(position).as_bytes())
-            .await?
-            .map(decode_commitment_value)
-            .transpose()
+        anyhow::bail!("SCT commitment reads require the authenticated loader")
     }
-
     fn commitments(&mut self) -> Self::CommitmentsStream<'_> {
-        self.state
-            .nonverifiable_range_raw(
-                Some(state_key::tree::incremental_commitment_prefix().as_bytes()),
-                prefix_range(state_key::tree::incremental_commitment_prefix()),
-            )
-            .expect("valid SCT commitment storage range")
-            .map(|result| result.and_then(|(key, bytes)| decode_commitment_row(&key, bytes)))
-            .boxed()
+        futures::stream::once(async {
+            Err(anyhow!(
+                "SCT commitment reads require the authenticated loader"
+            ))
+        })
+        .boxed()
     }
 }
 
 #[async_trait]
-impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S> {
+impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctWriter<'_, S> {
     async fn add_hash(
         &mut self,
         position: tct::Position,
@@ -349,14 +331,6 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
         commitment: tct::StateCommitment,
     ) -> Result<()> {
         let key = state_key::tree::incremental_commitment(position);
-        if let Some(existing) = self.state.nonverifiable_get_raw(key.as_bytes()).await? {
-            anyhow::ensure!(
-                existing == commitment.0.to_bytes().to_vec(),
-                "refusing to overwrite SCT commitment at position {}",
-                u64::from(position)
-            );
-            return Ok(());
-        }
         self.state
             .nonverifiable_put_raw(key.into_bytes(), commitment.0.to_bytes().to_vec());
         Ok(())
@@ -376,44 +350,54 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
         // Instead, range-scan the two prefixes for the keys that actually exist in the
         // span and delete only those. Positions are zero-padded fixed width ({:020}),
         // so lexicographic byte order matches numeric order and the range bounds (which
-        // cnidarium appends to the prefix) select exactly [start, end).
+        // the storage reader appends to the prefix) select exactly [start, end).
         let start = u64::from(positions.start);
         let end = u64::from(positions.end);
 
         // Collect before deleting because the range streams borrow state immutably.
-        let mut keys_to_delete: Vec<Vec<u8>> = Vec::new();
-        let commitment_start = format!("{start:020}").into_bytes();
-        let commitment_end = format!("{end:020}").into_bytes();
-        {
-            let commitment_stream = self.state.nonverifiable_range_raw(
-                Some(state_key::tree::incremental_commitment_prefix().as_bytes()),
-                commitment_start..commitment_end,
-            )?;
-            futures::pin_mut!(commitment_stream);
-            while let Some((key, _)) = commitment_stream.next().await.transpose()? {
-                keys_to_delete.push(key);
-            }
-        }
-
-        let hash_start = format!("{start:020}/").into_bytes();
-        let hash_end = format!("{end:020}/").into_bytes();
-        {
-            let hash_stream = self.state.nonverifiable_range_raw(
-                Some(state_key::tree::incremental_hash_prefix().as_bytes()),
-                hash_start..hash_end,
-            )?;
-            futures::pin_mut!(hash_stream);
-            while let Some((key, bytes)) = hash_stream.next().await.transpose()? {
-                let (_, height, _) = decode_hash_row(&key, bytes)?;
-                if height < below_height {
+        let scope = shieldd_sdk_storage::NativeReadScope::new(
+            self.state,
+            shieldd_sdk_storage::NativeTree::Sct,
+        )?;
+        let result = async {
+            let mut keys_to_delete: Vec<Vec<u8>> = Vec::new();
+            let commitment_start = format!("{start:020}").into_bytes();
+            let commitment_end = format!("{end:020}").into_bytes();
+            {
+                let commitment_stream = self.state.native_range_raw(
+                    &scope,
+                    state_key::tree::incremental_commitment_prefix().as_bytes(),
+                    commitment_start..commitment_end,
+                )?;
+                futures::pin_mut!(commitment_stream);
+                while let Some((key, _)) = commitment_stream.next().await.transpose()? {
                     keys_to_delete.push(key);
                 }
             }
+
+            let hash_start = format!("{start:020}/").into_bytes();
+            let hash_end = format!("{end:020}/").into_bytes();
+            {
+                let hash_stream = self.state.native_range_raw(
+                    &scope,
+                    state_key::tree::incremental_hash_prefix().as_bytes(),
+                    hash_start..hash_end,
+                )?;
+                futures::pin_mut!(hash_stream);
+                while let Some((key, bytes)) = hash_stream.next().await.transpose()? {
+                    let (_, height, _) = decode_hash_row(&key, bytes)?;
+                    if height < below_height {
+                        keys_to_delete.push(key);
+                    }
+                }
+            }
+            for key in keys_to_delete {
+                self.state.nonverifiable_delete(key);
+            }
+            Ok(())
         }
-        for key in keys_to_delete {
-            self.state.nonverifiable_delete(key);
-        }
-        Ok(())
+        .await;
+        scope.finish(result)
     }
 
     async fn set_position(&mut self, position: StoredPosition) -> Result<()> {
@@ -447,34 +431,107 @@ pub trait SctRead: StateRead {
                 .await?,
         )?;
 
-        let mut commitments = tct::Tree::load(position, forgotten);
-        let commitment_stream = self.nonverifiable_range_raw(
-            Some(state_key::tree::incremental_commitment_prefix().as_bytes()),
-            prefix_range(state_key::tree::incremental_commitment_prefix()),
-        )?;
-        futures::pin_mut!(commitment_stream);
-        while let Some((key, bytes)) = commitment_stream.next().await.transpose()? {
-            let (position, commitment) = decode_commitment_row(&key, bytes)?;
-            commitments.insert(position, commitment);
+        let current = self.get_block_height().await.ok();
+        let mut expected = match current {
+            Some(height) => self.get_anchor_by_height(height).await?,
+            None => None,
+        };
+        if expected.is_none() {
+            if let Some(manifest) = self.read_view().and_then(|view| view.manifest) {
+                expected = self.get_anchor_by_height(manifest.height).await?;
+            }
         }
-        drop(commitment_stream);
+        let scope =
+            shieldd_sdk_storage::NativeReadScope::new(self, shieldd_sdk_storage::NativeTree::Sct)?;
+        let result = async {
+            let mut retained_commitments = std::collections::BTreeMap::new();
+            let mut retained_hashes = std::collections::BTreeMap::new();
+            let mut commitments = tct::Tree::load(position, forgotten);
+            let commitment_stream = self.native_range_raw(
+                &scope,
+                state_key::tree::incremental_commitment_prefix().as_bytes(),
+                prefix_range(state_key::tree::incremental_commitment_prefix()),
+            )?;
+            futures::pin_mut!(commitment_stream);
+            while let Some((key, bytes)) = commitment_stream.next().await.transpose()? {
+                let (position, commitment) = decode_commitment_row(&key, bytes)?;
+                ensure!(
+                    key == state_key::tree::incremental_commitment(position).as_bytes(),
+                    "noncanonical SCT commitment key"
+                );
+                ensure!(
+                    retained_commitments.insert(position, commitment).is_none(),
+                    "duplicate SCT commitment position"
+                );
+                commitments.insert(position, commitment);
+            }
+            drop(commitment_stream);
 
-        let mut hashes = commitments.load_hashes();
-        let hash_stream = self.nonverifiable_range_raw(
-            Some(state_key::tree::incremental_hash_prefix().as_bytes()),
-            prefix_range(state_key::tree::incremental_hash_prefix()),
-        )?;
-        futures::pin_mut!(hash_stream);
-        while let Some((key, bytes)) = hash_stream.next().await.transpose()? {
-            let (position, height, hash) = decode_hash_row(&key, bytes)?;
-            hashes.insert(position, height, hash);
+            let mut hashes = commitments.load_hashes();
+            let hash_stream = self.native_range_raw(
+                &scope,
+                state_key::tree::incremental_hash_prefix().as_bytes(),
+                prefix_range(state_key::tree::incremental_hash_prefix()),
+            )?;
+            futures::pin_mut!(hash_stream);
+            while let Some((key, bytes)) = hash_stream.next().await.transpose()? {
+                let (position, height, hash) = decode_hash_row(&key, bytes)?;
+                ensure!(
+                    height <= 24
+                        && u64::from(position) % (1u64 << (height * 2)) == 0
+                        && key == state_key::tree::incremental_hash(position, height).as_bytes(),
+                    "noncanonical SCT hash coordinates"
+                );
+                ensure!(
+                    retained_hashes.insert((position, height), hash).is_none(),
+                    "duplicate SCT hash coordinates"
+                );
+                hashes.insert(position, height, hash);
+            }
+            let tree = hashes.finish();
+            let actual_commitments: std::collections::BTreeMap<_, _> = tree.commitments().collect();
+            ensure!(
+                actual_commitments == retained_commitments,
+                "SCT retained commitments contain unreachable or missing entries"
+            );
+            ensure!(
+                tree.structure().validate(&mut |node, hash| {
+                    if let Some(stored) = retained_hashes.remove(&(node.position(), node.height()))
+                    {
+                        stored == hash
+                    } else {
+                        true
+                    }
+                }) && retained_hashes.is_empty(),
+                "SCT native nodes contain inconsistent cached hashes or unreachable entries"
+            );
+            match expected {
+                Some(expected) => ensure!(
+                    tree.root() == expected,
+                    "SCT root mismatch: committed {expected}, native {}",
+                    tree.root()
+                ),
+                None => ensure!(
+                    self.read_view().is_none_or(|view| view.manifest.is_none()) && tree.is_empty(),
+                    "initialized SCT is missing its committed root"
+                ),
+            }
+            Ok(tree)
         }
-        Ok(hashes.finish())
+        .await;
+        scope.finish(result)
     }
 
     /// Fallibly fetch the state commitment tree, preferring the in-memory cache.
     async fn try_get_sct(&self) -> Result<tct::Tree> {
         if let Some(tree) = self.object_get(state_key::cache::cached_state_commitment_tree()) {
+            // The cache is derived from a verified tree through owned writes.
+            // Bind every new immutable read view to its authenticated base anchor.
+            if let Some(manifest) = self.read_view().and_then(|view| view.manifest) {
+                self.get_anchor_by_height(manifest.height)
+                    .await?
+                    .context("cached SCT base anchor is missing")?;
+            }
             return Ok(tree);
         }
 
@@ -486,6 +543,11 @@ pub trait SctRead: StateRead {
         if let Some(tree) =
             self.object_get::<tct::Tree>(state_key::cache::cached_state_commitment_tree())
         {
+            if let Some(manifest) = self.read_view().and_then(|view| view.manifest) {
+                self.get_anchor_by_height(manifest.height)
+                    .await?
+                    .context("cached SCT position base anchor is missing")?;
+            }
             return Ok(tree.position());
         }
 
@@ -510,14 +572,13 @@ pub trait SctRead: StateRead {
         self.get(&state_key::tree::anchor_by_height(height)).await
     }
 
-    /// Verify that the SCT materialized in NV storage matches the committed root.
+    /// Verify that the SCT sealed in NV storage matches the committed root.
     async fn verify_committed_sct_root(&self) -> Result<()> {
-        let Ok(height) = self.get_block_height().await else {
-            return Ok(());
-        };
-        let Some(committed) = self.get_anchor_by_height(height).await? else {
-            return Ok(());
-        };
+        let height = self.get_block_height().await?;
+        let committed = self
+            .get_anchor_by_height(height)
+            .await?
+            .context("initialized SCT anchor is missing")?;
         let reconstructed = self.load_sct_from_nv().await?.root();
         ensure!(
             reconstructed == committed,
@@ -529,19 +590,22 @@ pub trait SctRead: StateRead {
     /// Return whether the specified nullifier has been spent.
     async fn is_nullifier_spent(&self, nullifier: Nullifier) -> Result<bool> {
         if self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+            .object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
             .is_some_and(|pending| pending.contains(&nullifier))
         {
             return Ok(true);
         }
-        nullifier_tree::is_spent(self, nullifier).await
+        Ok(self.contains_nullifiers(&[nullifier]).await?[0])
     }
 
-    /// Check a batch through the direct spent-marker index without constructing proofs.
+    /// Authenticate committed spentness, then include disposable block insertions.
     async fn contains_nullifiers(&self, nullifiers: &[Nullifier]) -> Result<Vec<bool>> {
-        let mut spent = nullifier_tree::contains_batch(self, nullifiers).await?;
-        if let Some(pending) = self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        let reader = self
+            .object_get::<crate::permanent_nullifiers::Reader>(state_key::nullifiers::reader())
+            .context("permanent nullifier reader is missing")?;
+        let mut spent = reader.contains(self, nullifiers).await?;
+        if let Some(pending) =
+            self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
         {
             for (nullifier, spent) in nullifiers.iter().zip(&mut spent) {
                 *spent |= pending.contains(nullifier);
@@ -552,29 +616,25 @@ pub trait SctRead: StateRead {
 
     /// Return the set of nullifiers that have been spent in the current block.
     fn pending_nullifiers(&self) -> imbl::Vector<Nullifier> {
-        self.object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+        self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
             .map(|pending| pending.ordered().clone())
             .unwrap_or_default()
     }
 
-    /// Return whether an active block has materialized its staged nullifiers.
-    fn nullifier_block_is_materialized(&self) -> bool {
+    /// Return whether an active block has sealed its staged nullifiers.
+    fn nullifier_block_is_sealed(&self) -> bool {
         matches!(
-            self.object_get::<PendingNullifierBlock>(
-                state_key::nullifier_generations::pending_block()
-            ),
-            Some(PendingNullifierBlock::Materialized { .. })
+            self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block()),
+            Some(PendingNullifierBlock::Sealed { .. })
         )
     }
 
     /// Reject persistence or compact-block finalization while an active block is still open.
-    fn ensure_nullifier_block_materialized(&self) -> Result<()> {
-        match self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
-        {
-            None | Some(PendingNullifierBlock::Materialized { .. }) => Ok(()),
+    fn ensure_nullifier_block_sealed(&self) -> Result<()> {
+        match self.object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block()) {
+            None | Some(PendingNullifierBlock::Sealed { .. }) => Ok(()),
             Some(PendingNullifierBlock::Open { .. }) => {
-                anyhow::bail!("block nullifiers have not been materialized")
+                anyhow::bail!("block nullifiers have not been sealed")
             }
         }
     }
@@ -586,7 +646,7 @@ impl<T: StateRead + ?Sized> SctRead for T {}
 /// Provides write access to the state commitment tree and related data.
 pub trait SctManager: StateWrite {
     /// Write an SCT instance to nonverifiable storage and record
-    /// the block and epoch roots in the JMT.
+    /// the block and epoch roots in authenticated application state.
     ///
     /// # Panics
     /// If the epoch has not been set, or if a serialization failure occurs.
@@ -747,7 +807,7 @@ pub trait SctManager: StateWrite {
         for (offset, (expected_position, _)) in entries.iter().enumerate() {
             ensure!(
                 u64::from(*expected_position) == u64::from(start) + offset as u64,
-                "deferred SCT position drifted before block materialization"
+                "deferred SCT position drifted before block sealing"
             );
         }
 
@@ -815,43 +875,19 @@ pub trait SctManager: StateWrite {
         stage_nullifiers(self, nullifiers, true).await
     }
 
-    /// Materialize the ordered nullifier block exactly once.
-    async fn materialize_nullifier_block(&mut self) -> Result<()> {
+    /// Freeze the ordered nullifier block exactly once, without writing NOMT.
+    async fn seal_nullifier_block(&mut self) -> Result<()> {
         let pending = self
-            .object_get::<PendingNullifierBlock>(state_key::nullifier_generations::pending_block())
+            .object_get::<PendingNullifierBlock>(state_key::nullifiers::pending_block())
             .unwrap_or_default();
         match pending {
-            PendingNullifierBlock::Materialized { .. } => {
-                anyhow::bail!("nullifier block was already materialized")
+            PendingNullifierBlock::Sealed { .. } => {
+                anyhow::bail!("nullifier block was already sealed")
             }
-            PendingNullifierBlock::Open {
-                generation: staged_generation,
-                ordered,
-                ..
-            } => {
-                let before = nullifier_tree::generation_state(self).await?;
-                if let Some(staged_generation) = staged_generation {
-                    ensure!(
-                        staged_generation == before.current_tree,
-                        "nullifier generation changed before block materialization"
-                    );
-                }
-                let height = self.get_block_height().await?;
-                let first_position = nullifier_tree::current_leaf_count(self).await?;
-                nullifier_tree::insert_batch(self, ordered.iter().copied()).await?;
-                nullifier_tree::record_block_insertions(
-                    self,
-                    nullifier_tree::InsertionInterval {
-                        height,
-                        generation: before.current_generation,
-                        first_position,
-                        count: ordered.len() as u64,
-                    },
-                )
-                .await?;
+            PendingNullifierBlock::Open { ordered, .. } => {
                 self.object_put(
-                    state_key::nullifier_generations::pending_block(),
-                    PendingNullifierBlock::Materialized { ordered },
+                    state_key::nullifiers::pending_block(),
+                    PendingNullifierBlock::Sealed { ordered },
                 );
                 Ok(())
             }
@@ -867,7 +903,7 @@ pub trait SctManager: StateWrite {
         &mut self,
         end_epoch: bool,
     ) -> Result<(block::Root, Option<epoch::Root>)> {
-        self.ensure_nullifier_block_materialized()?;
+        self.ensure_nullifier_block_sealed()?;
         let height = self.get_block_height().await?;
 
         let mut tree = self.get_sct().await;
@@ -904,7 +940,7 @@ pub trait SctManager: StateWrite {
 
     /// Persist the object-store SCT instance to nonverifiable storage.
     /// Note that this doesn't actually persist the SCT to disk, see the
-    /// cndiarium documentation for more information.
+    /// storage materialization contract for more information.
     ///  
     /// # Panics
     /// This method panics if a serialization failure occurs.
@@ -913,7 +949,7 @@ pub trait SctManager: StateWrite {
         if let Some(tree) =
             self.object_get::<tct::Tree>(state_key::cache::cached_state_commitment_tree())
         {
-            let mut storage = SctNvStorage::new(self);
+            let mut storage = SctWriter::new(self);
             tree.to_async_writer(&mut storage)
                 .await
                 .expect("able to persist state commitment tree to incremental NV storage");
@@ -965,34 +1001,75 @@ mod tests {
         epoch::Epoch,
         params::SctParameters,
     };
-    use cnidarium::TempStorage;
     use futures::StreamExt;
     use shieldd_sdk_proto::StateReadProto;
+    use shieldd_sdk_storage::TempStorage;
     use std::str::FromStr;
 
     async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8])
     where
-        S: cnidarium::StateRead + cnidarium::StateWrite + ?Sized,
+        S: shieldd_sdk_storage::StateRead + shieldd_sdk_storage::StateWrite + ?Sized,
     {
+        let native = prefix.starts_with(state_key::tree::incremental_prefix().as_bytes());
+        let scope = if native {
+            Some(
+                shieldd_sdk_storage::NativeReadScope::new(
+                    state,
+                    shieldd_sdk_storage::NativeTree::Sct,
+                )
+                .unwrap(),
+            )
+        } else {
+            None
+        };
         let mut keys = Vec::new();
         {
-            let stream = state.nonverifiable_prefix_raw(prefix);
+            let stream = match &scope {
+                Some(scope) => state
+                    .native_range_raw(
+                        scope,
+                        state_key::tree::incremental_hash_prefix().as_bytes(),
+                        Vec::new()..,
+                    )
+                    .unwrap()
+                    .boxed(),
+                None => state.nonverifiable_prefix_raw(prefix).boxed(),
+            };
             futures::pin_mut!(stream);
             while let Some(entry) = stream.next().await {
                 let (key, _) = entry.unwrap();
                 keys.push(key);
             }
         }
+        if let Some(scope) = &scope {
+            let stream = state
+                .native_range_raw(
+                    scope,
+                    state_key::tree::incremental_commitment_prefix().as_bytes(),
+                    Vec::new()..,
+                )
+                .unwrap();
+            futures::pin_mut!(stream);
+            while let Some(entry) = stream.next().await {
+                keys.push(entry.unwrap().0);
+            }
+            keys.push(state_key::tree::incremental_position().as_bytes().to_vec());
+            keys.push(state_key::tree::incremental_forgotten().as_bytes().to_vec());
+        }
         for key in keys {
             state.nonverifiable_delete(key);
+        }
+        if let Some(scope) = scope {
+            scope.finish(Ok(())).unwrap();
         }
     }
 
     async fn write_test_anchor(
-        state: &mut cnidarium::StateDelta<cnidarium::Snapshot>,
+        state: &mut shieldd_sdk_storage::StateDelta<shieldd_sdk_storage::Snapshot>,
         height: u64,
         tree: &mut tct::Tree,
     ) -> tct::Root {
+        state.put_block_height(height);
         state.put_block_timestamp(
             height,
             tendermint::Time::from_str("2026-01-01T00:00:00Z").unwrap(),
@@ -1018,7 +1095,7 @@ mod tests {
     async fn claimed_anchor_liveness_matches_retention_boundary() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
         state.put_sct_params(SctParameters {
             epoch_duration: 10,
             sct_anchor_retention_blocks: 2,
@@ -1070,11 +1147,12 @@ mod tests {
     async fn sct_incremental_nv_persistence_roundtrips_without_full_blob() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
         state.put_sct_params(SctParameters {
             epoch_duration: 10,
             sct_anchor_retention_blocks: 100,
         });
+        state.put_block_height(1);
         state.put_block_timestamp(
             1,
             tendermint::Time::from_str("2026-01-01T00:00:00Z").unwrap(),
@@ -1107,17 +1185,23 @@ mod tests {
         assert_eq!(loaded.root(), expected_root);
 
         let mut count = 0usize;
-        let stream = state
-            .nonverifiable_range_raw(
-                Some(state_key::tree::incremental_prefix().as_bytes()),
-                Vec::new()..,
-            )
-            .unwrap();
-        futures::pin_mut!(stream);
-        while let Some(entry) = stream.next().await {
-            entry.unwrap();
-            count += 1;
+        let scope =
+            shieldd_sdk_storage::NativeReadScope::new(&state, shieldd_sdk_storage::NativeTree::Sct)
+                .unwrap();
+        for prefix in [
+            state_key::tree::incremental_hash_prefix(),
+            state_key::tree::incremental_commitment_prefix(),
+        ] {
+            let stream = state
+                .native_range_raw(&scope, prefix.as_bytes(), Vec::new()..)
+                .unwrap();
+            futures::pin_mut!(stream);
+            while let Some(entry) = stream.next().await {
+                entry.unwrap();
+                count += 1;
+            }
         }
+        scope.finish(Ok(())).unwrap();
         assert!(count > 0, "incremental SCT storage wrote no keys");
         assert!(
             count < 128,
@@ -1129,7 +1213,7 @@ mod tests {
     async fn sct_committed_root_check_fails_on_missing_nv_state() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
         state.put_sct_params(SctParameters {
             epoch_duration: 10,
             sct_anchor_retention_blocks: 100,
@@ -1170,15 +1254,25 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn nullifiers_are_visible_before_one_shot_materialization() -> Result<()> {
+    async fn nullifiers_are_visible_before_one_shot_sealing() -> Result<()> {
         let storage = TempStorage::new().await?;
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         state.put_proto(
             crate::state_key::block_manager::block_height().to_owned(),
             1u64,
         );
-        nullifier_tree::initialize(&mut state).await?;
-        let starting = nullifier_tree::generation_state(&state).await?;
+        storage
+            .commit(shieldd_sdk_storage::StateDelta::new(
+                storage.latest_snapshot(),
+            ))
+            .await?;
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
+        state.put_block_height(1);
+        let starting = storage.manifest().unwrap();
+        state.object_put(
+            state_key::nullifiers::reader(),
+            crate::permanent_nullifiers::Reader(storage.storage().clone()),
+        );
         let nullifiers = [
             Nullifier(shieldd_sdk_crypto::Fq::from(7u64)),
             Nullifier(shieldd_sdk_crypto::Fq::from(3u64)),
@@ -1189,10 +1283,7 @@ mod tests {
         };
 
         state.nullify_all(&nullifiers, source).await?;
-        assert_eq!(
-            nullifier_tree::generation_state(&state).await?.current_root,
-            starting.current_root
-        );
+        assert_eq!(storage.manifest().unwrap(), starting);
         assert_eq!(
             state
                 .pending_nullifiers()
@@ -1204,24 +1295,192 @@ mod tests {
         for nullifier in nullifiers {
             assert!(state.is_nullifier_spent(nullifier).await?);
         }
-        assert!(state.ensure_nullifier_block_materialized().is_err());
+        assert!(state.ensure_nullifier_block_sealed().is_err());
 
-        state.materialize_nullifier_block().await?;
-        assert!(state.nullifier_block_is_materialized());
-        state.ensure_nullifier_block_materialized()?;
-        assert_ne!(
-            nullifier_tree::generation_state(&state).await?.current_root,
-            starting.current_root
+        state.seal_nullifier_block().await?;
+        assert!(state.nullifier_block_is_sealed());
+        state.ensure_nullifier_block_sealed()?;
+        assert_eq!(
+            storage.manifest().unwrap(),
+            starting,
+            "sealing a disposable block must not publish its insertions"
         );
-        assert_eq!(nullifier_tree::current_leaf_count(&state).await?, 4);
-        assert!(state.materialize_nullifier_block().await.is_err());
+        for nullifier in nullifiers {
+            assert!(state.is_nullifier_spent(nullifier).await?);
+        }
+        assert!(state.seal_nullifier_block().await.is_err());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cached_sct_ancestors_cannot_hide_corrupt_retained_commitments() -> Result<()> {
+        for mode in 0..3 {
+            let storage = TempStorage::new().await?;
+            let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
+            state.put_sct_params(SctParameters {
+                epoch_duration: 10,
+                sct_anchor_retention_blocks: 100,
+            });
+            state.put_block_height(1);
+            state.put_epoch_by_height(
+                1,
+                Epoch {
+                    index: 0,
+                    start_height: 0,
+                },
+            );
+            let mut tree = tct::Tree::new();
+            let commitment = tct::StateCommitment(shieldd_sdk_crypto::Fq::from(17u64));
+            let position = tree.insert(tct::Witness::Keep, commitment)?;
+            let block = tree.end_block()?;
+            let root = tree.root();
+            state.write_sct(1, tree, block, None).await;
+            storage.commit(state).await?;
+            let mut corrupt = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
+            let key = state_key::tree::incremental_commitment(position).into_bytes();
+            match mode {
+                0 => corrupt.nonverifiable_delete(key),
+                1 => corrupt.nonverifiable_put_raw(
+                    key,
+                    bincode::serialize(&tct::StateCommitment(shieldd_sdk_crypto::Fq::from(18u64)))?,
+                ),
+                _ => corrupt.nonverifiable_put_raw(
+                    state_key::tree::incremental_hash((1u64 << 40).into(), 0).into_bytes(),
+                    bincode::serialize(&Hash::one())?,
+                ),
+            }
+            assert_eq!(corrupt.get_anchor_by_height(1).await?, Some(root));
+            assert!(corrupt.load_sct_from_nv().await.is_err());
+            assert!(corrupt
+                .read_view()
+                .unwrap()
+                .observations
+                .authenticate(|_, _| unreachable!())
+                .is_err());
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn native_block_accepts_fifty_thousand_nullifiers_and_materializes_exact_spentness(
+    ) -> Result<()> {
+        use shieldd_sdk_storage::{
+            BlockBoundary, ParticipantChange, ParticipantId, ParticipantKind, SPENT,
+        };
+        use std::collections::BTreeMap;
+        let storage = TempStorage::new().await?;
+        storage
+            .commit(shieldd_sdk_storage::StateDelta::new(
+                storage.latest_snapshot(),
+            ))
+            .await?;
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
+        state.put_block_height(1);
+        let reader = crate::permanent_nullifiers::Reader(storage.storage().clone());
+        state.object_put(state_key::nullifiers::reader(), reader.clone());
+        let values: Vec<_> = (1..=50_000u64)
+            .map(|value| Nullifier(shieldd_sdk_crypto::Fq::from(value)))
+            .collect();
+        state
+            .nullify_all(&values, CommitmentSource::Transaction { id: Some([7; 32]) })
+            .await?;
+        assert_eq!(state.pending_nullifiers().len(), 50_000);
+        state.seal_nullifier_block().await?;
+        state.ensure_nullifier_block_sealed()?;
+        let mut changes: BTreeMap<ParticipantId, Vec<ParticipantChange>> = BTreeMap::new();
+        for value in &values {
+            let key = shieldd_sdk_storage::nullifier_key(&value.to_bytes());
+            changes
+                .entry(ParticipantId::permanent(
+                    shieldd_sdk_storage::nullifier_shard(&key),
+                )?)
+                .or_default()
+                .push(ParticipantChange {
+                    key,
+                    value: Some(SPENT.to_vec()),
+                });
+        }
+        for changes in changes.values_mut() {
+            changes.sort_by_key(|change| change.key);
+        }
+        let update = storage.prepare(
+            state,
+            BlockBoundary {
+                chain_id: "component-test".into(),
+                protocol: [1; 32],
+                height: 1,
+                block_id: [7; 32],
+                time: 1,
+            },
+            changes,
+        )?;
+        let manifest = storage.materialize(update)?;
+        assert_eq!(
+            manifest
+                .participants
+                .iter()
+                .filter(|p| p.kind == ParticipantKind::Permanent)
+                .map(|p| p.count)
+                .sum::<u64>(),
+            50_000
+        );
+        let state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
+        assert!(reader
+            .contains(&state, &values)
+            .await?
+            .iter()
+            .all(|spent| *spent));
+        storage
+            .forest()
+            .read()
+            .authenticate_result(&manifest, &state.read_view().unwrap().observations)?;
+        for value in [values[0], values[24_999], values[49_999]] {
+            reader
+                .status(value, &manifest)?
+                .verify(manifest.digest()?)?;
+        }
+        let absent = Nullifier(shieldd_sdk_crypto::Fq::from(50_001u64));
+        assert!(!reader.status(absent, &manifest)?.spent);
+        storage.validate()?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn combined_nullifier_cap_rejects_before_writes_and_keeps_transaction_limits_separate(
+    ) -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
+        let values: Vec<_> = (1..=MAX_NULLIFIERS_PER_BLOCK as u64)
+            .map(|value| Nullifier(shieldd_sdk_crypto::Fq::from(value)))
+            .collect();
+        stage_nullifiers(&mut state, &values[..MAX_NULLIFIERS_PER_BLOCK - 1], false).await?;
+        state.object_put(shieldd_sdk_storage::PENDING_VOLUME_COUNT, 1usize);
+        let error = stage_nullifiers(&mut state, &values[MAX_NULLIFIERS_PER_BLOCK - 1..], false)
+            .await
+            .unwrap_err();
+        assert!(error.is::<shieldd_sdk_storage::ProtocolLimitExceeded>());
+        assert_eq!(
+            state.pending_nullifiers().len(),
+            MAX_NULLIFIERS_PER_BLOCK - 1
+        );
+        state.object_put(shieldd_sdk_storage::PENDING_VOLUME_COUNT, 0usize);
+        stage_nullifiers(&mut state, &values[MAX_NULLIFIERS_PER_BLOCK - 1..], false).await?;
+        assert_eq!(state.pending_nullifiers().len(), MAX_NULLIFIERS_PER_BLOCK);
+        let extra = Nullifier(shieldd_sdk_crypto::Fq::from(
+            MAX_NULLIFIERS_PER_BLOCK as u64 + 1,
+        ));
+        assert!(stage_nullifiers(&mut state, &[extra], false)
+            .await
+            .unwrap_err()
+            .is::<shieldd_sdk_storage::ProtocolLimitExceeded>());
+        assert_eq!(state.pending_nullifiers().len(), MAX_NULLIFIERS_PER_BLOCK);
         Ok(())
     }
 
     #[tokio::test]
     async fn finalized_forget_block_matches_sequential_tree_and_reload() -> Result<()> {
         let storage = TempStorage::new().await?;
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         state.put_sct_params(SctParameters {
             epoch_duration: 10,
             sct_anchor_retention_blocks: 100,
@@ -1308,41 +1567,45 @@ mod tests {
     #[tokio::test]
     async fn sct_nv_storage_skips_recalculable_hashes() {
         let storage = TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         let position = tct::Position::from(7u64);
         let key = state_key::tree::incremental_hash(position, 0);
 
-        let mut writer = SctNvStorage::new(&mut state);
+        let mut writer = SctWriter::new(&mut state);
         writer
             .add_hash(position, 0, Hash::zero(), false)
             .await
             .unwrap();
+        let scope =
+            shieldd_sdk_storage::NativeReadScope::new(&state, shieldd_sdk_storage::NativeTree::Sct)
+                .unwrap();
         assert!(state
-            .nonverifiable_get_raw(key.as_bytes())
+            .native_get_raw(&scope, key.as_bytes())
             .await
             .unwrap()
             .is_none());
 
-        let mut writer = SctNvStorage::new(&mut state);
+        let mut writer = SctWriter::new(&mut state);
         writer
             .add_hash(position, 0, Hash::zero(), true)
             .await
             .unwrap();
         assert!(state
-            .nonverifiable_get_raw(key.as_bytes())
+            .native_get_raw(&scope, key.as_bytes())
             .await
             .unwrap()
             .is_some());
+        scope.finish(Ok(())).unwrap();
     }
 
     #[tokio::test]
-    async fn sct_delete_range_deletes_only_materialized_rows() {
+    async fn sct_delete_range_deletes_only_sealed_rows() {
         let storage = TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         let inside = tct::Position::from(7u64);
         let outside = tct::Position::from(9u64);
 
-        let mut writer = SctNvStorage::new(&mut state);
+        let mut writer = SctWriter::new(&mut state);
         writer
             .add_hash(inside, 0, Hash::zero(), true)
             .await
@@ -1370,25 +1633,41 @@ mod tests {
             .await
             .unwrap();
 
+        let scope =
+            shieldd_sdk_storage::NativeReadScope::new(&state, shieldd_sdk_storage::NativeTree::Sct)
+                .unwrap();
         assert!(state
-            .nonverifiable_get_raw(state_key::tree::incremental_hash(inside, 0).as_bytes(),)
+            .native_get_raw(
+                &scope,
+                state_key::tree::incremental_hash(inside, 0).as_bytes(),
+            )
             .await
             .unwrap()
             .is_none());
         assert!(state
-            .nonverifiable_get_raw(state_key::tree::incremental_hash(outside, 0).as_bytes(),)
+            .native_get_raw(
+                &scope,
+                state_key::tree::incremental_hash(outside, 0).as_bytes(),
+            )
             .await
             .unwrap()
             .is_some());
         assert!(state
-            .nonverifiable_get_raw(state_key::tree::incremental_commitment(inside).as_bytes(),)
+            .native_get_raw(
+                &scope,
+                state_key::tree::incremental_commitment(inside).as_bytes(),
+            )
             .await
             .unwrap()
             .is_none());
         assert!(state
-            .nonverifiable_get_raw(state_key::tree::incremental_commitment(outside).as_bytes(),)
+            .native_get_raw(
+                &scope,
+                state_key::tree::incremental_commitment(outside).as_bytes(),
+            )
             .await
             .unwrap()
             .is_some());
+        scope.finish(Ok(())).unwrap();
     }
 }

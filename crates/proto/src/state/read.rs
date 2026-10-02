@@ -1,8 +1,8 @@
 use crate::{DomainType, Message};
 
 use anyhow::Result;
-use cnidarium::StateRead;
 use futures::{Stream, StreamExt};
+use shieldd_sdk_storage::StateRead;
 use std::{fmt::Debug, pin::Pin};
 
 use super::future::{DomainFuture, ProtoFuture};

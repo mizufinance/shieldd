@@ -28,8 +28,8 @@ use shieldd_sdk_keys::{
     Address, FullViewingKey,
 };
 use shieldd_sdk_num::Amount;
-use shieldd_sdk_proto::{core::component::sct::v1 as pb_sct, DomainType, Message};
-use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, CommitmentSource, Nullifier};
+use shieldd_sdk_proto::DomainType;
+use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::{
     discovery, note, Note, Rseed, VolumeAccumulatorPayload, VolumeAccumulatorState,
 };
@@ -38,7 +38,6 @@ use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
 
 use crate::{
-    historical_proof_cache::{HistoricalProofCache, HistoricalProofCacheState},
     issued_address::{AddressPurpose, IssuedAddress},
     sync::FilteredBlock,
     SpendableNoteRecord,
@@ -46,16 +45,7 @@ use crate::{
 
 pub(crate) mod compliance;
 pub mod disclosure;
-#[cfg(test)]
-mod historical_worker_tests;
 mod sct;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum HistoricalCacheWrite {
-    Stored,
-    NoteSpent,
-    Stale,
-}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BalanceEntry {
@@ -348,7 +338,6 @@ mod block_admission_tests {
                 discovery_parameters: None,
                 app_parameters_updated: false,
                 gas_prices: None,
-                nullifier_window: None,
                 volume_accumulators: vec![],
             },
             tree,
@@ -553,7 +542,6 @@ mod compliance_projection_tests {
             discovery_parameters: None,
             app_parameters_updated: false,
             gas_prices: None,
-            nullifier_window: None,
             volume_accumulators: Vec::new(),
         };
         let mut sct = tct::Tree::new();
@@ -623,24 +611,6 @@ mod issued_address_tests {
     use camino::Utf8Path;
     use shieldd_sdk_app::params::AppParameters;
     use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
-
-    #[tokio::test]
-    async fn fresh_storage_distinguishes_an_uninitialized_nullifier_window() {
-        let storage = Storage::initialize(
-            None::<&Utf8Path>,
-            (*test_keys::FULL_VIEWING_KEY).clone(),
-            AppParameters::default(),
-        )
-        .await
-        .unwrap();
-
-        assert!(storage
-            .nullifier_window_if_initialized()
-            .await
-            .unwrap()
-            .is_none());
-        assert!(storage.nullifier_window().await.is_err());
-    }
 
     #[tokio::test]
     async fn restore_recovers_standard_and_randomized_issued_addresses() {
@@ -748,98 +718,6 @@ mod issued_address_tests {
             .unwrap_err()
             .to_string()
             .contains("permanently assigned"));
-    }
-
-    #[tokio::test]
-    async fn history_pages_are_bounded_ordered_and_skip_spent_notes() -> anyhow::Result<()> {
-        let storage = Storage::initialize(
-            None::<&Utf8Path>,
-            (*test_keys::FULL_VIEWING_KEY).clone(),
-            AppParameters::default(),
-        )
-        .await?;
-        for i in (1..=35u64).chain([255, 256, 257]) {
-            let nullifier = Nullifier(Fq::from(i));
-            storage.pool.get()?.execute(
-                "INSERT INTO spendable_notes (note_commitment,nullifier,position,height_created,address_index,source) VALUES (?1,?2,?3,0,X'',X'')",
-                rusqlite::params![nullifier.to_bytes().to_vec(),nullifier.to_bytes().to_vec(),i])?;
-            storage
-                .put_historical_proof_cache(HistoricalProofCache::pending(nullifier))
-                .await?;
-        }
-        storage.pool.get()?.execute(
-            "UPDATE spendable_notes SET height_spent=1 WHERE nullifier=?1",
-            [Nullifier(Fq::from(34)).to_bytes().to_vec()],
-        )?;
-        let mut expected = (1..=35u64)
-            .chain([255, 256, 257])
-            .filter(|i| *i != 34)
-            .map(|i| Nullifier(Fq::from(i)))
-            .collect::<Vec<_>>();
-        expected.sort_by_key(|nullifier| nullifier.to_bytes());
-        let first = storage.historical_proof_cache_page(None).await?;
-        assert_eq!(first.len(), 32);
-        let second = storage
-            .historical_proof_cache_page(Some(first.last().unwrap().proof.nullifier))
-            .await?;
-        assert_eq!(second.len(), 5);
-        let collected = first
-            .iter()
-            .chain(&second)
-            .map(|cache| cache.proof.nullifier)
-            .collect::<Vec<_>>();
-        assert_eq!(collected, expected);
-        assert!(storage
-            .historical_proof_cache_page(Some(second.last().unwrap().proof.nullifier))
-            .await?
-            .is_empty());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn historical_proof_cache_round_trips_and_deletes() {
-        let storage = Storage::initialize(
-            None::<&Utf8Path>,
-            (*test_keys::FULL_VIEWING_KEY).clone(),
-            AppParameters::default(),
-        )
-        .await
-        .unwrap();
-        let nullifier = Nullifier(Fq::from(77u64));
-        let connection = storage.pool.get().unwrap();
-        connection.execute("INSERT INTO spendable_notes (note_commitment,nullifier,position,height_created,address_index,source) VALUES (?1,?2,0,0,X'',X'')",rusqlite::params![[8u8;32].to_vec(),nullifier.to_bytes().to_vec()]).unwrap();
-        drop(connection);
-        let cache = HistoricalProofCache::pending(nullifier);
-        storage
-            .put_historical_proof_cache(cache.clone())
-            .await
-            .unwrap();
-        assert_eq!(
-            storage.historical_proof_cache(nullifier).await.unwrap(),
-            Some(cache.clone())
-        );
-        storage
-            .delete_historical_proof_cache(nullifier)
-            .await
-            .unwrap();
-        storage
-            .pool
-            .get()
-            .unwrap()
-            .execute(
-                "UPDATE spendable_notes SET height_spent=1 WHERE nullifier=?1",
-                [nullifier.to_bytes().to_vec()],
-            )
-            .unwrap();
-        assert_eq!(
-            storage.put_historical_proof_cache(cache).await.unwrap(),
-            HistoricalCacheWrite::NoteSpent
-        );
-        assert!(storage
-            .historical_proof_cache(nullifier)
-            .await
-            .unwrap()
-            .is_none());
     }
 }
 
@@ -1179,169 +1057,6 @@ impl Storage {
                 )?;
             }
             transaction.commit()?;
-            anyhow::Ok(())
-        })
-        .await?
-    }
-
-    fn put_historical_proof_cache_inner(
-        connection: &rusqlite::Connection,
-        cache: &HistoricalProofCache,
-    ) -> anyhow::Result<HistoricalCacheWrite> {
-        cache.validate()?;
-        let proof: pb_sct::HistoricalNullifierProof = cache.proof.clone().into();
-        let written = connection.execute(
-            "INSERT INTO historical_proof_cache
-             (nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses)
-             SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 FROM spendable_notes WHERE nullifier = ?1 AND height_spent IS NULL
-             ON CONFLICT(nullifier) DO UPDATE SET
-               protocol_version = excluded.protocol_version, proof_bundle = excluded.proof_bundle,
-               cache_state = excluded.cache_state, last_error = excluded.last_error,
-               registry_id = excluded.registry_id, pending_witnesses = excluded.pending_witnesses",
-            rusqlite::params![cache.proof.nullifier.to_bytes().to_vec(), cache.protocol_version,
-                proof.encode_to_vec(), cache.state.storage_id(), cache.last_error.as_deref(),
-                cache.registry_id.map(|id|id.to_vec()), serde_json::to_vec(&cache.pending)?],
-        )?;
-        Ok(if written == 0 {
-            HistoricalCacheWrite::NoteSpent
-        } else {
-            HistoricalCacheWrite::Stored
-        })
-    }
-    #[cfg(test)]
-    async fn put_historical_proof_cache(
-        &self,
-        cache: HistoricalProofCache,
-    ) -> anyhow::Result<HistoricalCacheWrite> {
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            let connection = pool.get()?;
-            Self::put_historical_proof_cache_inner(&connection, &cache)
-        })
-        .await?
-    }
-
-    /// Worker writes compare both the persisted row and its captured chain window.
-    pub(crate) async fn update_historical_proof_cache(
-        &self,
-        expected: HistoricalProofCache,
-        window: NullifierWindow,
-        cache: HistoricalProofCache,
-    ) -> anyhow::Result<HistoricalCacheWrite> {
-        anyhow::ensure!(
-            expected.proof.nullifier == cache.proof.nullifier,
-            "history update changed nullifier"
-        );
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            let mut connection = pool.get()?;
-            let tx = connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-            let unspent: bool = tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM spendable_notes WHERE nullifier = ?1 AND height_spent IS NULL)",
-                [expected.proof.nullifier.to_bytes().to_vec()], |row| row.get(0),
-            )?;
-            if !unspent {
-                return Ok(HistoricalCacheWrite::NoteSpent);
-            }
-            let bytes: Option<Vec<u8>> = tx.query_row(
-                "SELECT v FROM kv WHERE k = 'nullifier_window'", [], |row| row.get(0),
-            ).optional()?;
-            let current_window: Option<NullifierWindow> = bytes
-                .map(|bytes| pb_sct::NullifierWindow::decode(bytes.as_slice())?.try_into())
-                .transpose()?;
-            if current_window != Some(window) {
-                return Ok(HistoricalCacheWrite::Stale);
-            }
-            let current = {
-                let mut statement = tx.prepare_cached(
-                    "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses
-                     FROM historical_proof_cache WHERE nullifier = ?1",
-                )?;
-                let mut rows = statement.query([expected.proof.nullifier.to_bytes().to_vec()])?;
-                rows.next()?.map(Self::decode_historical_cache).transpose()?
-            };
-            if current.as_ref() != Some(&expected) {
-                return Ok(HistoricalCacheWrite::Stale);
-            }
-            let outcome = Self::put_historical_proof_cache_inner(&tx, &cache)?;
-            tx.commit()?;
-            Ok(outcome)
-        }).await?
-    }
-
-    fn decode_historical_cache(row: &rusqlite::Row<'_>) -> anyhow::Result<HistoricalProofCache> {
-        let key: Vec<u8> = row.get(0)?;
-        let bundle: Vec<u8> = row.get(2)?;
-        let cache = HistoricalProofCache {
-            protocol_version: row.get(1)?,
-            proof: pb_sct::HistoricalNullifierProof::decode(bundle.as_slice())?.try_into()?,
-            state: HistoricalProofCacheState::from_storage_id(row.get(3)?)?,
-            last_error: row.get(4)?,
-            registry_id: row
-                .get::<_, Option<Vec<u8>>>(5)?
-                .map(|bytes| {
-                    bytes
-                        .try_into()
-                        .map_err(|_| anyhow::anyhow!("invalid history registry ID"))
-                })
-                .transpose()?,
-            pending: serde_json::from_slice(&row.get::<_, Vec<u8>>(6)?)?,
-        };
-        anyhow::ensure!(
-            cache.proof.nullifier == Nullifier::try_from(key)?,
-            "historical proof cache nullifier mismatch"
-        );
-        cache.validate()?;
-        Ok(cache)
-    }
-
-    pub async fn historical_proof_cache(
-        &self,
-        nullifier: Nullifier,
-    ) -> anyhow::Result<Option<HistoricalProofCache>> {
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            let connection = pool.get()?;
-            let mut statement = connection.prepare_cached(
-                "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses
-                 FROM historical_proof_cache WHERE nullifier = ?1",
-            )?;
-            let mut rows = statement.query([nullifier.to_bytes().to_vec()])?;
-            rows.next()?.map(Self::decode_historical_cache).transpose()
-        })
-        .await?
-    }
-
-    pub(crate) async fn historical_proof_cache_page(
-        &self,
-        after: Option<Nullifier>,
-    ) -> anyhow::Result<Vec<HistoricalProofCache>> {
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            let connection = pool.get()?;
-            let mut statement = connection.prepare_cached(
-                "SELECT c.nullifier, c.protocol_version, c.proof_bundle, c.cache_state, c.last_error, c.registry_id, c.pending_witnesses
-                 FROM historical_proof_cache c
-                 WHERE c.nullifier > ?1 AND EXISTS (
-                     SELECT 1 FROM spendable_notes n WHERE n.nullifier = c.nullifier AND n.height_spent IS NULL
-                 )
-                 ORDER BY c.nullifier ASC LIMIT 32",
-            )?;
-            let caches = statement
-                .query_and_then([after.map(|nullifier| nullifier.to_bytes().to_vec()).unwrap_or_default()], Self::decode_historical_cache)?
-                .collect::<anyhow::Result<Vec<_>>>()?;
-            Ok(caches)
-        })
-        .await?
-    }
-
-    pub async fn delete_historical_proof_cache(&self, nullifier: Nullifier) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            pool.get()?.execute(
-                "DELETE FROM historical_proof_cache WHERE nullifier = ?1",
-                [nullifier.to_bytes().to_vec()],
-            )?;
             anyhow::Ok(())
         })
         .await?
@@ -1948,29 +1663,6 @@ impl Storage {
         .await?
     }
 
-    pub async fn nullifier_window(&self) -> anyhow::Result<NullifierWindow> {
-        self.nullifier_window_if_initialized()
-            .await?
-            .context("missing nullifier_window in kv table")
-    }
-
-    pub(crate) async fn nullifier_window_if_initialized(
-        &self,
-    ) -> anyhow::Result<Option<NullifierWindow>> {
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            let bytes = pool
-                .get()?
-                .prepare_cached("SELECT v FROM kv WHERE k IS 'nullifier_window' LIMIT 1")?
-                .query_row([], |row| row.get::<_, Vec<u8>>("v"))
-                .optional()?;
-            bytes
-                .map(|bytes| pb_sct::NullifierWindow::decode(bytes.as_slice())?.try_into())
-                .transpose()
-        })
-        .await?
-    }
-
     pub async fn discovery_parameters(&self) -> anyhow::Result<discovery::Parameters> {
         let pool = self.pool.clone();
 
@@ -2525,10 +2217,6 @@ impl Storage {
                         &tx_hash,
                     ),
                 )?;
-                Storage::put_historical_proof_cache_inner(
-                    &dbtx,
-                    &HistoricalProofCache::pending(note_record.nullifier),
-                )?;
             }
 
             // Update any rows of the table with matching nullifiers to have height_spent
@@ -2536,10 +2224,6 @@ impl Storage {
                 let height_spent = filtered_block.height as i64;
                 let nullifier_bytes = nullifier.to_bytes().to_vec();
 
-                dbtx.execute(
-                    "DELETE FROM historical_proof_cache WHERE nullifier = ?1",
-                    [&nullifier_bytes],
-                )?;
 
                 let spent_commitment: Option<StateCommitment> = dbtx.prepare_cached(
                     "UPDATE spendable_notes SET height_spent = ?1 WHERE nullifier = ?2 RETURNING note_commitment"
@@ -2690,14 +2374,7 @@ impl Storage {
                 )?;
             }
 
-            if let Some(window) = filtered_block.nullifier_window {
-                let bytes = pb_sct::NullifierWindow::from(window).encode_to_vec();
-                dbtx.execute(
-                    "INSERT INTO kv (k, v) VALUES ('nullifier_window', ?1)
-                    ON CONFLICT(k) DO UPDATE SET v = excluded.v",
-                    [&bytes],
-                )?;
-            }
+
 
             if let Some(plan) = compliance_plan {
                 anyhow::ensure!(

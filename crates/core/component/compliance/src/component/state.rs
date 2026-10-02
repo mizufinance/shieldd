@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use cnidarium::StateWrite;
-use cnidarium_component::{ActionHandler, Component};
 use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_storage::StateWrite;
+use shieldd_sdk_storage::{ActionHandler, Component};
 use tracing::instrument;
 
 use crate::{
@@ -170,7 +170,7 @@ impl Component for Compliance {
     #[instrument(name = "compliance", skip(state, begin_block))]
     async fn begin_block<S: StateWrite + 'static>(
         state: &mut Arc<S>,
-        begin_block: &cnidarium_component::BlockContext,
+        begin_block: &shieldd_sdk_storage::BlockContext,
     ) {
         use shieldd_sdk_proto::StateReadProto;
         let state = Arc::get_mut(state).expect("unique compliance state");
@@ -389,7 +389,6 @@ impl ActionHandler for MsgRegisterAsset {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::{StateRead, TempStorage};
     use group::{Group, GroupEncoding};
     use rand_core::OsRng;
     use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
@@ -397,6 +396,7 @@ mod tests {
     use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_sct::component::clock::EpochManager;
+    use shieldd_sdk_storage::{StateRead, TempStorage};
 
     use crate::genesis::{GenesisUserRegistration, NativeAssetRegistration};
     use crate::structs::{
@@ -408,7 +408,7 @@ mod tests {
     const TEST_VALID_UNTIL_UNIX: u64 = TEST_BLOCK_UNIX as u64 + 300;
     const TEST_CHAIN_ID: &str = "shieldd-test";
 
-    fn set_test_block_time<S: cnidarium::StateWrite>(state: &mut S, unix: i64) {
+    fn set_test_block_time<S: shieldd_sdk_storage::StateWrite>(state: &mut S, unix: i64) {
         let timestamp =
             tendermint::Time::from_unix_timestamp(unix, 0).expect("test timestamp is valid");
         state.put_block_timestamp(1, timestamp);
@@ -523,7 +523,7 @@ mod tests {
     async fn default_genesis_initializes_empty_compliance_trees() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
         state.put_raw(
             "application/data/chain_id".to_string(),
             TEST_CHAIN_ID.as_bytes().to_vec(),
@@ -559,7 +559,7 @@ mod tests {
     async fn custom_genesis_is_preserved_when_no_genesis_is_supplied() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
         state.put_raw(
             "application/data/chain_id".to_string(),
             TEST_CHAIN_ID.as_bytes().to_vec(),
@@ -640,7 +640,7 @@ mod tests {
     async fn test_msg_register_user_for_regulated_asset() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -715,7 +715,7 @@ mod tests {
     #[tokio::test]
     async fn registration_persists_distinct_address_scopes() {
         let storage = TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
         let asset_id = asset::Id(Fq::from(11u64));
@@ -773,7 +773,7 @@ mod tests {
     async fn test_msg_register_user_rejects_identity_rnk_dh() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -821,7 +821,7 @@ mod tests {
     async fn registration_for_unregulated_assets_leaves_no_user_or_event() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         Compliance::init_chain(&mut state, Some(&genesis::Content::default())).await;
 
@@ -858,7 +858,7 @@ mod tests {
     async fn test_msg_register_asset() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -892,7 +892,7 @@ mod tests {
     #[tokio::test]
     async fn regulated_asset_registration_requires_explicit_orbis_ring_key() {
         let storage = TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
         Compliance::init_chain(
@@ -921,7 +921,7 @@ mod tests {
     async fn test_asset_registration_rejects_unauthorized_registrar() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let authorized_registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let unauthorized_registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -984,7 +984,7 @@ mod tests {
     async fn test_asset_registration_rejects_expired_grant() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -1018,7 +1018,7 @@ mod tests {
     async fn test_user_registration_rejects_missing_wrong_and_expired_grants() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);
@@ -1092,7 +1092,7 @@ mod tests {
     #[tokio::test]
     async fn asset_admission_rejects_audit_keys_shared_with_other_authorities() {
         let storage = TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         let registrar = SigningKey::<SpendAuth>::new(OsRng);
         let authority = SigningKey::<SpendAuth>::new(OsRng);
         Compliance::init_chain(
@@ -1155,7 +1155,7 @@ mod tests {
     async fn test_msg_register_unregulated_asset_is_noop() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         Compliance::init_chain(
@@ -1206,7 +1206,7 @@ mod tests {
     async fn test_msg_register_regulated_without_dk_pub_fails() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
 
         let registrar_sk = SigningKey::<SpendAuth>::new(OsRng);
         let authority_sk = SigningKey::<SpendAuth>::new(OsRng);

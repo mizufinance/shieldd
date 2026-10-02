@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use cnidarium::StateWrite;
+use shieldd_sdk_storage::StateWrite;
 use shieldd_sdk_txhash::TransactionId;
 
 use crate::state_key;

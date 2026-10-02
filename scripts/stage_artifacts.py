@@ -14,8 +14,12 @@ GROUPS = {
     "native": ["shieldd"],
     "provers": ["bankd-e2e-spend-builder", "bankd-e2e-host-withdrawal-builder"],
     "audit": ["orbis-integration"],
+    "maintenance": ["shieldd"],
 }
 
+
+def targets(group):
+    return ["shieldd-store"] if group == "maintenance" else GROUPS[group]
 
 def digest(path):
     with path.open("rb") as source:
@@ -54,7 +58,7 @@ def verify(directory, expected, target=None, profile="release"):
     required = set()
     for group in manifest["groups"]:
         required.update({"include/shieldd.h", "lib/libshieldd.a"} if group == "native"
-                        else {f"bin/{name}" for name in GROUPS[group]})
+                        else {f"bin/{name}" for name in targets(group)})
     if not required.issubset(manifest["files"]):
         raise ValueError("artifact manifest omits required deliverables")
     for name, checksum in manifest["files"].items():
@@ -74,6 +78,8 @@ def build(group, output, source_revision, target, profile="release"):
         command += ["--package", package]
     if group == "native":
         command += ["--lib"]
+    elif group == "maintenance":
+        command += ["--bin", "shieldd-store"]
     env = dict(os.environ)
     for name in ("CARGO_BUILD_JOBS", "RAYON_NUM_THREADS", "GOMAXPROCS"):
         env.setdefault(name, "2")
@@ -84,7 +90,7 @@ def build(group, output, source_revision, target, profile="release"):
         event = json.loads(line)
         if event.get("reason") == "compiler-artifact":
             name = event["target"]["name"]
-            if name not in GROUPS[group]:
+            if name not in targets(group):
                 continue
             profiles[name] = event["profile"]["debug_assertions"]
             if group == "native":
@@ -95,9 +101,9 @@ def build(group, output, source_revision, target, profile="release"):
                 copies[f"bin/{name}"] = Path(event["executable"])
     if process.wait():
         raise RuntimeError("artifact build failed")
-    if set(profiles) != set(GROUPS[group]):
+    if set(profiles) != set(targets(group)):
         raise ValueError("build did not provide compiler provenance")
-    expected = {"lib/libshieldd.a"} if group == "native" else {f"bin/{name}" for name in GROUPS[group]}
+    expected = {"lib/libshieldd.a"} if group == "native" else {f"bin/{name}" for name in targets(group)}
     if not expected.issubset(copies):
         raise ValueError(f"build did not produce {sorted(expected - copies.keys())}")
     if group == "native":

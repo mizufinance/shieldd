@@ -25,7 +25,7 @@ const MANIFEST_LIMIT: u64 = 64 * 1024;
 const VERIFYING_KEY_LIMIT: u64 = 8 * 1024 * 1024;
 const DOMAIN_LIMIT: usize = 1 << 21;
 const PROVING_KEY_LIMIT: u64 = 512 * 1024 * 1024;
-const SCHEMA: &str = "shieldd.pari.keys.v1";
+const SCHEMA: &str = "shieldd.pari.keys.v2";
 
 /// Shares two native workers for upstream proving operations; callers retain proof ownership.
 #[cfg(not(target_arch = "wasm32"))]
@@ -101,6 +101,10 @@ pub struct Verified {
     item: Verification,
 }
 impl Verified {
+    pub fn allocated_bytes(&self) -> usize {
+        self.item.envelope.allocated_bytes()
+    }
+
     pub fn registry_id(&self) -> [u8; 32] {
         self.registry_id
     }

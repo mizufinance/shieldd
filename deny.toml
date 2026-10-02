@@ -27,8 +27,8 @@ allow = [
     "Zlib",
     "NCSA",      # permissive University of Illinois/NCSA license; libfuzzer-sys
     "BSL-1.0",   # Boost Software License (permissive) — used by ryu via serde_json
-    "MPL-2.0",   # file-level copyleft only; we don't modify these files.
-                 # affects: option-ext (via dirs)
+    "MPL-2.0",   # file-level copyleft; retain source/license for the chunks backport.
+                 # also affects option-ext (via dirs)
     "OpenSSL",   # via ring; combined with ISC+MIT, see clarify below
     "EPL-2.0",   # Eclipse Public License — colored_json (pcli CLI output).
                  # Weak copyleft: file-level only, we do not modify it.
@@ -117,6 +117,10 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # Git origins are pinned per-rev/branch in Cargo.lock; this list gates which
 # origins are permitted at all.
 allow-git = [
+    # NOMT persistence/proof extensions and storage allocation accounting.
+    # Both forks are pinned to exact revisions in the dependency manifests.
+    "https://github.com/AntoineCyr/nomt",
+    "https://github.com/AntoineCyr/imbl",
     # Pinned Orbis protocol and client dependencies.
     "https://github.com/sourcenetwork/orbis-rs",
 ]

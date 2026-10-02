@@ -29,7 +29,6 @@ impl NoteReshapeFamilyId {
 #[derive(Clone, Debug)]
 pub struct NoteReshapeInputPublic {
     pub nullifier: Nullifier,
-    pub history_required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -48,7 +47,6 @@ pub struct NoteReshapeProofPublic {
     pub compliance_anchor: tct::StateCommitment,
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
-    pub recent_position_floor: u64,
     pub inputs: Vec<NoteReshapeInputPublic>,
     pub outputs: Vec<NoteReshapeOutputPublic>,
 }

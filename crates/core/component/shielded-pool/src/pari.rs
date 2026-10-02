@@ -132,13 +132,11 @@ fn spend(
     note_value: &Note,
     path: &tct::Proof,
     nullifier: Nullifier,
-    history_required: bool,
 ) -> Result<c::note::SpendWitness> {
     Ok(c::note::SpendWitness {
         note: note(note_value),
         path: state_path(path),
         nullifier: field(&nullifier.0),
-        history_required,
     })
 }
 fn capsule(value: &RecoveryCapsule) -> c::recovery::Capsule<Scalar> {
@@ -304,7 +302,6 @@ pub(crate) fn transfer(
             asset: field(&required.spent_note.asset_id().0),
             regulated: w.is_regulated,
             timestamp: field(&p.target_timestamp),
-            recent_floor: Scalar::from(p.recent_position_floor),
             nonce_root: scalar(w.compliance.transfer_nonce_root),
             balance_blinding: scalar(w.action_balance_blinding),
             auth: authorization(w.ak, w.nk)?,
@@ -324,13 +321,11 @@ pub(crate) fn transfer(
                     &required.spent_note,
                     &required.state_commitment_proof,
                     p.inputs[0].nullifier,
-                    p.inputs[0].history_required,
                 )?,
                 spend(
                     &optional.spent_note,
                     &optional.state_commitment_proof,
                     p.inputs[1].nullifier,
-                    p.inputs[1].history_required,
                 )?,
             ],
             optional: c::note::OptionalWitness {
@@ -392,7 +387,6 @@ pub(crate) fn reshape(
         compliance_anchor: field(&p.compliance_anchor.0),
         asset: field(&w.inputs[0].spent_note.asset_id().0),
         regulated: w.is_regulated,
-        recent_floor: Scalar::from(p.recent_position_floor),
         balance_blinding: scalar(w.action_balance_blinding),
         routing_nonce: field(&w.routing_nonce),
         routing: single_routing(
@@ -414,12 +408,7 @@ pub(crate) fn reshape(
         .zip(&p.inputs)
         .map(|(w, p)| {
             Ok(c::reshape::MergeInput {
-                spend: spend(
-                    &w.spent_note,
-                    &w.state_commitment_proof,
-                    p.nullifier,
-                    p.history_required,
-                )?,
+                spend: spend(&w.spent_note, &w.state_commitment_proof, p.nullifier)?,
                 padding: c::note::OptionalWitness {
                     is_dummy: w.is_dummy,
                     seed: field(&w.dummy_nullifier_seed),
@@ -478,7 +467,6 @@ pub(crate) fn withdrawal(
         compliance_anchor: field(&p.compliance_anchor.0),
         asset: field(&p.outbound_asset_id),
         regulated: w.is_regulated,
-        recent_floor: Scalar::from(p.recent_position_floor),
         balance_blinding: scalar(w.action_balance_blinding),
         routing_nonce: field(&w.routing_nonce),
         routing: single_routing(
@@ -507,13 +495,11 @@ pub(crate) fn withdrawal(
                     &required.spent_note,
                     &required.state_commitment_proof,
                     p.inputs[0].nullifier,
-                    p.inputs[0].history_required,
                 )?,
                 spend(
                     &optional.spent_note,
                     &optional.state_commitment_proof,
                     p.inputs[1].nullifier,
-                    p.inputs[1].history_required,
                 )?,
             ],
             optional: c::note::OptionalWitness {
@@ -557,8 +543,6 @@ pub(crate) fn seizure(
         anchor: field(&s.anchor),
         commitment: field(&s.commitment),
         nullifier: field(&s.nullifier),
-        history_required: field(&s.history_required),
-        recent_floor: field(&s.recent_floor),
         address: address(&p.authorization.address),
         asset: field(&s.asset),
         amount: field(&s.amount),

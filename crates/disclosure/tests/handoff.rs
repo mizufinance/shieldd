@@ -80,7 +80,6 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
         nullifier: shieldd_sdk_sct::Nullifier(Fq::from(3u64)),
         encrypted_backref: pool::EncryptedBackref::try_from([1; 48]).unwrap(),
         compliance_ciphertext: vec![],
-        history_required: false,
     };
     use commonware_cryptography::{
         bls12381::primitives::group::{Scalar, G1},
@@ -126,13 +125,6 @@ fn transaction(flagged: bool, self_transfer: bool, epoch: u64) -> Transaction {
                 chain_id: "handoff-fixture".into(),
                 ..Default::default()
             },
-            nullifier_window: Some(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
-                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                current_generation: 0,
-                recent_position_floor: 0,
-                archived_generation_count: 0,
-                archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
-            }),
             ..Default::default()
         },
         ..Default::default()

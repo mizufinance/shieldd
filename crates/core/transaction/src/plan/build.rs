@@ -30,13 +30,10 @@ impl TransactionPlan {
                 transaction_parameters: self.transaction_parameters,
                 fee_funding,
                 memo,
-                nullifier_window: self.nullifier_window,
-                historical_nullifier_proofs: witness_data.historical_nullifier_proofs.clone(),
             },
             anchor: witness_data.anchor,
             binding_sig: [0; 64].into(),
         };
-        transaction.transaction_body.validate_nullifier_history()?;
         Ok(transaction)
     }
 
@@ -222,7 +219,6 @@ impl TransactionPlan {
         auth_data: &AuthorizationData,
         registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Transaction> {
-        let recent_position_floor = self.recent_position_floor()?;
         let actions = self
             .actions
             .iter()
@@ -232,7 +228,6 @@ impl TransactionPlan {
                     full_viewing_key,
                     witness_data,
                     self.memo_key(),
-                    recent_position_floor,
                     registry,
                 )
             })
@@ -242,13 +237,7 @@ impl TransactionPlan {
             .fee_funding
             .as_ref()
             .map(|fee_funding| {
-                fee_funding.build_unauth(
-                    full_viewing_key,
-                    witness_data,
-                    &memo_key,
-                    recent_position_floor,
-                    registry,
-                )
+                fee_funding.build_unauth(full_viewing_key, witness_data, &memo_key, registry)
             })
             .transpose()?;
 
@@ -297,7 +286,6 @@ impl TransactionPlan {
         Ok(WitnessData {
             anchor,
             state_commitment_proofs,
-            historical_nullifier_proofs: Vec::new(),
         })
     }
 }

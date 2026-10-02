@@ -10,6 +10,4 @@ pub struct TransactionContext {
     pub anchor: tct::Root,
     /// The transaction's effect hash.
     pub effect_hash: EffectHash,
-    /// The authenticated SCT position floor for old/recent classification.
-    pub recent_position_floor: u64,
 }

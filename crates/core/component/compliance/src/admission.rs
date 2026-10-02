@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{core::component::compliance::v1 as pb, DomainType};
 use shieldd_sdk_tct::StateCommitment;
 
+// Each of 64 expired snapshots reads its index/pair and deletes two keys.
+// Ordered writes reserve up to four observations per changed ordinary key.
+pub const FINALIZATION_OBSERVATIONS: usize = 64 * (2 + 1 + 2 * 4) + 64;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::ComplianceSnapshot", into = "pb::ComplianceSnapshot")]
 pub struct ComplianceSnapshot {
@@ -83,10 +87,10 @@ pub mod state {
         params::StateReadExt, registry::ComplianceRegistryRead, state_key::admission as key,
     };
     use anyhow::ensure;
-    use cnidarium::{StateRead, StateWrite};
     use futures::StreamExt;
     use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
     use shieldd_sdk_sct::component::clock::EpochRead;
+    use shieldd_sdk_storage::{StateRead, StateWrite};
 
     pub const PRUNE_LIMIT: usize = 64;
 

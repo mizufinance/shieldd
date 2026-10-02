@@ -3,7 +3,7 @@ use anyhow::{ensure, Result};
 use r2d2_sqlite::rusqlite::{OptionalExtension, TransactionBehavior};
 
 impl Storage {
-    /// Bind local proof work to one configured registry without altering existing proof caches.
+    /// Bind local proof work to one configured registry.
     pub async fn bind_registry(&self, registry_id: [u8; 32]) -> Result<()> {
         let pool = self.pool.clone();
         tokio::task::spawn_blocking(move || {
@@ -31,14 +31,6 @@ pub(super) fn bind(
     if let Some(stored) = stored {
         ensure!(stored.as_slice() == registry_id, "Pari registry does not match this wallet; restore its configured keys or reset the wallet");
     } else {
-        let mismatches: u64 = transaction.query_row(
-                    "SELECT COUNT(*) FROM historical_proof_cache WHERE registry_id IS NOT NULL AND registry_id != ?1",
-                    [registry_id.as_slice()], |r| r.get(0),
-                )?;
-        ensure!(
-            mismatches == 0,
-            "Pari registry does not match existing wallet history proofs"
-        );
         transaction.execute(
             "INSERT INTO kv (k,v) VALUES ('pari_registry_id',?1)",
             [registry_id.as_slice()],

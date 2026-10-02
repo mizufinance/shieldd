@@ -40,8 +40,6 @@ pub(crate) fn fixture(p: &Parameters) -> Witness {
                 &[rnk.clone(), commitment.clone(), path.position.clone()],
             ),
             commitment,
-            history_required: Scalar::one(),
-            recent_floor: Scalar::from(43),
             address,
             asset,
             amount,
@@ -66,7 +64,7 @@ fn released_seed_note_membership_and_every_public_fact_are_bound() {
     let w = fixture(&p);
     let digest = w.statement.digest(&p);
     assert!(satisfied(&p, &w, &digest));
-    for mutation in 0..21 {
+    for mutation in 0..19 {
         let mut bad = w.clone();
         match mutation {
             0 => bad.blinding += &Scalar::one(),
@@ -84,11 +82,9 @@ fn released_seed_note_membership_and_every_public_fact_are_bound() {
             12 => bad.statement.amount += &Scalar::one(),
             13 => bad.statement.nullifier += &Scalar::one(),
             14 => bad.statement.rnk_commitment += &Scalar::one(),
-            15 => bad.statement.history_required = Scalar::zero(),
-            16 => bad.statement.recent_floor = Scalar::from(1u64 << 48),
-            17 => bad.statement.address.transmission = Point::identity(),
-            18 => bad.statement.asset += &Scalar::one(),
-            19 => {
+            15 => bad.statement.address.transmission = Point::identity(),
+            16 => bad.statement.asset += &Scalar::one(),
+            17 => {
                 bad.statement.address.transmission = group::generator().multiply(&Scalar::from(41))
             }
             _ => bad.statement.commitment += &Scalar::one(),
@@ -102,10 +98,4 @@ fn released_seed_note_membership_and_every_public_fact_are_bound() {
     changed.statement.authorization += &Scalar::one();
     assert!(!satisfied(&p, &changed, &digest));
     assert!(satisfied(&p, &changed, &changed.statement.digest(&p)));
-    for (floor, old) in [(41, false), (42, false), (43, true)] {
-        let mut boundary = w.clone();
-        boundary.statement.recent_floor = Scalar::from(floor);
-        boundary.statement.history_required = Scalar::from(u64::from(old));
-        assert!(satisfied(&p, &boundary, &boundary.statement.digest(&p)));
-    }
 }

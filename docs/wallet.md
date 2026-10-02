@@ -3,7 +3,7 @@
 [View](../crates/view/src) consumes host-supplied `WalletBlock` records through
 `SyncWorker`. Each record contains compact data, transactions, a timestamp and
 an expected SCT root. The worker verifies roots before atomically committing
-notes, witnesses, compliance projection, historical state and the new sync height.
+notes, witnesses, compliance projection and the new sync height.
 A failed projection cannot publish partial wallet state. Block admission checks the
 predecessor height inside the same transaction, so only one competing scan can commit.
 Each worker binds its in-memory trees to a durable height and rejects scans after another
@@ -24,7 +24,7 @@ metadata and every compliance event. The checked sparse constructor validates
 positions, canonical padding, paths and shared nodes. The resulting SCT must match
 the independently supplied host root before commit. Spend pages cover each scanned
 block, including newly discovered notes, seizures and other-device spends. Positive
-membership must match an independently supplied generation root and the requested
+membership must match an independently authenticated published nullifier boundary and the requested
 height. Omission completeness and exact spend-time mapping remain trusted-provider
 facts; this is not a light client. Selectors and owned nullifiers are disclosed to
 that provider. See [routing privacy](routing.md#remote-privacy-modes).
@@ -68,23 +68,12 @@ internal hashes from their persisted positions and leaves. The schema hash rejec
 older wallet databases; reset and resynchronize them before use.
 See [tree persistence](state.md) for mutation and atomicity rules.
 
-`SyncWorker` owns one background `HistoricalProofWorker`, an explicit configured
-Pari registry and a `HistoricalWitnessSource`. Startup and committed scans schedule
-history work without awaiting external witnesses or proving. `request_history_update`
-coalesces wake requests, and the worker also retries 30 seconds after each pass.
-Each pass reads bounded pages and advances each note by at most ten checked
-witnesses and one proof, serially; the number of notes in a pass is not capped.
-A witness request times out after 30 seconds and persists a retryable failure.
-Blocked, invalid and useful failure states remain durable; work becomes ready
-only after archive/proof prerequisites validate. Every worker write compares its
-expected cache row and captured nullifier window atomically; stale work is discarded.
-Spent notes cannot regain history cache rows.
-Dropping the sync worker cancels its history task. Already-started blocking proof
-work may finish without its cancelled caller publishing the result. Database
-writes already dispatched may also finish and remain guarded by the row/window
-comparison. The shared prover limit still bounds proof work. View's optional `rpc` feature supplies
-`RpcHistoricalWitnessSource`; hosts may supply another real external source.
-[Nullifier history](nullifier-history.md) defines coverage, archive and pruning requirements.
+Planning and witness construction use ordinary spend relations regardless of
+note age, including fee funding. There is no historical proof worker, cache or
+backfill prerequisite. Wallets synchronize SCT/compliance material and discover
+spent notes through compact scanning or authenticated tip status. The wallet
+schema rejects stale databases; reset and resynchronize them before use.
+[Permanent nullifiers](nullifier-history.md) defines proof trust and query privacy.
 
 Completion permits at most one real daily-volume transition per subject/day,
 including precompleted actions. A daily-volume transfer reserves one confirmed

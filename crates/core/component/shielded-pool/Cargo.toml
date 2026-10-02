@@ -10,10 +10,9 @@ edition = {workspace = true}
 [features]
 benchmark-helpers = ["prover", "component", "shieldd-sdk-compliance/test-helpers"]
 component = [
-    "cnidarium-component",
-    "cnidarium",
+    "shieldd-sdk-storage/persistent",
     "shieldd-sdk-compliance/component",
-    "shieldd-sdk-proto/cnidarium",
+    "shieldd-sdk-proto/state",
     "shieldd-sdk-sct/component",
 ]
 default = ["component"]
@@ -21,6 +20,7 @@ prover = []
 parallel = ["shieldd-sdk-tct/parallel"]
 
 [dependencies]
+shieldd-sdk-storage = { workspace = true, default-features = false }
 shieldd-sdk-crypto.workspace = true
 shieldd-sdk-circuits.workspace = true
 commonware-cryptography.workspace = true
@@ -35,12 +35,9 @@ base64 = {workspace = true}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true}
 chacha20poly1305 = {workspace = true}
-cnidarium = {workspace = true, optional = true, default-features = true}
-cnidarium-component = {workspace = true, optional = true, default-features = true}
 futures = {workspace = true}
 hex = {workspace = true}
 imbl = {workspace = true}
-jmt = {workspace = true}
 metrics = {workspace = true}
 once_cell = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
@@ -65,6 +62,7 @@ thiserror = {workspace = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+shieldd-sdk-storage = { workspace = true, features = ["test-support"] }
 shieldd-sdk-shielded-pool = {path = ".", default-features = false, features = ["prover"]}
 criterion = {workspace = true}
 shieldd-sdk-compliance = {workspace = true, default-features = false, features = ["test-helpers"]}

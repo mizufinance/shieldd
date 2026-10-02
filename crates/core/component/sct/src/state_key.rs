@@ -32,111 +32,12 @@ pub mod epoch_manager {
     }
 }
 
-pub mod nullifier_generations {
-    use crate::nullifier_generation::NullifierTreeId;
-
-    pub fn block_range(generation: u64) -> Vec<u8> {
-        format!("sct/nullifier_generations/history/{generation:020}/range").into_bytes()
-    }
-    pub fn insertion(generation: u64, height: u64) -> Vec<u8> {
-        format!("sct/nullifier_generations/history/{generation:020}/blocks/{height:020}")
-            .into_bytes()
-    }
-    pub fn spend_prefix(generation: u64) -> Vec<u8> {
-        format!("sct/nullifier_generations/history/{generation:020}/positions/").into_bytes()
-    }
-    pub fn spend_interval(generation: u64, position: u64) -> Vec<u8> {
-        let mut key = spend_prefix(generation);
-        key.extend_from_slice(&(u64::MAX - position).to_be_bytes());
-        key
-    }
-    pub fn storage_prefix() -> &'static str {
-        "sct/nullifier_generations/"
-    }
-
-    pub fn state() -> &'static str {
-        "sct/nullifier_generations/state"
-    }
-
+pub mod nullifiers {
     pub fn pending_block() -> &'static str {
-        "sct/nullifier_generations/pending_block"
+        "sct/nullifiers/pending_block"
     }
-
-    pub fn retired_record(tree: NullifierTreeId) -> Vec<u8> {
-        format!(
-            "sct/nullifier_generations/archive/{}/retired_record",
-            tree.storage_segment()
-        )
-        .into_bytes()
-    }
-
-    pub fn local_pack_receipt(tree: NullifierTreeId) -> Vec<u8> {
-        format!(
-            "sct/nullifier_generations/archive/{}/local_pack_receipt",
-            tree.storage_segment()
-        )
-        .into_bytes()
-    }
-
-    pub fn prune_cursor() -> &'static [u8] {
-        b"sct/nullifier_generations/local_prune_cursor"
-    }
-
-    fn tree_base(tree: NullifierTreeId) -> String {
-        format!("sct/nullifier_generations/tree/{}", tree.storage_segment())
-    }
-
-    pub fn schema(tree: NullifierTreeId) -> String {
-        format!("{}/schema", tree_base(tree))
-    }
-
-    pub fn root(tree: NullifierTreeId) -> String {
-        format!("{}/root", tree_base(tree))
-    }
-
-    pub fn tree_node_prefix(tree: NullifierTreeId) -> Vec<u8> {
-        format!("{}/imt/node/", tree_base(tree)).into_bytes()
-    }
-
-    pub fn tree_node(tree: NullifierTreeId, level: u8, position: u64) -> Vec<u8> {
-        let mut key = tree_node_prefix(tree);
-        key.push(level);
-        key.extend_from_slice(&position.to_be_bytes());
-        key
-    }
-
-    pub fn leaf_prefix(tree: NullifierTreeId) -> Vec<u8> {
-        format!("{}/imt/leaf/", tree_base(tree)).into_bytes()
-    }
-
-    pub fn leaf(tree: NullifierTreeId, position: u64) -> Vec<u8> {
-        let mut key = leaf_prefix(tree);
-        key.extend_from_slice(&position.to_be_bytes());
-        key
-    }
-
-    pub fn value_prefix(tree: NullifierTreeId) -> Vec<u8> {
-        format!("{}/imt/value/", tree_base(tree)).into_bytes()
-    }
-
-    pub fn value(tree: NullifierTreeId, nullifier: [u8; 32]) -> Vec<u8> {
-        let mut key = value_prefix(tree);
-        key.extend_from_slice(&nullifier);
-        key
-    }
-
-    pub fn value_desc_prefix(tree: NullifierTreeId) -> Vec<u8> {
-        format!("{}/imt/value_desc/", tree_base(tree)).into_bytes()
-    }
-
-    pub fn value_desc(tree: NullifierTreeId, descending_key: [u8; 32]) -> Vec<u8> {
-        let mut key = value_desc_prefix(tree);
-        key.extend_from_slice(&descending_key);
-        key
-    }
-
-    pub fn leaf_count(tree: NullifierTreeId) -> String {
-        format!("{}/leaf_count", tree_base(tree))
+    pub fn reader() -> &'static str {
+        "sct/nullifiers/reader"
     }
 }
 

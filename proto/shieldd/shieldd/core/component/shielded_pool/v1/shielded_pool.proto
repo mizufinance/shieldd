@@ -165,13 +165,9 @@ message NoteSeizure {
   NoteSeizureAuthorizationBody authorization = 1;
   crypto.redjubjub_rdsa.v1.SpendAuthSignature authority_signature = 2;
   crypto.tct.v1.MerkleRoot anchor = 3;
-  bool history_required = 4;
-  uint64 recent_position_floor = 5;
   RecoveryCapsule recovery_capsule = 6;
   bytes rnk_commitment = 8;
   ZKNoteSeizureProof proof = 12;
-  sct.v1.NullifierWindow nullifier_window = 13;
-  sct.v1.HistoricalNullifierProof historical_nullifier_proof = 14;
   CapsuleReleaseEvidence capsule_release = 15;
 }
 
@@ -182,8 +178,6 @@ message TransferInputBody {
   bytes encrypted_backref = 3;
   // Compliance ciphertext encrypting spent note details for the asset issuer.
   bytes compliance_ciphertext = 4;
-  // Whether this real input must carry a complete retired-history proof.
-  bool history_required = 5;
 }
 
 message TransferOutputBody {
@@ -423,8 +417,6 @@ message NoteReshapeInputBody {
   sct.v1.Nullifier nullifier = 1;
   // An encryption of the commitment of the input note to the sender's OVK.
   bytes encrypted_backref = 3;
-  // Whether this real input must carry a complete retired-history proof.
-  bool history_required = 4;
 }
 
 message NoteReshapeOutputBody {

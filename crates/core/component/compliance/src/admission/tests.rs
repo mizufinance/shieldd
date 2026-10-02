@@ -5,11 +5,11 @@ use crate::{
     registry::ComplianceRegistryComponentWrite,
     state_key,
 };
-use cnidarium::{StateDelta, StateWrite, TempStorage};
 use futures::StreamExt;
 use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 use shieldd_sdk_sct::component::clock::EpochManager;
+use shieldd_sdk_storage::{StateDelta, StateWrite, TempStorage};
 
 fn set_time<S: StateWrite>(state: &mut S, height: u64, seconds: i64) {
     state.put_block_height(height);

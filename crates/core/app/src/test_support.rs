@@ -3,7 +3,7 @@
 use crate::app::{HostBlock, HostCommit, HostExecution, HostTxResponse};
 use crate::genesis::AppState;
 use anyhow::{ensure, Context, Result};
-use cnidarium::Storage;
+use shieldd_sdk_storage::Storage;
 
 pub const TEST_CHAIN_ID: &str = "shieldd-test";
 
@@ -27,7 +27,7 @@ impl TestHost {
     ) -> Result<Self> {
         let mut execution = HostExecution::new(storage, registry).await?;
         execution.init_genesis(genesis).await?;
-        execution.commit().await?;
+        execution.commit_for_testing().await?;
         Ok(Self {
             execution,
             next_height: 1,
@@ -38,6 +38,7 @@ impl TestHost {
     pub async fn execute(&mut self, txs: Vec<Vec<u8>>) -> Result<BlockResult> {
         let block = HostBlock {
             height: self.next_height,
+            block_id: [self.next_height as u8; 32],
             time: self.next_time,
         };
         self.execute_block(block, txs).await
@@ -54,7 +55,7 @@ impl TestHost {
             .time
             .checked_add(std::time::Duration::from_secs(1))
             .context("test timestamp overflow")?;
-        self.execution.begin_block(block).await?;
+        self.execution.begin_block_for_testing(block).await?;
         let mut transactions = Vec::with_capacity(txs.len());
         for tx in txs {
             let response = self.execution.deliver_tx(&tx).await?;
@@ -66,7 +67,7 @@ impl TestHost {
             transactions.push(response);
         }
         self.execution.end_block(height).await?;
-        let commit = self.execution.commit().await?;
+        let commit = self.execution.commit_for_testing().await?;
         self.next_height = next_height;
         self.next_time = next_time;
         Ok(BlockResult {

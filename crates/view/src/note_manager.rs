@@ -14,7 +14,6 @@ use shieldd_sdk_fee::{Fee, FeeTier, GasPrices};
 use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::view::v1::NotesRequest;
-use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_shielded_pool::{
     note, HostWithdrawal, NoteReshapeFamilyId, ShieldedInputPlan, ShieldedOutputPlan,
 };
@@ -92,10 +91,9 @@ fn price_transaction_plan(
     fee_tier: FeeTier,
     actions: &[ActionIntent],
     fee_funding: Option<&TransferIntent>,
-    nullifier_window: NullifierWindow,
 ) -> Fee {
     gas_prices
-        .fee(&intent_gas(actions, fee_funding, nullifier_window))
+        .fee(&intent_gas(actions, fee_funding))
         .apply_tier(fee_tier)
 }
 
@@ -190,7 +188,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             return Ok(result);
         }
         let self_funded = gas_prices_are_zero(gas_prices) || value.asset_id == *BASE_ASSET_ID;
-        let nullifier_window = view.nullifier_window().await?;
 
         let mut notes = self
             .load_notes_for_asset(view, source, value.asset_id)
@@ -207,12 +204,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             } else {
                 value.amount
             };
-            let selected = match recent_note_indices_covering(
-                &notes,
-                required_amount,
-                nullifier_window.recent_position_floor,
-                &[],
-            )? {
+            let selected = match note_indices_covering(&notes, required_amount, &[])? {
                 Some(indices) => indices
                     .into_iter()
                     .map(|index| notes.remove(index))
@@ -240,14 +232,8 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 None
             } else {
                 Some(
-                    self.select_base_fee_funding(
-                        view,
-                        source,
-                        fee,
-                        &excluded_fee_notes,
-                        nullifier_window.recent_position_floor,
-                    )
-                    .await?,
+                    self.select_base_fee_funding(view, source, fee, &excluded_fee_notes)
+                        .await?,
                 )
             };
 
@@ -293,7 +279,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             self.fee_tier,
                             &actions,
                             Some(&fee_funding),
-                            nullifier_window,
                         );
 
                         if new_fee == fee {
@@ -304,7 +289,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     actions,
                                     Some(fee_funding),
                                     new_fee,
-                                    nullifier_window,
                                 )
                                 .await?;
                             return Ok(NoteManagerPlanningResult::Ready {
@@ -354,12 +338,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
             let transfer = self.build_transfer_plan(&selected, recipient.clone(), value, fee)?;
             let actions = vec![ActionIntent::Transfer(transfer)];
-            let new_fee =
-                price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
+            let new_fee = price_transaction_plan(gas_prices, self.fee_tier, &actions, None);
 
             if new_fee == fee {
                 let plan = self
-                    .finalize_wallet_plan(view, source, actions, None, new_fee, nullifier_window)
+                    .finalize_wallet_plan(view, source, actions, None, new_fee)
                     .await?;
                 return Ok(NoteManagerPlanningResult::Ready {
                     transaction_plan: plan,
@@ -445,16 +428,8 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .map(ActionIntent::Complete)
             .collect::<Vec<_>>();
         if gas_prices_are_zero(gas_prices) {
-            let nullifier_window = view.nullifier_window().await?;
             let plan = self
-                .finalize_wallet_plan(
-                    view,
-                    source,
-                    intents,
-                    None,
-                    zero_base_fee(),
-                    nullifier_window,
-                )
+                .finalize_wallet_plan(view, source, intents, None, zero_base_fee())
                 .await?;
             return Ok(NoteManagerPlanningResult::Ready {
                 transaction_plan: plan,
@@ -496,7 +471,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         }
         let self_funded = gas_prices_are_zero(gas_prices);
         let paid_base = !self_funded && asset_id == *BASE_ASSET_ID;
-        let nullifier_window = view.nullifier_window().await?;
 
         let mut notes = self.load_notes_for_asset(view, source, asset_id).await?;
 
@@ -511,17 +485,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 withdrawal_amount
             };
             let recent = if paid_base {
-                match recent_note_indices_covering(
-                    &notes,
-                    required_amount,
-                    nullifier_window.recent_position_floor,
-                    &[],
-                )? {
+                match note_indices_covering(&notes, required_amount, &[])? {
                     Some(indices)
-                        if recent_note_indices_covering(
+                        if note_indices_covering(
                             &notes,
                             self.withdrawal_fee(&withdrawal)?.amount().max(1u64.into()),
-                            nullifier_window.recent_position_floor,
                             &indices,
                         )?
                         .is_some() =>
@@ -544,11 +512,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             notes
                                 .iter()
                                 .enumerate()
-                                .filter(|(_, record)| record.note.amount() == withdrawal_amount)
-                                .min_by_key(|(_, record)| {
-                                    u64::from(record.position)
-                                        < nullifier_window.recent_position_floor
-                                })
+                                .find(|(_, record)| record.note.amount() == withdrawal_amount)
                                 .map(|(index, _)| index)
                         })
                         .flatten();
@@ -582,14 +546,8 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 None
             } else {
                 Some(
-                    self.select_base_fee_funding(
-                        view,
-                        source,
-                        fee,
-                        &excluded_fee_notes,
-                        nullifier_window.recent_position_floor,
-                    )
-                    .await?,
+                    self.select_base_fee_funding(view, source, fee, &excluded_fee_notes)
+                        .await?,
                 )
             };
 
@@ -629,7 +587,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                             self.fee_tier,
                             &actions,
                             Some(&fee_funding),
-                            nullifier_window,
                         );
 
                         if new_fee == fee {
@@ -640,7 +597,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     actions,
                                     Some(fee_funding),
                                     new_fee,
-                                    nullifier_window,
                                 )
                                 .await?;
                             return Ok(NoteManagerPlanningResult::Ready {
@@ -693,12 +649,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
             let action = self.build_wallet_withdrawal_action(&selected, withdrawal.clone(), fee)?;
             let actions = vec![action];
-            let new_fee =
-                price_transaction_plan(gas_prices, self.fee_tier, &actions, None, nullifier_window);
+            let new_fee = price_transaction_plan(gas_prices, self.fee_tier, &actions, None);
 
             if new_fee == fee {
                 let plan = self
-                    .finalize_wallet_plan(view, source, actions, None, new_fee, nullifier_window)
+                    .finalize_wallet_plan(view, source, actions, None, new_fee)
                     .await?;
                 return Ok(NoteManagerPlanningResult::Ready {
                     transaction_plan: plan,
@@ -869,7 +824,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
-        let nullifier_window = view.nullifier_window().await?;
 
         let family_id = NoteReshapeFamilyId::smallest_covering(1, output_amounts.len())
             .ok_or_else(|| {
@@ -937,23 +891,10 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             };
             if gas_prices_are_zero(gas_prices) {
                 let actions = vec![ActionIntent::NoteReshape(note_reshape)];
-                let new_fee = price_transaction_plan(
-                    gas_prices,
-                    self.fee_tier,
-                    &actions,
-                    None,
-                    nullifier_window,
-                );
+                let new_fee = price_transaction_plan(gas_prices, self.fee_tier, &actions, None);
                 if new_fee == fee {
                     let transaction_plan = self
-                        .finalize_wallet_plan(
-                            view,
-                            source,
-                            actions,
-                            None,
-                            new_fee,
-                            nullifier_window,
-                        )
+                        .finalize_wallet_plan(view, source, actions, None, new_fee)
                         .await?;
                     return Ok(NoteManagerPlanningResult::Ready { transaction_plan });
                 }
@@ -1158,7 +1099,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
             None => 1u64.into(),
         };
-        let window = view.nullifier_window().await?;
         let mut fee = zero_base_fee();
         for _ in 0..4 {
             if reserve
@@ -1177,10 +1117,10 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 None => self.build_self_funded_transfer_plan(selected, *BASE_ASSET_ID, fee)?,
             };
             let actions = vec![ActionIntent::Transfer(transfer)];
-            let new_fee = price_transaction_plan(gas_prices, self.fee_tier, &actions, None, window);
+            let new_fee = price_transaction_plan(gas_prices, self.fee_tier, &actions, None);
             if new_fee == fee {
                 return self
-                    .finalize_wallet_plan(view, source, actions, None, fee, window)
+                    .finalize_wallet_plan(view, source, actions, None, fee)
                     .await
                     .map(Some);
             }
@@ -1201,7 +1141,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             gas_prices_are_zero(self.gas_prices.context("missing gas prices")?),
             "paid note reshapes require separate fee funding"
         );
-        let window = view.nullifier_window().await?;
         let sender_address = selected
             .first()
             .map(|record| record.note.address())
@@ -1233,7 +1172,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             outputs,
             value_blinding: Fr::random(&mut self.rng),
         })];
-        self.finalize_wallet_plan(view, source, actions, None, zero_base_fee(), window)
+        self.finalize_wallet_plan(view, source, actions, None, zero_base_fee())
             .await
             .map(Some)
     }
@@ -1346,7 +1285,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         source: AddressIndex,
         fee: Fee,
         excluded_note_commitments: &BTreeSet<note::StateCommitment>,
-        recent_position_floor: u64,
     ) -> Result<BaseFeeFundingSelection> {
         anyhow::ensure!(
             fee.asset_id() == *BASE_ASSET_ID,
@@ -1366,12 +1304,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .into_iter()
             .filter(|record| !excluded_note_commitments.contains(&record.note_commitment))
             .collect::<Vec<_>>();
-        let selected = match recent_note_indices_covering(
-            &notes,
-            minimum_total,
-            recent_position_floor,
-            &[],
-        )? {
+        let selected = match note_indices_covering(&notes, minimum_total, &[])? {
             Some(indices) => indices
                 .into_iter()
                 .map(|index| notes.remove(index))
@@ -1416,18 +1349,10 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         if let Some(result) = ensure_base_gas_prices(gas_prices) {
             return Ok(result);
         }
-        let nullifier_window = view.nullifier_window().await?;
 
         if gas_prices_are_zero(gas_prices) {
             let plan = self
-                .finalize_wallet_plan(
-                    view,
-                    source,
-                    primary_actions,
-                    None,
-                    zero_base_fee(),
-                    nullifier_window,
-                )
+                .finalize_wallet_plan(view, source, primary_actions, None, zero_base_fee())
                 .await?;
             return Ok(NoteManagerPlanningResult::Ready {
                 transaction_plan: plan,
@@ -1439,13 +1364,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
         for _ in 0..4 {
             let fee_funding = self
-                .select_base_fee_funding(
-                    view,
-                    source,
-                    fee,
-                    &excluded_fee_notes,
-                    nullifier_window.recent_position_floor,
-                )
+                .select_base_fee_funding(view, source, fee, &excluded_fee_notes)
                 .await?;
             let selected_fee_notes = match fee_funding {
                 BaseFeeFundingSelection::Ready { selected } => selected,
@@ -1469,7 +1388,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 self.fee_tier,
                 &primary_actions,
                 Some(&fee_funding_plan),
-                nullifier_window,
             );
             if new_fee == fee {
                 let plan = self
@@ -1479,7 +1397,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         primary_actions,
                         Some(fee_funding_plan),
                         new_fee,
-                        nullifier_window,
                     )
                     .await?;
                 return Ok(NoteManagerPlanningResult::Ready {
@@ -1570,7 +1487,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         actions: Vec<ActionIntent>,
         fee_funding: Option<TransferIntent>,
         fee: Fee,
-        nullifier_window: NullifierWindow,
     ) -> Result<TransactionPlan> {
         let mut transaction_parameters = self.transaction_parameters.clone();
         transaction_parameters.fee = fee;
@@ -1581,7 +1497,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             transaction_parameters,
             fee_funding,
             memo: None,
-            nullifier_window: Some(nullifier_window),
         };
 
         if intent.has_outputs() {
@@ -1749,19 +1664,16 @@ fn prioritize_and_filter_spendable_notes(
     filtered
 }
 
-/// Return a sufficient recent single or pair, with indices in descending removal order.
-fn recent_note_indices_covering(
+/// Return a sufficient single or pair, with indices in descending removal order.
+fn note_indices_covering(
     notes: &[SpendableNoteRecord],
     required_amount: Amount,
-    recent_position_floor: u64,
     excluded_indices: &[usize],
 ) -> Result<Option<Vec<usize>>> {
     if required_amount == Amount::zero() {
         return Ok(None);
     }
-    let eligible = |index: usize, record: &SpendableNoteRecord| {
-        u64::from(record.position) >= recent_position_floor && !excluded_indices.contains(&index)
-    };
+    let eligible = |index: usize, _record: &SpendableNoteRecord| !excluded_indices.contains(&index);
     if let Some((index, _)) = notes
         .iter()
         .enumerate()
@@ -1920,7 +1832,6 @@ mod tests {
     struct MockNoteManagerView {
         notes: Arc<Mutex<Vec<SpendableNoteRecord>>>,
         addresses: BTreeMap<AddressIndex, Address>,
-        nullifier_window: NullifierWindow,
     }
 
     impl MockNoteManagerView {
@@ -1931,20 +1842,7 @@ mod tests {
             Self {
                 notes: Arc::new(Mutex::new(notes)),
                 addresses,
-                nullifier_window: NullifierWindow {
-                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                    current_generation: 0,
-                    recent_position_floor: 0,
-                    archived_generation_count: 0,
-                    archived_history_head:
-                        shieldd_sdk_sct::nullifier_generation::empty_history_head(),
-                },
             }
-        }
-
-        fn with_nullifier_window(mut self, nullifier_window: NullifierWindow) -> Self {
-            self.nullifier_window = nullifier_window;
-            self
         }
 
         fn replace_notes(&self, notes: Vec<SpendableNoteRecord>) {
@@ -1968,9 +1866,7 @@ mod tests {
         async fn chain_id(&mut self) -> Result<String> {
             Ok("test-chain".to_owned())
         }
-        async fn nullifier_window(&mut self) -> Result<NullifierWindow> {
-            Ok(self.nullifier_window)
-        }
+
         async fn discovery_parameters(&mut self) -> Result<discovery::Parameters> {
             Ok(Default::default())
         }
@@ -2732,361 +2628,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn base_withdrawal_prefers_recent_exact_principal_over_old_duplicate() {
-        let mut prices = nonzero_base_gas_prices();
-        prices.verification_price = 1_000;
-        let withdrawal = test_host_withdrawal(1, "host-recipient");
-        let final_fee = prices
-            .fee(
-                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&withdrawal)
-                    + shieldd_sdk_transaction::gas::transfer_gas_cost()),
-            )
-            .apply_tier(FeeTier::default());
-        let split_fee = prices
-            .fee(&shieldd_sdk_transaction::gas::transfer_gas_cost())
-            .apply_tier(FeeTier::default());
-        let reserve = final_fee.amount() + split_fee.amount() + split_fee.amount();
-        let source = AddressIndex::new(0);
-        let sender = test_address(0);
-        let mut rng = OsRng;
-        let old = spendable_note_record(&mut rng, 1, source, sender.clone(), 1);
-        let recent = spendable_note_record(&mut rng, 1, source, sender.clone(), 100);
-        let recent_commitment = recent.note_commitment;
-        let fee_note = spendable_note_record(
-            &mut rng,
-            u64::try_from(reserve.value()).unwrap(),
-            source,
-            sender.clone(),
-            101,
-        );
-        let mut view = MockNoteManagerView::new(
-            vec![old, recent, fee_note],
-            BTreeMap::from([(source, sender)]),
-        )
-        .with_nullifier_window(NullifierWindow {
-            protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-            current_generation: 101,
-            recent_position_floor: 100,
-            archived_generation_count: 100,
-            archived_history_head: [1; 32],
-        });
-        let mut manager = NoteManager::new(rng);
-        manager.set_gas_prices(prices);
-        let result = manager
-            .plan_host_withdrawal(&mut view, source, withdrawal)
-            .await
-            .unwrap();
-        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("recent exact principal and reserved fee need no further maintenance");
-        };
-        let [ActionPlan::ShieldedHostWithdrawal(withdrawal)] = transaction_plan.actions.as_slice()
-        else {
-            panic!("expected balanced withdrawal");
-        };
-        assert_eq!(withdrawal.spends.len(), 1);
-        assert_eq!(withdrawal.spends[0].note.commit(), recent_commitment);
-        assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
-        assert!(transaction_plan
-            .spends()
-            .all(|planned| u64::from(planned.spend.position) >= 100));
-    }
-
-    #[tokio::test]
-    async fn base_fee_funding_prefers_sufficient_recent_note_over_larger_old_note() {
-        let mut prices = nonzero_base_gas_prices();
-        prices.verification_price = 1_000;
-        let withdrawal = test_host_withdrawal(1, "host-recipient");
-        let final_fee = prices
-            .fee(
-                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&withdrawal)
-                    + shieldd_sdk_transaction::gas::transfer_gas_cost()),
-            )
-            .apply_tier(FeeTier::default());
-        let fee_amount = u64::try_from(final_fee.amount().value()).unwrap();
-        for amounts in [
-            vec![fee_amount],
-            vec![fee_amount / 2, fee_amount - fee_amount / 2],
-        ] {
-            let source = AddressIndex::new(0);
-            let sender = test_address(0);
-            let mut rng = OsRng;
-            let principal = spendable_note_record(&mut rng, 1, source, sender.clone(), 100);
-            let old = spendable_note_record(&mut rng, fee_amount + 1, source, sender.clone(), 1);
-            let mut notes = vec![principal, old];
-            let mut fee_commitments = BTreeSet::new();
-            for (index, amount) in amounts.iter().copied().enumerate() {
-                let fee_note = spendable_note_record(
-                    &mut rng,
-                    amount,
-                    source,
-                    sender.clone(),
-                    101 + index as u64,
-                );
-                fee_commitments.insert(fee_note.note_commitment);
-                notes.push(fee_note);
-            }
-            let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
-                .with_nullifier_window(NullifierWindow {
-                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                    current_generation: 101,
-                    recent_position_floor: 100,
-                    archived_generation_count: 100,
-                    archived_history_head: [1; 32],
-                });
-            let mut manager = NoteManager::new(rng);
-            manager.set_gas_prices(prices);
-            let result = manager
-                .plan_host_withdrawal(&mut view, source, withdrawal.clone())
-                .await
-                .unwrap();
-            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-                panic!("fresh principal and {} sufficient fresh fee notes must be immediately spendable", amounts.len());
-            };
-            assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
-            assert_eq!(transaction_plan.actions[0].balance(), Balance::default());
-            let funding = transaction_plan
-                .fee_funding
-                .as_ref()
-                .expect("separate fee funding");
-            assert_eq!(funding.transfer.spends.len(), amounts.len());
-            assert_eq!(
-                funding
-                    .transfer
-                    .spends
-                    .iter()
-                    .map(|spend| spend.note.commit())
-                    .collect::<BTreeSet<_>>(),
-                fee_commitments
-            );
-            assert!(transaction_plan
-                .spends()
-                .all(|planned| u64::from(planned.spend.position) >= 100));
-        }
-    }
-
-    #[tokio::test]
-    async fn base_transfer_prefers_recent_primary_notes_over_larger_old_note() {
-        let mut prices = nonzero_base_gas_prices();
-        prices.verification_price = 1_000;
-        let fee = prices
-            .fee(&shieldd_sdk_transaction::gas::transfer_gas_cost())
-            .apply_tier(FeeTier::default());
-        let required = u64::try_from(fee.amount().value()).unwrap() + 1;
-        for amounts in [vec![required], vec![required / 2, required - required / 2]] {
-            let source = AddressIndex::new(0);
-            let sender = test_address(0);
-            let mut rng = OsRng;
-            let mut notes = vec![spendable_note_record(
-                &mut rng,
-                required + 1,
-                source,
-                sender.clone(),
-                1,
-            )];
-            let mut expected = BTreeSet::new();
-            for (index, amount) in amounts.iter().copied().enumerate() {
-                let note = spendable_note_record(
-                    &mut rng,
-                    amount,
-                    source,
-                    sender.clone(),
-                    100 + index as u64,
-                );
-                expected.insert(note.note_commitment);
-                notes.push(note);
-            }
-            let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
-                .with_nullifier_window(NullifierWindow {
-                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                    current_generation: 101,
-                    recent_position_floor: 100,
-                    archived_generation_count: 100,
-                    archived_history_head: [1; 32],
-                });
-            let mut manager = NoteManager::new(rng);
-            manager.set_gas_prices(prices);
-            let result = plan_base_intent(&mut manager, &mut view, 1, false)
-                .await
-                .unwrap();
-            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-                panic!("{} recent primary notes cover value and fee", amounts.len());
-            };
-            let [ActionPlan::Transfer(transfer)] = transaction_plan.actions.as_slice() else {
-                panic!("expected transfer");
-            };
-            assert!(transaction_plan.fee_funding.is_none());
-            assert_eq!(transaction_plan.transaction_parameters.fee, fee);
-            assert_eq!(transfer.spends.len(), amounts.len());
-            assert_eq!(
-                transfer
-                    .spends
-                    .iter()
-                    .map(|spend| spend.note.commit())
-                    .collect::<BTreeSet<_>>(),
-                expected
-            );
-            assert_eq!(transfer.outputs.len(), 1);
-            assert_eq!(transfer.outputs[0].value.amount, Amount::from(1u64));
-        }
-    }
-
-    #[tokio::test]
-    async fn base_withdrawal_prefers_recent_primary_with_disjoint_recent_fee() {
-        let mut prices = nonzero_base_gas_prices();
-        prices.verification_price = 1_000;
-        let withdrawal = test_host_withdrawal(20_000, "host-recipient");
-        let fee = prices
-            .fee(
-                &(shieldd_sdk_transaction::gas::host_withdrawal_gas_cost(&withdrawal)
-                    + shieldd_sdk_transaction::gas::transfer_gas_cost()),
-            )
-            .apply_tier(FeeTier::default());
-        for old_amount in [20_002, 20_000] {
-            for amounts in [vec![20_001], vec![10_000, 10_001]] {
-                let source = AddressIndex::new(0);
-                let sender = test_address(0);
-                let mut rng = OsRng;
-                let old = spendable_note_record(&mut rng, old_amount, source, sender.clone(), 1);
-                let fee_note = spendable_note_record(
-                    &mut rng,
-                    u64::try_from(fee.amount().value()).unwrap(),
-                    source,
-                    sender.clone(),
-                    102,
-                );
-                let fee_commitment = fee_note.note_commitment;
-                let mut notes = vec![old, fee_note];
-                let mut expected = BTreeSet::new();
-                for (index, amount) in amounts.iter().copied().enumerate() {
-                    let note = spendable_note_record(
-                        &mut rng,
-                        amount,
-                        source,
-                        sender.clone(),
-                        100 + index as u64,
-                    );
-                    expected.insert(note.note_commitment);
-                    notes.push(note);
-                }
-                let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
-                    .with_nullifier_window(NullifierWindow {
-                        protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                        current_generation: 101,
-                        recent_position_floor: 100,
-                        archived_generation_count: 100,
-                        archived_history_head: [1; 32],
-                    });
-                let mut manager = NoteManager::new(rng);
-                manager.set_gas_prices(prices);
-                let result = manager
-                    .plan_host_withdrawal(&mut view, source, withdrawal.clone())
-                    .await
-                    .unwrap();
-                let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-                    panic!("{} recent primary notes and separate fee must be ready (old amount {old_amount})", amounts.len());
-                };
-                let [ActionPlan::ShieldedHostWithdrawal(primary)] =
-                    transaction_plan.actions.as_slice()
-                else {
-                    panic!("expected withdrawal");
-                };
-                assert_eq!(primary.spends.len(), amounts.len());
-                assert_eq!(
-                    primary
-                        .spends
-                        .iter()
-                        .map(|spend| spend.note.commit())
-                        .collect::<BTreeSet<_>>(),
-                    expected
-                );
-                assert_eq!(transaction_plan.actions[0].balance(), Balance::default());
-                let funding = transaction_plan.fee_funding.as_ref().expect("separate fee");
-                assert_eq!(funding.transfer.spends.len(), 1);
-                assert_eq!(funding.transfer.spends[0].note.commit(), fee_commitment);
-                assert_eq!(transaction_plan.transaction_parameters.fee, fee);
-                assert!(transaction_plan
-                    .spends()
-                    .all(|planned| u64::from(planned.spend.position) >= 100));
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn base_withdrawal_preserves_old_primary_when_recent_notes_fund_its_fee() {
-        let mut prices = nonzero_base_gas_prices();
-        prices.verification_price = 1_000;
-        for (amount, old_amount, fee_amounts) in
-            [(1, 1, vec![38_923]), (20_000, 21_000, vec![19_461, 19_462])]
-        {
-            let source = AddressIndex::new(0);
-            let sender = test_address(0);
-            let mut rng = OsRng;
-            let old = spendable_note_record(&mut rng, old_amount, source, sender.clone(), 1);
-            let primary_commitment = old.note_commitment;
-            let mut notes = vec![old];
-            let mut expected_fee = BTreeSet::new();
-            for (index, amount) in fee_amounts.iter().copied().enumerate() {
-                let note = spendable_note_record(
-                    &mut rng,
-                    amount,
-                    source,
-                    sender.clone(),
-                    100 + index as u64,
-                );
-                expected_fee.insert(note.note_commitment);
-                notes.push(note);
-            }
-            let mut view = MockNoteManagerView::new(notes, BTreeMap::from([(source, sender)]))
-                .with_nullifier_window(NullifierWindow {
-                    protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                    current_generation: 101,
-                    recent_position_floor: 100,
-                    archived_generation_count: 100,
-                    archived_history_head: [1; 32],
-                });
-            let mut manager = NoteManager::new(rng);
-            manager.set_gas_prices(prices);
-            let result = plan_base_intent(&mut manager, &mut view, amount, true)
-                .await
-                .unwrap();
-            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-                panic!(
-                    "old primary with {} disjoint fee notes is affordable",
-                    fee_amounts.len()
-                );
-            };
-            let [ActionPlan::ShieldedHostWithdrawal(primary)] = transaction_plan.actions.as_slice()
-            else {
-                panic!("expected withdrawal");
-            };
-            assert_eq!(primary.spends.len(), 1);
-            assert_eq!(primary.spends[0].note.commit(), primary_commitment);
-            assert_eq!(transaction_plan.actions[0].balance(), Balance::default());
-            let funding = transaction_plan.fee_funding.as_ref().expect("separate fee");
-            assert_eq!(funding.transfer.spends.len(), fee_amounts.len());
-            assert_eq!(
-                funding
-                    .transfer
-                    .spends
-                    .iter()
-                    .map(|spend| spend.note.commit())
-                    .collect::<BTreeSet<_>>(),
-                expected_fee
-            );
-            assert_eq!(
-                transaction_plan.transaction_parameters.fee.amount(),
-                Amount::from(38_923u64)
-            );
-            assert_eq!(
-                transaction_plan.transaction_parameters.fee,
-                prices
-                    .fee(&transaction_plan.gas_cost())
-                    .apply_tier(FeeTier::default())
-            );
-        }
-    }
-
-    #[tokio::test]
     async fn base_consolidation_rejects_nonbase_fee_asset() {
         let mut rng = OsRng;
         let source = AddressIndex::new(0);
@@ -3180,7 +2721,6 @@ mod tests {
                 AddressIndex::new(0),
                 Fee::from_staking_token_amount(130u64.into()),
                 &BTreeSet::from([primary]),
-                0,
             )
             .await
             .unwrap();
@@ -3392,7 +2932,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn historical_fee_funding_prices_complete_final_plan() {
+    async fn fee_input_position_uses_ordinary_final_plan_cost() {
         let source = AddressIndex::new(0);
         let sender = test_address(35);
         let gas_prices = GasPrices {
@@ -3406,42 +2946,36 @@ mod tests {
         let baseline_fee = gas_prices
             .fee(&(action.gas_cost() + shieldd_sdk_transaction::gas::transfer_gas_cost()))
             .apply_tier(FeeTier::default());
-        let notes = vec![spendable_note_record(
-            &mut OsRng,
-            1_000_000,
-            source,
-            sender.clone(),
-            1,
-        )];
-        let view_addresses = BTreeMap::from([(source, sender)]);
-        let mut view = MockNoteManagerView::new(notes, view_addresses).with_nullifier_window(
-            NullifierWindow {
-                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                current_generation: 2,
-                recent_position_floor: 100,
-                archived_generation_count: 1,
-                archived_history_head: [1; 32],
-            },
-        );
-        let mut note_manager = NoteManager::new(OsRng);
-        note_manager.set_gas_prices(gas_prices);
+        for position in [1, (1u64 << 32) + 1] {
+            let notes = vec![spendable_note_record(
+                &mut OsRng,
+                1_000_000,
+                source,
+                sender.clone(),
+                position,
+            )];
+            let view_addresses = BTreeMap::from([(source, sender.clone())]);
+            let mut view = MockNoteManagerView::new(notes, view_addresses);
+            let mut note_manager = NoteManager::new(OsRng);
+            note_manager.set_gas_prices(gas_prices);
 
-        let result = note_manager
-            .plan_actions_with_transfer_funding(&mut view, source, vec![action])
-            .await
-            .expect("historical fee-funding planning should not error");
-        let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
-            panic!("expected ready historical fee-funding plan");
-        };
-        let final_fee = gas_prices
-            .fee(&transaction_plan.gas_cost())
-            .apply_tier(FeeTier::default());
+            let result = note_manager
+                .plan_actions_with_transfer_funding(&mut view, source, vec![action.clone()])
+                .await
+                .expect("old-note fee-funding planning should not error");
+            let NoteManagerPlanningResult::Ready { transaction_plan } = result else {
+                panic!("expected ready old-note fee-funding plan");
+            };
+            let final_fee = gas_prices
+                .fee(&transaction_plan.gas_cost())
+                .apply_tier(FeeTier::default());
 
-        assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
-        assert!(
-            final_fee.amount() > baseline_fee.amount(),
-            "an old fee input must include its historical proof and verification cost",
-        );
+            assert_eq!(transaction_plan.transaction_parameters.fee, final_fee);
+            assert!(
+                final_fee == baseline_fee,
+                "note age must not add proof or verification costs",
+            );
+        }
     }
 
     #[tokio::test]
@@ -3487,7 +3021,6 @@ mod tests {
                     fvk,
                     &PayloadKey::from([0u8; 32]),
                     shieldd_sdk_tct::Tree::default().root(),
-                    0,
                 )
                 .expect("note reshape body materialization succeeds");
             assert!(body.inputs.iter().all(|input| input.encrypted_backref.len()
@@ -3539,7 +3072,6 @@ mod tests {
                 fvk,
                 &PayloadKey::from([0u8; 32]),
                 shieldd_sdk_tct::Tree::default().root(),
-                0,
             )
             .expect("note reshape body materialization succeeds");
         assert!(body.outputs.iter().all(|output| {

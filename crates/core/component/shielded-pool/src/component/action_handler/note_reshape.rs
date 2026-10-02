@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use cnidarium::StateWrite;
 use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
 use shieldd_sdk_sct::component::{source::SourceContext, tree::SctManager};
 use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_storage::StateWrite;
 use shieldd_sdk_txhash::TransactionContext;
 
 use crate::{component::NoteManager, event, NotePayload};
@@ -105,12 +105,23 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::{StateDelta, TempStorage};
     use rand_core::OsRng;
     use reddsa::SigningKey;
     use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_sct::component::tree::SctRead;
+    use shieldd_sdk_storage::{StateDelta, TempStorage};
     use shieldd_sdk_txhash::TransactionId;
+
+    async fn initialize_nullifiers(
+        storage: &TempStorage,
+        state: &mut StateDelta<shieldd_sdk_storage::Snapshot>,
+    ) -> Result<()> {
+        state.object_put(
+            shieldd_sdk_sct::state_key::nullifiers::reader(),
+            shieldd_sdk_sct::permanent_nullifiers::Reader(storage.storage().clone()),
+        );
+        Ok(())
+    }
 
     struct TestInput(Nullifier);
 
@@ -119,7 +130,6 @@ mod tests {
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
-            recent_position_floor: 0,
         };
         validate_action_anchor("test action", context.anchor, &context)
             .expect("matching anchor should pass");
@@ -154,7 +164,7 @@ mod tests {
     async fn execution_persists_each_input_and_rejects_respending() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
+        initialize_nullifiers(&storage, &mut state).await?;
         shieldd_sdk_sct::component::clock::EpochManager::put_block_height(&mut state, 1);
         state.put_current_source(Some(TransactionId([7u8; 32])));
         let nullifier = Nullifier(Fq::from(42u64));
@@ -187,7 +197,7 @@ mod tests {
     async fn execute_rejects_duplicate_nullifiers_before_mutation() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
+        initialize_nullifiers(&storage, &mut state).await?;
         shieldd_sdk_sct::component::clock::EpochManager::put_block_height(&mut state, 1);
         state.put_current_source(Some(TransactionId([10u8; 32])));
         let duplicate = Nullifier(Fq::from(47u64));
@@ -216,7 +226,7 @@ mod tests {
     async fn proof_bound_output_is_persisted() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
+        initialize_nullifiers(&storage, &mut state).await?;
         shieldd_sdk_sct::component::clock::EpochManager::put_block_height(&mut state, 1);
         state.put_current_source(Some(TransactionId([9u8; 32])));
         let output = NotePayload {
@@ -250,7 +260,6 @@ mod tests {
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
-            recent_position_floor: 0,
         };
         verify_auth_sig(
             "reshape",
@@ -276,7 +285,6 @@ mod tests {
         let context = TransactionContext {
             anchor: shieldd_sdk_tct::Tree::default().root(),
             effect_hash: Default::default(),
-            recent_position_floor: 0,
         };
         let different_message = b"different note reshape authorization hash";
         assert_ne!(&different_message[..], context.effect_hash.as_ref());

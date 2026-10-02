@@ -1,12 +1,12 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::StateWrite;
 use shieldd_sdk_compliance::{ComplianceRegistryRead, ComplianceRegistryWrite};
 use shieldd_sdk_fee::component::StateReadExt as _;
 use shieldd_sdk_proto::{DomainType, Message};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead};
 use shieldd_sdk_shielded_pool::component::NoteManager as _;
+use shieldd_sdk_storage::StateWrite;
 use tracing::instrument;
 
 use crate::{state_key, CompactBlock, PendingRoutingAction, RoutingAction, RoutingRecord};
@@ -217,17 +217,6 @@ trait Inner: StateWrite {
         let compliance_user_status_changes = self.pending_user_status_changes();
         let compliance_asset_registrations = self.pending_asset_registrations();
 
-        let nullifier_window = if height == 0 || end_epoch {
-            Some(
-                shieldd_sdk_sct::nullifier_tree::generation_state(self)
-                    .await
-                    .context("could not read nullifier generation state")?
-                    .window(),
-            )
-        } else {
-            None
-        };
-
         let pending_routing_actions = self.pending_routing_actions();
         let mut routing_records = Vec::new();
         let mut routing_actions = Vec::with_capacity(pending_routing_actions.len());
@@ -270,7 +259,6 @@ trait Inner: StateWrite {
             compliance_user_registrations,
             compliance_user_status_changes,
             compliance_asset_registrations,
-            nullifier_window,
         };
 
         self.put_compact_block(compact_block)?;
@@ -285,9 +273,9 @@ impl<T: StateWrite + ?Sized> Inner for T {}
 mod tests {
     use super::*;
     use crate::component::StateReadExt as _;
-    use cnidarium::{StateDelta, StateRead as _, TempStorage};
     use shieldd_sdk_sct::CommitmentSource;
     use shieldd_sdk_shielded_pool::{discovery::RoutingTag, NotePayload};
+    use shieldd_sdk_storage::{StateDelta, StateRead as _, TempStorage};
     use shieldd_sdk_txhash::TransactionId;
 
     #[tokio::test]

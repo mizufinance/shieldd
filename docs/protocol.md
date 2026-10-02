@@ -48,8 +48,8 @@ A [positioned nullifier](../crates/core/component/sct/src/nullifier.rs) is
 `hash_3(Fq(BLAKE2b-512("shieldd.nullifier")), (nk, commitment, position))`.
 Regulated actions use the effective compliance-scoped nullifier key selected by
 the proved policy relation. Consensus rejects duplicate/spent nullifiers.
-[Nullifier history](nullifier-history.md) defines current/previous generations,
-archived nonmembership proofs, and activation/pruning requirements.
+[Permanent nullifiers](nullifier-history.md) defines the authenticated set and
+coordinated durable transition.
 
 The tiered commitment tree preserves ordered positions, height-aware hash domains
 and finalized padding. Validators can forget witnesses; wallets retain owned-note
@@ -71,7 +71,7 @@ fail count or key/signature checks. Delegated proving receives no spending secre
 [Effect hashes](../crates/core/txhash/src/effect_hash.rs) use BLAKE2b-512 with an
 8-byte little-endian type-URL length, the type URL and encoded effecting data.
 The [transaction body](../crates/core/transaction/src/transaction.rs) combines
-parameter, memo and fee-funding hashes, the explicit nullifier window, the action
+parameter, memo and fee-funding hashes, the action
 count and ordered action hashes. SpendAuth signatures bind these intended effects;
 the Binding signature covers the complete body’s auth hash. Balance commitments,
 including private fee funding, must sum to zero. Frozen signing vectors live in

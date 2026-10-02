@@ -4,7 +4,6 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
-use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_shielded_pool::{HostWithdrawal, ShieldedHostWithdrawalPlan, TransferPlan};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
@@ -28,7 +27,6 @@ pub struct TransactionPlan {
     pub transaction_parameters: TransactionParameters,
     pub fee_funding: Option<FeeFundingPlan>,
     pub memo: Option<MemoPlan>,
-    pub nullifier_window: Option<NullifierWindow>,
 }
 
 pub struct PlannedSpend<'a> {
@@ -66,7 +64,6 @@ impl TransactionPlan {
     }
 
     pub fn effect_hash(&self, fvk: &FullViewingKey) -> Result<EffectHash> {
-        let recent_position_floor = self.recent_position_floor()?;
         let mut state = blake2b_simd::Params::new()
             .personal(b"ShielddEfHs")
             .to_state();
@@ -80,25 +77,17 @@ impl TransactionPlan {
         let fee_funding_hash = self
             .fee_funding
             .as_ref()
-            .map(|plan| plan.effect_hash(fvk, &memo_key, recent_position_floor))
+            .map(|plan| plan.effect_hash(fvk, &memo_key))
             .transpose()?
             .unwrap_or_default();
         state.update(parameters_hash.as_bytes());
         state.update(memo_hash.as_bytes());
         state.update(fee_funding_hash.as_bytes());
-        crate::transaction::update_nullifier_window_effect_hash(
-            &mut state,
-            self.nullifier_window.as_ref(),
-        );
 
         let num_actions = self.actions.len() as u32;
         state.update(&num_actions.to_le_bytes());
         for action_plan in &self.actions {
-            state.update(
-                action_plan
-                    .effect_hash(fvk, &memo_key, recent_position_floor)?
-                    .as_bytes(),
-            );
+            state.update(action_plan.effect_hash(fvk, &memo_key)?.as_bytes());
         }
 
         Ok(EffectHash(state.finalize().as_array().clone()))
@@ -226,20 +215,6 @@ impl TransactionPlan {
         action_spends + fee_funding_spends
     }
 
-    pub fn recent_position_floor(&self) -> Result<u64> {
-        match (self.num_spends(), self.nullifier_window) {
-            (0, None) => Ok(0),
-            (0, Some(_)) => anyhow::bail!("spend-free transaction plan has a nullifier window"),
-            (_, None) => {
-                anyhow::bail!("spend-bearing transaction plan is missing its nullifier window")
-            }
-            (_, Some(window)) => {
-                window.validate()?;
-                Ok(window.recent_position_floor)
-            }
-        }
-    }
-
     pub fn num_proofs(&self) -> usize {
         let action_proofs = self
             .actions
@@ -271,7 +246,6 @@ impl From<TransactionPlan> for pb::TransactionPlan {
             transaction_parameters: Some(msg.transaction_parameters.into()),
             fee_funding: msg.fee_funding.map(Into::into),
             memo: msg.memo.map(Into::into),
-            nullifier_window: msg.nullifier_window.map(Into::into),
         }
     }
 }
@@ -292,7 +266,6 @@ impl TryFrom<pb::TransactionPlan> for TransactionPlan {
                 .try_into()?,
             fee_funding: value.fee_funding.map(TryInto::try_into).transpose()?,
             memo: value.memo.map(TryInto::try_into).transpose()?,
-            nullifier_window: value.nullifier_window.map(TryInto::try_into).transpose()?,
         })
     }
 }
@@ -348,7 +321,6 @@ mod tests {
                     &test_keys::FULL_VIEWING_KEY,
                     &PayloadKey::from([0u8; 32]),
                     shieldd_sdk_tct::Tree::default().root(),
-                    0,
                 )
                 .expect("note reshape body materialization succeeds"),
             auth_sig: [0u8; 64].into(),
@@ -459,7 +431,6 @@ mod tests {
             transaction_parameters: Default::default(),
             fee_funding: None,
             memo: None,
-            nullifier_window: None,
         };
 
         assert_eq!(
@@ -524,7 +495,6 @@ mod tests {
                 transaction_parameters: Default::default(),
                 fee_funding: None,
                 memo: None,
-                nullifier_window: None,
             };
 
             assert_eq!(plan.num_outputs(), 1);
@@ -574,7 +544,6 @@ mod tests {
                     &test_keys::FULL_VIEWING_KEY,
                     &PayloadKey::from([0u8; 32]),
                     shieldd_sdk_tct::Tree::default().root(),
-                    0,
                 )
                 .expect("note reshape body materialization succeeds"),
             auth_sig: [0u8; 64].into(),

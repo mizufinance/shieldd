@@ -275,6 +275,7 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let mut proposer = App::new(
             storage.latest_snapshot(),
             shieldd_sdk_bench_support::proof_txs::registry()?,
+            _node.execution.nullifier_reader(),
         )
         .await?;
         proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
@@ -292,6 +293,7 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let mut validator = App::new(
             storage.latest_snapshot(),
             shieldd_sdk_bench_support::proof_txs::registry()?,
+            _node.execution.nullifier_reader(),
         )
         .await?;
         let process_start = Instant::now();
@@ -305,12 +307,13 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let mut executor = App::new(
             storage.latest_snapshot(),
             shieldd_sdk_bench_support::proof_txs::registry()?,
+            _node.execution.nullifier_reader(),
         )
         .await?;
         executor.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let execute_start = Instant::now();
         let execution_profile = executor
-            .execute_validated_candidate_envelope_profiled(&envelope, storage.as_ref().clone())
+            .execute_validated_candidate_envelope_profiled(&envelope, storage.storage().clone())
             .await
             .with_context(|| format!("executing run {run_index}"))?;
         let execute_wall_ms = elapsed_ms(execute_start);

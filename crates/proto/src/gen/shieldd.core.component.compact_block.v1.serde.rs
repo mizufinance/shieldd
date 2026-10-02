@@ -54,9 +54,6 @@ impl serde::Serialize for CompactBlock {
         if !self.routing_actions.is_empty() {
             len += 1;
         }
-        if self.nullifier_window.is_some() {
-            len += 1;
-        }
         if self.state_payload_start_position != 0 {
             len += 1;
         }
@@ -120,9 +117,6 @@ impl serde::Serialize for CompactBlock {
         if !self.routing_actions.is_empty() {
             struct_ser.serialize_field("routingActions", &self.routing_actions)?;
         }
-        if let Some(v) = self.nullifier_window.as_ref() {
-            struct_ser.serialize_field("nullifierWindow", v)?;
-        }
         if self.state_payload_start_position != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
@@ -171,8 +165,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             "complianceAssetRegistrations",
             "routing_actions",
             "routingActions",
-            "nullifier_window",
-            "nullifierWindow",
             "state_payload_start_position",
             "statePayloadStartPosition",
             "compliance_snapshot",
@@ -197,7 +189,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             ComplianceUserStatusChanges,
             ComplianceAssetRegistrations,
             RoutingActions,
-            NullifierWindow,
             StatePayloadStartPosition,
             ComplianceSnapshot,
             __SkipField__,
@@ -238,7 +229,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             "complianceUserStatusChanges" | "compliance_user_status_changes" => Ok(GeneratedField::ComplianceUserStatusChanges),
                             "complianceAssetRegistrations" | "compliance_asset_registrations" => Ok(GeneratedField::ComplianceAssetRegistrations),
                             "routingActions" | "routing_actions" => Ok(GeneratedField::RoutingActions),
-                            "nullifierWindow" | "nullifier_window" => Ok(GeneratedField::NullifierWindow),
                             "statePayloadStartPosition" | "state_payload_start_position" => Ok(GeneratedField::StatePayloadStartPosition),
                             "complianceSnapshot" | "compliance_snapshot" => Ok(GeneratedField::ComplianceSnapshot),
                             _ => Ok(GeneratedField::__SkipField__),
@@ -276,7 +266,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                 let mut compliance_user_status_changes__ = None;
                 let mut compliance_asset_registrations__ = None;
                 let mut routing_actions__ = None;
-                let mut nullifier_window__ = None;
                 let mut state_payload_start_position__ = None;
                 let mut compliance_snapshot__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -385,12 +374,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             }
                             routing_actions__ = Some(map_.next_value()?);
                         }
-                        GeneratedField::NullifierWindow => {
-                            if nullifier_window__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("nullifierWindow"));
-                            }
-                            nullifier_window__ = map_.next_value()?;
-                        }
                         GeneratedField::StatePayloadStartPosition => {
                             if state_payload_start_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("statePayloadStartPosition"));
@@ -427,7 +410,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                     compliance_user_status_changes: compliance_user_status_changes__.unwrap_or_default(),
                     compliance_asset_registrations: compliance_asset_registrations__.unwrap_or_default(),
                     routing_actions: routing_actions__.unwrap_or_default(),
-                    nullifier_window: nullifier_window__,
                     state_payload_start_position: state_payload_start_position__.unwrap_or_default(),
                     compliance_snapshot: compliance_snapshot__,
                 })

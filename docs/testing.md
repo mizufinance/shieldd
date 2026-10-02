@@ -94,7 +94,7 @@ not evidence that an event occurred. Preserve reproducible seeds and minimized
 property-test failures. Do not claim exhaustive scheduling or crash coverage from
 one chosen interleaving or a clean close/reopen.
 
-Useful existing examples: [worker interleaving](../crates/view/src/storage/historical_worker_tests.rs),
+Useful existing examples: [worker interleaving](../crates/view/src/worker.rs),
 [SQL failure/rollback](../crates/core/component/compliance/src/audit_tests.rs),
 [tree reference comparisons](../crates/core/component/compliance/src/indexed_tree_tests.rs),
 [field-wrap witness](../crates/crypto/circuits/src/scalar.rs), and

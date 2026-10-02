@@ -158,7 +158,41 @@ impl QuadTree {
             }
         }
 
-        Ok(Self { depth, nodes })
+        // Rebuild from leaves. Cached parent hashes are useful data, not a
+        // validation shortcut: exact equality also rejects orphan/extra nodes.
+        let mut rebuilt = Self {
+            depth,
+            nodes: nodes
+                .iter()
+                .filter(|(key, _)| **key >> 48 == 0)
+                .map(|(key, value)| (*key, *value))
+                .collect(),
+        };
+        for level in 0..depth {
+            let parents: std::collections::BTreeSet<_> = rebuilt
+                .nodes
+                .keys()
+                .filter(|key| **key >> 48 == u64::from(level))
+                .map(|key| (key & ((1u64 << 48) - 1)) / 4)
+                .collect();
+            for parent in parents {
+                let children = std::array::from_fn::<_, 4, _>(|i| {
+                    rebuilt.get_node(level, parent * 4 + i as u64)
+                });
+                let hash = Self::hash_children(
+                    level + 1,
+                    children[0],
+                    children[1],
+                    children[2],
+                    children[3],
+                );
+                rebuilt.set_node(level + 1, parent, hash);
+            }
+        }
+        if rebuilt.nodes != nodes {
+            bail!("sparse compliance nodes do not reconstruct their committed root");
+        }
+        Ok(rebuilt)
     }
 
     /// Reconstruct a tree from sparse stored nodes.

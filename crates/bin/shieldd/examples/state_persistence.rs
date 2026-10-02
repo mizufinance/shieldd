@@ -1,25 +1,22 @@
 use anyhow::{ensure, Context, Result};
-use cnidarium::{StateDelta, Storage};
 use prost::Message;
 use shieldd::ExecutionService;
-use shieldd_sdk_app::{
-    app::{StateReadExt as _, StateWriteExt as _},
-    genesis::{AppState, Content},
-    SUBSTORE_PREFIXES,
-};
+use shieldd_sdk_app::genesis::{AppState, Content};
 use shieldd_sdk_keys::test_keys;
 use shieldd_sdk_proto::{
-    cnidarium::v1::KeyValueRequest,
     core::{
         app::v1::AppParametersRequest,
-        component::{compact_block::v1::CompactBlockPageRequest, sct::v1::NullifierWindowRequest},
+        component::{compact_block::v1::CompactBlockPageRequest, sct::v1::NullifierRequest},
     },
     execution_client::v1::*,
+    storage::v1::KeyValueRequest,
 };
+use shieldd_sdk_storage::{ForestConfig, Storage};
 use std::path::Path;
 
 fn deposit() -> DepositRequest {
     DepositRequest {
+        queued: false,
         denom: shieldd_sdk_asset::BASE_ASSET_DENOM.to_string(),
         amount: "100".into(),
         recipient: test_keys::ADDRESS_0.to_string(),
@@ -35,30 +32,37 @@ fn deposit() -> DepositRequest {
 async fn begin(service: &mut ExecutionService, height: i64) -> Result<()> {
     let mut request = BeginBlockRequest {
         height,
+        block_id: vec![height as u8; 32],
         time: Some(Default::default()),
     };
     request.time.as_mut().context("time")?.seconds = 1_700_000_000 + height;
-    service.begin_block(request).await?;
+    service.reserve_call(2, &request.encode_to_vec())?;
+    let response = service.begin_block(request).await?;
+    service.finish_call(0, &response.encode_to_vec())?;
     Ok(())
 }
 
-async fn snapshot(service: &ExecutionService) -> Result<Vec<u8>> {
+async fn snapshot(service: &mut ExecutionService) -> Result<Vec<u8>> {
     let committed = service
         .get_committed_state(GetCommittedStateRequest {})
         .await?;
-    service.queries().publish_committed(committed).await?;
+    ensure!(
+        committed.root_hash.len() == 32,
+        "matched native commitment is missing"
+    );
     let queries = service.queries();
     let mut bytes = Vec::new();
-    service
-        .get_committed_state(GetCommittedStateRequest {})
-        .await?
-        .encode_length_delimited(&mut bytes)?;
+    committed.encode_length_delimited(&mut bytes)?;
     queries
         .app_parameters(AppParametersRequest {})
         .await?
         .encode_length_delimited(&mut bytes)?;
     queries
-        .nullifier_window(NullifierWindowRequest {})
+        .nullifier_status(NullifierRequest {
+            nullifier: Some(
+                shieldd_sdk_sct::Nullifier(shieldd_sdk_crypto::Fq::from(999u64)).into(),
+            ),
+        })
         .await?
         .encode_length_delimited(&mut bytes)?;
     for key in [
@@ -99,35 +103,37 @@ async fn seed(db: &Path) -> Result<ExecutionService> {
             ),
         })
         .await?;
-    service.commit(CommitRequest {}).await?;
-    begin(&mut service, 1).await?;
-    service.deposit(deposit()).await?;
-    service.end_block(EndBlockRequest { height: 1 }).await?;
-    service.commit(CommitRequest {}).await?;
-    service.close().await?;
-    let storage = Storage::load(db.to_path_buf(), SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut state = StateDelta::new(storage.latest_snapshot());
-    // Exercise canonical history persistence; host integration tests own spend acceptance.
-    state
-        .put_block_transaction(1, shieldd_sdk_transaction::Transaction::default().into())
+    service
+        .materialize(MaterializeRequest {
+            height: 0,
+            receipt_digest: vec![],
+        })
         .await?;
-    storage.commit(state).await?;
-    storage.release().await;
-    Ok(ExecutionService::open(db, registry()?).await?)
+    begin(&mut service, 1).await?;
+    let request = deposit();
+    service.reserve_call(3, &request.encode_to_vec())?;
+    service.begin_native_call()?;
+    let response = service.deposit(request).await?;
+    service.finish_native_call(true)?;
+    service.finish_call(0, &response.encode_to_vec())?;
+    finish(&mut service, 1).await?;
+    Ok(service)
 }
-
-async fn persisted_history(db: &Path) -> Result<Vec<u8>> {
-    let storage = Storage::load(db.to_path_buf(), SUBSTORE_PREFIXES.to_vec()).await?;
-    let history = storage.latest_snapshot().transactions_by_height(1).await?;
-    ensure!(
-        history.transactions.len() == 1,
-        "historical transaction disappeared"
-    );
-    let encoded = history.encode_to_vec();
-    storage.release().await;
-    Ok(encoded)
+async fn finish(service: &mut ExecutionService, height: i64) -> Result<()> {
+    let request = EndBlockRequest { height };
+    service.reserve_call(6, &request.encode_to_vec())?;
+    let response = service.end_block(request).await?;
+    service.finish_call(0, &response.encode_to_vec())?;
+    let frozen = service.freeze(FreezeRequest {}).await?;
+    service
+        .materialize(MaterializeRequest {
+            height: height as u64,
+            receipt_digest: frozen.receipt_digest,
+        })
+        .await?;
+    service.check_persistence()?;
+    Ok(())
 }
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
@@ -136,57 +142,53 @@ async fn main() -> Result<()> {
     std::fs::create_dir_all(work)?;
     let mut control = None;
     let mut control_queries = None;
-    let mut control_history = None;
     for mode in ["uninterrupted", "reopen", "checkpoint"] {
-        let db = work.join(mode);
+        let mut db = work.join(mode);
         let mut service = seed(&db).await?;
-        let before = snapshot(&service).await?;
+        let before = snapshot(&mut service).await?;
         if let Some(expected) = &control_queries {
             ensure!(&before == expected, "initial query mismatch");
         } else {
             control_queries = Some(before.clone());
         }
         if mode != "uninterrupted" {
-            let checkpoint = service.export_genesis(ExportGenesisRequest {}).await?;
+            let boundary = service
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?;
             service.close().await?;
-            let history = persisted_history(&db).await?;
-            if let Some(expected) = &control_history {
-                ensure!(&history == expected, "historical bytes changed");
-            } else {
-                control_history = Some(history);
+            if mode == "checkpoint" {
+                let storage = Storage::open(&db, ForestConfig::from_env()?)?;
+                let manifest = storage.manifest().context("matched manifest")?;
+                let checkpoint = work.join("captured");
+                storage.checkpoint(&checkpoint, &manifest)?;
+                shieldd::validate_checkpoint_native(&checkpoint, &manifest).await?;
+                let restored = work.join("restored");
+                Storage::restore(
+                    &checkpoint,
+                    &restored,
+                    ForestConfig::from_env()?,
+                    manifest.digest()?,
+                )?;
+                drop(storage);
+                db = restored;
             }
             service = ExecutionService::open(&db, registry()?).await?;
+            service
+                .recover_decided(RecoverDecidedRequest {
+                    decided: Some(boundary),
+                    receipt_digest: vec![0; 32],
+                    receipt: vec![],
+                })
+                .await?;
             ensure!(
-                snapshot(&service).await? == before,
-                "committed queries/proofs changed after reopen"
+                snapshot(&mut service).await? == before,
+                "reopen or matched checkpoint changed queries/proofs"
             );
-            if mode == "checkpoint" {
-                service
-                    .init_genesis(InitGenesisRequest {
-                        genesis: checkpoint.genesis,
-                    })
-                    .await?;
-                ensure!(
-                    snapshot(&service).await? == before,
-                    "checkpoint changed committed queries/proofs"
-                );
-            }
         }
         begin(&mut service, 2).await?;
-        ensure!(
-            service.deposit(deposit()).await.is_err(),
-            "historical host source accepted in a new block"
-        );
-        service.end_block(EndBlockRequest { height: 2 }).await?;
-        service.commit(CommitRequest {}).await?;
-        let after = snapshot(&service).await?;
+        finish(&mut service, 2).await?;
+        let after = snapshot(&mut service).await?;
         service.close().await?;
-        let history = persisted_history(&db).await?;
-        if let Some(expected) = &control_history {
-            ensure!(&history == expected, "historical bytes changed");
-        } else {
-            control_history = Some(history);
-        }
         if let Some(expected) = &control {
             ensure!(
                 &after == expected,

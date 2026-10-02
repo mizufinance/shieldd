@@ -1,20 +1,13 @@
 use anyhow::{ensure, Context};
-use cnidarium::{StateRead, Storage};
-use futures::TryStreamExt;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_storage::Storage;
 
 use super::APP_VERSION;
 
 /// Reject populated state without the current schema safeguard.
 pub async fn check_app_version(storage: &Storage) -> anyhow::Result<()> {
-    let snapshot = storage.latest_snapshot();
-    if storage.latest_version() == u64::MAX
-        && snapshot
-            .nonverifiable_prefix_raw(b"")
-            .try_next()
-            .await?
-            .is_none()
-    {
+    // Storage::open rejects populated values without a materialized manifest.
+    if storage.latest_version() == u64::MAX {
         return Ok(());
     }
     ensure!(
@@ -47,11 +40,11 @@ pub(crate) fn initialize_app_version<S: StateWriteProto>(state: &mut S) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use cnidarium::StateDelta;
+    use shieldd_sdk_storage::StateDelta;
 
     #[tokio::test]
     async fn populated_state_without_version_is_rejected() {
-        let storage = cnidarium::TempStorage::new().await.unwrap();
+        let storage = shieldd_sdk_storage::TempStorage::new().await.unwrap();
         let mut state = StateDelta::new(storage.latest_snapshot());
         state.nonverifiable_put_proto(b"test/populated".to_vec(), 1u64);
         storage.commit(state).await.unwrap();
@@ -64,7 +57,7 @@ mod test {
 
     #[tokio::test]
     async fn fresh_state_and_initialized_current_version_are_accepted() {
-        let storage = cnidarium::TempStorage::new().await.unwrap();
+        let storage = shieldd_sdk_storage::TempStorage::new().await.unwrap();
         check_app_version(&storage).await.unwrap();
         assert_eq!(storage.latest_version(), u64::MAX);
         let mut state = StateDelta::new(storage.latest_snapshot());
@@ -75,7 +68,7 @@ mod test {
 
     #[tokio::test]
     async fn incompatible_version_is_rejected() {
-        let storage = cnidarium::TempStorage::new().await.unwrap();
+        let storage = shieldd_sdk_storage::TempStorage::new().await.unwrap();
         let mut state = StateDelta::new(storage.latest_snapshot());
         state.nonverifiable_put_proto(
             crate::app::state_key::app_version::safeguard()

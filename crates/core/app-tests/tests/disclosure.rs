@@ -179,7 +179,7 @@ async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()
     std::fs::create_dir(&recipient)?;
     let chain = common::new_storage().await?;
     let mut host = TestHost::new(
-        chain.as_ref().clone(),
+        chain.storage().clone(),
         AppState::Content(genesis::Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         shieldd_sdk_app_tests::registry(),
@@ -234,7 +234,6 @@ async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()
         "PRIVATE-MEMO".into(),
     )?;
     let intent = shieldd_sdk_mock_client::TransactionIntent {
-        nullifier_window: None,
         actions: vec![shieldd_sdk_mock_client::TransferIntent {
             spends: vec![spend],
             outputs: vec![output, change],

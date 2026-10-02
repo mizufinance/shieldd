@@ -41,8 +41,7 @@ message CompactBlock {
   repeated compliance.v1.EventAssetRegistered compliance_asset_registrations = 15;
   // Actions reference canonical payload positions instead of repeating ciphertexts.
   repeated RoutingAction routing_actions = 16;
-  // Exact nullifier-generation window, emitted at genesis and app-epoch boundaries.
-  sct.v1.NullifierWindow nullifier_window = 17;
+  // First SCT position occupied by this block's state payloads.
   uint64 state_payload_start_position = 19;
   // Paired admission metadata; absent only before the first consensus timestamp.
   compliance.v1.ComplianceSnapshot compliance_snapshot = 20;

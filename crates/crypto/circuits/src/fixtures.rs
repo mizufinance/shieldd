@@ -63,9 +63,7 @@ pub struct Facts {
     pub optional_dummy: bool,
     pub same_affine_address: bool,
     pub spend_positions: [u64; 2],
-    pub history: [bool; 2],
     pub timestamp: String,
-    pub recent_floor: String,
     pub sender_status: String,
     pub receiver_status: String,
     pub sender_position: u64,
@@ -96,9 +94,7 @@ pub fn load() -> Result<Vec<Facts>> {
                 optional_dummy: true,
                 same_affine_address: false,
                 spend_positions: [0, 0],
-                history: [false; 2],
                 timestamp: "86401".into(),
-                recent_floor: "0".into(),
                 sender_status: field(1),
                 receiver_status: field(1),
                 sender_position: 0,
@@ -408,7 +404,6 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
                 .expect("fixture spend position")
                 .clone(),
             nullifier,
-            history_required: f.history[i],
         }
     });
     let mut outputs = Vec::new();
@@ -527,7 +522,6 @@ pub fn build(p: &Parameters, g: &Generators, f: &Facts) -> Result<Witness> {
         asset,
         regulated: f.regulated,
         timestamp: Scalar::from(timestamp),
-        recent_floor: Scalar::from(f.recent_floor.parse::<u64>()?),
         nonce_root: nonce,
         balance_blinding: secret(&mut rng),
         auth: authorization::Witness {
@@ -589,7 +583,6 @@ pub fn owner(p: &Parameters, w: &Witness) -> crate::self_action::Witness {
         compliance_anchor: w.compliance_anchor.clone(),
         asset: w.asset.clone(),
         regulated: w.regulated,
-        recent_floor: w.recent_floor.clone(),
         balance_blinding: w.balance_blinding.clone(),
         routing_nonce: w.nonce_root.clone(),
         routing: routing::build_single(
@@ -706,7 +699,6 @@ pub fn reshape(
                     note: notes[i].clone(),
                     path: state.paths[&position].clone(),
                     nullifier,
-                    history_required: false,
                 },
                 padding,
             }

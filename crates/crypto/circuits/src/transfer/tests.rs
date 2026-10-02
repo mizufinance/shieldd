@@ -86,7 +86,7 @@ fn all_branches_compile_to_one_relation_and_bind_current_audit_keys() {
         match mutation {
             0 => bad.nonce_root += &Scalar::one(),
             1 => bad.auth.nk += &Scalar::one(),
-            2 => bad.spends[0].history_required = true,
+            2 => bad.spends[0].path.position += &Scalar::one(),
             3 => bad.encryption.ownership_randomness[0] += &Scalar::one(),
             _ => bad.encryption.ownership_randomness[1] += &Scalar::one(),
         }

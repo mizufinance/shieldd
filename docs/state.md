@@ -22,26 +22,13 @@ Rayon is feature-gated. Builds without the `parallel` feature use the same
 reducer serially. Wallet synchronization retains the witness-aware `Keep` path
 because a root-only builder cannot retain owned-note witnesses.
 
-## Nullifier tree
+## Permanent spend-nullifier set
 
-Transactions stage nullifiers in proposal order in block-local state. Membership
-uses a persistent ordered set so copying a Cnidarium object does not copy every
-previous nullifier. The ordered log is retained through block materialization for
-compact-block production.
-
-At block finalization, one storage-backed plan:
-
-1. validates duplicates, spent markers, generation identity, and capacity;
-2. applies predecessor-link changes in proposal order;
-3. collapses repeated leaf and node changes into a dirty overlay;
-4. hashes independent parents in parallel when the feature and threshold allow;
-5. writes final leaves, indexes, nodes, count, and root atomically.
-
-`PrepareProposal` performs committed-state reads, same-proposal conflict checks,
-and capacity accounting. It does not materialize a nullifier tree because the
-temporary proposal application state is discarded. `ProcessProposal` and block
-delivery retain transaction-delivery validation semantics; canonical state is
-materialized only on the delivery path.
+Transactions authenticate committed absence through the native read capability
+and stage an ordered block-local log. The persistence owner freezes application
+state, verifies the exact NOMT transition and coordinates all durable participants.
+[Permanent nullifiers](nullifier-history.md) defines authentication, publication,
+recovery, query bounds and operational lifecycle.
 
 ## Compact history and committed reads
 
@@ -52,12 +39,12 @@ position. Metadata, payload fragments, other compact collections and canonical
 signed transactions are separate records. Signed transaction bytes remain intact.
 Tag indexes store reversed bits, permitting range scans for low-bit selectors.
 
-Cnidarium has one database owner and one ordered application writer. Queries use
-independent snapshots explicitly published by Bankd only after its commit,
-Shieldd's commit and the durable recovery record succeed. Recovery inspection is
-separate from public reads. CheckTx uses disposable deltas with bounded admission;
-delivery still validates current state. Local query budgets and buffer ownership
-are defined in [Embedded artifacts](embedded-artifacts.md).
+NOMT authenticates application values and ordering/completeness; RocksDB keeps
+full values and native nodes. Native SCT and compliance reads are bound to their
+existing commitments. Retained records use raw values with NOMT commitments
+and authenticated ordering. Checkpoints validate complete canonical records. [Storage lifecycle](nullifier-history.md) defines coordinated durability,
+recovery, publication and capacity. Local query budgets and buffer ownership are
+defined in [Embedded artifacts](embedded-artifacts.md).
 
 ## Validator compliance trees
 
@@ -98,8 +85,8 @@ snapshot.
 
 - Fixed depths, child order, leaf commitments, hash domains, zero tables,
   padding, and proof layouts are protocol facts.
-- Nullifier and commitment positions follow proposal order; values are never
-  sorted to make batching easier.
+- Accepted nullifiers and commitment positions follow execution order. NOMT
+  partition updates sort keys only after duplicate and exact-set validation.
 - Compliance proofs use [paired snapshot admission](compliance/flow.md#snapshot-admission-and-freezes);
   its epoch and history are application-hash-covered state.
 - Mutable indexed-tree predecessor selection is sequential; only independent

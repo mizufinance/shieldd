@@ -1,6 +1,7 @@
 mod batch_input;
 #[cfg(any(test, feature = "benchmark-helpers"))]
 mod benchmark_config;
+mod call;
 mod candidate;
 mod delivery;
 mod host;
@@ -8,7 +9,7 @@ mod lifecycle;
 pub use batch_input::{BatchCandidate, BatchPreparation, BatchVerdict, PreparedBatch};
 
 pub use self::host::{
-    HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostExecution,
+    HostBlock, HostCommit, HostCommittedState, HostDepositResult, HostEndBlock, HostExecution,
     HostExecutionPhase, HostExecutionResponse, HostNoteSeizureResult, HostTxResponse,
     HostWithdrawal,
 };
@@ -20,10 +21,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::{ArcStateDeltaExt, Snapshot, StateDelta, StateRead, StateWrite, Storage};
-use cnidarium_component::Component;
 use commonware_parallel::Sequential;
-use jmt::RootHash;
 use prost::bytes::Bytes;
 use prost::Message as _;
 #[cfg(any(test, feature = "benchmark-helpers"))]
@@ -46,15 +44,18 @@ use shieldd_sdk_shielded_pool::component::{
     note_reshape_check_stateless_and_extract, shielded_host_withdrawal_check_stateless_and_extract,
     transfer_check_stateless_and_extract, ShieldedPool, StateReadExt as _, StateWriteExt as _,
 };
+#[cfg(any(test, feature = "benchmark-helpers"))]
+use shieldd_sdk_storage::Commitment;
+use shieldd_sdk_storage::Component;
+use shieldd_sdk_storage::{ArcStateDeltaExt, Snapshot, StateDelta, StateRead, StateWrite, Storage};
 use shieldd_sdk_transaction::{Action, FeeFunding, Transaction};
 use shieldd_sdk_txhash::TransactionContext;
 use tendermint::abci::{self, Event};
 use tendermint::Time;
-use tracing::{instrument, Instrument};
+use tracing::instrument;
 
 use crate::action_handler::transaction::{
-    check_and_execute, check_historical_with_context, verify_historical_nullifier_proof,
-    HistoricalCheckContext,
+    check_and_execute, check_historical_with_context, HistoricalCheckContext,
 };
 use crate::action_handler::AppActionHandler;
 use crate::block_tx_indexing::BlockTxIndexingMode;
@@ -171,12 +172,9 @@ pub struct ExecutionBlockProfile {
 
 /// The Shieldd application, written as a bundle of [`Component`]s.
 ///
-/// The [`App`] is not a [`Component`], but
-/// it constructs the components and exposes a [`commit`](App::commit) that
-/// commits the changes to the persistent storage and resets its subcomponents.
+/// The [`App`] constructs and executes components. The permanent-state writer
+/// owns sealing and durable commits at the coordinated host boundary.
 pub struct App {
-    #[cfg(test)]
-    commit_extracted: Option<Arc<tokio::sync::Notify>>,
     #[cfg(test)]
     historical_check_gate: Option<Arc<delivery::HistoricalCheckGate>>,
     state: InterBlockState,
@@ -277,11 +275,15 @@ impl App {
             span.in_scope(|| handle.block_on(Self::extract_tx_artifacts(&txs)))
         })
         .await
-        .context("stateless extraction task panicked")?
+        .map_err(|e| {
+            shieldd_sdk_storage::LocalProcessingFailure(format!(
+                "stateless extraction worker failed: {e}"
+            ))
+        })?
     }
 
     async fn extract_tx_artifacts(txs: &[Arc<Transaction>]) -> Result<Vec<Arc<TxArtifact>>> {
-        use cnidarium_component::ActionHandler as _;
+        use shieldd_sdk_storage::ActionHandler as _;
 
         let mut artifacts = Vec::with_capacity(txs.len());
         for tx in txs {
@@ -344,7 +346,11 @@ impl App {
             })
         })
         .await
-        .context("stateless verification task panicked")?
+        .map_err(|e| {
+            shieldd_sdk_storage::LocalProcessingFailure(format!(
+                "stateless verification worker failed: {e}"
+            ))
+        })?
     }
 
     async fn build_tx_artifacts_for_stage(
@@ -403,7 +409,11 @@ impl App {
             Self::attach_verified_capabilities(registry, artifacts, capabilities)
         })
         .await
-        .context("Pari batch verification task panicked")?;
+        .map_err(|e| {
+            shieldd_sdk_storage::LocalProcessingFailure(format!(
+                "Pari batch verification worker failed: {e}"
+            ))
+        })?;
         Self::record_artifact_build(stage, tx_count, start.elapsed(), result.is_ok());
         result
     }
@@ -417,6 +427,87 @@ impl App {
     ) -> Result<()> {
         Self::verify_tx_artifacts_for_stage(registry, "bench_batch", artifacts).await?;
         Ok(())
+    }
+
+    /// Owned bounded chunks share the same extraction and capability attachment
+    /// as direct delivery. Failed batch checks fall back to individual proofs so
+    /// another transaction cannot change this transaction's validity or error.
+    pub async fn verify_owned_chunk(
+        registry: Arc<Registry>,
+        inputs: &[Vec<u8>],
+    ) -> Result<Vec<std::result::Result<Arc<VerifiedTxArtifact>, String>>> {
+        let inputs = inputs.to_vec();
+        let runtime = tokio::runtime::Handle::current();
+        // One owned worker per chunk, rather than one extraction task per tx.
+        // No nested blocking jobs: this also works with one blocking worker.
+        tokio::task::spawn_blocking(move || {
+            runtime.block_on(async move {
+                let mut decoded = Vec::with_capacity(inputs.len());
+                let mut extracted = Vec::new();
+                for bytes in inputs {
+                    let result = delivery::DecodedTransaction::decode(&bytes);
+                    match result {
+                        Ok(tx) => {
+                            match Self::extract_tx_artifacts(std::slice::from_ref(&tx.tx)).await {
+                                Ok(mut rows) => {
+                                    extracted
+                                        .push(rows.pop().context("extracted artifact missing")?);
+                                    decoded.push(Ok(tx.tx));
+                                }
+                                Err(error) => decoded
+                                    .push(Err(format!("extract stateless failed: {error:#}"))),
+                            }
+                        }
+                        Err(error) => decoded.push(Err(format!("{error:#}"))),
+                    }
+                }
+                let batched = (|| -> Result<_> {
+                    let capabilities = Self::merge_artifact_proof_items(&extracted)
+                        .into_iter()
+                        .map(|(family, items)| {
+                            Ok((
+                                family,
+                                VecDeque::from(registry.verify_items(&items, &Sequential)?),
+                            ))
+                        })
+                        .collect::<Result<BTreeMap<_, _>>>()?;
+                    Self::attach_verified_capabilities(registry.clone(), extracted, capabilities)
+                })();
+                let mut batched = batched.ok().map(VecDeque::from);
+                let mut results = Vec::with_capacity(decoded.len());
+                for item in decoded {
+                    results.push(match item {
+                        Err(error) => Err(error),
+                        Ok(tx) => match &mut batched {
+                            Some(rows) => {
+                                Ok(rows.pop_front().context("verified artifact missing")?)
+                            }
+                            None => {
+                                let result =
+                                    Self::extract_tx_artifacts(&[tx]).await.and_then(|rows| {
+                                        Self::independently_verify_artifacts(registry.clone(), rows)
+                                    });
+                                match result {
+                                    Ok(mut rows) => {
+                                        Ok(rows.pop().context("fallback artifact missing")?)
+                                    }
+                                    Err(error) => {
+                                        Err(format!("extract stateless failed: {error:#}"))
+                                    }
+                                }
+                            }
+                        },
+                    });
+                }
+                Ok(results)
+            })
+        })
+        .await
+        .map_err(|e| {
+            shieldd_sdk_storage::LocalProcessingFailure(format!(
+                "owned verification worker failed: {e}"
+            ))
+        })?
     }
 
     fn independently_verify_artifacts(
@@ -476,7 +567,7 @@ impl App {
     ) -> Result<ExecutionBlockProfile> {
         envelope.validate()?;
         let context = self.benchmark_block_context().await?;
-        let begin_block = cnidarium_component::BlockContext {
+        let begin_block = shieldd_sdk_storage::BlockContext {
             height: context.height,
             time: context.time,
         };
@@ -524,7 +615,7 @@ impl App {
         profile.end_block_ms = end_block_start.elapsed().as_secs_f64() * 1000.0;
 
         let commit_start = Instant::now();
-        let _root_hash = self.commit(storage, None).await?;
+        let _root_hash = self.commit_for_testing(storage).await?;
         profile.commit_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
 
         Ok(profile)
@@ -716,24 +807,32 @@ impl App {
     }
 
     /// Constructs an application only when populated state matches the configured proof keys.
-    pub async fn new(snapshot: Snapshot, registry: Arc<Registry>) -> Result<Self> {
+    pub async fn new(
+        snapshot: Snapshot,
+        registry: Arc<Registry>,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+    ) -> Result<Self> {
         crate::registry_binding::check(&snapshot, registry.id()).await?;
-        Ok(Self::from_snapshot(snapshot, registry))
+        Ok(Self::from_snapshot(snapshot, registry, reader))
     }
 
-    fn from_snapshot(snapshot: Snapshot, registry: Arc<Registry>) -> Self {
+    fn from_snapshot(
+        snapshot: Snapshot,
+        registry: Arc<Registry>,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+    ) -> Self {
         tracing::debug!("initializing App instance");
         let snapshot_version = snapshot.version();
 
         // We perform the `Arc` wrapping of `State` here to ensure
         // there should be no unexpected copies elsewhere.
-        let state = Arc::new(StateDelta::new(snapshot.clone()));
+        let mut state = StateDelta::new(snapshot.clone());
+        state.object_put(shieldd_sdk_sct::state_key::nullifiers::reader(), reader);
+        let state = Arc::new(state);
 
         Self {
             #[cfg(test)]
             historical_check_gate: None,
-            #[cfg(test)]
-            commit_extracted: None,
             state,
             committed_snapshot: snapshot,
             snapshot_version,
@@ -743,13 +842,18 @@ impl App {
         }
     }
 
+    pub fn nullifier_reader(&self) -> shieldd_sdk_sct::permanent_nullifiers::Reader {
+        self.state
+            .object_get(shieldd_sdk_sct::state_key::nullifiers::reader())
+            .expect("App owns a nullifier reader")
+    }
+
     pub fn set_block_tx_indexing_mode(&mut self, mode: BlockTxIndexingMode) {
         self.block_tx_indexing_mode = mode;
     }
 
     pub async fn is_ready(state: Snapshot) -> bool {
-        if let Err(error) = shieldd_sdk_sct::nullifier_tree::verify_committed_roots(&state).await {
-            tracing::error!(?error, "nullifier tree root check failed");
+        if state.manifest().is_none() {
             return false;
         }
         if let Err(error) = state.verify_committed_sct_root().await {

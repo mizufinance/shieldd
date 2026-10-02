@@ -24,21 +24,17 @@ pub enum Family {
     Withdrawal = 4,
     Seizure = 5,
     Disclosure = 6,
-    HistoryGeneration = 7,
-    HistoryChunk = 8,
     DisclosureOne = 9,
 }
 
 impl Family {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 7] = [
         Self::Transfer,
         Self::ReshapeOneToEight,
         Self::ReshapeEightToOne,
         Self::Withdrawal,
         Self::Seizure,
         Self::Disclosure,
-        Self::HistoryGeneration,
-        Self::HistoryChunk,
         Self::DisclosureOne,
     ];
     pub const fn label(self) -> &'static str {
@@ -50,8 +46,6 @@ impl Family {
             Self::Seizure => "seizure",
             Self::Disclosure => "disclosure32",
             Self::DisclosureOne => "disclosure1",
-            Self::HistoryGeneration => "history_generation",
-            Self::HistoryChunk => "history_chunk10",
         }
     }
 }
@@ -67,8 +61,6 @@ impl TryFrom<u8> for Family {
             4 => Self::Withdrawal,
             5 => Self::Seizure,
             6 => Self::Disclosure,
-            7 => Self::HistoryGeneration,
-            8 => Self::HistoryChunk,
             9 => Self::DisclosureOne,
             _ => anyhow::bail!("unknown proof family"),
         })
@@ -94,6 +86,13 @@ fn transcript(family: Family) -> Transcript {
 }
 
 impl Envelope {
+    /// Heap capacity owned by the decoded claim; proof elements are inline.
+    pub fn allocated_bytes(&self) -> usize {
+        self.claim.public_inputs.capacity() * std::mem::size_of::<Scalar>()
+            + self.claim.commitments.capacity()
+                * std::mem::size_of::<commonware_cryptography::bls12381::primitives::group::G1>()
+    }
+
     pub fn family(&self) -> Family {
         self.family
     }

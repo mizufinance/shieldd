@@ -10,7 +10,6 @@ struct Values {
     ak: Point<Scalar>,
     spend_auth: SpendAuthorization,
     anchor: Scalar,
-    floor: Scalar,
 }
 fn fixture(params: &Parameters, dummy: bool) -> (Values, SpendWitness, OptionalWitness) {
     let g = group::generator();
@@ -48,7 +47,6 @@ fn fixture(params: &Parameters, dummy: bool) -> (Values, SpendWitness, OptionalW
             siblings,
         },
         nullifier,
-        history_required: false,
     };
     (
         Values {
@@ -58,7 +56,6 @@ fn fixture(params: &Parameters, dummy: bool) -> (Values, SpendWitness, OptionalW
             ak,
             spend_auth: SpendAuthorization { randomizer, rk },
             anchor,
-            floor: Scalar::from(37),
         },
         spend,
         optional,
@@ -76,7 +73,6 @@ fn shared<'a>(ctx: Context<'a, Scalar>, values: &Values) -> SpendContext<'a> {
         nk: var(&values.nk),
         randomizer: constrain_authorization(ctx, &point(&values.ak), &values.spend_auth).1,
         anchor: var(&values.anchor),
-        recent_floor: var(&values.floor),
     }
 }
 fn satisfied(
@@ -99,12 +95,12 @@ fn satisfied(
 }
 
 #[test]
-fn real_spends_bind_note_path_nullifier_authorization_and_history_boundary() {
+fn real_spends_bind_note_path_nullifier_authorization() {
     let p = Parameters::load().unwrap();
     let (values, spend, optional) = fixture(&p, false);
     for option in [None, Some(&optional)] {
         assert!(satisfied(&p, &values, &spend, option));
-        for i in 0..9 {
+        for i in 0..8 {
             let mut bad = spend.clone();
             let mut bad_values = values.clone();
             match i {
@@ -115,20 +111,10 @@ fn real_spends_bind_note_path_nullifier_authorization_and_history_boundary() {
                 4 => bad.path.siblings[STATE_DEPTH - 1][2] += &Scalar::one(),
                 5 => bad.nullifier += &Scalar::one(),
                 6 => bad_values.spend_auth.randomizer += &Scalar::one(),
-                7 => bad_values.spend_auth.rk = group::generator(),
-                _ => bad.history_required = true,
+                _ => bad_values.spend_auth.rk = group::generator(),
             }
             assert!(!satisfied(&p, &bad_values, &bad, option), "spend field {i}");
         }
-        let mut old = values.clone();
-        old.floor += &Scalar::one();
-        assert!(!satisfied(&p, &old, &spend, option));
-        let mut historical = spend.clone();
-        historical.history_required = true;
-        assert!(satisfied(&p, &old, &historical, option));
-        let mut invalid = values.clone();
-        invalid.floor = Scalar::from(1u64 << 48);
-        assert!(!satisfied(&p, &invalid, &spend, option));
         for i in 0..5 {
             let mut bad = values.clone();
             match i {
@@ -150,17 +136,15 @@ fn optional_dummy_enforces_gated_constraints_and_fixed_slot() {
     assert!(satisfied(&p, &values, &spend, Some(&optional)));
     assert!(!satisfied(&p, &values, &spend, None));
     values.anchor += &Scalar::one();
-    values.floor += &Scalar::one();
     spend.note.blinding += &Scalar::one();
     assert!(satisfied(&p, &values, &spend, Some(&optional)));
-    for i in 0..6 {
+    for i in 0..5 {
         let mut bad = spend.clone();
         match i {
             0 => bad.note.amount = Scalar::one(),
-            1 => bad.history_required = true,
-            2 => bad.path.position = Scalar::from(1u64 << 48),
-            3 => bad.nullifier += &Scalar::one(),
-            4 => {
+            1 => bad.path.position = Scalar::from(1u64 << 48),
+            2 => bad.nullifier += &Scalar::one(),
+            3 => {
                 bad.nullifier = p.native(
                     DUMMY_NULLIFIER,
                     &[

@@ -15,8 +15,16 @@ pub use metrics::*;
 
 /// Registers all metrics used by this crate.
 pub fn register_metrics() {
-    cnidarium::register_metrics();
-    crate::nullifier_generation_packs::register_metrics();
+    describe_gauge!(
+        NULLIFIER_BUCKETS,
+        Unit::Count,
+        "NOMT hash-table bucket capacity by partition"
+    );
+    describe_gauge!(
+        NULLIFIER_OCCUPIED,
+        Unit::Count,
+        "Occupied NOMT hash-table buckets by partition"
+    );
 
     describe_counter!(
         MEMPOOL_CHECKTX_TOTAL,
@@ -104,3 +112,6 @@ pub const TX_ARTIFACT_REUSE_TOTAL: &str = "shieldd_pd_tx_artifact_reuse_total";
 pub const CONSENSUS_PHASE_DURATION: &str = "shieldd_pd_consensus_phase_duration_seconds";
 pub const CONSENSUS_BLOCK_TX_COUNT: &str = "shieldd_pd_consensus_block_tx_count";
 pub const CONSENSUS_BLOCK_IDLE_GAP: &str = "shieldd_pd_consensus_block_idle_gap_seconds";
+
+pub const NULLIFIER_BUCKETS: &str = "shieldd_nullifier_partition_buckets";
+pub const NULLIFIER_OCCUPIED: &str = "shieldd_nullifier_partition_occupied_buckets";

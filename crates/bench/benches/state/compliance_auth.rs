@@ -1,4 +1,3 @@
-use cnidarium::StateDelta;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
 use shieldd_sdk_compliance::{
@@ -10,6 +9,7 @@ use shieldd_sdk_compliance::{
 use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_proto::StateWriteProto;
 use shieldd_sdk_sct::component::clock::EpochManager;
+use shieldd_sdk_storage::StateDelta;
 use shieldd_sdk_tct::StateCommitment;
 
 fn compliance_auth(c: &mut Criterion) {
@@ -22,7 +22,9 @@ fn compliance_auth(c: &mut Criterion) {
         .sample_size(30)
         .measurement_time(std::time::Duration::from_secs(2));
     for size in [1u64, 64, 4096] {
-        let storage = runtime.block_on(cnidarium::TempStorage::new()).unwrap();
+        let storage = runtime
+            .block_on(shieldd_sdk_storage::TempStorage::new())
+            .unwrap();
         let mut state = StateDelta::new(storage.latest_snapshot());
         state.put_compliance_params(ComplianceParameters::default());
         state.put_proto(state_key::admission::freeze_epoch().to_owned(), 0u64);

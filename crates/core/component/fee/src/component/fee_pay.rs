@@ -1,9 +1,9 @@
 use anyhow::{ensure, Result};
 use async_trait::async_trait;
-use cnidarium::StateWrite;
 use shieldd_sdk_asset::Value;
 use shieldd_sdk_proto::core::component::fee::v1 as pb;
 use shieldd_sdk_proto::state::StateWriteProto as _;
+use shieldd_sdk_storage::StateWrite;
 
 use crate::{Fee, Gas};
 
@@ -94,8 +94,8 @@ mod tests {
 
     #[tokio::test]
     async fn payments_accumulate_required_fees_and_tips_only_after_validation() -> Result<()> {
-        let storage = cnidarium::TempStorage::new().await?;
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let storage = shieldd_sdk_storage::TempStorage::new().await?;
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         state.put_fee_params(FeeParameters {
             fixed_gas_prices: GasPrices {
                 block_space_price: 1_000,

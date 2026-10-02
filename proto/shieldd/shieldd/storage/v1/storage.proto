@@ -1,0 +1,19 @@
+syntax = "proto3";
+package shieldd.storage.v1;
+service QueryService {
+  rpc KeyValue(KeyValueRequest) returns (KeyValueResponse);
+}
+message KeyValueRequest {
+  string key = 1;
+  bool proof = 2;
+}
+message KeyValueResponse {
+  message Value { bytes value = 1; }
+  Value value = 1;
+  // Canonical NOMT participant proof, manifest and checked value commitment.
+  // Verify against the commitment authenticated by the SDK Shieldd module.
+  bytes proof = 2;
+}
+
+// A full-key, inclusive-start/exclusive-end page within one retained block
+// prefix. The proof verifies membership, ordering and pagination completeness.

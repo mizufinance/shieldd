@@ -218,6 +218,40 @@ impl<'tree> Node<'tree> {
         self.this.hash()
     }
 
+    /// Recompute every retained descendant without trusting cached parents.
+    /// Collapsed forgotten subtrees are terminal hashes authenticated by their
+    /// enclosing parent. The fixed tree depth bounds recursive traversal.
+    pub fn validate(&self, visit: &mut impl FnMut(Node<'tree>, Hash) -> bool) -> bool {
+        fn walk<'tree>(
+            node: Node<'tree>,
+            visit: &mut impl FnMut(Node<'tree>, Hash) -> bool,
+        ) -> Option<Hash> {
+            let children = node.children();
+            let hash = if children.is_empty() {
+                match node.kind() {
+                    Kind::Leaf {
+                        commitment: Some(commitment),
+                    } => Hash::of(commitment),
+                    _ => node.hash(),
+                }
+            } else {
+                if children.len() > 4 || node.height() == 0 {
+                    return None;
+                }
+                let mut hashes = [Hash::zero(); 4];
+                for (i, child) in children.into_iter().enumerate() {
+                    hashes[i] = walk(child, visit)?;
+                }
+                Hash::node(node.height(), hashes[0], hashes[1], hashes[2], hashes[3])
+            };
+            if node.hash() != hash || !visit(node, hash) {
+                return None;
+            }
+            Some(hash)
+        }
+        walk(*self, visit).is_some()
+    }
+
     /// The cached hash at this node, if any.
     pub fn cached_hash(&self) -> Option<Hash> {
         self.this.cached_hash()

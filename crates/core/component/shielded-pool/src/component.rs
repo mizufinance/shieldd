@@ -1,5 +1,5 @@
-//! Shielded-pool implementations of [`cnidarium_component::Component`] and
-//! [`cnidarium_component::ActionHandler`].
+//! Shielded-pool implementations of [`shieldd_sdk_storage::Component`] and
+//! [`shieldd_sdk_storage::ActionHandler`].
 
 mod action_handler;
 mod assets;
@@ -8,7 +8,7 @@ mod shielded_pool;
 
 pub use assets::{AssetRegistry, AssetRegistryRead};
 pub use note_manager::{build_position_derived_mint_payload, NoteManager};
-pub use shielded_pool::{ShieldedPool, StateReadExt, StateWriteExt};
+pub use shielded_pool::{PendingVolume, ShieldedPool, StateReadExt, StateWriteExt, PENDING_VOLUME};
 
 pub use action_handler::note_reshape_action::{
     note_reshape_check_stateless_and_extract, note_reshape_execute_verified,

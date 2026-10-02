@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 
 mod actions;
 pub(crate) mod transaction;

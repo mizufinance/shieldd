@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::StateWrite;
-use cnidarium_component::ActionHandler;
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_proof_params::pari::{Verification, Verified};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext as _;
+use shieldd_sdk_storage::ActionHandler;
+use shieldd_sdk_storage::StateWrite;
 use shieldd_sdk_txhash::TransactionContext;
 
 use crate::transfer::compliance::{
@@ -45,7 +45,6 @@ pub(crate) fn transfer_extract_public(
         .map(|input| {
             Ok(TransferSpendPublic {
                 nullifier: input.nullifier,
-                history_required: input.history_required,
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -79,7 +78,6 @@ pub(crate) fn transfer_extract_public(
         compliance: transfer_compliance_public_from_parts(&ciphertext, &metadata)?,
         routing: transfer.body.routing,
         routing_parameter_set_id: transfer.body.routing_parameter_set_id,
-        recent_position_floor: context.recent_position_floor,
         volume_accumulator: VolumeAccumulatorPublic {
             nullifier: transfer.body.volume_accumulator.nullifier,
             commitment: transfer.body.volume_accumulator.commitment,
@@ -310,10 +308,10 @@ mod tests {
     #[tokio::test]
     async fn raw_transfer_execution_fails_closed_without_verified_capability() {
         let (transfer, _, _) = build_transfer_action_and_public_without_proof(true);
-        let storage = cnidarium::TempStorage::new()
+        let storage = shieldd_sdk_storage::TempStorage::new()
             .await
             .expect("temporary storage");
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
 
         let error = transfer
             .check_and_execute(&mut state)

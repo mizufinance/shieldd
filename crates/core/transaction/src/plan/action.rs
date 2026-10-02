@@ -49,7 +49,6 @@ impl ActionPlan {
         fvk: &FullViewingKey,
         witness_data: &WitnessData,
         memo_key: Option<PayloadKey>,
-        recent_position_floor: u64,
         registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<Action> {
         use ActionPlan::*;
@@ -88,7 +87,6 @@ impl ActionPlan {
                             auth_paths,
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
-                            recent_position_floor,
                             registry,
                         )
                         .map_err(|e| anyhow::anyhow!("transfer proof generation failed: {}", e))?,
@@ -117,7 +115,6 @@ impl ActionPlan {
                             auth_paths,
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
-                            recent_position_floor,
                             registry,
                         )
                         .map_err(|e| {
@@ -156,7 +153,6 @@ impl ActionPlan {
                         auth_paths,
                         witness_data.anchor,
                         memo_key.as_ref().unwrap_or(&dummy_payload_key),
-                        recent_position_floor,
                         registry,
                     )
                     .map_err(|e| {
@@ -211,35 +207,19 @@ impl ActionPlan {
         &self,
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
-        recent_position_floor: u64,
     ) -> anyhow::Result<EffectHash> {
         use ActionPlan::*;
 
         let effect_hash = match self {
             Transfer(plan) => plan
-                .transfer_body(
-                    fvk,
-                    memo_key,
-                    shieldd_sdk_tct::Tree::default().root(),
-                    recent_position_floor,
-                )
+                .transfer_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             NoteReshape(plan) => plan
-                .note_reshape_body(
-                    fvk,
-                    memo_key,
-                    shieldd_sdk_tct::Tree::default().root(),
-                    recent_position_floor,
-                )
+                .note_reshape_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
 
             ShieldedHostWithdrawal(plan) => plan
-                .action_body(
-                    fvk,
-                    memo_key,
-                    shieldd_sdk_tct::Tree::default().root(),
-                    recent_position_floor,
-                )
+                .action_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             ComplianceRegisterAsset(plan) => plan.effect_hash(),
             ComplianceRegisterUser(plan) => plan.effect_hash(),

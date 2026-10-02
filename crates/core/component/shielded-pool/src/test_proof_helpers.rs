@@ -428,7 +428,7 @@ pub mod proof_test_helpers {
         .expect("build transfer plan");
 
         transfer
-            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
+            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor)
             .expect("derive transfer public/private inputs")
     }
 
@@ -778,7 +778,7 @@ pub mod proof_test_helpers {
         }
 
         transfer
-            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
+            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor)
             .expect("derive hidden-arity transfer public/private inputs")
     }
 
@@ -877,7 +877,7 @@ pub mod proof_test_helpers {
         .expect("build transfer plan");
 
         let (public, _) = transfer_plan
-            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
+            .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor)
             .expect("derive transfer public/private inputs");
         let effect_hash = shieldd_sdk_txhash::EffectHash::default();
         let auth_sig = base
@@ -893,7 +893,6 @@ pub mod proof_test_helpers {
                 anchor,
                 &memo_key,
                 crate::TransferProof::default(),
-                0,
             )
             .expect("build transfer action without proof");
 
@@ -903,7 +902,6 @@ pub mod proof_test_helpers {
             TransactionContext {
                 anchor,
                 effect_hash,
-                recent_position_floor: 0,
             },
         )
     }
@@ -1008,7 +1006,7 @@ pub mod proof_test_helpers {
             crate::discovery::Parameters::default(),
         )
         .expect("build note reshape plan");
-        plan.note_reshape_public_private(&base.fvk, &state_commitment_proofs, anchor, 0)
+        plan.note_reshape_public_private(&base.fvk, &state_commitment_proofs, anchor)
             .expect("derive note reshape public/private inputs")
     }
 
@@ -1135,8 +1133,6 @@ pub mod proof_test_helpers {
                     .nullifier_key(&base.fvk)
                     .expect("fixture nullifier key"),
             ),
-
-            history_required: false,
         }];
         input_publics.push(if real_spends == 2 {
             ShieldedWithdrawalInputPublic {
@@ -1146,14 +1142,10 @@ pub mod proof_test_helpers {
                         .nullifier_key(&base.fvk)
                         .expect("fixture nullifier key"),
                 ),
-
-                history_required: false,
             }
         } else {
             ShieldedWithdrawalInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(1),
-
-                history_required: false,
             }
         });
         let required_input = ShieldedWithdrawalRequiredInputPrivate {
@@ -1270,7 +1262,6 @@ pub mod proof_test_helpers {
                 routing_tag,
                 routing_parameter_set_id: routing_parameters.id(),
                 withdrawal_compliance_ciphertext: withdrawal.ciphertext,
-                recent_position_floor: 0,
                 volume_accumulator: crate::VolumeAccumulatorPublic {
                     nullifier: volume_payload.nullifier,
                     commitment: volume_payload.commitment,

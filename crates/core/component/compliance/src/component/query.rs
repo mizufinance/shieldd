@@ -1,4 +1,3 @@
-use cnidarium_component::QueryError as Status;
 use group::GroupEncoding;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::Address;
@@ -9,6 +8,7 @@ use shieldd_sdk_proto::core::component::compliance::v1::{
     ComplianceMerkleProofsResponse, ComplianceUserLeafRequest, ComplianceUserLeafResponse,
     IndexedLeafData, MerklePath, MerklePathLayer,
 };
+use shieldd_sdk_storage::QueryError as Status;
 use tracing::instrument;
 
 use crate::registry::ComplianceRegistryRead;
@@ -19,7 +19,7 @@ use shieldd_sdk_tct::StateCommitment;
 const MAX_BATCH_SIZE: usize = 100;
 
 /// Return the exact mutable roots required for new proofs.
-async fn current_anchors<S: cnidarium::StateRead + ComplianceRegistryRead>(
+async fn current_anchors<S: shieldd_sdk_storage::StateRead + ComplianceRegistryRead>(
     state: &S,
 ) -> Result<(StateCommitment, StateCommitment), Status> {
     let user_anchor = state
@@ -35,7 +35,7 @@ async fn current_anchors<S: cnidarium::StateRead + ComplianceRegistryRead>(
 
 #[instrument(skip(state, request))]
 pub async fn compliance_asset_status(
-    state: &impl cnidarium::StateRead,
+    state: &impl shieldd_sdk_storage::StateRead,
     request: ComplianceAssetStatusRequest,
 ) -> Result<ComplianceAssetStatusResponse, Status> {
     let asset_id: asset::Id = request
@@ -83,7 +83,7 @@ pub async fn compliance_asset_status(
 
 #[instrument(skip(state, _request))]
 pub async fn compliance_anchors(
-    state: &impl cnidarium::StateRead,
+    state: &impl shieldd_sdk_storage::StateRead,
     _request: ComplianceAnchorsRequest,
 ) -> Result<ComplianceAnchorsResponse, Status> {
     let (user_tree_root, asset_imt_root) = current_anchors(state).await?;
@@ -111,7 +111,7 @@ pub async fn compliance_anchors(
 
 #[instrument(skip(state, request))]
 pub async fn compliance_merkle_proofs(
-    state: &impl cnidarium::StateRead,
+    state: &impl shieldd_sdk_storage::StateRead,
     request: ComplianceMerkleProofsRequest,
 ) -> Result<ComplianceMerkleProofsResponse, Status> {
     // Parse address (Address)
@@ -222,7 +222,7 @@ pub async fn compliance_merkle_proofs(
 
 #[instrument(skip(state, request))]
 pub async fn compliance_user_leaf(
-    state: &impl cnidarium::StateRead,
+    state: &impl shieldd_sdk_storage::StateRead,
     request: ComplianceUserLeafRequest,
 ) -> Result<ComplianceUserLeafResponse, Status> {
     // Parse address (Address)
@@ -267,7 +267,7 @@ pub async fn compliance_user_leaf(
 
 #[instrument(skip(state, request))]
 pub async fn compliance_batch_merkle_proofs(
-    state: &impl cnidarium::StateRead,
+    state: &impl shieldd_sdk_storage::StateRead,
     request: ComplianceBatchMerkleProofsRequest,
 ) -> Result<ComplianceBatchMerkleProofsResponse, Status> {
     // Validate batch size to prevent resource exhaustion
@@ -393,16 +393,16 @@ mod tests {
     use crate::registry::ComplianceRegistryComponentWrite as _;
     use crate::registry::ComplianceRegistryWrite as _;
     use crate::structs::{AssetPolicy, ComplianceLeaf};
-    use cnidarium::TempStorage;
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::Address;
+    use shieldd_sdk_storage::TempStorage;
 
     #[tokio::test]
     async fn current_anchors_returns_both_mutable_roots() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
         state.initialize_trees().await.unwrap();
         let stale_user_root = state.get_user_tree_root().await.unwrap();
         let stale_asset_root = state.get_asset_imt_root().await.unwrap();

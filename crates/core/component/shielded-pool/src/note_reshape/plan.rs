@@ -177,7 +177,6 @@ impl NoteReshapePlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: &[tct::Proof],
         anchor: tct::Root,
-        recent_position_floor: u64,
     ) -> Result<(NoteReshapeProofPublic, NoteReshapeProofPrivate), crate::ProofError> {
         self.validate()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
@@ -201,20 +200,12 @@ impl NoteReshapePlan {
             .map(|spend| {
                 Ok(NoteReshapeInputPublic {
                     nullifier: spend.nullifier(&nullifier_key),
-
-                    history_required: shieldd_sdk_sct::nullifier_generation::is_old(
-                        u64::from(spend.position),
-                        recent_position_floor,
-                    )
-                    .map_err(|error| crate::ProofError::InvalidPublicInput(error.to_string()))?,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
         pad_to_len(&mut input_publics, self.family_id().input_count(), |slot| {
             NoteReshapeInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
-
-                history_required: false,
             }
         });
 
@@ -304,7 +295,6 @@ impl NoteReshapePlan {
                 compliance_anchor: self.compliance.witness.user_root,
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
-                recent_position_floor,
                 inputs: input_publics,
                 outputs: output_publics,
             },
@@ -334,7 +324,6 @@ impl NoteReshapePlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         anchor: tct::Root,
-        recent_position_floor: u64,
     ) -> anyhow::Result<NoteReshapeBody> {
         self.validate()?;
         let padder = self.padder();
@@ -344,13 +333,11 @@ impl NoteReshapePlan {
             .spends
             .iter()
             .map(|spend| {
-                let spend_body =
-                    spend.action_input_body(fvk, &nullifier_key, recent_position_floor)?;
+                let spend_body = spend.action_input_body(fvk, &nullifier_key)?;
                 Ok(NoteReshapeInputBody {
                     nullifier: spend_body.nullifier,
 
                     encrypted_backref: spend_body.encrypted_backref,
-                    history_required: spend_body.history_required,
                 })
             })
             .collect::<anyhow::Result<Vec<_>>>()?;
@@ -361,7 +348,6 @@ impl NoteReshapePlan {
                 nullifier,
 
                 encrypted_backref: backref.encrypt(&fvk.backref_key(), &nullifier),
-                history_required: false,
             }
         });
         let mut outputs = self
@@ -421,19 +407,14 @@ impl NoteReshapePlan {
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
-        recent_position_floor: u64,
         registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<NoteReshape, crate::ProofError> {
         let body = self
-            .note_reshape_body(fvk, memo_key, anchor, recent_position_floor)
+            .note_reshape_body(fvk, memo_key, anchor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
-        let (public, private) = self.note_reshape_public_private(
-            fvk,
-            &state_commitment_proofs,
-            anchor,
-            recent_position_floor,
-        )?;
+        let (public, private) =
+            self.note_reshape_public_private(fvk, &state_commitment_proofs, anchor)?;
         let proof = NoteReshapeProof::prove(public, private, registry)?;
 
         Ok(NoteReshape {
@@ -709,7 +690,7 @@ mod tests {
         let anchor = tct::Tree::default().root();
 
         let error = plan
-            .note_reshape_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor, 0)
+            .note_reshape_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor)
             .expect_err("proof materialization must require one proof per real spend");
         assert!(error
             .to_string()
@@ -727,7 +708,6 @@ mod tests {
                     &test_keys::FULL_VIEWING_KEY,
                     &memo_key,
                     tct::Tree::default().root(),
-                    0,
                 )
                 .expect("family body must build");
             assert_eq!(body.outputs.len(), family_id.output_count());
