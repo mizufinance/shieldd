@@ -281,7 +281,12 @@ impl Storage {
             forest.check_roots(&previous.participants)?;
         }
         forest.materialize(prepared.forest)?;
-        self.0.raw.materialize(&prepared.effects, &prepared.next)?;
+        self.0.raw.materialize(
+            &prepared.effects,
+            &prepared.next,
+            &forest.collected_retirements,
+        )?;
+        forest.collected_retirements.clear();
         let latest = self.0.raw.latest_snapshot()?;
         ensure!(
             latest.manifest() == Some(&prepared.next),
@@ -916,7 +921,7 @@ mod tests {
             .path()
             .join("state/forest/volume-00000000000000000000");
         assert!(retired.is_dir());
-        for height in 4..=6 {
+        for height in 4..=7 {
             let prepared = storage
                 .prepare(
                     state(&storage, &[height as u8]),
@@ -931,6 +936,10 @@ mod tests {
                 "retain two completed undo boundaries before physical GC"
             );
         }
+        assert!(
+            storage.0.raw.retired_volumes().unwrap().is_empty(),
+            "completed GC records leave through the next normal materialization batch"
+        );
         let manifest = storage.manifest().unwrap();
         let checkpoint = temporary.path().join("checkpoint");
         storage.checkpoint(&checkpoint, &manifest).unwrap();

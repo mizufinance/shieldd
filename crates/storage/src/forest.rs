@@ -96,6 +96,7 @@ pub struct Forest {
     directory: PathBuf,
     config: ForestConfig,
     databases: BTreeMap<ParticipantId, Nomt<Sha2Hasher>>,
+    pub(crate) collected_retirements: BTreeSet<crate::Day>,
 }
 
 impl Forest {
@@ -119,6 +120,7 @@ impl Forest {
             directory: directory.into(),
             config,
             databases: BTreeMap::new(),
+            collected_retirements: BTreeSet::new(),
         };
         if let Some(manifest) = manifest {
             manifest.validate()?;
@@ -520,12 +522,16 @@ impl Forest {
             if active(&id) || manifest.height <= height.saturating_add(2) {
                 continue;
             }
+            if self.collected_retirements.contains(&day) {
+                continue;
+            }
             let path = self.directory.join(id.name());
             match std::fs::remove_dir_all(&path) {
                 Ok(()) => std::fs::File::open(&self.directory)?.sync_all()?,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
                 Err(error) => return Err(error.into()),
             }
+            self.collected_retirements.insert(day);
         }
         Ok(())
     }

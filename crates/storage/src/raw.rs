@@ -594,7 +594,12 @@ impl RawStore {
         self.database.flush_wal(true)?;
         Ok(())
     }
-    pub fn materialize(&self, effects: &Effects, manifest: &Manifest) -> Result<()> {
+    pub fn materialize(
+        &self,
+        effects: &Effects,
+        manifest: &Manifest,
+        collected: &std::collections::BTreeSet<crate::Day>,
+    ) -> Result<()> {
         effects.validate()?;
         manifest.validate()?;
         let previous_archive = self
@@ -629,6 +634,11 @@ impl RawStore {
                     batch.put(key, manifest.height.to_be_bytes());
                 }
             }
+        }
+        for day in collected {
+            let mut key = RETIRED_PREFIX.to_vec();
+            key.extend_from_slice(&day.0.to_be_bytes());
+            batch.delete(key);
         }
         batch.put(MANIFEST_KEY, manifest.encode()?);
         let mut options = WriteOptions::default();
@@ -993,7 +1003,9 @@ mod tests {
             manifest.block_id = [height as u8; 32];
         }
         forest.materialize(update).unwrap();
-        store.materialize(&effects, &manifest).unwrap();
+        store
+            .materialize(&effects, &manifest, &Default::default())
+            .unwrap();
         manifest
     }
     fn put(space: Space, key: &[u8], value: Option<&[u8]>) -> Effect {
