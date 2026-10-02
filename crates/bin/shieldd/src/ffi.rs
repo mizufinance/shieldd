@@ -729,10 +729,7 @@ async fn recorded_dispatch(
         return dispatch(service, scope, method, request).await;
     }
     if !matches!(method, Method::CloseScope) {
-        service
-            .await_materializer()
-            .await
-            .map_err(FfiError::service)?;
+        service.check_persistence().map_err(FfiError::service)?;
     }
     let recording = service
         .reserve_call(scope, method as u32, request)

@@ -33,9 +33,8 @@ including empty blocks. SDK caches and EVM snapshots own exact native scopes.
 Freeze authenticates read observations and produces a canonical manifest and
 replay receipt. Bankd's normal SDK Commit makes the sole durable block decision
 and stores that receipt atomically with commit metadata. Shieldd materializes the
-decided state in the background; public queries wait for a matched boundary.
-Independent H+1 verification overlaps persistence, but H+1 cannot decide until H
-is fully materialized. Recovery replays native calls without SDK/EVM side effects.
+decided state before Commit returns; public queries wait for a matched boundary.
+The next block starts after native persistence completes. Recovery replays native calls without SDK/EVM side effects.
 [Storage lifecycle](nullifier-history.md) owns the detailed protocol and operating
 rules. Component logic continues to receive `StateRead`/`StateWrite`; wallet and
 scanner reads use their existing external-provider boundaries.

@@ -562,16 +562,11 @@ async fn materialize_fixture(client: &mut ExecutionService) -> Result<()> {
         receipt_digest: frozen.receipt_digest,
     };
     client.materialize(request).await?;
-    client.await_materializer().await?;
     Ok(())
 }
 
 #[tokio::test]
-async fn durable_ack_overlaps_verification_while_proof_drain_blocks_h_plus_one() -> Result<()> {
-    use prost::Message;
-    use shieldd_sdk_proto::execution_client::v1::{
-        StartVerificationRequest, VerificationCandidate, VerificationPosition,
-    };
+async fn materialize_waits_for_proof_drain_and_publishes_before_returning() -> Result<()> {
     let (_storage, mut service) = initialized_client().await?;
     begin_fixture(
         &mut service,
@@ -602,76 +597,36 @@ async fn durable_ack_overlaps_verification_while_proof_drain_blocks_h_plus_one()
         })
     };
     entered.notified().await;
-    tokio::time::timeout(
-        std::time::Duration::from_secs(1),
-        service.materialize(MaterializeRequest {
-            height: 1,
-            receipt_digest: frozen.receipt_digest,
-        }),
-    )
-    .await??;
-    queries
-        .start_verification(StartVerificationRequest {
-            height: 2,
-            candidates: vec![VerificationCandidate {
-                tx: vec![0xff],
-                position: Some(VerificationPosition {
-                    tx_index: 0,
-                    message_path: vec![0],
-                }),
-            }],
-        })
-        .await?;
-    let artifact = queries
-        .verification
-        .take(
-            2,
-            Some(&VerificationPosition {
-                tx_index: 0,
-                message_path: vec![0],
-            }),
-            &[0xff],
-        )
-        .await?
-        .context("stateless verification did not overlap proof drain")?;
-    assert!(artifact.result.is_err());
-    drop(artifact);
+    let mut persistence = Box::pin(service.materialize(MaterializeRequest {
+        height: 1,
+        receipt_digest: frozen.receipt_digest,
+    }));
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(20), &mut persistence)
+            .await
+            .is_err()
+    );
     let mut fresh_query = Box::pin(queries.published_boundary());
     assert!(
         tokio::time::timeout(std::time::Duration::from_millis(20), &mut fresh_query)
             .await
             .is_err()
     );
-    // Direct Rust callers and ABI callers share the same H+1 barrier.
-    let request = BeginBlockRequest {
-        height: 2,
-        block_id: vec![2; 32],
-        time: Some(Default::default()),
-    };
-    let mut begin = Box::pin(service.begin_block(request.clone()));
-    assert!(
-        tokio::time::timeout(std::time::Duration::from_millis(20), &mut begin)
-            .await
-            .is_err()
-    );
     release.notify_one();
     reader.await??;
+    let result =
+        tokio::time::timeout(std::time::Duration::from_secs(5), &mut persistence).await??;
+    assert_eq!(result.decided.unwrap().height, 1);
+    drop(persistence);
+    assert_eq!(fresh_query.await?.height, 1);
     assert_eq!(
-        tokio::time::timeout(std::time::Duration::from_secs(5), &mut fresh_query)
-            .await??
+        service
+            .get_committed_state(GetCommittedStateRequest {})
+            .await?
             .height,
         1
     );
-    tokio::time::timeout(std::time::Duration::from_secs(5), &mut begin).await??;
-    drop(begin);
-    let committed = service
-        .queries()
-        .app_parameters(ComponentAppParametersRequest {})
-        .await?;
-    assert!(committed.app_parameters.is_some());
-    service.discard(DiscardRequest {}).await?;
     service.close().await?;
-    let _ = request.encode_to_vec();
     Ok(())
 }
 
