@@ -16,6 +16,7 @@ import "shieldd/core/keys/v1/keys.proto";
 // Disposable roots execute against committed state and can only be aborted.
 // Children inherit their parent's execution view.
 message OpenScopeRequest {
+  bool finalization = 5;
   bool disposable = 1;
   uint64 height = 2;
   bytes committed_root = 3;
@@ -68,6 +69,8 @@ message DepositRequest {
   string recipient = 3;
   // Host-chain source used for replay protection and deposit identity.
   HostSource source = 4;
+  // Uses capacity reserved before the SDK escrow write. Internal EndBlock only.
+  bool queued = 5;
 }
 
 // HostSource identifies the canonical Bankd message that caused a Shieldd mutation.
@@ -159,7 +162,15 @@ message CheckTxResponse {
 message DeliverTxRequest {
   // Raw Shieldd transaction bytes.
   bytes tx = 1;
+  // Canonical SDK routing position. Native replay uses the same position;
+  // verification artifacts are optional local work and never receipt inputs.
+  VerificationPosition position = 2;
 }
+
+message VerificationPosition { uint32 tx_index = 1; repeated uint32 message_path = 2; }
+message VerificationCandidate { VerificationPosition position = 1; bytes tx = 2; }
+message StartVerificationRequest { uint64 height = 1; repeated VerificationCandidate candidates = 2; }
+message StartVerificationResponse {}
 
 // DeliverTxResponse contains the Shieldd transaction execution result.
 message DeliverTxResponse {
@@ -225,15 +236,11 @@ message EventAttribute {
   bool index = 3;
 }
 
-// CommitRequest is empty because all pending state is held by the execution
-// client.
-message CommitRequest {}
-
-// CommitResponse contains the root hash committed by Shieldd.
-message CommitResponse {
-  // Committed Shieldd application root hash.
-  bytes root_hash = 1;
-}
+// Materialize the exact SDK-decided receipt. Height zero with an empty digest
+// is permitted only for fresh genesis before the first ordinary SDK commit.
+message MaterializeRequest { uint64 height = 1; bytes receipt_digest = 2; }
+// Accepted durable SDK decision; GetCommittedState waits for native completion.
+message MaterializeResponse { GetCommittedStateResponse decided = 1; }
 
 // GetCommittedStateRequest is empty because Shieldd always returns its latest
 // durable state.
@@ -248,12 +255,12 @@ message GetCommittedStateResponse {
   bytes block_id = 3;
 }
 
-// RollbackRequest is empty because rollback applies to the current pending
+// DiscardRequest is empty because discard applies to the current pending
 // execution phase.
-message RollbackRequest {}
+message DiscardRequest {}
 
-// RollbackResponse is empty on success.
-message RollbackResponse {}
+// DiscardResponse is empty on success.
+message DiscardResponse {}
 
 // ExportGenesisRequest is empty because it exports the latest committed state.
 message ExportGenesisRequest {}
@@ -264,11 +271,32 @@ message ExportGenesisResponse {
   shieldd.core.app.v1.GenesisAppState genesis = 1;
 }
 
-// Persist Shieldd/NOMT recovery intent before the host's first durable change.
-message SealCommitRequest {
-  GetCommittedStateResponse expected = 1;
+// Freeze authenticates execution observations and returns canonical Rust-owned
+// replay bytes. It performs no persistence and creates no separate journal.
+message FreezeRequest {}
+message FreezeResponse {
+  bytes receipt = 1;
+  bytes receipt_digest = 2;
+  GetCommittedStateResponse previous = 3;
+  GetCommittedStateResponse next = 4;
 }
-message SealCommitResponse {
-  GetCommittedStateResponse previous = 1;
-  GetCommittedStateResponse next = 2;
+// Reconcile against the SDK's authenticated durable decision before serving.
+message RecoverDecidedRequest {
+  GetCommittedStateResponse decided = 1;
+  bytes receipt_digest = 2;
+  bytes receipt = 3;
 }
+message RecoverDecidedResponse { GetCommittedStateResponse materialized = 1; }
+
+// Local checkpoint transport; the boundary is authenticated by the SDK snapshot.
+message ScheduleCheckpointRequest { GetCommittedStateResponse boundary = 1; string path = 2; }
+message ScheduleCheckpointResponse {}
+message AwaitCheckpointRequest { uint64 height = 1; }
+message AwaitCheckpointResponse {}
+message ReleaseCheckpointRequest { uint64 height = 1; }
+message ReleaseCheckpointResponse {}
+message RestoreCheckpointRequest { GetCommittedStateResponse boundary = 1; string path = 2; }
+message RestoreCheckpointResponse {}
+
+message ReserveQueuedDepositRequest { DepositRequest deposit = 1; }
+message ReserveQueuedDepositResponse {}

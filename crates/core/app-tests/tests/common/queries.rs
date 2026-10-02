@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use tonic::codegen::*;
 
 #[derive(Clone)]
-pub struct CommittedQueries(pub cnidarium::Storage);
+pub struct CommittedQueries(pub shieldd_sdk_storage::Storage);
 
 struct Query<F, R>(F, PhantomData<R>);
 impl<T, R, F, Fut> tonic::server::UnaryService<T> for Query<F, R>

@@ -1,6 +1,5 @@
 use crate::service::{check_tx_response, ServiceError};
 use anyhow::{Context as _, Result};
-use cnidarium::{Snapshot, StateRead as _, Storage};
 use prost::Message as _;
 use sha2::{Digest as _, Sha256};
 use shieldd_sdk_app::{
@@ -13,10 +12,6 @@ use shieldd_sdk_proto::core::component::compact_block::v1::{
     CompactRecordKind, StoredCompactBlock,
 };
 use shieldd_sdk_proto::{
-    cnidarium::v1::{
-        key_value_response::Value as ProtoKeyValue, KeyValueRequest as ProtoKeyValueRequest,
-        KeyValueResponse as ProtoKeyValueResponse,
-    },
     core::app::v1 as proto_app,
     core::component::{
         compliance::v1::{
@@ -28,13 +23,20 @@ use shieldd_sdk_proto::{
         shielded_pool::v1::{AssetMetadataByIdRequest, AssetMetadataByIdResponse},
     },
     execution_client::v1::{CheckTxRequest, CheckTxResponse, GetCommittedStateResponse},
+    storage::v1::{
+        key_value_response::Value as ProtoKeyValue, KeyValueRequest as ProtoKeyValueRequest,
+        KeyValueResponse as ProtoKeyValueResponse,
+    },
 };
 use shieldd_sdk_sct::{
     component::clock::EpochRead as _,
-    permanent_nullifiers::{self, Boundary, Reader},
+    permanent_nullifiers::{self, Reader},
     Nullifier,
 };
+use shieldd_sdk_storage::{Snapshot, StateRead as _, Storage};
 use std::sync::{Arc, RwLock};
+
+tokio::task_local! { static QUERY_VIEW: Snapshot; }
 
 struct PublishedState {
     snapshot: Snapshot,
@@ -43,8 +45,13 @@ struct PublishedState {
 /// Published snapshots are shared with readers; no query takes the execution lock.
 pub struct QueryService {
     pub(crate) limits: crate::ServiceLimits,
+    pub(crate) checkpoints: Arc<crate::checkpoint::Checkpoints>,
+    pub(crate) verification: crate::verification::VerificationPipeline,
     storage: RwLock<Option<Storage>>,
     published: RwLock<Option<PublishedState>>,
+    materializer_failure: RwLock<Option<String>>,
+    boundary_gate: Arc<tokio::sync::RwLock<()>>,
+    publication_ready: tokio::sync::watch::Sender<bool>,
     nullifiers: RwLock<Option<Reader>>,
     registry: Arc<Registry>,
     cache: Arc<StatelessCache>,
@@ -61,8 +68,13 @@ impl QueryService {
         limits: crate::ServiceLimits,
     ) -> Self {
         Self {
+            verification: Default::default(),
+            checkpoints: Default::default(),
             storage: RwLock::new(Some(storage)),
             published: RwLock::new(None),
+            materializer_failure: RwLock::new(None),
+            boundary_gate: Arc::new(tokio::sync::RwLock::new(())),
+            publication_ready: tokio::sync::watch::channel(true).0,
             nullifiers: RwLock::new(Some(nullifiers)),
             registry,
             cache,
@@ -72,6 +84,28 @@ impl QueryService {
             limits,
         }
     }
+    pub(crate) async fn start_verification(
+        &self,
+        request: shieldd_sdk_proto::execution_client::v1::StartVerificationRequest,
+    ) -> Result<shieldd_sdk_proto::execution_client::v1::StartVerificationResponse, ServiceError>
+    {
+        if let Some(failure) = self
+            .materializer_failure
+            .read()
+            .expect("materializer status lock poisoned")
+            .clone()
+        {
+            return Err(ServiceError::unavailable(anyhow::anyhow!(failure)));
+        }
+        self.verification
+            .start(
+                request,
+                self.registry.clone(),
+                self.limits.proof_memory_bytes,
+            )
+            .await?;
+        Ok(Default::default())
+    }
     pub(crate) fn nullifiers(&self) -> Result<Reader, ServiceError> {
         self.nullifiers
             .read()
@@ -79,22 +113,63 @@ impl QueryService {
             .clone()
             .ok_or_else(ServiceError::closed)
     }
+    pub(crate) fn cache(&self) -> Arc<StatelessCache> {
+        self.cache.clone()
+    }
+    pub(crate) fn detach_storage(&self) {
+        self.nullifiers
+            .write()
+            .expect("nullifier reader lock poisoned")
+            .take();
+        self.storage.write().expect("storage lock poisoned").take();
+        *self.published.write().expect("publication lock poisoned") = None;
+        self.historical_sct.clear();
+    }
+    pub(crate) fn attach_storage(&self, storage: Storage, nullifiers: Reader) {
+        *self.storage.write().expect("storage lock poisoned") = Some(storage);
+        *self
+            .nullifiers
+            .write()
+            .expect("nullifier reader lock poisoned") = Some(nullifiers);
+        *self
+            .materializer_failure
+            .write()
+            .expect("materializer status lock poisoned") = None;
+    }
     pub(crate) fn close(&self) {
         self.nullifiers
             .write()
             .expect("nullifier reader lock poisoned")
             .take();
         self.storage.write().expect("storage lock poisoned").take();
+        self.publication_ready.send_replace(true);
         self.check_slots.close();
         self.nullifier_slots.close();
         *self.published.write().expect("publication lock poisoned") = None;
     }
+    pub(crate) fn fail_materialization(&self, failure: String) {
+        *self
+            .materializer_failure
+            .write()
+            .expect("materializer status lock poisoned") = Some(failure);
+        self.publication_ready.send_replace(true);
+    }
     pub(crate) fn snapshot(&self) -> Result<Snapshot, ServiceError> {
+        if let Some(failure) = &*self
+            .materializer_failure
+            .read()
+            .expect("materializer status lock poisoned")
+        {
+            return Err(ServiceError::unavailable(anyhow::anyhow!(failure.clone())));
+        }
+        if let Ok(view) = QUERY_VIEW.try_with(Clone::clone) {
+            return Ok(view);
+        }
         self.published
             .read()
             .expect("publication lock poisoned")
             .as_ref()
-            .map(|state| state.snapshot.clone())
+            .map(|state| state.snapshot.new_view())
             .ok_or_else(|| {
                 ServiceError::failed_precondition(anyhow::anyhow!(
                     "no jointly committed state has been published"
@@ -102,8 +177,78 @@ impl QueryService {
             })
     }
 
+    pub(crate) fn decide_boundary(&self) {
+        self.publication_ready.send_replace(false);
+    }
+    pub async fn published_boundary(&self) -> Result<GetCommittedStateResponse, ServiceError> {
+        self.authenticated(async {
+            let snapshot = self.snapshot()?;
+            let manifest = snapshot
+                .manifest()
+                .context("publication manifest missing")
+                .map_err(ServiceError::unavailable)?;
+            Ok(GetCommittedStateResponse {
+                height: manifest.height,
+                root_hash: manifest
+                    .digest()
+                    .map_err(ServiceError::unavailable)?
+                    .to_vec(),
+                block_id: manifest.block_id.to_vec(),
+            })
+        })
+        .await
+    }
+
+    pub(crate) async fn mutation_boundary(&self) -> tokio::sync::OwnedRwLockWriteGuard<()> {
+        self.boundary_gate.clone().write_owned().await
+    }
+    pub(crate) async fn authenticated<T, E, F>(&self, future: F) -> Result<T, E>
+    where
+        F: std::future::Future<Output = Result<T, E>>,
+        E: From<ServiceError>,
+    {
+        if QUERY_VIEW.try_with(|_| ()).is_ok() {
+            return future.await;
+        }
+        let mut ready = self.publication_ready.subscribe();
+        let _boundary = loop {
+            while !*ready.borrow_and_update() {
+                ready
+                    .changed()
+                    .await
+                    .map_err(|_| E::from(ServiceError::closed()))?;
+            }
+            let boundary = self.boundary_gate.clone().read_owned().await;
+            if *self.publication_ready.borrow() {
+                break boundary;
+            }
+            drop(boundary);
+        };
+        let snapshot = self.snapshot().map_err(E::from)?;
+        let result = QUERY_VIEW.scope(snapshot.clone(), future).await;
+        let owner = self
+            .storage
+            .read()
+            .expect("storage lock poisoned")
+            .clone()
+            .ok_or_else(ServiceError::closed)
+            .map_err(E::from)?;
+        let manifest = snapshot
+            .manifest()
+            .context("query boundary is missing")
+            .map_err(ServiceError::unavailable)
+            .map_err(E::from)?;
+        owner
+            .forest()
+            .read()
+            .authenticate_reads(manifest, snapshot.observations())
+            .map_err(ServiceError::unavailable)
+            .map_err(E::from)?;
+        result
+    }
+
     /// Bankd calls this only after its own commit and durable recovery record succeed.
-    pub async fn publish_committed(
+    pub(crate) async fn publish_committed(
         &self,
         expected: GetCommittedStateResponse,
     ) -> Result<(), ServiceError> {
@@ -119,19 +264,24 @@ impl QueryService {
             .await
             .map_err(ServiceError::internal)?;
         let root = snapshot.root_hash().await.map_err(ServiceError::internal)?;
-        let boundary = permanent_nullifiers::read_boundary(&snapshot)
-            .await
+        let manifest = snapshot
+            .manifest()
+            .context("publication manifest is missing")
             .map_err(ServiceError::unavailable)?;
-        self.nullifiers()?
-            .validate_boundary(&boundary)
+        self.storage
+            .read()
+            .expect("storage lock poisoned")
+            .as_ref()
+            .ok_or_else(ServiceError::closed)?
+            .check_materialized()
             .map_err(ServiceError::unavailable)?;
         if height != expected.height
             || root.0.as_slice() != expected.root_hash
-            || boundary.height != Some(height)
-            || boundary.block_id.as_slice() != expected.block_id
+            || manifest.height != height
+            || manifest.block_id.as_slice() != expected.block_id
         {
             return Err(ServiceError::failed_precondition(anyhow::anyhow!(
-                "publication does not match durable Shieldd state"
+                "publication does not match durable native state"
             )));
         }
         let mut published = self.published.write().expect("publication lock poisoned");
@@ -144,9 +294,16 @@ impl QueryService {
             )));
         }
         *published = Some(PublishedState { snapshot });
+        self.publication_ready.send_replace(true);
         Ok(())
     }
     pub async fn check_tx(&self, request: CheckTxRequest) -> Result<CheckTxResponse, ServiceError> {
+        self.authenticated(self.check_tx_in_view(request)).await
+    }
+    async fn check_tx_in_view(
+        &self,
+        request: CheckTxRequest,
+    ) -> Result<CheckTxResponse, ServiceError> {
         let _permit = self
             .check_slots
             .clone()
@@ -168,6 +325,14 @@ impl QueryService {
         request: shieldd_sdk_proto::core::component::sct::v1::SpendStatusPageRequest,
     ) -> Result<shieldd_sdk_proto::core::component::sct::v1::SpendStatusPageResponse, ServiceError>
     {
+        self.authenticated(self.spend_status_page_in_view(request))
+            .await
+    }
+    async fn spend_status_page_in_view(
+        &self,
+        request: shieldd_sdk_proto::core::component::sct::v1::SpendStatusPageRequest,
+    ) -> Result<shieldd_sdk_proto::core::component::sct::v1::SpendStatusPageResponse, ServiceError>
+    {
         crate::spend_query::page(self, request).await
     }
     pub async fn filtered_block_page(
@@ -177,9 +342,26 @@ impl QueryService {
         shieldd_sdk_proto::core::component::compact_block::v1::FilteredBlockPageResponse,
         ServiceError,
     > {
+        self.authenticated(self.filtered_block_page_in_view(request))
+            .await
+    }
+    async fn filtered_block_page_in_view(
+        &self,
+        request: shieldd_sdk_proto::core::component::compact_block::v1::FilteredBlockPageRequest,
+    ) -> Result<
+        shieldd_sdk_proto::core::component::compact_block::v1::FilteredBlockPageResponse,
+        ServiceError,
+    > {
         crate::filtered_query::page(self, request).await
     }
     pub async fn compact_block_page(
+        &self,
+        request: CompactBlockPageRequest,
+    ) -> Result<CompactBlockPageResponse, ServiceError> {
+        self.authenticated(self.compact_block_page_in_view(request))
+            .await
+    }
+    async fn compact_block_page_in_view(
         &self,
         request: CompactBlockPageRequest,
     ) -> Result<CompactBlockPageResponse, ServiceError> {
@@ -355,6 +537,13 @@ impl QueryService {
         &self,
         request: proto_app::TransactionsByHeightRequest,
     ) -> Result<proto_app::TransactionsByHeightResponse, ServiceError> {
+        self.authenticated(self.transactions_by_height_in_view(request))
+            .await
+    }
+    async fn transactions_by_height_in_view(
+        &self,
+        request: proto_app::TransactionsByHeightRequest,
+    ) -> Result<proto_app::TransactionsByHeightResponse, ServiceError> {
         let snapshot = self.snapshot()?;
         let tip = snapshot
             .get_block_height()
@@ -461,6 +650,13 @@ impl QueryService {
         &self,
         request: proto_app::CommittedTransactionRequest,
     ) -> std::result::Result<proto_app::CommittedTransactionResponse, ServiceError> {
+        self.authenticated(self.committed_transaction_in_view(request))
+            .await
+    }
+    async fn committed_transaction_in_view(
+        &self,
+        request: proto_app::CommittedTransactionRequest,
+    ) -> std::result::Result<proto_app::CommittedTransactionResponse, ServiceError> {
         let snapshot = self.snapshot()?;
         if snapshot.version() == u64::MAX {
             return Err(ServiceError::failed_precondition(anyhow::anyhow!(
@@ -489,6 +685,13 @@ impl QueryService {
         &self,
         _request: proto_app::AppParametersRequest,
     ) -> std::result::Result<proto_app::AppParametersResponse, ServiceError> {
+        self.authenticated(self.app_parameters_in_view(_request))
+            .await
+    }
+    async fn app_parameters_in_view(
+        &self,
+        _request: proto_app::AppParametersRequest,
+    ) -> std::result::Result<proto_app::AppParametersResponse, ServiceError> {
         let snapshot = self.snapshot()?;
         if snapshot.version() == u64::MAX {
             return Err(ServiceError::failed_precondition(anyhow::anyhow!(
@@ -510,6 +713,13 @@ impl QueryService {
         &self,
         request: AssetMetadataByIdRequest,
     ) -> std::result::Result<AssetMetadataByIdResponse, ServiceError> {
+        self.authenticated(self.asset_metadata_by_id_in_view(request))
+            .await
+    }
+    async fn asset_metadata_by_id_in_view(
+        &self,
+        request: AssetMetadataByIdRequest,
+    ) -> std::result::Result<AssetMetadataByIdResponse, ServiceError> {
         let snapshot = self.snapshot()?;
         shieldd_sdk_shielded_pool::component::query::asset_metadata_by_id(&snapshot, request)
             .await
@@ -520,6 +730,13 @@ impl QueryService {
         &self,
         request: ComplianceAssetStatusRequest,
     ) -> std::result::Result<ComplianceAssetStatusResponse, ServiceError> {
+        self.authenticated(self.compliance_asset_status_in_view(request))
+            .await
+    }
+    async fn compliance_asset_status_in_view(
+        &self,
+        request: ComplianceAssetStatusRequest,
+    ) -> std::result::Result<ComplianceAssetStatusResponse, ServiceError> {
         let snapshot = self.snapshot()?;
         shieldd_sdk_compliance::component::query::compliance_asset_status(&snapshot, request)
             .await
@@ -527,6 +744,13 @@ impl QueryService {
     }
 
     pub async fn compliance_batch_merkle_proofs(
+        &self,
+        request: ComplianceBatchMerkleProofsRequest,
+    ) -> std::result::Result<ComplianceBatchMerkleProofsResponse, ServiceError> {
+        self.authenticated(self.compliance_batch_merkle_proofs_in_view(request))
+            .await
+    }
+    async fn compliance_batch_merkle_proofs_in_view(
         &self,
         request: ComplianceBatchMerkleProofsRequest,
     ) -> std::result::Result<ComplianceBatchMerkleProofsResponse, ServiceError> {
@@ -545,6 +769,13 @@ impl QueryService {
         &self,
         request: ComplianceUserLeafRequest,
     ) -> std::result::Result<ComplianceUserLeafResponse, ServiceError> {
+        self.authenticated(self.compliance_user_leaf_in_view(request))
+            .await
+    }
+    async fn compliance_user_leaf_in_view(
+        &self,
+        request: ComplianceUserLeafRequest,
+    ) -> std::result::Result<ComplianceUserLeafResponse, ServiceError> {
         let snapshot = self.snapshot()?;
         shieldd_sdk_compliance::component::query::compliance_user_leaf(&snapshot, request)
             .await
@@ -555,39 +786,64 @@ impl QueryService {
         &self,
         request: ProtoKeyValueRequest,
     ) -> std::result::Result<ProtoKeyValueResponse, ServiceError> {
+        self.authenticated(self.key_value_in_view(request)).await
+    }
+    async fn key_value_in_view(
+        &self,
+        request: ProtoKeyValueRequest,
+    ) -> std::result::Result<ProtoKeyValueResponse, ServiceError> {
         let snapshot = self.snapshot()?;
         if request.key.is_empty() {
             return Err(ServiceError::invalid_argument(anyhow::anyhow!(
                 "key is empty"
             )));
         }
-        let state = snapshot;
-        let (value, proof) = if request.proof {
-            let (value, proof) = state
-                .get_with_proof(request.key.into_bytes())
-                .await
-                .map_err(ServiceError::internal)?;
-            let proofs = proof
-                .proofs
-                .into_iter()
-                .map(|proof| {
-                    // Cnidarium and the host can select distinct ICS23 package versions.
-                    prost::Message::decode(proof.encode_to_vec().as_slice())
-                        .map_err(|error| ServiceError::internal(error.into()))
-                })
-                .collect::<std::result::Result<Vec<_>, _>>()?;
-            (
-                value,
-                Some(ibc_proto::ibc::core::commitment::v1::MerkleProof { proofs }),
-            )
+        let owner = self
+            .storage
+            .read()
+            .expect("storage lock poisoned")
+            .clone()
+            .ok_or_else(ServiceError::closed)?;
+        let manifest = snapshot
+            .manifest()
+            .context("key-value boundary is missing")
+            .map_err(ServiceError::unavailable)?;
+        let key = shieldd_sdk_storage::application_key(
+            shieldd_sdk_storage::Space::Application,
+            request.key.as_bytes(),
+        );
+        let value = snapshot
+            .get_raw(&request.key)
+            .await
+            .map_err(ServiceError::internal)?;
+        let (commitment, path) = owner
+            .forest()
+            .read()
+            .authenticated_read(&manifest.participants[0], key)
+            .map_err(ServiceError::unavailable)?;
+        if commitment
+            != value.as_deref().map(|value| {
+                shieldd_sdk_storage::ValueCommitment::new(value)
+                    .encode()
+                    .to_vec()
+            })
+        {
+            return Err(ServiceError::unavailable(anyhow::anyhow!(
+                "committed value does not match native proof"
+            )));
+        }
+        let proof = if request.proof {
+            shieldd_sdk_storage::StateProof {
+                manifest: manifest.clone(),
+                participant: 0,
+                key,
+                value: commitment,
+                path,
+            }
+            .encode()
+            .map_err(ServiceError::internal)?
         } else {
-            (
-                state
-                    .get_raw(&request.key)
-                    .await
-                    .map_err(ServiceError::internal)?,
-                None,
-            )
+            vec![]
         };
         Ok(ProtoKeyValueResponse {
             value: value.map(|value| ProtoKeyValue { value }),
@@ -595,7 +851,77 @@ impl QueryService {
         })
     }
 
+    pub async fn archive_range(
+        &self,
+        request: shieldd_sdk_proto::storage::v1::ArchiveRangeRequest,
+    ) -> Result<shieldd_sdk_proto::storage::v1::ArchiveRangeResponse, ServiceError> {
+        self.authenticated(self.archive_range_in_view(request))
+            .await
+    }
+    async fn archive_range_in_view(
+        &self,
+        request: shieldd_sdk_proto::storage::v1::ArchiveRangeRequest,
+    ) -> Result<shieldd_sdk_proto::storage::v1::ArchiveRangeResponse, ServiceError> {
+        let snapshot = self.snapshot()?;
+        let manifest = snapshot
+            .manifest()
+            .context("archive boundary is missing")
+            .map_err(ServiceError::unavailable)?;
+        let query = shieldd_sdk_storage::ArchiveQuery {
+            height: request.height,
+            prefix: request.prefix,
+            start: request.start,
+            end: request.end,
+            limit: request.limit as usize,
+        };
+        query.validate().map_err(ServiceError::invalid_argument)?;
+        if query.height > manifest.height {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "archive height is not jointly committed"
+            )));
+        }
+        let key = shieldd_sdk_storage::application_key(
+            shieldd_sdk_storage::Space::Application,
+            b"storage/archive/mmr.v1",
+        );
+        let owner = self
+            .storage
+            .read()
+            .expect("storage lock poisoned")
+            .clone()
+            .ok_or_else(ServiceError::closed)?;
+        let (value, path) = owner
+            .forest()
+            .read()
+            .authenticated_read(&manifest.participants[0], key)
+            .map_err(ServiceError::unavailable)?;
+        let anchor = shieldd_sdk_storage::StateProof {
+            manifest: manifest.clone(),
+            participant: 0,
+            key,
+            value,
+            path,
+        };
+        let proof = snapshot
+            .archive_range_proof(
+                anchor,
+                &query,
+                self.limits.payload_page_bytes().min(16 * 1024 * 1024),
+            )
+            .map_err(ServiceError::unavailable)?;
+        Ok(shieldd_sdk_proto::storage::v1::ArchiveRangeResponse {
+            proof: proof.encode_canonical().map_err(ServiceError::internal)?,
+        })
+    }
+
     pub async fn nullifier_status(
+        &self,
+        request: NullifierRequest,
+    ) -> Result<NullifierResponse, ServiceError> {
+        self.authenticated(self.nullifier_status_in_view(request))
+            .await
+    }
+    async fn nullifier_status_in_view(
         &self,
         request: NullifierRequest,
     ) -> Result<NullifierResponse, ServiceError> {
@@ -604,15 +930,14 @@ impl QueryService {
             .context("missing nullifier")
             .and_then(Nullifier::try_from)
             .map_err(ServiceError::invalid_argument)?;
-        let boundary = permanent_nullifiers::read_boundary(&self.snapshot()?)
-            .await
-            .map_err(ServiceError::unavailable)?;
+        let boundary =
+            permanent_nullifiers::manifest(&self.snapshot()?).map_err(ServiceError::unavailable)?;
         self.status(nullifier, boundary).await
     }
     pub(crate) async fn status(
         &self,
         nullifier: Nullifier,
-        boundary: Boundary,
+        boundary: Arc<shieldd_sdk_storage::Manifest>,
     ) -> Result<NullifierResponse, ServiceError> {
         let permit = self
             .nullifier_slots

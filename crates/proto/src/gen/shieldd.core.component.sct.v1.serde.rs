@@ -1518,262 +1518,6 @@ impl<'de> serde::Deserialize<'de> for Nullifier {
         deserializer.deserialize_struct("shieldd.core.component.sct.v1.Nullifier", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for NullifierLeaf {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.key_path.is_empty() {
-            len += 1;
-        }
-        if !self.value_hash.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.NullifierLeaf", len)?;
-        if !self.key_path.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("keyPath", pbjson::private::base64::encode(&self.key_path).as_str())?;
-        }
-        if !self.value_hash.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("valueHash", pbjson::private::base64::encode(&self.value_hash).as_str())?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for NullifierLeaf {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "key_path",
-            "keyPath",
-            "value_hash",
-            "valueHash",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            KeyPath,
-            ValueHash,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "keyPath" | "key_path" => Ok(GeneratedField::KeyPath),
-                            "valueHash" | "value_hash" => Ok(GeneratedField::ValueHash),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = NullifierLeaf;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.sct.v1.NullifierLeaf")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<NullifierLeaf, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut key_path__ = None;
-                let mut value_hash__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::KeyPath => {
-                            if key_path__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("keyPath"));
-                            }
-                            key_path__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::ValueHash => {
-                            if value_hash__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("valueHash"));
-                            }
-                            value_hash__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(NullifierLeaf {
-                    key_path: key_path__.unwrap_or_default(),
-                    value_hash: value_hash__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.sct.v1.NullifierLeaf", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for NullifierPathProof {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.siblings.is_empty() {
-            len += 1;
-        }
-        if self.terminal.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.NullifierPathProof", len)?;
-        if !self.siblings.is_empty() {
-            struct_ser.serialize_field("siblings", &self.siblings.iter().map(pbjson::private::base64::encode).collect::<Vec<_>>())?;
-        }
-        if let Some(v) = self.terminal.as_ref() {
-            match v {
-                nullifier_path_proof::Terminal::Leaf(v) => {
-                    struct_ser.serialize_field("leaf", v)?;
-                }
-                nullifier_path_proof::Terminal::Terminator(v) => {
-                    #[allow(clippy::needless_borrow)]
-                    #[allow(clippy::needless_borrows_for_generic_args)]
-                    struct_ser.serialize_field("terminator", pbjson::private::base64::encode(&v).as_str())?;
-                }
-            }
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for NullifierPathProof {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "siblings",
-            "leaf",
-            "terminator",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Siblings,
-            Leaf,
-            Terminator,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "siblings" => Ok(GeneratedField::Siblings),
-                            "leaf" => Ok(GeneratedField::Leaf),
-                            "terminator" => Ok(GeneratedField::Terminator),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = NullifierPathProof;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.sct.v1.NullifierPathProof")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<NullifierPathProof, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut siblings__ = None;
-                let mut terminal__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Siblings => {
-                            if siblings__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("siblings"));
-                            }
-                            siblings__ =
-                                Some(map_.next_value::<Vec<::pbjson::private::BytesDeserialize<_>>>()?
-                                    .into_iter().map(|x| x.0).collect())
-                            ;
-                        }
-                        GeneratedField::Leaf => {
-                            if terminal__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("leaf"));
-                            }
-                            terminal__ = map_.next_value::<::std::option::Option<_>>()?.map(nullifier_path_proof::Terminal::Leaf)
-;
-                        }
-                        GeneratedField::Terminator => {
-                            if terminal__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("terminator"));
-                            }
-                            terminal__ = map_.next_value::<::std::option::Option<::pbjson::private::BytesDeserialize<_>>>()?.map(|x| nullifier_path_proof::Terminal::Terminator(x.0));
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(NullifierPathProof {
-                    siblings: siblings__.unwrap_or_default(),
-                    terminal: terminal__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.sct.v1.NullifierPathProof", FIELDS, GeneratedVisitor)
-    }
-}
 impl serde::Serialize for NullifierRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1883,10 +1627,7 @@ impl serde::Serialize for NullifierResponse {
         if self.spent {
             len += 1;
         }
-        if self.boundary.is_some() {
-            len += 1;
-        }
-        if self.proof.is_some() {
+        if !self.proof.is_empty() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.NullifierResponse", len)?;
@@ -1896,11 +1637,10 @@ impl serde::Serialize for NullifierResponse {
         if self.spent {
             struct_ser.serialize_field("spent", &self.spent)?;
         }
-        if let Some(v) = self.boundary.as_ref() {
-            struct_ser.serialize_field("boundary", v)?;
-        }
-        if let Some(v) = self.proof.as_ref() {
-            struct_ser.serialize_field("proof", v)?;
+        if !self.proof.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("proof", pbjson::private::base64::encode(&self.proof).as_str())?;
         }
         struct_ser.end()
     }
@@ -1914,7 +1654,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
         const FIELDS: &[&str] = &[
             "nullifier",
             "spent",
-            "boundary",
             "proof",
         ];
 
@@ -1922,7 +1661,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
         enum GeneratedField {
             Nullifier,
             Spent,
-            Boundary,
             Proof,
             __SkipField__,
         }
@@ -1948,7 +1686,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
                         match value {
                             "nullifier" => Ok(GeneratedField::Nullifier),
                             "spent" => Ok(GeneratedField::Spent),
-                            "boundary" => Ok(GeneratedField::Boundary),
                             "proof" => Ok(GeneratedField::Proof),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -1971,7 +1708,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
             {
                 let mut nullifier__ = None;
                 let mut spent__ = None;
-                let mut boundary__ = None;
                 let mut proof__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -1987,17 +1723,13 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
                             }
                             spent__ = Some(map_.next_value()?);
                         }
-                        GeneratedField::Boundary => {
-                            if boundary__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("boundary"));
-                            }
-                            boundary__ = map_.next_value()?;
-                        }
                         GeneratedField::Proof => {
                             if proof__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("proof"));
                             }
-                            proof__ = map_.next_value()?;
+                            proof__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -2007,176 +1739,11 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
                 Ok(NullifierResponse {
                     nullifier: nullifier__,
                     spent: spent__.unwrap_or_default(),
-                    boundary: boundary__,
-                    proof: proof__,
+                    proof: proof__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.sct.v1.NullifierResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for PermanentNullifierBoundary {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.height != 0 {
-            len += 1;
-        }
-        if !self.block_id.is_empty() {
-            len += 1;
-        }
-        if !self.partition_roots.is_empty() {
-            len += 1;
-        }
-        if !self.aggregate_root.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.PermanentNullifierBoundary", len)?;
-        if self.height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("height", ToString::to_string(&self.height).as_str())?;
-        }
-        if !self.block_id.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("blockId", pbjson::private::base64::encode(&self.block_id).as_str())?;
-        }
-        if !self.partition_roots.is_empty() {
-            struct_ser.serialize_field("partitionRoots", &self.partition_roots.iter().map(pbjson::private::base64::encode).collect::<Vec<_>>())?;
-        }
-        if !self.aggregate_root.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("aggregateRoot", pbjson::private::base64::encode(&self.aggregate_root).as_str())?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for PermanentNullifierBoundary {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "height",
-            "block_id",
-            "blockId",
-            "partition_roots",
-            "partitionRoots",
-            "aggregate_root",
-            "aggregateRoot",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Height,
-            BlockId,
-            PartitionRoots,
-            AggregateRoot,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "height" => Ok(GeneratedField::Height),
-                            "blockId" | "block_id" => Ok(GeneratedField::BlockId),
-                            "partitionRoots" | "partition_roots" => Ok(GeneratedField::PartitionRoots),
-                            "aggregateRoot" | "aggregate_root" => Ok(GeneratedField::AggregateRoot),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = PermanentNullifierBoundary;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.sct.v1.PermanentNullifierBoundary")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<PermanentNullifierBoundary, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut height__ = None;
-                let mut block_id__ = None;
-                let mut partition_roots__ = None;
-                let mut aggregate_root__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Height => {
-                            if height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("height"));
-                            }
-                            height__ =
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::BlockId => {
-                            if block_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("blockId"));
-                            }
-                            block_id__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::PartitionRoots => {
-                            if partition_roots__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("partitionRoots"));
-                            }
-                            partition_roots__ =
-                                Some(map_.next_value::<Vec<::pbjson::private::BytesDeserialize<_>>>()?
-                                    .into_iter().map(|x| x.0).collect())
-                            ;
-                        }
-                        GeneratedField::AggregateRoot => {
-                            if aggregate_root__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("aggregateRoot"));
-                            }
-                            aggregate_root__ =
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(PermanentNullifierBoundary {
-                    height: height__.unwrap_or_default(),
-                    block_id: block_id__.unwrap_or_default(),
-                    partition_roots: partition_roots__.unwrap_or_default(),
-                    aggregate_root: aggregate_root__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.sct.v1.PermanentNullifierBoundary", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for SctFrontierRequest {
@@ -2292,7 +1859,7 @@ impl serde::Serialize for SctFrontierResponse {
         if !self.compact_frontier.is_empty() {
             len += 1;
         }
-        if self.proof.is_some() {
+        if !self.proof.is_empty() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.SctFrontierResponse", len)?;
@@ -2309,8 +1876,10 @@ impl serde::Serialize for SctFrontierResponse {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("compactFrontier", pbjson::private::base64::encode(&self.compact_frontier).as_str())?;
         }
-        if let Some(v) = self.proof.as_ref() {
-            struct_ser.serialize_field("proof", v)?;
+        if !self.proof.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("proof", pbjson::private::base64::encode(&self.proof).as_str())?;
         }
         struct_ser.end()
     }
@@ -2412,7 +1981,9 @@ impl<'de> serde::Deserialize<'de> for SctFrontierResponse {
                             if proof__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("proof"));
                             }
-                            proof__ = map_.next_value()?;
+                            proof__ =
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
                         }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
@@ -2423,7 +1994,7 @@ impl<'de> serde::Deserialize<'de> for SctFrontierResponse {
                     height: height__.unwrap_or_default(),
                     anchor: anchor__,
                     compact_frontier: compact_frontier__.unwrap_or_default(),
-                    proof: proof__,
+                    proof: proof__.unwrap_or_default(),
                 })
             }
         }

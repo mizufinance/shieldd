@@ -11,6 +11,7 @@ pub struct ServiceLimits {
     pub query_memory_bytes: usize,
     pub check_tx_workers: usize,
     pub nullifier_query_workers: usize,
+    pub proof_memory_bytes: usize,
 }
 impl Default for ServiceLimits {
     fn default() -> Self {
@@ -22,6 +23,7 @@ impl Default for ServiceLimits {
             query_memory_bytes: 64 * 1024 * 1024,
             check_tx_workers: 2,
             nullifier_query_workers: 2,
+            proof_memory_bytes: 256 * 1024 * 1024,
         }
     }
 }
@@ -61,6 +63,10 @@ impl ServiceLimits {
                 >= self.check_tx_reservation_bytes() + self.reservation_bytes() as usize
                 && self.query_memory_bytes <= u32::MAX as usize,
             "invalid query memory budget"
+        );
+        ensure!(
+            (16 * 1024 * 1024..=u32::MAX as usize).contains(&self.proof_memory_bytes),
+            "invalid local proof artifact memory ceiling"
         );
         Ok(())
     }

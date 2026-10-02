@@ -35,6 +35,20 @@ pub trait StateRead: Send + Sync {
     /// commitments or an explicitly checked native tree/archive commitment.
     fn nonverifiable_get_raw(&self, key: &[u8]) -> Self::GetRawFut;
 
+    /// Native tree nodes are readable only inside an explicit region whose
+    /// owner validates the native root before completing the call.
+    fn native_get_raw(&self, _scope: &crate::NativeReadScope, key: &[u8]) -> Self::GetRawFut {
+        self.nonverifiable_get_raw(key)
+    }
+    fn native_range_raw(
+        &self,
+        _scope: &crate::NativeReadScope,
+        prefix: &[u8],
+        range: impl RangeBounds<Vec<u8>>,
+    ) -> Result<Self::NonconsensusRangeRawStream> {
+        self.nonverifiable_range_raw(Some(prefix), range)
+    }
+
     /// Gets an object from the ephemeral key-object store.
     ///
     /// This is intended to allow application components to build up batched
@@ -93,6 +107,17 @@ impl<'a, S: StateRead + Send + Sync> StateRead for &'a S {
     fn get_raw(&self, key: &str) -> Self::GetRawFut {
         (**self).get_raw(key)
     }
+    fn native_get_raw(&self, scope: &crate::NativeReadScope, key: &[u8]) -> Self::GetRawFut {
+        (**self).native_get_raw(scope, key)
+    }
+    fn native_range_raw(
+        &self,
+        scope: &crate::NativeReadScope,
+        prefix: &[u8],
+        range: impl RangeBounds<Vec<u8>>,
+    ) -> Result<Self::NonconsensusRangeRawStream> {
+        (**self).native_range_raw(scope, prefix, range)
+    }
 
     fn prefix_raw(&self, prefix: &str) -> S::PrefixRawStream {
         (**self).prefix_raw(prefix)
@@ -140,6 +165,17 @@ impl<'a, S: StateRead + Send + Sync> StateRead for &'a mut S {
     fn get_raw(&self, key: &str) -> Self::GetRawFut {
         (**self).get_raw(key)
     }
+    fn native_get_raw(&self, scope: &crate::NativeReadScope, key: &[u8]) -> Self::GetRawFut {
+        (**self).native_get_raw(scope, key)
+    }
+    fn native_range_raw(
+        &self,
+        scope: &crate::NativeReadScope,
+        prefix: &[u8],
+        range: impl RangeBounds<Vec<u8>>,
+    ) -> Result<Self::NonconsensusRangeRawStream> {
+        (**self).native_range_raw(scope, prefix, range)
+    }
 
     fn prefix_raw(&self, prefix: &str) -> S::PrefixRawStream {
         (**self).prefix_raw(prefix)
@@ -186,6 +222,17 @@ impl<S: StateRead + Send + Sync> StateRead for Arc<S> {
     }
     fn get_raw(&self, key: &str) -> Self::GetRawFut {
         (**self).get_raw(key)
+    }
+    fn native_get_raw(&self, scope: &crate::NativeReadScope, key: &[u8]) -> Self::GetRawFut {
+        (**self).native_get_raw(scope, key)
+    }
+    fn native_range_raw(
+        &self,
+        scope: &crate::NativeReadScope,
+        prefix: &[u8],
+        range: impl RangeBounds<Vec<u8>>,
+    ) -> Result<Self::NonconsensusRangeRawStream> {
+        (**self).native_range_raw(scope, prefix, range)
     }
 
     fn prefix_raw(&self, prefix: &str) -> S::PrefixRawStream {

@@ -4,9 +4,7 @@ use std::{env, ops::Deref, path::PathBuf, str::FromStr};
 
 use anyhow::{anyhow, bail, Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use cnidarium::Storage;
 use rand_core::OsRng;
-use shieldd_sdk_app::SUBSTORE_PREFIXES;
 use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_keys::{test_keys, Address};
@@ -17,6 +15,7 @@ use shieldd_sdk_shielded_pool::{
     EvmCall, HostExecution, HostTransfer, HostWithdrawal, HostWithdrawalDestination,
     ShieldedInputPlan, ShieldedOutputPlan,
 };
+use shieldd_sdk_storage::Storage;
 use shieldd_sdk_transaction::{memo::MemoPlaintext, plan::MemoPlan, TransactionParameters};
 
 struct Opt {
@@ -117,8 +116,7 @@ fn decode_hex(raw: &str) -> Result<Vec<u8>> {
 }
 
 async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
-    let storage = Storage::load(opt.db.clone(), SUBSTORE_PREFIXES.to_vec())
-        .await
+    let storage = Storage::open(&opt.db, shieldd_sdk_storage::ForestConfig::from_env()?)
         .with_context(|| format!("failed to open Shieldd RocksDB at {}", opt.db.display()))?;
 
     let client = MockClient::new(test_keys::SPEND_KEY.clone())

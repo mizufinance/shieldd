@@ -3,7 +3,6 @@ package shieldd.core.component.sct.v1;
 
 import "shieldd/crypto/tct/v1/tct.proto";
 import "google/protobuf/timestamp.proto";
-import "ibc/core/commitment/v1/commitment.proto";
 
 // Configuration data for the SCT component.
 message SctParameters {
@@ -125,39 +124,18 @@ message SctFrontierResponse {
   // at the given height.
   bytes compact_frontier = 3;
   // A proof of existence or non-existence, if requested.
-  .ibc.core.commitment.v1.MerkleProof proof = 4;
+  bytes proof = 4;
 }
 
 // Permanent nullifier root at an authenticated application boundary.
-message PermanentNullifierBoundary {
-  uint64 height = 1;
-  bytes block_id = 2;
-  repeated bytes partition_roots = 3;
-  bytes aggregate_root = 4;
-}
-message NullifierLeaf {
-  bytes key_path = 1;
-  bytes value_hash = 2;
-}
-message NullifierPathProof {
-  oneof terminal {
-    NullifierLeaf leaf = 1;
-    bytes terminator = 2;
-  }
-  // Root-to-leaf order, at most 256 fixed-width hashes.
-  repeated bytes siblings = 3;
-}
-message NullifierRequest {
-  Nullifier nullifier = 1;
-}
+message NullifierRequest { Nullifier nullifier = 1; }
 message NullifierResponse {
   Nullifier nullifier = 1;
   bool spent = 2;
-  PermanentNullifierBoundary boundary = 3;
-  NullifierPathProof proof = 4;
+  // Canonical NOMT proof anchored by the SDK native manifest commitment.
+  bytes proof = 3;
 }
 
-// Trusted-provider spend discovery; absence is not a completeness proof.
 message SpendStatusPageRequest {
   repeated Nullifier nullifiers = 1;
   uint64 start_height = 2;

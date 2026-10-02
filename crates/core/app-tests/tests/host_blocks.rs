@@ -1,17 +1,17 @@
-use cnidarium::TempStorage;
 use shieldd_sdk_app::{
     app::HostBlock,
     genesis::{AppState, Content},
     test_support::{TestHost, TEST_CHAIN_ID},
 };
 use shieldd_sdk_sct::component::clock::EpochRead as _;
+use shieldd_sdk_storage::TempStorage;
 
 #[tokio::test]
 async fn host_commits_empty_blocks_with_exact_supplied_height_and_time() -> anyhow::Result<()> {
     let storage = TempStorage::new().await?;
     let start = tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?;
     let mut host = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         start,
         shieldd_sdk_app_tests::registry(),

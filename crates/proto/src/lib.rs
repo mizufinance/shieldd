@@ -19,21 +19,21 @@ pub mod event;
 mod protobuf;
 pub use protobuf::DomainType;
 
-#[cfg(feature = "cnidarium")]
+#[cfg(feature = "state")]
 pub mod state;
-#[cfg(feature = "cnidarium")]
+#[cfg(feature = "state")]
 pub use state::StateReadProto;
-#[cfg(feature = "cnidarium")]
+#[cfg(feature = "state")]
 pub use state::StateWriteProto;
 
 pub use shieldd::*;
 
 pub mod shieldd {
     /// Shieldd storage query structures.
-    pub mod cnidarium {
+    pub mod storage {
         pub mod v1 {
-            include!("gen/shieldd.cnidarium.v1.rs");
-            include!("gen/shieldd.cnidarium.v1.serde.rs");
+            include!("gen/shieldd.storage.v1.rs");
+            include!("gen/shieldd.storage.v1.serde.rs");
         }
     }
 

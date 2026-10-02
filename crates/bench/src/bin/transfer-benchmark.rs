@@ -313,7 +313,7 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         executor.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let execute_start = Instant::now();
         let execution_profile = executor
-            .execute_validated_candidate_envelope_profiled(&envelope, storage.as_ref().clone())
+            .execute_validated_candidate_envelope_profiled(&envelope, storage.storage().clone())
             .await
             .with_context(|| format!("executing run {run_index}"))?;
         let execute_wall_ms = elapsed_ms(execute_start);

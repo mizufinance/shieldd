@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use cnidarium::StateWrite;
 use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
 use shieldd_sdk_sct::component::{source::SourceContext, tree::SctManager};
 use shieldd_sdk_sct::Nullifier;
+use shieldd_sdk_storage::StateWrite;
 use shieldd_sdk_txhash::TransactionContext;
 
 use crate::{component::NoteManager, event, NotePayload};
@@ -105,37 +105,20 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::{StateDelta, TempStorage};
     use rand_core::OsRng;
     use reddsa::SigningKey;
     use shieldd_sdk_crypto::{Fq, Fr};
     use shieldd_sdk_sct::component::tree::SctRead;
+    use shieldd_sdk_storage::{StateDelta, TempStorage};
     use shieldd_sdk_txhash::TransactionId;
 
     async fn initialize_nullifiers(
         storage: &TempStorage,
-        state: &mut StateDelta<cnidarium::Snapshot>,
+        state: &mut StateDelta<shieldd_sdk_storage::Snapshot>,
     ) -> Result<()> {
-        use shieldd_sdk_sct::permanent_nullifiers::{self as nf, Boundary, Config, Reader, Store};
-        let mut store = Store::open(
-            &storage.path().join("permanent-nullifiers"),
-            &Config {
-                buckets: 1024,
-                cache_mib: 1,
-                preallocate: false,
-            },
-            true,
-        )?;
-        let previous = Boundary::default();
-        store.recover(&previous)?;
-        let prepared = store.prepare(0, [0; 32], &previous, vec![])?;
-        store.persist_intent(&prepared)?;
-        let transition = store.commit(prepared)?;
-        store.complete(&transition.next)?;
-        nf::stage_boundary(state, &transition).await?;
         state.object_put(
             shieldd_sdk_sct::state_key::nullifiers::reader(),
-            Reader(std::sync::Arc::new(std::sync::RwLock::new(store))),
+            shieldd_sdk_sct::permanent_nullifiers::Reader(storage.storage().clone()),
         );
         Ok(())
     }

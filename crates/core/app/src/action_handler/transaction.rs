@@ -3,7 +3,6 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::{Context as _, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
 use futures::{stream::FuturesUnordered, TryStreamExt as _};
 use shieldd_sdk_compact_block::{component::RoutingManager as _, PendingRoutingAction};
 use shieldd_sdk_compliance::{
@@ -19,6 +18,7 @@ use shieldd_sdk_shielded_pool::component::{
 };
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_shielded_pool::TransferProofContext;
+use shieldd_sdk_storage::{StateRead, StateWrite};
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
 use shieldd_sdk_txhash::EffectingData as _;
 use tokio::sync::OnceCell;

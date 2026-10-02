@@ -25,6 +25,7 @@ path = "benches/state/compliance_auth.rs"
 harness = false
 
 [dependencies]
+shieldd-sdk-storage = { workspace = true, features = ["persistent"] }
 shieldd-sdk-compliance = { workspace = true, features = ["component"] }
 shieldd-sdk-proto = { workspace = true }
 shieldd-sdk-tct = { workspace = true }
@@ -37,7 +38,6 @@ anyhow = {workspace = true}
 bytes = {workspace = true}
 clap = {workspace = true, features = ["derive"]}
 shieldd-sdk-bench-support = { path = "../bench-support" }
-cnidarium = {workspace = true, features = ["migration"], default-features = true}
 shieldd-sdk-app = {workspace = true, features = ["benchmark-helpers"], default-features = true}
 shieldd-sdk-proof-params = { workspace = true, default-features = true }
 shieldd-sdk-sct = {workspace = true, default-features = true}

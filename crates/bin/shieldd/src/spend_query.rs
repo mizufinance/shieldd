@@ -1,6 +1,5 @@
 use crate::{service::ServiceError, QueryService};
 use anyhow::Context;
-use cnidarium::StateRead;
 use prost::Message;
 use sha2::{Digest, Sha256};
 use shieldd_sdk_app::app::StateReadExt;
@@ -8,6 +7,7 @@ use shieldd_sdk_proto::{
     core::component::compact_block::v1::StoredCompactBlock, core::component::sct::v1 as pb,
 };
 use shieldd_sdk_sct::{component::clock::EpochRead, permanent_nullifiers, Nullifier};
+use shieldd_sdk_storage::StateRead;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -56,13 +56,7 @@ pub async fn page(
             "spend interval is not committed"
         )));
     }
-    let boundary = permanent_nullifiers::read_boundary(&state)
-        .await
-        .map_err(ServiceError::unavailable)?;
-    service
-        .nullifiers()?
-        .validate_boundary(&boundary)
-        .map_err(ServiceError::unavailable)?;
+    let boundary = permanent_nullifiers::manifest(&state).map_err(ServiceError::unavailable)?;
     let chain = state.get_chain_id().await.map_err(ServiceError::internal)?;
     request.cursor.clear();
     let parameters = Sha256::digest(request.encode_to_vec()).into();
@@ -189,17 +183,16 @@ pub async fn page(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::{StateDelta, TempStorage};
-    use shieldd_sdk_app::app::{PermanentWriter, StateWriteExt as _};
+    use shieldd_sdk_app::app::StateWriteExt as _;
     use shieldd_sdk_compact_block::{component::CompactBlockManager as _, CompactBlock};
     use shieldd_sdk_sct::component::clock::EpochManager as _;
+    use shieldd_sdk_storage::{StateDelta, TempStorage};
     use std::sync::Arc;
 
     fn nf(i: u64) -> Nullifier {
         Nullifier(shieldd_sdk_crypto::Fq::from(i))
     }
     async fn commit(
-        writer: &mut PermanentWriter,
         storage: &TempStorage,
         height: u64,
         values: Vec<Nullifier>,
@@ -212,60 +205,81 @@ mod tests {
             nullifiers: values.clone(),
             ..Default::default()
         })?;
-        let boundary = writer
-            .prepare(state, height, [height as u8; 32], values)
-            .await?;
-        writer.seal()?;
-        assert_eq!(writer.commit()?, boundary);
+        let mut changes = std::collections::BTreeMap::<
+            shieldd_sdk_storage::ParticipantId,
+            Vec<shieldd_sdk_storage::ParticipantChange>,
+        >::new();
+        for nf in values {
+            let key = shieldd_sdk_storage::nullifier_key(&nf.to_bytes());
+            changes
+                .entry(shieldd_sdk_storage::ParticipantId::permanent(
+                    shieldd_sdk_storage::nullifier_shard(&key),
+                )?)
+                .or_default()
+                .push(shieldd_sdk_storage::ParticipantChange {
+                    key,
+                    value: Some(shieldd_sdk_storage::SPENT.to_vec()),
+                });
+        }
+        for rows in changes.values_mut() {
+            rows.sort_by_key(|r| r.key);
+        }
+        let update = storage.prepare(
+            state,
+            shieldd_sdk_storage::BlockBoundary {
+                chain_id: "query-test".into(),
+                protocol: [1; 32],
+                height,
+                block_id: if height == 0 {
+                    [0; 32]
+                } else {
+                    [height as u8; 32]
+                },
+                time: height as i64,
+            },
+            changes,
+        )?;
+        let manifest = storage.materialize(update)?;
         Ok(
             shieldd_sdk_proto::execution_client::v1::GetCommittedStateResponse {
                 height,
-                root_hash: boundary.application_root.unwrap().to_vec(),
-                block_id: boundary.nullifiers.block_id.to_vec(),
+                root_hash: manifest.digest()?.to_vec(),
+                block_id: manifest.block_id.to_vec(),
             },
         )
     }
-    async fn fixture() -> anyhow::Result<(TempStorage, PermanentWriter, QueryService)> {
+    async fn fixture() -> anyhow::Result<(TempStorage, QueryService)> {
         let storage = TempStorage::new().await?;
-        let writer = PermanentWriter::open(
-            storage.as_ref().clone(),
-            &permanent_nullifiers::Config {
-                buckets: 1024,
-                cache_mib: 1,
-                preallocate: false,
-            },
-        )
-        .await?;
         let query = QueryService::new(
-            storage.as_ref().clone(),
-            writer.reader(),
+            storage.storage().clone(),
+            permanent_nullifiers::Reader(storage.storage().clone()),
             crate::test_registry(),
             Arc::new(shieldd_sdk_app::stateless_cache::StatelessCache::new()),
             Default::default(),
         );
-        Ok((storage, writer, query))
+        Ok((storage, query))
     }
     #[tokio::test]
     async fn status_authenticates_membership_absence_and_exact_publication() -> anyhow::Result<()> {
-        let (storage, mut writer, query) = fixture().await?;
+        let (storage, query) = fixture().await?;
         assert!(query
             .nullifier_status(pb::NullifierRequest {
                 nullifier: Some(nf(1).into())
             })
             .await
             .is_err());
-        let genesis = commit(&mut writer, &storage, 0, vec![]).await?;
+        let genesis = commit(&storage, 0, vec![]).await?;
         query.publish_committed(genesis).await?;
-        let expected = writer.committed()?.nullifiers.clone();
+        let expected = storage.manifest().unwrap();
         let absent: permanent_nullifiers::Status = query
             .nullifier_status(pb::NullifierRequest {
                 nullifier: Some(nf(1).into()),
             })
             .await?
             .try_into()?;
-        absent.verify(&expected)?;
+        absent.verify(expected.digest()?)?;
         assert!(!absent.spent);
-        let next = commit(&mut writer, &storage, 1, vec![nf(1)]).await?;
+        let next = commit(&storage, 1, vec![nf(1)]).await?;
         // The old published root cannot authenticate a read after NOMT advances.
         assert!(query
             .nullifier_status(pb::NullifierRequest {
@@ -284,14 +298,9 @@ mod tests {
             .await?
             .try_into()?;
         assert!(spent.spent);
-        spent.verify(&writer.committed()?.nullifiers)?;
-        assert!(spent.verify(&expected).is_err());
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        state.put_block_height(2);
-        writer.prepare(state, 2, [2; 32], vec![nf(2)]).await?;
-        writer.seal()?;
-        // A detached proof leaves no read session blocking the ordered writer.
-        writer.commit()?;
+        spent.verify(storage.manifest().unwrap().digest()?)?;
+        assert!(spent.verify(expected.digest()?).is_err());
+        commit(&storage, 2, vec![nf(2)]).await?;
         assert!(query
             .nullifier_status(pb::NullifierRequest {
                 nullifier: Some(nf(1).into())
@@ -309,10 +318,10 @@ mod tests {
     }
     #[tokio::test]
     async fn pages_bound_scan_work_bind_cursor_and_expire_on_commit() -> anyhow::Result<()> {
-        let (storage, mut writer, query) = fixture().await?;
-        commit(&mut writer, &storage, 0, vec![]).await?;
+        let (storage, query) = fixture().await?;
+        commit(&storage, 0, vec![]).await?;
         let values = (1..=2050).map(nf).collect();
-        let published = commit(&mut writer, &storage, 1, values).await?;
+        let published = commit(&storage, 1, values).await?;
         query.publish_committed(published).await?;
         let request = pb::SpendStatusPageRequest {
             nullifiers: vec![nf(1).into(), nf(2050).into(), nf(3000).into()],
@@ -335,7 +344,7 @@ mod tests {
         let status: permanent_nullifiers::Status =
             second.spends[0].status.clone().unwrap().try_into()?;
         assert_eq!(status.nullifier, nf(2050));
-        status.verify(&writer.committed()?.nullifiers)?;
+        status.verify(storage.manifest().unwrap().digest()?)?;
         let mut changed = resumed.clone();
         changed.nullifiers.pop();
         assert!(page(&query, changed).await.is_err());
@@ -343,7 +352,7 @@ mod tests {
         forged.index = 2051;
         resumed.cursor = serde_json::to_vec(&forged)?;
         assert!(page(&query, resumed).await.is_err());
-        let next = commit(&mut writer, &storage, 2, vec![]).await?;
+        let next = commit(&storage, 2, vec![]).await?;
         query.publish_committed(next).await?;
         let mut stale = request;
         stale.cursor = first.next_cursor;

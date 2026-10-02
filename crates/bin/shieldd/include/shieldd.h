@@ -48,19 +48,24 @@ enum shieldd_method {
   SHIELDD_METHOD_CHECK_TX = 4,
   SHIELDD_METHOD_DELIVER_TX = 5,
   SHIELDD_METHOD_END_BLOCK = 6,
-  SHIELDD_METHOD_COMMIT = 7,
-  SHIELDD_METHOD_ROLLBACK = 8,
+  SHIELDD_METHOD_MATERIALIZE = 7,
+  SHIELDD_METHOD_DISCARD = 8,
   SHIELDD_METHOD_EXPORT_GENESIS = 9,
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
   SHIELDD_METHOD_APPLY_COMPLIANCE_ACTION = 12,
-  /* GetCommittedStateResponse as input; empty output. Host recovery/publication only. */
-  SHIELDD_METHOD_PUBLISH_COMMITTED = 13,
-  SHIELDD_METHOD_SEAL_COMMIT = 14,
+  SHIELDD_METHOD_FREEZE = 14,
   SHIELDD_METHOD_OPEN_SCOPE = 15,
   SHIELDD_METHOD_PREPARE_SCOPE = 16,
   SHIELDD_METHOD_CLOSE_SCOPE = 17,
   SHIELDD_METHOD_SNAPSHOT_SCOPE = 18,
   SHIELDD_METHOD_REVERT_SCOPE = 19,
+  SHIELDD_METHOD_RECOVER_DECIDED = 20,
+  SHIELDD_METHOD_START_VERIFICATION = 21,
+  SHIELDD_METHOD_RESERVE_QUEUED_DEPOSIT = 22,
+  SHIELDD_METHOD_SCHEDULE_CHECKPOINT = 23,
+  SHIELDD_METHOD_AWAIT_CHECKPOINT = 24,
+  SHIELDD_METHOD_RESTORE_CHECKPOINT = 25,
+  SHIELDD_METHOD_RELEASE_CHECKPOINT = 26,
 
   /* Read-only queries use IDs starting at 1000000. */
 
@@ -92,11 +97,15 @@ enum shieldd_method {
   SHIELDD_METHOD_QUERY_COMPLIANCE_USER_LEAF = 1000004,
 
   /*
-   * Accepts shieldd.cnidarium.v1.KeyValueRequest and returns
-   * shieldd.cnidarium.v1.KeyValueResponse. The frontend uses this existing
+   * Accepts shieldd.storage.v1.KeyValueRequest and returns
+   * shieldd.storage.v1.KeyValueResponse. The frontend uses this existing
    * query with SCT state keys.
    */
   SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,
+  SHIELDD_METHOD_QUERY_ARCHIVE_RANGE = 1000014,
+  /* Waits for the published matched boundary without taking the execution lock.
+   * GetCommittedStateRequest -> GetCommittedStateResponse. */
+  SHIELDD_METHOD_QUERY_PUBLISHED_BOUNDARY = 1000015,
 
   /*
    * shieldd.core.component.sct.v1.
@@ -139,7 +148,7 @@ shieldd_result_t shieldd_call(shieldd_handle_t *handle, uint64_t scope, uint32_t
                               const uint8_t *request, size_t request_len);
 
 /*
- * Releases Cnidarium/RocksDB and consumes handle. The caller must ensure all
+ * Releases NOMT/RocksDB and consumes handle. The caller must ensure all
  * calls have completed and no new calls can begin before calling this function.
  * The handle is invalid afterward regardless of the returned status.
  */

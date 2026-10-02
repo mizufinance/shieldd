@@ -2,13 +2,13 @@
 #[allow(unused_imports)]
 pub use shieldd_sdk_test_subscriber::set_tracing_subscriber;
 #[allow(dead_code)]
-pub async fn new_storage() -> anyhow::Result<cnidarium::TempStorage> {
-    cnidarium::TempStorage::new_with_prefixes(shieldd_sdk_app::SUBSTORE_PREFIXES.to_vec()).await
+pub async fn new_storage() -> anyhow::Result<shieldd_sdk_storage::TempStorage> {
+    shieldd_sdk_storage::TempStorage::new().await
 }
 
 #[allow(dead_code)]
 pub async fn scan_latest(
-    chain: &cnidarium::TempStorage,
+    chain: &shieldd_sdk_storage::TempStorage,
     wallet: &shieldd_sdk_view::Storage,
 ) -> anyhow::Result<()> {
     use shieldd_sdk_sct::component::clock::EpochRead as _;
@@ -24,7 +24,7 @@ pub async fn scan_latest(
 
 #[allow(dead_code)]
 pub async fn wallet_block(
-    snapshot: &cnidarium::Snapshot,
+    snapshot: &shieldd_sdk_storage::Snapshot,
     height: u64,
 ) -> anyhow::Result<shieldd_sdk_view::WalletBlock> {
     use anyhow::Context;

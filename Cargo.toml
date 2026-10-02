@@ -23,7 +23,6 @@ members = [
   "crates/bin/bankd-e2e-spend-builder",
   "crates/bin/pcli",
   "crates/bin/shieldd",
-  "crates/cnidarium-component",
   "crates/storage",
   "crates/core/app",
   "crates/core/app-tests",
@@ -97,8 +96,6 @@ camino                           = { version = "1" }
 chacha20poly1305                 = { version = "0.9.0" }
 chrono                           = { default-features = false, version = "0.4" }
 clap                             = { version = "3.2" }
-cnidarium                        = { version = "0.83", default-features = false}
-cnidarium-component              = { default-features = false, version = "2.1.0", path = "crates/cnidarium-component" }
 criterion                        = { version = "0.4" }
 derivative                       = { version = "2.2" }
 directories                      = { version = "4.0.1" }
@@ -108,9 +105,7 @@ hex                              = { version = "0.4.3" }
 http                             = { version = "1.2.0" }
 ibc-proto                        = { default-features = false, version = "0.51.1" }
 ibc-types                        = { default-features = false, version = "0.15.1" }
-ics23                            = { version = "0.12.0" }
 imbl                             = { version = "7.0.2" }
-jmt                              = { version = "0.11", features = ["migration"] }
 libloading                       = { version = "0.8" }
 metrics                          = { version = "0.24.2" }
 num-bigint                       = { version = "0.4" }
@@ -176,7 +171,6 @@ tracing-subscriber               = { version = "0.3.20", features = ["env-filter
 getrandom                        = { version = "0.2", default-features = false }
 
 [patch.crates-io]
-cnidarium = { path = "third_party/cnidarium-0.83.0" }
 # Tendermint RPC and Orbis still require reqwest 0.11, whose h2 0.3 line has
 # no upstream release for RUSTSEC-2026-0258. This carries the upstream fix;
 # remove it once those clients migrate to reqwest 0.12.

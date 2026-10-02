@@ -8,8 +8,8 @@ directly. Bankd serves public queries and executes IBC; Shieldd reads committed
 snapshots. Host withdrawals use the shared `shielded_withdrawal` proof family
 and return value to Bankd for transfer or execution.
 
-ABI 4 opens one application directory containing permanent-nullifier partitions
-and canonical recovery history. Local storage and proof registries are
+ABI 5 passes an explicit writable scope capability; zero is read-only. Its one
+application directory contains RocksDB values and a NOMT forest. Local storage and proof registries are
 incompatible with older data: reset and resynchronize, without migration paths.
 
 Compact-page RPCs return distinct full/filtered response envelopes containing a
@@ -35,7 +35,9 @@ at startup. Transport budgets can be tightened within supported client bounds.
 Excess work fails with retryable overload instead of entering an unbounded queue.
 Historical SCT reconstruction has a separate 64 MiB cache and runs one job at
 a time. NOMT caches and physical options are in [Permanent nullifiers](nullifier-history.md). These
-are operating budgets, not consensus or transaction validity limits.
+are operating budgets, not consensus or transaction validity limits. The separate
+owned proof handoff defaults to a 256 MiB decoded-artifact ceiling. Receipt and
+observation protocol limits are described in [Storage lifecycle](nullifier-history.md).
 
 Build explicit deliverables from the Shieldd source root:
 
@@ -49,7 +51,7 @@ python3 scripts/stage_artifacts.py verify
 
 The output is `target/shieldd`: `include/shieldd.h`, `lib/libshieldd.a`,
 `bin/` tools, and `manifest.json`. The maintenance group supplies `shieldd-store`
-for [authenticated snapshots and capacity inspection](nullifier-history.md#snapshots-and-maintenance). Proof code is native Rust. Configure
+for [authenticated snapshots and capacity inspection](nullifier-history.md#checkpoints-and-offline-maintenance). Proof code is native Rust. Configure
 `SHIELDD_PARI_KEYS` separately with the shared [registry](proof-system.md);
 keys are not embedded in staged binaries. The manifest records source revision,
 target, suite, compiler profile, deliverable groups and SHA-256 checksums.
@@ -70,9 +72,10 @@ resolves source files relative to itself, not the enclosing repository root.
 Bankd's `shieldd` Docker target exports only native artifacts; `shieldd-provers`
 exports the proof builders, and `shieldd-audit` exports audit tooling.
 
-CI compares uninterrupted execution with close/reopen and checkpoint reimport,
-checks committed query bytes/proofs, deposited notes and nonempty history, rejects
-replayed host sources, and compares the next committed root. The same fixture
+CI compares uninterrupted execution with close/reopen and matched checkpoint
+restore, checks committed query bytes/proofs and deposited compact history, and
+compares the next committed root. Native receipt tests cover failed/aborted calls
+and recovery without repeating host side effects. The same fixture
 runs under a nested Bankd source directory to check source relocation.
 Bankd owns real transfer/withdrawal integration tests, including spent-note replay
 rejection after restarting the embedded service. Shieldd PR CI explicitly

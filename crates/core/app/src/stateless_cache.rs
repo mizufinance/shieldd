@@ -210,6 +210,39 @@ fn validate_proof_capability_rows<T>(
 }
 
 impl VerifiedTxArtifact {
+    /// Live capacities plus a conservative bound for std's private B-tree node
+    /// layout. Each root is uniquely owned by the handoff; Arc headers count.
+    pub fn allocated_bytes(&self) -> usize {
+        fn map_nodes<K, V>(map: &BTreeMap<K, V>) -> usize {
+            map.len()
+                * (11 * std::mem::size_of::<(K, V)>() + 12 * std::mem::size_of::<usize>() + 128)
+        }
+        let extracted = &self.extracted;
+        std::mem::size_of::<Self>()
+            + std::mem::size_of::<TxArtifact>()
+            + 6 * std::mem::size_of::<usize>()
+            + extracted.tx.allocated_bytes()
+            + extracted.spend_nullifiers.capacity() * std::mem::size_of::<Nullifier>()
+            + map_nodes(&extracted.proof_items)
+            + extracted
+                .proof_items
+                .values()
+                .map(|items| {
+                    items.capacity() * std::mem::size_of::<Verification>()
+                        + items
+                            .iter()
+                            .map(|item| item.envelope.allocated_bytes())
+                            .sum::<usize>()
+                })
+                .sum::<usize>()
+            + map_nodes(&self.verified_proofs)
+            + self
+                .verified_proofs
+                .values()
+                .map(Verified::allocated_bytes)
+                .sum::<usize>()
+    }
+
     pub(crate) fn ensure_registry(&self, registry: &Registry) -> Result<()> {
         ensure!(
             self.registry_id == registry.id(),

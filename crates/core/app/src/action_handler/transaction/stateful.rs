@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
-use cnidarium::StateRead;
 use shieldd_sdk_sct::component::tree::VerificationExt;
 use shieldd_sdk_shielded_pool::discovery;
+use shieldd_sdk_storage::StateRead;
 use shieldd_sdk_transaction::{Action, Transaction, TransactionParameters};
 
 use super::HistoricalCheckContext;

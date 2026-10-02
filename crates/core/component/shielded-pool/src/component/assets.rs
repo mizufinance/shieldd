@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
 use shieldd_sdk_asset::asset::{self, Metadata};
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 
 use tracing::instrument;
 

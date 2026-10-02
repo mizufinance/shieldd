@@ -15,6 +15,7 @@ use std::{
 };
 
 const MANIFEST_KEY: &[u8] = b"\xffmanifest.v1";
+const RETIRED_PREFIX: &[u8] = b"\xffretired-volume.v1/";
 
 /// The RocksDB snapshot is dropped before its owning Arc. Its borrow is kept
 /// private and no borrowed database object escapes this owner.
@@ -62,8 +63,26 @@ pub struct Snapshot {
     raw: Arc<RawSnapshot>,
     manifest: Option<Arc<Manifest>>,
     observations: Observations,
+    virgin: bool,
 }
 impl Snapshot {
+    /// Empty logical input for recomputing canonical height-zero content on
+    /// restart. It cannot be persisted over an existing materialized boundary.
+    pub fn genesis_input(&self) -> Self {
+        Self {
+            raw: self.raw.clone(),
+            manifest: None,
+            observations: Observations::default(),
+            virgin: true,
+        }
+    }
+    fn predecessor(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        if self.virgin {
+            Ok(None)
+        } else {
+            self.raw.predecessor(space, key)
+        }
+    }
     pub fn manifest(&self) -> Option<&Manifest> {
         self.manifest.as_deref()
     }
@@ -73,10 +92,11 @@ impl Snapshot {
     pub fn version(&self) -> u64 {
         self.manifest().map_or(u64::MAX, |m| m.height)
     }
-    pub fn root_hash(&self) -> Result<[u8; 32]> {
+    pub async fn root_hash(&self) -> Result<crate::Commitment> {
         self.manifest()
             .context("state has no committed manifest")?
             .digest()
+            .map(crate::Commitment)
     }
     /// A new execution/query view uses its own ledger. Overlay branches clone
     /// the existing view instead, retaining observations through write discard.
@@ -85,6 +105,7 @@ impl Snapshot {
             raw: self.raw.clone(),
             manifest: self.manifest.clone(),
             observations: Observations::default(),
+            virgin: self.virgin,
         }
     }
     pub(crate) fn canonical_entries(
@@ -96,7 +117,7 @@ impl Snapshot {
             .filter_map(|entry| match entry {
                 Err(error) => Some(Err(error.into())),
                 Ok((key, value)) => {
-                    if key.as_ref() == MANIFEST_KEY {
+                    if key.as_ref() == MANIFEST_KEY || key.starts_with(RETIRED_PREFIX) || key.first().copied() == Some(crate::archive::LOCAL_SPACE) || matches!(key.first().copied(),Some(n) if n == Space::Archive as u8 || n == Space::Native as u8) {
                         return None;
                     }
                     Some((|| {
@@ -113,7 +134,14 @@ impl Snapshot {
             })
     }
     fn observed(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
-        let value = self.raw.get(space, key).inspect_err(|_| self.observations.poison())?;
+        self.observations
+            .reserve_read(0, application_key(space, key))?;
+        let value = (if self.virgin {
+            Ok(None)
+        } else {
+            self.raw.get(space, key)
+        })
+        .inspect_err(|_| self.observations.poison())?;
         let commitment = committed_value(value.as_deref());
         self.observations.record(ObservedValue {
             participant: 0,
@@ -127,7 +155,280 @@ impl Snapshot {
             space != Space::Order && !key.is_empty(),
             "invalid application key"
         );
+        ensure!(
+            space != Space::Raw || crate::native::tree(key).is_none(),
+            "native tree nodes require their owner's authentication scope"
+        );
+        if space == Space::Raw && crate::archive::height(key).is_some() {
+            return self.archive_value(key);
+        }
         self.observed(space, key)
+    }
+    pub(crate) fn archive_state(&self) -> Result<Option<Vec<u8>>> {
+        self.observed(Space::Application, crate::archive::STATE_KEY)
+    }
+    fn archive_mmr(&self) -> Result<crate::archive::Mmr> {
+        self.archive_state()?
+            .as_deref()
+            .map(crate::archive::Mmr::decode)
+            .transpose()
+            .map(|s| s.unwrap_or_default())
+    }
+    fn local_archive(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        if self.virgin {
+            return Ok(None);
+        }
+        Ok(self.raw.snapshot.get(key)?)
+    }
+    fn archived_bytes(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        if self.virgin {
+            return Ok(None);
+        }
+        self.raw.get(Space::Archive, key)
+    }
+    pub fn archive_range_proof(
+        &self,
+        anchor: crate::StateProof,
+        query: &crate::ArchiveQuery,
+        budget: usize,
+    ) -> Result<crate::ArchiveRangeProof> {
+        ensure!(
+            self.manifest() == Some(&anchor.manifest),
+            "archive proof snapshot differs from NOMT boundary"
+        );
+        let bytes = self
+            .archive_state()?
+            .context("archive MMR state is missing")?;
+        crate::archive::proof::build_proof(
+            anchor,
+            query,
+            budget,
+            |key| self.local_archive(key),
+            |key| self.archived_bytes(key),
+            bytes,
+        )
+    }
+    fn archive_value(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let result = (|| {
+            let height = crate::archive::height(key).context("invalid archive key")?;
+            let mmr = self.archive_mmr()?;
+            if height >= mmr.count {
+                return Ok(None);
+            }
+            let block = crate::archive::descriptor(&mmr, height, |key| self.local_archive(key))?;
+            crate::archive::lookup(
+                &block,
+                key,
+                |key| self.local_archive(key),
+                |key| self.archived_bytes(key),
+            )
+        })();
+        if result.is_err() {
+            self.observations.poison();
+        }
+        result
+    }
+    fn archive_entries(
+        &self,
+        prefix: Vec<u8>,
+        lower: Vec<u8>,
+        end: Bound<Vec<u8>>,
+    ) -> BoxStream<'static, Result<(Vec<u8>, Vec<u8>)>> {
+        let view = self.clone();
+        futures::stream::unfold(
+            (
+                view,
+                prefix,
+                lower,
+                end,
+                None::<(crate::archive::Block, u64)>,
+                false,
+            ),
+            |(view, prefix, lower, end, position, done)| async move {
+                if done {
+                    return None;
+                }
+                let result =
+                    (|| -> Result<Option<((Vec<u8>, Vec<u8>), (crate::archive::Block, u64))>> {
+                        let (block, rank) = match position {
+                            Some(position) => position,
+                            None => {
+                                let height = crate::archive::height(&prefix)
+                                    .context("archive range requires a block prefix")?;
+                                let mmr = view.archive_mmr()?;
+                                if height >= mmr.count {
+                                    return Ok(None);
+                                }
+                                let block = crate::archive::descriptor(&mmr, height, |key| {
+                                    view.local_archive(key)
+                                })?;
+                                let rank = crate::archive::lower_bound(
+                                    &block,
+                                    &lower,
+                                    |key| view.local_archive(key),
+                                    |key| view.archived_bytes(key),
+                                )?;
+                                (block, rank)
+                            }
+                        };
+                        if rank == block.count {
+                            return Ok(None);
+                        }
+                        let (key, bytes) = crate::archive::at(
+                            &block,
+                            rank,
+                            |key| view.local_archive(key),
+                            |key| view.archived_bytes(key),
+                        )?;
+                        if !key.starts_with(&prefix)
+                            || match &end {
+                                Bound::Included(end) => key > *end,
+                                Bound::Excluded(end) => key >= *end,
+                                Bound::Unbounded => false,
+                            }
+                        {
+                            return Ok(None);
+                        }
+                        Ok(Some(((key, bytes), (block, rank + 1))))
+                    })();
+                match result {
+                    Ok(Some((entry, position))) => {
+                        Some((Ok(entry), (view, prefix, lower, end, Some(position), false)))
+                    }
+                    Ok(None) => None,
+                    Err(error) => {
+                        view.observations.poison();
+                        Some((Err(error), (view, prefix, lower, end, None, true)))
+                    }
+                }
+            },
+        )
+        .boxed()
+    }
+    /// Scan original retained records, recompute every block root and MMR,
+    /// and optionally emit rebuilt proof nodes. Local indexes are never trusted
+    /// for export completeness. Memory is bounded by a single block.
+    fn walk_archive(
+        &self,
+        mut rebuilt: impl FnMut(Vec<(Vec<u8>, Vec<u8>)>) -> Result<()>,
+    ) -> Result<()> {
+        let bytes = self
+            .raw
+            .get(Space::Application, crate::archive::STATE_KEY)?
+            .context("committed archive MMR is missing")?;
+        let expected = crate::archive::Mmr::decode(&bytes)?;
+        ensure!(
+            self.manifest()
+                .is_some_and(|m| m.height.checked_add(1) == Some(expected.count)),
+            "archive MMR count differs from the materialized height"
+        );
+        let mut mmr = crate::archive::Mmr::default();
+        let mut total = 0u64;
+        for height in 0..expected.count {
+            let prefixes = [
+                "compactblock/metadata/",
+                "compactblock/payload/",
+                "compactblock/record/",
+                "compactblock/routing/",
+                "compactblock/actions/",
+                "compactblock/unrouted/",
+                "cometbft-data/transactions/",
+            ];
+            let mut records = Vec::new();
+            for prefix in prefixes {
+                let prefix =
+                    storage_key(Space::Archive, format!("{prefix}{height:020}").as_bytes());
+                for entry in self
+                    .raw
+                    .snapshot
+                    .iterator(IteratorMode::From(&prefix, Direction::Forward))
+                {
+                    let (key, value) = entry?;
+                    if !key.starts_with(&prefix) {
+                        break;
+                    }
+                    ensure!(
+                        crate::archive::height(&key[1..]) == Some(height),
+                        "malformed retained archive key"
+                    );
+                    records.push((key[1..].to_vec(), value.to_vec()));
+                }
+            }
+            records.sort_by(|a, b| a.0.cmp(&b.0));
+            let borrowed: Vec<_> = records
+                .iter()
+                .map(|(key, value)| (key.as_slice(), value.as_slice()))
+                .collect();
+            let (block, mut nodes) = crate::archive::build(height, &borrowed)?;
+            total = total
+                .checked_add(block.count)
+                .context("archive retained count overflow")?;
+            mmr.append(&block, |level, end, node| {
+                nodes.push((crate::archive::mmr_node_key(level, end), node.to_vec()))
+            })?;
+            rebuilt(nodes)?;
+        }
+        ensure!(
+            mmr == expected,
+            "retained archive roots/counts differ from the authenticated MMR"
+        );
+        let mut actual = 0u64;
+        for entry in self.raw.snapshot.iterator(IteratorMode::From(
+            &[Space::Archive as u8],
+            Direction::Forward,
+        )) {
+            let (key, _) = entry?;
+            if key.first().copied() != Some(Space::Archive as u8) {
+                break;
+            }
+            ensure!(
+                crate::archive::height(&key[1..]).is_some(),
+                "unknown archived record key"
+            );
+            actual = actual
+                .checked_add(1)
+                .context("archive raw count overflow")?;
+        }
+        ensure!(
+            actual == total,
+            "archive raw records are missing or contain extras"
+        );
+        Ok(())
+    }
+    pub(crate) fn validate_archive(&self) -> Result<()> {
+        self.walk_archive(|_| Ok(()))
+    }
+    pub(crate) fn reserve_ordering(&self, space: Space, key: &[u8]) -> Result<()> {
+        let result = (|| {
+            let predecessor = self.predecessor(space, key)?.unwrap_or_default();
+            if !predecessor.is_empty() {
+                ensure!(
+                    self.value(space, &predecessor)?.is_some(),
+                    "ordering predecessor value is missing"
+                );
+            }
+            let next = self.successor(space, &predecessor)?;
+            let exists = self.value(space, key)?.is_some();
+            ensure!(
+                next.as_deref().is_none_or(|next| next >= key),
+                "raw predecessor omitted committed keys"
+            );
+            ensure!(
+                exists == (next.as_deref() == Some(key)),
+                "raw value and authenticated ordering disagree"
+            );
+            if exists {
+                self.successor(space, key)?;
+            }
+            Ok(())
+        })();
+        if result
+            .as_ref()
+            .is_err_and(|error: &anyhow::Error| !error.is::<crate::ProtocolLimitExceeded>())
+        {
+            self.observations.poison();
+        }
+        result
     }
     fn successor(&self, space: Space, key: &[u8]) -> Result<Option<Vec<u8>>> {
         let order_key = order_key(space, key);
@@ -138,8 +439,10 @@ impl Snapshot {
         decode_link(&value.context("authenticated ordering link is missing")?)
     }
     fn first_at(&self, space: Space, lower: &[u8]) -> Result<Option<Vec<u8>>> {
-        let previous = self.raw.predecessor(space, lower)
-            .inspect_err(|_| self.observations.poison())?.unwrap_or_default();
+        let previous = self
+            .predecessor(space, lower)
+            .inspect_err(|_| self.observations.poison())?
+            .unwrap_or_default();
         if !previous.is_empty() {
             ensure!(
                 previous.as_slice() < lower,
@@ -164,6 +467,18 @@ impl Snapshot {
         lower: Vec<u8>,
         end: Bound<Vec<u8>>,
     ) -> BoxStream<'static, Result<(Vec<u8>, Vec<u8>)>> {
+        if space == Space::Raw && crate::native::intersects(&prefix) {
+            self.observations.poison();
+            return futures::stream::once(async {
+                Err(anyhow::anyhow!(
+                    "native tree scans require an authentication scope"
+                ))
+            })
+            .boxed();
+        }
+        if space == Space::Raw && crate::archive::height(&prefix).is_some() {
+            return self.archive_entries(prefix, lower, end);
+        }
         let view = self.clone();
         futures::stream::unfold(
             (view, None::<Option<Vec<u8>>>, prefix, lower, end, false),
@@ -205,9 +520,11 @@ impl Snapshot {
                     )),
                     Ok(None) => None,
                     Err(error) => {
-                        view.observations.poison();
+                        if !error.is::<crate::ProtocolLimitExceeded>() {
+                            view.observations.poison();
+                        }
                         Some((Err(error), (view, Some(None), prefix, lower, end, true)))
-                    },
+                    }
                 }
             },
         )
@@ -233,6 +550,14 @@ impl RawStore {
     pub fn path(&self) -> &Path {
         &self.path
     }
+    #[cfg(test)]
+    pub(crate) fn corrupt_for_test(&self, space: Space, key: &[u8], value: Option<&[u8]>) {
+        let key = storage_key(space, key);
+        match value {
+            Some(value) => self.database.put(key, value).unwrap(),
+            None => self.database.delete(key).unwrap(),
+        }
+    }
     pub fn latest_snapshot(&self) -> Result<Snapshot> {
         let raw = Arc::new(RawSnapshot::new(self.database.clone()));
         let manifest = raw
@@ -244,12 +569,43 @@ impl RawStore {
             raw,
             manifest,
             observations: Observations::default(),
+            virgin: false,
         })
+    }
+    pub(crate) fn rebuild_archive_indexes(&self) -> Result<()> {
+        let snapshot = self.latest_snapshot()?;
+        snapshot.validate_archive()?;
+        // Recovery never trusts partially rebuilt indexes; restore publishes
+        // its private destination only after the final synced batch.
+        let mut clear = WriteBatch::default();
+        clear.delete_range(
+            &[crate::archive::LOCAL_SPACE],
+            &[crate::archive::LOCAL_SPACE + 1],
+        );
+        self.database.write(clear)?;
+        snapshot.walk_archive(|nodes| {
+            let mut batch = WriteBatch::default();
+            for (key, value) in nodes {
+                batch.put(key, value);
+            }
+            self.database.write(batch)?;
+            Ok(())
+        })?;
+        self.database.flush_wal(true)?;
+        Ok(())
     }
     pub fn materialize(&self, effects: &Effects, manifest: &Manifest) -> Result<()> {
         effects.validate()?;
         manifest.validate()?;
+        let previous_archive = self
+            .database
+            .get(storage_key(Space::Application, crate::archive::STATE_KEY))?;
+        let archive_nodes =
+            crate::archive::materialize(manifest.height, effects, previous_archive.as_deref())?;
         let mut batch = WriteBatch::default();
+        for (key, value) in archive_nodes {
+            batch.put(key, value);
+        }
         for effect in &effects.0 {
             let key = storage_key(effect.space, &effect.key);
             match &effect.value {
@@ -257,11 +613,48 @@ impl RawStore {
                 None => batch.delete(key),
             }
         }
+        if let Some(previous) = self.latest_snapshot()?.manifest() {
+            for old in previous
+                .participants
+                .iter()
+                .filter(|p| p.kind == crate::ParticipantKind::Volume)
+            {
+                if !manifest
+                    .participants
+                    .iter()
+                    .any(|p| p.kind == old.kind && p.generation == old.generation)
+                {
+                    let mut key = RETIRED_PREFIX.to_vec();
+                    key.extend_from_slice(&old.generation.to_be_bytes());
+                    batch.put(key, manifest.height.to_be_bytes());
+                }
+            }
+        }
         batch.put(MANIFEST_KEY, manifest.encode()?);
         let mut options = WriteOptions::default();
         options.set_sync(true);
         self.database.write_opt(batch, &options)?;
         Ok(())
+    }
+    pub(crate) fn retired_volumes(&self) -> Result<Vec<(crate::Day, u64)>> {
+        let mut retired = Vec::new();
+        for entry in self
+            .database
+            .iterator(IteratorMode::From(RETIRED_PREFIX, Direction::Forward))
+        {
+            let (key, value) = entry?;
+            if !key.starts_with(RETIRED_PREFIX) {
+                break;
+            }
+            ensure!(
+                key.len() == RETIRED_PREFIX.len() + 8 && value.len() == 8,
+                "invalid local retirement ledger"
+            );
+            let day = crate::Day(u64::from_be_bytes(key[RETIRED_PREFIX.len()..].try_into()?));
+            ensure!(day.0 % 86_400 == 0, "invalid retired generation");
+            retired.push((day, u64::from_be_bytes(value.as_ref().try_into()?)));
+        }
+        Ok(retired)
     }
     pub fn checkpoint(&self, path: &Path) -> Result<()> {
         rocksdb::checkpoint::Checkpoint::new(&self.database)?.create_checkpoint(path)?;
@@ -310,13 +703,15 @@ pub fn ordered_effects(view: &Snapshot, mut effects: Effects) -> Result<Effects>
     let mut last_processed = Vec::new();
     let mut surviving = Vec::new();
     for effect in &effects.0 {
+        if matches!(effect.space, Space::Archive | Space::Native) {
+            continue;
+        }
         if previous_space != Some(effect.space) {
             previous_space = Some(effect.space);
             last_processed.clear();
             surviving.clear();
         }
         let old_predecessor = view
-            .raw
             .predecessor(effect.space, &effect.key)?
             .unwrap_or_default();
         let predecessor = if old_predecessor > last_processed {
@@ -382,6 +777,9 @@ pub fn ordered_effects(view: &Snapshot, mut effects: Effects) -> Result<Effects>
             key,
             value,
         }));
+    effects
+        .0
+        .sort_by(|a, b| (a.space, &a.key).cmp(&(b.space, &b.key)));
     effects.validate()?;
     Ok(effects)
 }
@@ -391,6 +789,7 @@ impl Effects {
         let mut changes = self
             .0
             .iter()
+            .filter(|e| !matches!(e.space, Space::Archive | Space::Native))
             .map(|e| ParticipantChange {
                 key: application_key(e.space, &e.key),
                 value: committed_value(e.value.as_deref()),
@@ -422,6 +821,61 @@ impl StateRead for Snapshot {
     }
     fn nonverifiable_get_raw(&self, key: &[u8]) -> Self::GetRawFut {
         futures::future::ready(self.value(Space::Raw, key))
+    }
+    fn native_get_raw(&self, scope: &crate::NativeReadScope, key: &[u8]) -> Self::GetRawFut {
+        let result = (|| {
+            scope.check(&self.observations, key)?;
+            if self.virgin {
+                Ok(None)
+            } else {
+                self.raw.get(Space::Native, key)
+            }
+        })();
+        if result.is_err() {
+            self.observations.poison();
+        }
+        futures::future::ready(result)
+    }
+    fn native_range_raw(
+        &self,
+        scope: &crate::NativeReadScope,
+        prefix: &[u8],
+        range: impl RangeBounds<Vec<u8>>,
+    ) -> Result<Self::NonconsensusRangeRawStream> {
+        scope.check(&self.observations, prefix)?;
+        let view = self.clone();
+        let scope = scope.clone();
+        let prefix = prefix.to_vec();
+        let start = range.start_bound().cloned();
+        let end = range.end_bound().cloned();
+        // Native commitment reconstruction validates completeness; local
+        // cleanup uses this iterator only to remove derived records.
+        let lower = match &start {
+            Bound::Included(k) | Bound::Excluded(k) => [&prefix[..], &k[..]].concat(),
+            Bound::Unbounded => prefix.clone(),
+        };
+        Ok(futures::stream::unfold((view,scope,prefix,start,end,lower,false), |(view,scope,prefix,start,end,mut next,done)| async move {
+            if done || view.virgin { return None; }
+            let result = (|| {
+                scope.check(&view.observations,&prefix)?;
+                for entry in view.raw.snapshot.iterator(IteratorMode::From(&storage_key(Space::Native,&next),Direction::Forward)) {
+                    let (key,value) = entry?;
+                    if key.first().copied() != Some(Space::Native as u8) || !key[1..].starts_with(&prefix) { return Ok(None); }
+                    let key = key[1..].to_vec();
+                    if !(start.clone(),end.clone()).contains(&key[prefix.len()..].to_vec()) {
+                        if matches!(&start,Bound::Excluded(bound) if key[prefix.len()..] == bound[..]) { continue; }
+                        return Ok(None);
+                    }
+                    return Ok(Some((key,value.to_vec())));
+                }
+                Ok(None)
+            })();
+            match result {
+                Ok(Some((key,value))) => { next=key.clone(); next.push(0); Some((Ok((key,value)),(view,scope,prefix,start,end,next,false))) }
+                Ok(None) => None,
+                Err(error) => { view.observations.poison(); Some((Err(error),(view,scope,prefix,start,end,next,true))) }
+            }
+        }).boxed())
     }
     fn object_get<T: Any + Send + Sync + Clone>(&self, _key: &'static str) -> Option<T> {
         None
@@ -516,6 +970,8 @@ mod tests {
         height: u64,
     ) -> Manifest {
         let view = store.latest_snapshot().unwrap();
+        let mut effects = effects;
+        crate::archive::stage(&view, height, &mut effects).unwrap();
         let effects = ordered_effects(&view, effects).unwrap();
         forest
             .authenticate_reads(previous, view.observations())
@@ -530,7 +986,7 @@ mod tests {
             )
             .unwrap();
         let mut manifest = previous.clone();
-        manifest.participants = update.next.clone();
+        manifest.participants = update.next().to_vec();
         manifest.height = height;
         if height > 0 {
             manifest.previous = previous.digest().unwrap();
@@ -584,7 +1040,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             rows.iter().map(|r| r.0.as_str()).collect::<Vec<_>>(),
-            vec!["a", "b", "c"]
+            vec!["a", "b", "c", "storage/archive/mmr.v1"]
         );
         assert!(view.get_raw("absent").await.unwrap().is_none());
         forest
@@ -606,7 +1062,10 @@ mod tests {
             .into_iter()
             .collect::<Result<Vec<_>>>()
             .unwrap();
-        assert_eq!(rows.len(), 2);
+        assert_eq!(
+            rows.iter().map(|row| row.0.as_str()).collect::<Vec<_>>(),
+            vec!["a", "c", "storage/archive/mmr.v1"]
+        );
         assert!(forest
             .authenticate_reads(&manifest, forged.observations())
             .is_err());

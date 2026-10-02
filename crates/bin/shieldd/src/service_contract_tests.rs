@@ -1,13 +1,8 @@
 use crate::service::*;
-use anyhow::Result;
-use cnidarium::TempStorage;
-use shieldd_sdk_app::{
-    genesis::{AppState, Content},
-    SUBSTORE_PREFIXES,
-};
+use anyhow::{Context, Result};
+use shieldd_sdk_app::genesis::{AppState, Content};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_keys::test_keys::ADDRESS_0;
-use shieldd_sdk_proto::cnidarium::v1::KeyValueRequest as ComponentKeyValueRequest;
 use shieldd_sdk_proto::core::app::v1 as proto_app;
 use shieldd_sdk_proto::core::app::v1::AppParametersRequest as ComponentAppParametersRequest;
 use shieldd_sdk_proto::core::component::{
@@ -20,15 +15,19 @@ use shieldd_sdk_proto::core::component::{
     sct::v1::NullifierRequest,
     shielded_pool::v1::AssetMetadataByIdRequest as ComponentAssetMetadataByIdRequest,
 };
-use shieldd_sdk_proto::execution_client::v1::GetCommittedStateRequest;
 use shieldd_sdk_proto::execution_client::v1::{
-    BeginBlockRequest, CheckTxRequest, CommitRequest, DeliverTxRequest, EndBlockRequest,
-    InitGenesisRequest, SealCommitRequest,
+    BeginBlockRequest, CheckTxRequest, DeliverTxRequest, DiscardRequest, EndBlockRequest,
+    FreezeRequest, InitGenesisRequest, MaterializeRequest,
 };
+use shieldd_sdk_proto::execution_client::v1::{
+    GetCommittedStateRequest, GetCommittedStateResponse,
+};
+use shieldd_sdk_proto::storage::v1::KeyValueRequest as ComponentKeyValueRequest;
+use shieldd_sdk_storage::{StateRead as _, TempStorage};
 use std::ops::Deref as _;
 
 async fn initialized_client() -> Result<(TempStorage, ExecutionService)> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let mut client = ExecutionService::new(storage.deref().clone(), crate::test_registry()).await?;
     client
         .init_genesis(InitGenesisRequest {
@@ -40,14 +39,11 @@ async fn initialized_client() -> Result<(TempStorage, ExecutionService)> {
             ),
         })
         .await?;
-    client.commit(CommitRequest {}).await?;
     client
-        .queries()
-        .publish_committed(
-            client
-                .get_committed_state(GetCommittedStateRequest {})
-                .await?,
-        )
+        .materialize(MaterializeRequest {
+            height: 0,
+            receipt_digest: vec![],
+        })
         .await?;
     Ok((storage, client))
 }
@@ -81,7 +77,7 @@ async fn execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
         .as_mut()
         .expect("test begin-block time")
         .seconds = 1_700_000_000;
-    client.begin_block(begin_block).await?;
+    begin_fixture(&mut client, begin_block).await?;
 
     let scope = client.open_scope(0)?;
     let response = client
@@ -89,6 +85,7 @@ async fn execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
             scope,
             DeliverTxRequest {
                 tx: b"not a shieldd transaction".to_vec(),
+                position: None,
             },
         )
         .await?;
@@ -96,21 +93,8 @@ async fn execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
     assert_eq!(response.code, 1);
     assert!(response.log.contains("decoding transaction"));
     client.close_scope(scope, false)?;
-    let ended = client.end_block(EndBlockRequest { height: 1 }).await?;
-    client
-        .seal_commit(SealCommitRequest {
-            expected: ended.prepared,
-        })
-        .await?;
-    client.commit(CommitRequest {}).await?;
-    client
-        .queries()
-        .publish_committed(
-            client
-                .get_committed_state(GetCommittedStateRequest {})
-                .await?,
-        )
-        .await?;
+    end_fixture(&mut client, 1).await?;
+    materialize_fixture(&mut client).await?;
     let accepted = client
         .queries()
         .committed_transaction(
@@ -151,7 +135,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
         .await?
         .try_into()?;
     assert!(!status.spent);
-    assert_eq!(status.boundary.height, Some(0));
+    assert_eq!(status.proof.manifest.height, 0);
 
     let metadata = client
         .queries()
@@ -203,7 +187,7 @@ async fn execution_exposes_embedded_frontend_queries() -> Result<()> {
         })
         .await?;
     assert!(key.value.is_some());
-    assert!(key.proof.is_none());
+    assert!(key.proof.is_empty());
     Ok(())
 }
 
@@ -217,22 +201,9 @@ async fn execution_reads_bounded_compact_pages() -> Result<()> {
             time: Some(Default::default()),
         };
         begin.time.as_mut().expect("test begin-block time").seconds = 1_700_000_000 + height;
-        client.begin_block(begin).await?;
-        let ended = client.end_block(EndBlockRequest { height }).await?;
-        client
-            .seal_commit(SealCommitRequest {
-                expected: ended.prepared,
-            })
-            .await?;
-        client.commit(CommitRequest {}).await?;
-        client
-            .queries()
-            .publish_committed(
-                client
-                    .get_committed_state(GetCommittedStateRequest {})
-                    .await?,
-            )
-            .await?;
+        begin_fixture(&mut client, begin).await?;
+        end_fixture(&mut client, height).await?;
+        materialize_fixture(&mut client).await?;
     }
 
     for height in [0, 1, 2] {
@@ -257,9 +228,7 @@ async fn execution_reads_bounded_compact_pages() -> Result<()> {
 #[tokio::test]
 async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<()> {
     use anyhow::Context as _;
-    use cnidarium::{StateDelta, StateWrite as _};
-    use ibc_types::core::commitment::{MerklePath, MerkleProof, MerkleRoot};
-    // ICS23 requires nonempty leaf values, including absence-proof neighbors.
+    use shieldd_sdk_storage::{StateDelta, StateWrite as _};
     let (storage, client) = initialized_client().await?;
     let mut delta = StateDelta::new(storage.latest_snapshot());
     delta.put_raw("query-proof-present".into(), b"main-store value".to_vec());
@@ -267,32 +236,25 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
         "cometbft-data/query-proof-present".into(),
         b"committed value".to_vec(),
     );
+    use shieldd_sdk_sct::component::clock::EpochManager as _;
+    delta.put_block_height(1);
     storage.commit(delta).await?;
+    let manifest = storage.manifest().context("proof fixture manifest")?;
     client
         .queries()
-        .publish_committed(
-            client
-                .get_committed_state(GetCommittedStateRequest {})
-                .await?,
-        )
+        .publish_committed(GetCommittedStateResponse {
+            height: manifest.height,
+            root_hash: manifest.digest()?.to_vec(),
+            block_id: manifest.block_id.to_vec(),
+        })
         .await?;
     let snapshot = storage.latest_snapshot();
-    let root = MerkleRoot {
-        hash: snapshot.root_hash().await?.0.to_vec(),
-    };
-    for (key, path, present) in [
-        ("query-proof-present", vec!["query-proof-present"], true),
-        ("query-proof-absent", vec!["query-proof-absent"], false),
-        (
-            "cometbft-data/query-proof-present",
-            vec!["cometbft-data", "query-proof-present"],
-            true,
-        ),
-        (
-            "cometbft-data/query-proof-absent",
-            vec!["cometbft-data", "query-proof-absent"],
-            false,
-        ),
+    let anchor = manifest.digest()?;
+    for (key, present) in [
+        ("query-proof-present", true),
+        ("query-proof-absent", false),
+        ("cometbft-data/query-proof-present", true),
+        ("cometbft-data/query-proof-absent", false),
     ] {
         let response = client
             .queries()
@@ -301,28 +263,26 @@ async fn key_value_proves_membership_and_absence_at_committed_root() -> Result<(
                 proof: true,
             })
             .await?;
-        let proof: MerkleProof = response.proof.expect("requested proof").try_into()?;
-        let (value, direct_proof) = snapshot.get_with_proof(key.as_bytes().to_vec()).await?;
-        assert_eq!(proof, direct_proof);
-        assert_eq!(
-            response.value.as_ref().map(|value| &value.value),
-            value.as_ref()
-        );
+        let proof = shieldd_sdk_storage::StateProof::decode(&response.proof)?;
+        let value = snapshot.get_raw(key).await?;
         assert_eq!(value.is_some(), present);
-        assert_eq!(proof.proofs.len(), path.len(), "proof depth for {key}");
-        let specs = vec![cnidarium::ics23_spec(); path.len()];
-        let path = MerklePath {
-            key_path: path.into_iter().map(str::to_owned).collect(),
-        };
-        if let Some(value) = value {
-            proof
-                .verify_membership(&specs, root.clone(), path, value, 0)
-                .with_context(|| format!("membership proof for {key}"))?;
-        } else {
-            proof
-                .verify_non_membership(&specs, root.clone(), path)
-                .with_context(|| format!("absence proof for {key}"))?;
-        }
+        assert_eq!(response.value.as_ref().map(|v| &v.value), value.as_ref());
+        proof.verify_application(
+            anchor,
+            shieldd_sdk_storage::Space::Application,
+            key.as_bytes(),
+            value.as_deref(),
+        )?;
+        let mut wrong = anchor;
+        wrong[0] ^= 1;
+        assert!(proof
+            .verify_application(
+                wrong,
+                shieldd_sdk_storage::Space::Application,
+                key.as_bytes(),
+                value.as_deref()
+            )
+            .is_err());
     }
     Ok(())
 }
@@ -396,18 +356,9 @@ async fn committed_queries_advance_only_after_joint_publication() -> Result<()> 
         time: Some(Default::default()),
     };
     begin.time.as_mut().unwrap().seconds = 1_700_000_000;
-    client.begin_block(begin).await?;
-    let ended = client.end_block(EndBlockRequest { height: 1 }).await?;
-    client
-        .seal_commit(SealCommitRequest {
-            expected: ended.prepared,
-        })
-        .await?;
-    client.commit(CommitRequest {}).await?;
-    let durable = client
-        .get_committed_state(GetCommittedStateRequest {})
-        .await?;
-    assert_eq!(durable.height, 1);
+    begin_fixture(&mut client, begin).await?;
+    end_fixture(&mut client, 1).await?;
+    assert_eq!(queries.snapshot()?.version(), old.version());
     assert!(queries
         .compact_block_page(CompactBlockPageRequest {
             height: 1,
@@ -415,11 +366,13 @@ async fn committed_queries_advance_only_after_joint_publication() -> Result<()> 
         })
         .await
         .is_err());
-    let mut wrong = durable.clone();
+    materialize_fixture(&mut client).await?;
+    let durable = client
+        .get_committed_state(GetCommittedStateRequest {})
+        .await?;
+    let mut wrong = durable;
     wrong.root_hash[0] ^= 1;
     assert!(queries.publish_committed(wrong).await.is_err());
-    assert_eq!(queries.snapshot()?.version(), old.version());
-    queries.publish_committed(durable).await?;
     assert_eq!(
         queries
             .compact_block_page(CompactBlockPageRequest {
@@ -485,27 +438,19 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
         ..Default::default()
     };
     let expected = block.encode_to_vec();
-    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
     use shieldd_sdk_sct::component::clock::EpochManager as _;
     state.put_block_height(1);
     state.put_compact_block(block)?;
-    let mut writer = shieldd_sdk_app::app::PermanentWriter::from_reader(
-        storage.as_ref().clone(),
-        client.queries().nullifiers()?,
-    )
-    .await?;
-    let next = writer.prepare(state, 1, [1; 32], vec![]).await?;
-    writer.seal()?;
-    writer.commit()?;
+    storage.commit(state).await?;
+    let manifest = storage.manifest().unwrap();
     client
         .queries()
-        .publish_committed(
-            shieldd_sdk_proto::execution_client::v1::GetCommittedStateResponse {
-                height: 1,
-                root_hash: next.application_root.unwrap().to_vec(),
-                block_id: next.nullifiers.block_id.to_vec(),
-            },
-        )
+        .publish_committed(GetCommittedStateResponse {
+            height: 1,
+            root_hash: manifest.digest()?.to_vec(),
+            block_id: manifest.block_id.to_vec(),
+        })
         .await?;
     let full = client
         .queries()
@@ -592,5 +537,170 @@ async fn filtered_pages_include_tag_matches_and_unrouted_payloads_with_checked_p
         )
         .and_then(|_| assembler.sparse())
         .is_err());
+    Ok(())
+}
+
+async fn begin_fixture(client: &mut ExecutionService, request: BeginBlockRequest) -> Result<()> {
+    use prost::Message as _;
+    client.reserve_call(0, 2, &request.encode_to_vec())?;
+    let response = client.begin_block(request).await?;
+    client.finish_call(0, &response.encode_to_vec())?;
+    Ok(())
+}
+async fn end_fixture(client: &mut ExecutionService, height: i64) -> Result<()> {
+    use prost::Message as _;
+    let request = EndBlockRequest { height };
+    client.reserve_call(0, 6, &request.encode_to_vec())?;
+    let response = client.end_block(request).await?;
+    client.finish_call(0, &response.encode_to_vec())?;
+    Ok(())
+}
+async fn materialize_fixture(client: &mut ExecutionService) -> Result<()> {
+    let frozen = client.freeze(FreezeRequest {}).await?;
+    let request = MaterializeRequest {
+        height: frozen.next.unwrap().height,
+        receipt_digest: frozen.receipt_digest,
+    };
+    client.materialize(request).await?;
+    client.await_materializer().await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn durable_ack_overlaps_verification_while_proof_drain_blocks_h_plus_one() -> Result<()> {
+    use prost::Message;
+    use shieldd_sdk_proto::execution_client::v1::{
+        StartVerificationRequest, VerificationCandidate, VerificationPosition,
+    };
+    let (_storage, mut service) = initialized_client().await?;
+    begin_fixture(
+        &mut service,
+        BeginBlockRequest {
+            height: 1,
+            block_id: vec![1; 32],
+            time: Some(Default::default()),
+        },
+    )
+    .await?;
+    end_fixture(&mut service, 1).await?;
+    let frozen = service.freeze(FreezeRequest {}).await?;
+    let queries = service.queries().clone();
+    let entered = std::sync::Arc::new(tokio::sync::Notify::new());
+    let release = std::sync::Arc::new(tokio::sync::Notify::new());
+    let reader = {
+        let queries = queries.clone();
+        let entered = entered.clone();
+        let release = release.clone();
+        tokio::spawn(async move {
+            queries
+                .authenticated(async {
+                    entered.notify_one();
+                    release.notified().await;
+                    Ok::<_, crate::ServiceError>(())
+                })
+                .await
+        })
+    };
+    entered.notified().await;
+    tokio::time::timeout(
+        std::time::Duration::from_secs(1),
+        service.materialize(MaterializeRequest {
+            height: 1,
+            receipt_digest: frozen.receipt_digest,
+        }),
+    )
+    .await??;
+    queries
+        .start_verification(StartVerificationRequest {
+            height: 2,
+            candidates: vec![VerificationCandidate {
+                tx: vec![0xff],
+                position: Some(VerificationPosition {
+                    tx_index: 0,
+                    message_path: vec![0],
+                }),
+            }],
+        })
+        .await?;
+    let artifact = queries
+        .verification
+        .take(
+            2,
+            Some(&VerificationPosition {
+                tx_index: 0,
+                message_path: vec![0],
+            }),
+            &[0xff],
+        )
+        .await?
+        .context("stateless verification did not overlap proof drain")?;
+    assert!(artifact.result.is_err());
+    drop(artifact);
+    let mut fresh_query = Box::pin(queries.published_boundary());
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(20), &mut fresh_query)
+            .await
+            .is_err()
+    );
+    // Direct Rust callers and ABI callers share the same H+1 barrier.
+    let request = BeginBlockRequest {
+        height: 2,
+        block_id: vec![2; 32],
+        time: Some(Default::default()),
+    };
+    let mut begin = Box::pin(service.begin_block(request.clone()));
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(20), &mut begin)
+            .await
+            .is_err()
+    );
+    release.notify_one();
+    reader.await??;
+    assert_eq!(
+        tokio::time::timeout(std::time::Duration::from_secs(5), &mut fresh_query)
+            .await??
+            .height,
+        1
+    );
+    tokio::time::timeout(std::time::Duration::from_secs(5), &mut begin).await??;
+    drop(begin);
+    let committed = service
+        .queries()
+        .app_parameters(ComponentAppParametersRequest {})
+        .await?;
+    assert!(committed.app_parameters.is_some());
+    service.discard(DiscardRequest {}).await?;
+    service.close().await?;
+    let _ = request.encode_to_vec();
+    Ok(())
+}
+
+#[tokio::test]
+async fn archive_query_returns_a_client_verifiable_genesis_range() -> Result<()> {
+    use shieldd_sdk_proto::storage::v1::ArchiveRangeRequest;
+    let (_storage, mut service) = initialized_client().await?;
+    let committed = service
+        .get_committed_state(GetCommittedStateRequest {})
+        .await?;
+    let prefix = b"compactblock/metadata/00000000000000000000".to_vec();
+    let request = ArchiveRangeRequest {
+        height: 0,
+        prefix: prefix.clone(),
+        start: prefix.clone(),
+        end: None,
+        limit: 1,
+    };
+    let response = service.queries().archive_range(request).await?;
+    let query = shieldd_sdk_storage::ArchiveQuery {
+        height: 0,
+        prefix: prefix.clone(),
+        start: prefix,
+        end: None,
+        limit: 1,
+    };
+    let page = shieldd_sdk_storage::ArchiveRangeProof::decode_canonical(&response.proof)?
+        .verify(committed.root_hash.try_into().unwrap(), &query)?;
+    assert_eq!(page.records.len(), 1);
+    assert!(page.next.is_none());
     Ok(())
 }

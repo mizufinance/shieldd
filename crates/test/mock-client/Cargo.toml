@@ -8,10 +8,10 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
+shieldd-sdk-storage = { workspace = true, features = ["persistent"] }
 shieldd-sdk-proof-params.workspace = true
 tokio.workspace = true
 anyhow = {workspace = true}
-cnidarium = {workspace = true, default-features = true}
 shieldd-sdk-crypto.workspace = true
 shieldd-sdk-asset = {workspace = true}
 shieldd-sdk-compact-block = {workspace = true, default-features = true}
@@ -28,4 +28,5 @@ shieldd-sdk-view = {workspace = true, default-features = true}
 rand_core = {workspace = true}
 
 [dev-dependencies]
+shieldd-sdk-storage = { workspace = true, features = ["test-support"] }
 shieldd-sdk-shielded-pool = {workspace = true, features = ["benchmark-helpers"]}

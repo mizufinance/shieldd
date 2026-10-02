@@ -101,6 +101,10 @@ pub struct Verified {
     item: Verification,
 }
 impl Verified {
+    pub fn allocated_bytes(&self) -> usize {
+        self.item.envelope.allocated_bytes()
+    }
+
     pub fn registry_id(&self) -> [u8; 32] {
         self.registry_id
     }

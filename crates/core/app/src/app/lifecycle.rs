@@ -36,7 +36,7 @@ impl App {
     /// Runs per-block hooks for execution components only.
     pub async fn begin_block(
         &mut self,
-        begin_block: &cnidarium_component::BlockContext,
+        begin_block: &shieldd_sdk_storage::BlockContext,
     ) -> anyhow::Result<Vec<abci::Event>> {
         shieldd_sdk_compliance::admission::state::validate_time(&*self.state, begin_block.time)
             .await?;
@@ -153,6 +153,14 @@ impl App {
             shieldd_sdk_sct::state_key::nullifiers::reader(),
             self.nullifier_reader(),
         );
+        if let Some(tree) = self.state.object_get::<shieldd_sdk_tct::Tree>(
+            shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+        ) {
+            replacement.object_put(
+                shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+                tree,
+            );
+        }
         let previous = std::mem::replace(&mut self.state, Arc::new(replacement));
         match Arc::try_unwrap(previous) {
             Ok(state) => Ok(state),
@@ -172,28 +180,125 @@ impl App {
         self.snapshot_version = snapshot.version();
         self.committed_snapshot = snapshot.clone();
         let mut state = StateDelta::new(snapshot);
+        if let Some(tree) = self.state.object_get::<shieldd_sdk_tct::Tree>(
+            shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+        ) {
+            state.object_put(
+                shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+                tree,
+            );
+        }
         state.object_put(shieldd_sdk_sct::state_key::nullifiers::reader(), reader);
         self.state = Arc::new(state);
     }
 
-    /// Standalone test/benchmark persistence; production commits are host-owned.
+    pub(super) async fn prepare_native(
+        storage: &Storage,
+        state: StateDelta<Snapshot>,
+        height: u64,
+        block_id: [u8; 32],
+    ) -> Result<shieldd_sdk_storage::Prepared> {
+        let (boundary, changes) = Self::native_inputs(&state, height, block_id).await?;
+        storage.prepare(state, boundary, changes)
+    }
+    pub(super) async fn native_inputs(
+        state: &StateDelta<Snapshot>,
+        height: u64,
+        block_id: [u8; 32],
+    ) -> Result<(
+        shieldd_sdk_storage::BlockBoundary,
+        std::collections::BTreeMap<
+            shieldd_sdk_storage::ParticipantId,
+            Vec<shieldd_sdk_storage::ParticipantChange>,
+        >,
+    )> {
+        use shieldd_sdk_storage::{BlockBoundary, ParticipantChange, ParticipantId, SPENT};
+        use std::collections::BTreeMap;
+        anyhow::ensure!(
+            state.get_block_height().await? == height,
+            "native state height differs from host decision"
+        );
+        let chain_id = state.get_chain_id().await?;
+        let registry = state
+            .get_raw(crate::registry_binding::KEY)
+            .await?
+            .context("native protocol binding is missing")?;
+        let mut protocol = sha2::Sha256::new();
+        protocol.update(b"shieldd.protocol.nomt-forest.v1.abi5\0");
+        protocol.update(&registry);
+        let protocol = protocol.finalize().into();
+        // InitChain has no block-time input and cannot consume nullifiers.
+        // The height-zero manifest uses the protocol epoch; all later days
+        // derive exclusively from canonical BeginBlock time.
+        let time = if height == 0 {
+            0
+        } else {
+            state.get_current_block_timestamp().await?.unix_timestamp()
+        };
+        let mut changes: BTreeMap<ParticipantId, Vec<ParticipantChange>> = BTreeMap::new();
+        let permanent = state.pending_nullifiers();
+        for nullifier in &permanent {
+            let key = shieldd_sdk_storage::nullifier_key(&nullifier.to_bytes());
+            let id = ParticipantId::permanent(shieldd_sdk_storage::nullifier_shard(&key))?;
+            changes.entry(id).or_default().push(ParticipantChange {
+                key,
+                value: Some(SPENT.to_vec()),
+            });
+        }
+        use shieldd_sdk_shielded_pool::component::{PendingVolume, PENDING_VOLUME};
+        let volumes = state
+            .object_get::<PendingVolume>(PENDING_VOLUME)
+            .unwrap_or_default();
+        let count = permanent.len() + volumes.values().map(|set| set.len()).sum::<usize>();
+        anyhow::ensure!(
+            count <= shieldd_sdk_storage::MAX_NULLIFIERS_PER_BLOCK,
+            "combined native nullifier limit exceeded"
+        );
+        for (day, values) in &volumes {
+            let id = ParticipantId::volume(*day)?;
+            for nullifier in values {
+                changes.entry(id).or_default().push(ParticipantChange {
+                    key: shieldd_sdk_storage::volume_key(*day, nullifier)?,
+                    value: Some(SPENT.to_vec()),
+                });
+            }
+        }
+        for delta in changes.values_mut() {
+            delta.sort_by_key(|change| change.key);
+        }
+        Ok((
+            BlockBoundary {
+                chain_id,
+                protocol,
+                height,
+                block_id,
+                time,
+            },
+            changes,
+        ))
+    }
+
+    /// Direct owning-suite persistence has no SDK side effects to replay.
     #[cfg(any(test, feature = "benchmark-helpers"))]
-    pub async fn commit_for_testing(&mut self, storage: Storage) -> Result<RootHash> {
+    pub async fn commit_for_testing(&mut self, storage: Storage) -> Result<Commitment> {
         let state = self.take_commit_state(&storage).await?;
         let height = state.get_block_height().await?;
-        let accepted = state.pending_nullifiers().iter().copied().collect();
-        let mut writer =
-            PermanentWriter::from_reader(storage.clone(), self.nullifier_reader()).await?;
-        writer
-            .prepare(state, height, [height as u8; 32], accepted)
-            .await?;
-        writer.seal()?;
-        let committed = writer.commit()?;
-        self.reset_committed(&storage, writer.reader());
-        Ok(RootHash(
-            committed
-                .application_root
-                .context("committed root is missing")?,
-        ))
+        let update = Self::prepare_native(
+            &storage,
+            state,
+            height,
+            if height == 0 {
+                [0; 32]
+            } else {
+                [height as u8; 32]
+            },
+        )
+        .await?;
+        let committed = storage.materialize(update)?;
+        self.reset_committed(
+            &storage,
+            shieldd_sdk_sct::permanent_nullifiers::Reader(storage.clone()),
+        );
+        Ok(Commitment(committed.digest()?))
     }
 }

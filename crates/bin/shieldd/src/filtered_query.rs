@@ -1,11 +1,11 @@
 use crate::{service::ServiceError, QueryService};
 use anyhow::Context;
-use cnidarium::StateRead;
 use futures::StreamExt;
 use prost::Message;
 use sha2::{Digest, Sha256};
 use shieldd_sdk_proto::core::component::compact_block::v1::{self as pb, CompactRecordFragment};
 use shieldd_sdk_shielded_pool::discovery::RoutingSelector;
+use shieldd_sdk_storage::StateRead;
 use std::ops::Bound;
 
 #[derive(serde::Serialize, serde::Deserialize)]

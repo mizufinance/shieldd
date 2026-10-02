@@ -39,7 +39,6 @@ pub enum HostExecutionPhase {
     InitializedCheckpointGenesis,
     InBlock,
     EndedBlock,
-    SealedBlock,
     CommitInterrupted,
 }
 
@@ -119,22 +118,31 @@ pub struct HostExecution {
     app: App,
     stateless_cache: Arc<StatelessCache>,
     phase: HostExecutionPhase,
-    writer: PermanentWriter,
+    prepared: Option<shieldd_sdk_storage::Prepared>,
+    recorder: Option<shieldd_sdk_storage::Recorder>,
+    frozen_receipt: Option<(Vec<u8>, [u8; 32])>,
     block_id: Option<[u8; 32]>,
     scopes: super::scope::Scopes,
     disposable: std::collections::BTreeMap<u64, DisposableView>,
     view_owners: std::collections::BTreeMap<u64, u64>,
     next_scope_id: u64,
+    finalization_reads: Option<shieldd_sdk_storage::DeferredReadCredit>,
+    queued_reads: std::collections::BTreeMap<
+        [u8; 32],
+        std::collections::VecDeque<(usize, shieldd_sdk_storage::DeferredReadCredit)>,
+    >,
+    active_queued_reads: Option<shieldd_sdk_storage::DeferredReadGuard>,
 }
 
 struct DisposableView {
+    boundary: [u8; 32],
     app: App,
     scopes: super::scope::Scopes,
 }
 
 pub struct HostEndBlock {
     pub events: Vec<abci::Event>,
-    pub prepared: CommitBoundary,
+    pub prepared: shieldd_sdk_storage::Manifest,
 }
 
 #[derive(Debug)]
@@ -257,6 +265,44 @@ impl From<HostSource> for ProtoHostSource {
 }
 
 impl HostExecution {
+    /// Owning component suites have no SDK/EVM side effects. Receipt replay is
+    /// tested through the ABI rather than manufacturing a transcript here.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub async fn commit_for_testing(&mut self) -> Result<HostCommit> {
+        if matches!(
+            self.phase,
+            HostExecutionPhase::InitializedGenesis
+                | HostExecutionPhase::InitializedCheckpointGenesis
+        ) {
+            return self.materialize_genesis().await;
+        }
+        ensure!(
+            self.phase == HostExecutionPhase::EndedBlock,
+            "owning fixture requires EndBlock"
+        );
+        let update = self
+            .prepared
+            .take()
+            .context("owning fixture update is missing")?;
+        self.phase = HostExecutionPhase::CommitInterrupted;
+        let manifest = self.storage.materialize(update)?;
+        self.recorder = None;
+        self.finish_materialization()?;
+        Ok(HostCommit {
+            root_hash: manifest.digest()?.to_vec(),
+        })
+    }
+
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub async fn begin_block_for_testing(
+        &mut self,
+        block: HostBlock,
+    ) -> Result<HostExecutionResponse> {
+        let response = self.begin_block(block).await?;
+        self.recorder = Some(Default::default());
+        Ok(response)
+    }
+
     pub async fn new(storage: Storage, registry: Arc<Registry>) -> Result<Self> {
         Self::with_cache(storage, Arc::new(StatelessCache::new()), registry).await
     }
@@ -266,64 +312,34 @@ impl HostExecution {
         stateless_cache: Arc<StatelessCache>,
         registry: Arc<Registry>,
     ) -> Result<Self> {
-        let config = if cfg!(test) {
-            shieldd_sdk_sct::permanent_nullifiers::Config {
-                buckets: 1024,
-                cache_mib: 1,
-                preallocate: false,
-            }
-        } else {
-            Default::default()
-        };
-        Self::with_config(storage, stateless_cache, registry, &config).await
-    }
-
-    pub async fn with_config(
-        storage: Storage,
-        stateless_cache: Arc<StatelessCache>,
-        registry: Arc<Registry>,
-        config: &shieldd_sdk_sct::permanent_nullifiers::Config,
-    ) -> Result<Self> {
         crate::app_version::check_app_version(&storage).await?;
-        let writer = PermanentWriter::open(storage.clone(), config).await?;
-        Self::from_writer(storage, stateless_cache, registry, writer).await
-    }
-
-    #[cfg(test)]
-    pub(super) async fn with_reader(
-        storage: Storage,
-        stateless_cache: Arc<StatelessCache>,
-        registry: Arc<Registry>,
-        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
-    ) -> Result<Self> {
-        let writer = PermanentWriter::from_reader(storage.clone(), reader).await?;
-        Self::from_writer(storage, stateless_cache, registry, writer).await
-    }
-
-    async fn from_writer(
-        storage: Storage,
-        stateless_cache: Arc<StatelessCache>,
-        registry: Arc<Registry>,
-        writer: PermanentWriter,
-    ) -> Result<Self> {
-        let mut app = App::new(storage.latest_snapshot(), registry, writer.reader()).await?;
+        let mut app = App::new(
+            storage.latest_snapshot(),
+            registry,
+            shieldd_sdk_sct::permanent_nullifiers::Reader(storage.clone()),
+        )
+        .await?;
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         Ok(Self {
             storage,
             app,
             stateless_cache,
             phase: HostExecutionPhase::Idle,
-            writer,
+            prepared: None,
+            recorder: None,
+            frozen_receipt: None,
             block_id: None,
             scopes: super::scope::Scopes::default(),
             disposable: Default::default(),
             view_owners: Default::default(),
             next_scope_id: 0,
+            finalization_reads: None,
+            queued_reads: Default::default(),
+            active_queued_reads: None,
         })
     }
-
     pub fn nullifier_reader(&self) -> shieldd_sdk_sct::permanent_nullifiers::Reader {
-        self.writer.reader()
+        shieldd_sdk_sct::permanent_nullifiers::Reader(self.storage.clone())
     }
 
     pub fn phase(&self) -> HostExecutionPhase {
@@ -339,8 +355,15 @@ impl HostExecution {
     }
 
     pub fn open_scope(&mut self, parent: u64) -> Result<u64> {
+        self.open_reserved_scope(parent, false)
+    }
+    pub fn open_reserved_scope(&mut self, parent: u64, finalization: bool) -> Result<u64> {
         let id = self.allocate_scope()?;
         if let Some(root) = self.view_owners.get(&parent).copied() {
+            ensure!(
+                !finalization,
+                "disposable child cannot consume finalization capacity"
+            );
             let view = self.disposable.get_mut(&root).expect("owned view exists");
             view.scopes.open(&mut view.app, parent, id)?;
             self.view_owners.insert(id, root);
@@ -350,7 +373,12 @@ impl HostExecution {
             self.phase == HostExecutionPhase::InBlock,
             "scope requires an open block"
         );
-        self.scopes.open(&mut self.app, parent, id)
+        self.recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .open_reserved(id, parent, finalization)?;
+        self.scopes
+            .open_reserved(&mut self.app, parent, id, finalization)
     }
 
     pub async fn open_disposable_scope(
@@ -368,14 +396,18 @@ impl HostExecution {
             "simulation requires initialized storage"
         );
         ensure!(
-            self.writer.committed()?.application_root == Some(root),
+            self.storage
+                .manifest()
+                .context("simulation boundary is missing")?
+                .digest()?
+                == root,
             "simulation SDK and native boundaries differ"
         );
         let current_epoch = self.storage.latest_snapshot().get_current_epoch().await?;
         let mut app = App::from_snapshot(
             self.storage.latest_snapshot(),
             self.app.registry.clone(),
-            self.writer.reader(),
+            self.nullifier_reader(),
         );
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         use shieldd_sdk_sct::component::clock::EpochManager as _;
@@ -386,13 +418,29 @@ impl HostExecution {
         let id = self.allocate_scope()?;
         let mut scopes = super::scope::Scopes::default();
         scopes.open(&mut app, 0, id)?;
-        self.disposable.insert(id, DisposableView { app, scopes });
+        self.disposable.insert(
+            id,
+            DisposableView {
+                boundary: root,
+                app,
+                scopes,
+            },
+        );
         self.view_owners.insert(id, id);
         Ok(id)
     }
 
     pub fn require_scope(&mut self, id: u64) -> Result<()> {
         if let Some(root) = self.view_owners.get(&id) {
+            ensure!(
+                self.disposable[root].boundary
+                    == self
+                        .storage
+                        .manifest()
+                        .context("simulation boundary is missing")?
+                        .digest()?,
+                "disposable view expired at materialization"
+            );
             return self
                 .disposable
                 .get_mut(root)
@@ -402,16 +450,43 @@ impl HostExecution {
         }
         self.scopes.writable(id)
     }
+    pub fn authenticate_disposable_result(&self, id: u64) -> Result<()> {
+        if let Some(root) = self.view_owners.get(&id) {
+            let view = &self.disposable[root];
+            let read = view
+                .app
+                .state
+                .read_view()
+                .context("disposable read view is missing")?;
+            let manifest = read
+                .manifest
+                .as_deref()
+                .context("disposable manifest is missing")?;
+            let forest = self.storage.forest().read();
+            ensure!(
+                self.storage.manifest().as_ref() == Some(manifest),
+                "disposable view expired at materialization"
+            );
+            forest.authenticate_result(manifest, &read.observations)?;
+        }
+        Ok(())
+    }
+    pub fn reserve_scope_reads(&mut self, id: u64) -> Result<()> {
+        if id == 0 || self.view_owners.contains_key(&id) {
+            return Ok(());
+        }
+        self.scopes.reserve_writes(&self.app, id)
+    }
     pub fn prepare_scope(&mut self, id: u64) -> Result<()> {
         if let Some(root) = self.view_owners.get(&id) {
-            return self
-                .disposable
-                .get_mut(root)
-                .expect("owned view exists")
-                .scopes
-                .prepare(id);
+            let view = self.disposable.get_mut(root).expect("owned view exists");
+            return view.scopes.prepare(&view.app, id);
         }
-        self.scopes.prepare(id)
+        self.scopes.prepare(&self.app, id)?;
+        self.recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .prepare(id)
     }
     pub fn close_scope(&mut self, id: u64, adopt: bool) -> Result<()> {
         if let Some(root) = self.view_owners.get(&id).copied() {
@@ -427,6 +502,10 @@ impl HostExecution {
             }
             return Ok(());
         }
+        self.recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .close(id, adopt)?;
         self.scopes.close(&mut self.app, id, adopt)
     }
     pub fn snapshot_scope(&mut self, id: u64) -> Result<u64> {
@@ -434,6 +513,11 @@ impl HostExecution {
             let view = self.disposable.get_mut(root).expect("owned view exists");
             return view.scopes.snapshot(&mut view.app, id);
         }
+        let point = self.scopes.next_savepoint(id)?;
+        self.recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .snapshot(id, u32::try_from(point)?)?;
         self.scopes.snapshot(&mut self.app, id)
     }
     pub fn revert_scope(&mut self, id: u64, point: u64) -> Result<()> {
@@ -441,6 +525,10 @@ impl HostExecution {
             let view = self.disposable.get_mut(root).expect("owned view exists");
             return view.scopes.revert(&mut view.app, id, point);
         }
+        self.recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .revert(id, u32::try_from(point)?)?;
         self.scopes.revert(&mut self.app, id, point)
     }
 
@@ -476,8 +564,15 @@ impl HostExecution {
             .await
     }
     pub async fn deliver_tx_at(&mut self, id: u64, tx_bytes: &[u8]) -> Result<HostTxResponse> {
-        let cache = self.stateless_cache.clone();
-        Self::execute_delivery(self.app_at_scope(id)?, &cache, tx_bytes).await
+        Self::execute_delivery(self.app_at_scope(id)?, tx_bytes, None).await
+    }
+    pub async fn deliver_owned_at(
+        &mut self,
+        id: u64,
+        tx_bytes: &[u8],
+        verified: std::result::Result<Arc<crate::stateless_cache::VerifiedTxArtifact>, String>,
+    ) -> Result<HostTxResponse> {
+        Self::execute_delivery(self.app_at_scope(id)?, tx_bytes, Some(verified)).await
     }
 
     /// Initializes execution state from content genesis or verifies a checkpoint root.
@@ -491,14 +586,35 @@ impl HostExecution {
         );
 
         match &genesis {
-            AppState::Content(_) => {
-                ensure!(
-                    self.storage.latest_version() == u64::MAX,
-                    "database already initialized"
-                );
-                self.app.init_chain(&genesis).await;
-                self.phase = HostExecutionPhase::InitializedGenesis;
-            }
+            AppState::Content(_) => match self.storage.manifest() {
+                None => {
+                    self.app.init_chain(&genesis).await;
+                    self.phase = HostExecutionPhase::InitializedGenesis;
+                }
+                Some(actual) => {
+                    ensure!(
+                        actual.height == 0,
+                        "content genesis requires height-zero storage"
+                    );
+                    let input = self.storage.latest_snapshot().genesis_input();
+                    let mut rebuilt =
+                        App::new(input, self.app.registry.clone(), self.nullifier_reader()).await?;
+                    rebuilt.init_chain(&genesis).await;
+                    let state = rebuilt.take_commit_state(&self.storage).await?;
+                    let (boundary, changes) = App::native_inputs(&state, 0, [0; 32]).await?;
+                    ensure!(
+                        changes.values().all(|changes| changes.is_empty()),
+                        "genesis cannot consume nullifiers"
+                    );
+                    let expected = self.storage.expected_genesis(state, boundary)?;
+                    ensure!(
+                        expected == actual,
+                        "repeated canonical genesis differs from materialized native state"
+                    );
+                    self.storage.validate()?;
+                    self.phase = HostExecutionPhase::InitializedCheckpointGenesis;
+                }
+            },
             AppState::Checkpoint(expected_root_hash) => {
                 crate::app_version::check_app_version(&self.storage).await?;
                 ensure!(
@@ -548,8 +664,9 @@ impl HostExecution {
         let height = snapshot.get_block_height().await?;
         let root_hash = snapshot.root_hash().await?;
         Ok(HostCommittedState {
-            block_id: shieldd_sdk_sct::permanent_nullifiers::read_boundary(&snapshot)
-                .await?
+            block_id: snapshot
+                .manifest()
+                .context("committed manifest is missing")?
                 .block_id,
             height,
             root_hash: root_hash.0.to_vec(),
@@ -586,11 +703,24 @@ impl HostExecution {
             block.time.unix_timestamp() >= 0,
             "begin_block time must not precede the Unix epoch"
         );
-        let begin_block = cnidarium_component::BlockContext {
+        let begin_block = shieldd_sdk_storage::BlockContext {
             height,
             time: block.time,
         };
         self.scopes.reset()?;
+        // Bounded compliance pruning plus the SCT/epoch/fee/discovery/MMR
+        // constants and their four-observation ordering reservations.
+        let reads = self
+            .app
+            .state
+            .read_view()
+            .context("block observation owner is missing")?
+            .observations;
+        self.finalization_reads = Some(
+            reads
+                .reserve_work(shieldd_sdk_compliance::admission::FINALIZATION_OBSERVATIONS + 256)?,
+        );
+        self.queued_reads.clear();
         let events = self.app.begin_block(&begin_block).await?;
         self.block_id = Some(block.block_id);
         self.phase = HostExecutionPhase::InBlock;
@@ -638,7 +768,7 @@ impl HostExecution {
             self.storage.latest_snapshot(),
             self.app.registry.clone(),
             self.stateless_cache.clone(),
-            self.writer.reader(),
+            self.nullifier_reader(),
             tx_bytes,
         )
         .await
@@ -646,7 +776,7 @@ impl HostExecution {
 
     /// Validate against a caller-selected committed snapshot, never execution's pending delta.
     pub async fn check_tx_at(
-        snapshot: cnidarium::Snapshot,
+        snapshot: shieldd_sdk_storage::Snapshot,
         registry: Arc<Registry>,
         cache: Arc<StatelessCache>,
         reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
@@ -657,6 +787,9 @@ impl HostExecution {
         Ok(
             match app.deliver_tx_bytes(tx_bytes, Some(cache.as_ref())).await {
                 Ok(events) => HostTxResponse::accepted(events, Vec::new()),
+                Err(error) if error.is::<shieldd_sdk_storage::LocalProcessingFailure>() => {
+                    return Err(error)
+                }
                 Err(error) => HostTxResponse::rejected(error),
             },
         )
@@ -669,13 +802,15 @@ impl HostExecution {
             self.phase
         );
 
-        Self::execute_delivery(&mut self.app, &self.stateless_cache, tx_bytes).await
+        Self::execute_delivery(&mut self.app, tx_bytes, None).await
     }
 
     async fn execute_delivery(
         app: &mut App,
-        cache: &StatelessCache,
         tx_bytes: &[u8],
+        verified: Option<
+            std::result::Result<Arc<crate::stateless_cache::VerifiedTxArtifact>, String>,
+        >,
     ) -> Result<HostTxResponse> {
         let tx = match super::delivery::DecodedTransaction::decode(tx_bytes) {
             Ok(tx) => tx,
@@ -686,8 +821,16 @@ impl HostExecution {
             Err(error) => return Ok(HostTxResponse::rejected(error)),
         };
 
-        Ok(match app.deliver_decoded_tx(tx, Some(cache)).await {
+        let execution = match verified {
+            Some(Ok(artifact)) => app.deliver_tx_with_verified_stateless(artifact, None).await,
+            Some(Err(error)) => Err(anyhow::anyhow!(error)),
+            None => app.deliver_decoded_tx(tx, None).await,
+        };
+        Ok(match execution {
             Ok(events) => HostTxResponse::accepted(events, withdrawals),
+            Err(error) if error.is::<shieldd_sdk_storage::LocalProcessingFailure>() => {
+                return Err(error)
+            }
             Err(error) => HostTxResponse::rejected(error),
         })
     }
@@ -727,88 +870,261 @@ impl HostExecution {
             height == self.app.state.get_block_height().await?,
             "end_block height differs from the open block"
         );
+        let _allowance = self
+            .finalization_reads
+            .take()
+            .context("finalization observation allowance is missing")?
+            .activate()?;
+        let prior = std::sync::Arc::get_mut(&mut self.app.state)
+            .context("finalization state is still borrowed")?
+            .fork();
         let events = self.app.end_block(height).await;
+        self.app.state.reserve_ordering_since(&prior)?;
         self.phase = HostExecutionPhase::CommitInterrupted;
         let state = self.app.take_commit_state(&self.storage).await?;
-        let accepted = state.pending_nullifiers().iter().copied().collect();
-        let prepared = self
-            .writer
-            .prepare(
-                state,
-                height,
-                self.block_id.context("active block identity is missing")?,
-                accepted,
-            )
-            .await?;
+        let update = App::prepare_native(
+            &self.storage,
+            state,
+            height,
+            self.block_id.context("active block identity is missing")?,
+        )
+        .await?;
+        let prepared = update.next().clone();
+        self.prepared = Some(update);
         self.phase = HostExecutionPhase::EndedBlock;
         Ok(HostEndBlock { events, prepared })
     }
-
-    pub fn prepared_commit(&self) -> Result<&CommitBoundary> {
-        self.writer.prepared()
+    pub fn prepared_commit(&self) -> Result<&shieldd_sdk_storage::Manifest> {
+        Ok(self
+            .prepared
+            .as_ref()
+            .context("block is not frozen")?
+            .next())
     }
-    pub fn previous_commit(&self) -> Result<&CommitBoundary> {
-        self.writer.committed()
+    pub fn previous_commit(&self) -> Result<shieldd_sdk_storage::Manifest> {
+        self.storage
+            .manifest()
+            .context("previous boundary is missing")
     }
-
-    /// Persist recovery intent before Bankd makes any durable change.
-    pub fn seal_commit(&mut self) -> Result<CommitBoundary> {
+    pub fn preceding_height(&self) -> Result<u64> {
+        self.storage
+            .manifest()
+            .map(|manifest| manifest.height)
+            .context("native preceding boundary is missing")
+    }
+    pub fn storage(&self) -> &Storage {
+        &self.storage
+    }
+    pub async fn start_replay(&mut self, receipt: &shieldd_sdk_storage::Receipt) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::Idle
+                && self.scopes.is_empty()
+                && self.disposable.is_empty(),
+            "recovery requires quiescent native execution"
+        );
+        self.storage
+            .rewind_decided(&receipt.previous, &receipt.next)?;
+        self.prepared = None;
+        self.recorder = None;
+        self.frozen_receipt = None;
+        self.scopes.reset()?;
+        self.app = App::new(
+            self.storage.latest_snapshot(),
+            self.app.registry.clone(),
+            self.nullifier_reader(),
+        )
+        .await?;
+        self.app
+            .set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        Ok(())
+    }
+    pub fn reserve_call(&mut self, scope: u64, method: u32, input: &[u8]) -> Result<bool> {
+        if method == 2 {
+            ensure!(self.recorder.is_none(), "block transcript already exists");
+            self.recorder = Some(Default::default());
+        }
+        let disposable = self.view_owners.contains_key(&scope);
+        if disposable || !matches!(method, 2 | 3 | 5 | 6 | 12 | 22) {
+            return Ok(false);
+        }
+        let queued = if method == 3 {
+            use prost::Message as _;
+            let request = DepositRequest::decode(input)?;
+            request
+                .queued
+                .then(|| queued_deposit_key(request))
+                .transpose()?
+        } else {
+            None
+        };
+        if let Some(key) = queued {
+            let (capacity, credit) = self
+                .queued_reads
+                .get_mut(&key)
+                .and_then(|queue| queue.pop_front())
+                .context("queued deposit has no admission reservation")?;
+            self.active_queued_reads = Some(credit.activate()?);
+            self.recorder
+                .as_mut()
+                .context("block transcript is missing")?
+                .reserve_deferred_call(scope, method, input, capacity)?;
+        } else {
+            self.recorder
+                .as_mut()
+                .context("block transcript is missing")?
+                .reserve_call(scope, method, input)?;
+        }
+        Ok(true)
+    }
+    pub async fn reserve_queued_deposit(
+        &mut self,
+        scope: u64,
+        request: DepositRequest,
+    ) -> Result<()> {
+        self.require_scope(scope)?;
+        let disposable = self.view_owners.contains_key(&scope);
+        let app = self.app_at_scope(scope)?;
+        let chain = app.state.get_chain_id().await?;
+        let parsed = ParsedHostDeposit::parse(chain, request.clone())?;
+        parsed
+            .source
+            .validate_height(app.state.get_block_height().await?)?;
+        if disposable {
+            return Ok(());
+        }
+        use prost::Message as _;
+        // EndBlock supplies a uint32 message index and the queued bit (8 bytes).
+        let capacity = request
+            .encoded_len()
+            .checked_add(8)
+            .context("queued input reservation overflow")?;
+        // Deposit has at most 24 committed reads and 16 ordinary changed keys;
+        // each changed key needs at most four ordering observations. Keep an
+        // additional fixed allowance for sparse policy/idempotency absence.
+        let credit = app
+            .state
+            .read_view()
+            .context("deposit observation owner missing")?
+            .observations
+            .reserve_work(24 + 16 * 4 + 40)?;
+        self.recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .reserve_future_call(capacity)?;
+        self.queued_reads
+            .entry(queued_deposit_key(request)?)
+            .or_default()
+            .push_back((capacity, credit));
+        Ok(())
+    }
+    pub fn finish_call(&mut self, outcome: u32, output: &[u8]) -> Result<()> {
+        let result = self
+            .recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .finish_call(outcome, output);
+        self.active_queued_reads.take();
+        result
+    }
+    pub fn freeze(&mut self) -> Result<(Vec<u8>, [u8; 32])> {
         ensure!(
             self.phase == HostExecutionPhase::EndedBlock,
-            "seal_commit requires a finalized block"
+            "Freeze requires EndBlock"
         );
-        self.phase = HostExecutionPhase::CommitInterrupted;
-        let next = self.writer.seal()?;
-        self.phase = HostExecutionPhase::SealedBlock;
-        Ok(next)
+        let prepared = self.prepared.as_ref().context("frozen state is missing")?;
+        let receipt = self
+            .recorder
+            .take()
+            .context("block transcript is missing")?
+            .finish(
+                prepared
+                    .previous()
+                    .cloned()
+                    .context("block base is missing")?,
+                prepared.next().clone(),
+                prepared.effects().digest()?,
+            )?;
+        let bytes = receipt.encode()?;
+        let digest = shieldd_sdk_storage::Receipt::encoded_digest(&bytes);
+        self.frozen_receipt = Some((bytes.clone(), digest));
+        Ok((bytes, digest))
     }
-
-    /// Commit the exact root already authenticated and committed by Bankd.
-    pub async fn commit(&mut self) -> Result<HostCommit> {
+    /// Transfer the frozen update to the single materializer after SDK durability.
+    pub fn take_decided(
+        &mut self,
+        height: u64,
+        digest: [u8; 32],
+    ) -> Result<shieldd_sdk_storage::Prepared> {
         ensure!(
-            matches!(
-                self.phase,
-                HostExecutionPhase::InitializedGenesis | HostExecutionPhase::SealedBlock
-            ),
-            "commit called while host execution phase is {:?}",
-            self.phase
+            self.phase == HostExecutionPhase::EndedBlock,
+            "materialization requires a frozen block"
         );
-        let genesis = self.phase == HostExecutionPhase::InitializedGenesis;
+        ensure!(
+            height == self.prepared_commit()?.height
+                && self
+                    .frozen_receipt
+                    .as_ref()
+                    .is_some_and(|(_, actual)| *actual == digest),
+            "SDK decision does not match frozen native receipt"
+        );
         self.phase = HostExecutionPhase::CommitInterrupted;
-        #[cfg(test)]
-        if let Some(extracted) = self.app.commit_extracted.take() {
-            extracted.notify_one();
-            std::future::pending::<()>().await;
-        }
-        if genesis {
-            let state = self.app.take_commit_state(&self.storage).await?;
-            let accepted = state.pending_nullifiers().iter().copied().collect();
-            // Genesis is the distinguished height-zero boundary, before a block hash exists.
-            self.writer.prepare(state, 0, [0; 32], accepted).await?;
-            self.writer.seal()?;
-        }
-        let committed = self.writer.commit()?;
-        self.app
-            .reset_committed(&self.storage, self.writer.reader());
+        self.prepared.take().context("prepared update is missing")
+    }
+    pub fn finish_materialization(&mut self) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::CommitInterrupted,
+            "no materialization is pending"
+        );
+        self.storage.check_materialized()?;
+        let reader = self.nullifier_reader();
+        self.app.reset_committed(&self.storage, reader);
+        self.frozen_receipt = None;
         self.block_id = None;
         self.phase = HostExecutionPhase::Idle;
+        Ok(())
+    }
+    /// Genesis has no prior SDK block decision and completes synchronously.
+    pub async fn materialize_genesis(&mut self) -> Result<HostCommit> {
+        if self.phase == HostExecutionPhase::InitializedCheckpointGenesis {
+            self.phase = HostExecutionPhase::Idle;
+            return Ok(HostCommit {
+                root_hash: self
+                    .storage
+                    .manifest()
+                    .context("genesis manifest is missing")?
+                    .digest()?
+                    .to_vec(),
+            });
+        }
+        ensure!(
+            self.phase == HostExecutionPhase::InitializedGenesis,
+            "genesis is not initialized"
+        );
+        let state = self.app.take_commit_state(&self.storage).await?;
+        let prepared = App::prepare_native(&self.storage, state, 0, [0; 32]).await?;
+        self.phase = HostExecutionPhase::CommitInterrupted;
+        let committed = self.storage.materialize(prepared)?;
+        self.finish_materialization()?;
         Ok(HostCommit {
-            root_hash: committed
-                .application_root
-                .context("committed application root is missing")?
-                .to_vec(),
+            root_hash: committed.digest()?.to_vec(),
         })
     }
-
-    pub async fn rollback(&mut self) -> Result<()> {
+    /// Abandon execution only before a durable decision; decided recovery is a
+    /// separate operation and never rewinds an SDK or Comet block.
+    pub async fn discard(&mut self) -> Result<()> {
+        ensure!(
+            self.frozen_receipt.is_none(),
+            "frozen decision requires reconciliation"
+        );
         self.scopes.abort_all(&mut self.app);
         self.disposable.clear();
         self.view_owners.clear();
-        self.writer.recover_current().await?;
+        self.prepared = None;
+        self.recorder = None;
         let mut app = App::new(
             self.storage.latest_snapshot(),
             self.app.registry.clone(),
-            self.writer.reader(),
+            self.nullifier_reader(),
         )
         .await?;
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
@@ -818,26 +1134,31 @@ impl HostExecution {
         Ok(())
     }
 
-    /// Drops application snapshots before shutting down Cnidarium and RocksDB.
+    /// Drops execution snapshots before closing the authenticated and raw stores.
     pub async fn release(self) {
         let Self {
             storage,
             app,
             stateless_cache,
             phase: _,
-            writer,
+            prepared,
+            recorder: _,
+            frozen_receipt: _,
             block_id: _,
             scopes,
             disposable,
             view_owners: _,
             next_scope_id: _,
+            finalization_reads: _,
+            queued_reads: _,
+            active_queued_reads: _,
         } = self;
         drop(scopes);
         drop(disposable);
         drop(app);
-        drop(writer);
+        drop(prepared);
         drop(stateless_cache);
-        storage.release().await;
+        drop(storage);
     }
 }
 
@@ -1435,9 +1756,6 @@ fn hash_bytes(hasher: &mut sha2::Sha256, bytes: &[u8]) {
 mod tests {
     use super::*;
     use crate::genesis::{AppState, Content};
-    use crate::SUBSTORE_PREFIXES;
-    use cnidarium::TempStorage;
-    use cnidarium_component::ActionHandler as _;
     use group::Group;
     use reddsa::{sapling::SpendAuth, SigningKey};
     use shieldd_sdk_asset::BASE_ASSET_DENOM;
@@ -1459,13 +1777,13 @@ mod tests {
         ShieldedHostWithdrawalBody, ShieldedWithdrawalChangeBody, ShieldedWithdrawalFamilyId,
         ShieldedWithdrawalProof,
     };
+    use shieldd_sdk_storage::ActionHandler as _;
+    use shieldd_sdk_storage::TempStorage;
     use shieldd_sdk_tct as tct;
     use std::ops::Deref as _;
 
     async fn temp_storage() -> TempStorage {
-        TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec())
-            .await
-            .expect("temp storage")
+        TempStorage::new().await.expect("temp storage")
     }
 
     fn host_genesis() -> AppState {
@@ -1495,6 +1813,7 @@ mod tests {
 
     fn deposit_request(msg_index: u32) -> DepositRequest {
         DepositRequest {
+            queued: false,
             denom: BASE_ASSET_DENOM.to_string(),
             amount: "100".to_owned(),
             recipient: test_keys::ADDRESS_0.to_string(),
@@ -1510,6 +1829,7 @@ mod tests {
 
     fn regulated_deposit_request(msg_index: u32) -> DepositRequest {
         DepositRequest {
+            queued: false,
             denom: regulated_test_denom().to_string(),
             ..deposit_request(msg_index)
         }
@@ -1619,14 +1939,14 @@ mod tests {
 
     #[tokio::test]
     async fn rollback_does_not_import_another_registry() -> Result<()> {
-        use cnidarium::{StateDelta, StateRead, StateWrite};
+        use shieldd_sdk_storage::{StateDelta, StateRead, StateWrite};
         let storage = temp_storage().await;
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         let mut changed = StateDelta::new(storage.latest_snapshot());
         changed.put_raw(crate::registry_binding::KEY.into(), vec![0; 32]);
         storage.commit(changed).await?;
-        assert!(host.rollback().await.is_err());
+        assert!(host.discard().await.is_err());
         assert!(host
             .app
             .state
@@ -1680,15 +2000,15 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         let stored_version = storage.latest_version();
         let mut block = host_block(1);
         block.time = Time::from_unix_timestamp(-1, 0)?;
-        assert!(host.begin_block(block).await.is_err());
+        assert!(host.begin_block_for_testing(block).await.is_err());
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(host.app.state.get_block_height().await?, 0);
         assert_eq!(storage.latest_version(), stored_version);
-        host.begin_block(host_block(1)).await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         assert_eq!(host.phase(), HostExecutionPhase::InBlock);
         Ok(())
     }
@@ -1700,11 +2020,11 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         assert!(admission::current(&*host.app.state).await?.is_none());
         let mut first = host_block(1);
         first.time = Time::from_unix_timestamp(1000, 0)?;
-        host.begin_block(first).await?;
+        host.begin_block_for_testing(first).await?;
         assert_eq!(
             admission::current(&*host.app.state)
                 .await?
@@ -1712,26 +2032,26 @@ mod tests {
                 .observed_time_seconds,
             1000
         );
-        host.rollback().await?;
+        host.discard().await?;
         assert!(admission::current(&*host.app.state).await?.is_none());
         let mut first = host_block(1);
         first.time = Time::from_unix_timestamp(2000, 0)?;
-        host.begin_block(first).await?;
+        host.begin_block_for_testing(first).await?;
         host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         let version = storage.latest_version();
         let mut next = host_block(2);
         next.time = Time::from_unix_timestamp(1999, 0)?;
         assert!(host
-            .begin_block(next)
+            .begin_block_for_testing(next)
             .await
             .unwrap_err()
             .to_string()
             .contains("parent block time"));
         assert!(
             host.app
-                .begin_block(&cnidarium_component::BlockContext {
+                .begin_block(&shieldd_sdk_storage::BlockContext {
                     height: 2,
                     time: Time::from_unix_timestamp(1999, 0)?,
                 })
@@ -1744,20 +2064,20 @@ mod tests {
         assert_eq!(storage.latest_version(), version);
         let mut next = host_block(2);
         next.time = Time::from_unix_timestamp(2000, 0)?;
-        host.begin_block(next).await?;
+        host.begin_block_for_testing(next).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn begin_block_rejects_incompatible_state_without_mutation() -> Result<()> {
-        use cnidarium::StateWrite;
         use shieldd_sdk_proto::StateWriteProto;
+        use shieldd_sdk_storage::StateWrite;
         for version in [None, Some(crate::APP_VERSION - 1)] {
             let storage = temp_storage().await;
             let mut host =
                 HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
             host.init_genesis(host_genesis()).await?;
-            host.commit().await?;
+            host.commit_for_testing().await?;
             drop(host);
             let mut state = StateDelta::new(storage.latest_snapshot());
             let key = crate::app::state_key::app_version::safeguard()
@@ -1786,8 +2106,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         let owner = host.open_scope(0)?;
         let canonical = host.deposit(deposit_request(0)).await?;
         assert!(!canonical.events.is_empty());
@@ -1795,10 +2115,10 @@ mod tests {
         host.close_scope(owner, true)?;
 
         let root = host
-            .writer
-            .committed()?
-            .application_root
-            .context("committed root")?;
+            .storage
+            .manifest()
+            .context("committed manifest")?
+            .digest()?;
         let simulation = host
             .open_disposable_scope(1, root, host_block(1).time)
             .await?;
@@ -1823,8 +2143,8 @@ mod tests {
         assert!(!host.deposit(deposit_request(1)).await?.events.is_empty());
         host.close_scope(owner, false)?;
         host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         Ok(())
     }
 
@@ -1834,8 +2154,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
 
         let outer = host.open_scope(0)?;
         host.deposit(deposit_request(0)).await?;
@@ -1861,8 +2181,8 @@ mod tests {
             host.close_scope(scope, true)?;
         }
         host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         Ok(())
     }
 
@@ -1872,25 +2192,25 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         let root = host
-            .writer
-            .committed()?
-            .application_root
-            .context("committed root")?;
+            .storage
+            .manifest()
+            .context("committed manifest")?
+            .digest()?;
         let simulation = host
             .open_disposable_scope(1, root, host_block(1).time)
             .await?;
         let simulated_child = host.open_scope(simulation)?;
         host.deposit_at(simulated_child, deposit_request(0)).await?;
-        host.begin_block(host_block(1)).await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         let canonical = host.open_scope(0)?;
         host.deposit_at(canonical, deposit_request(0)).await?;
         host.prepare_scope(canonical)?;
         host.close_scope(canonical, true)?;
         host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(host.committed_state().await?.height, 1);
         host.close_scope(simulated_child, false)?;
@@ -1906,8 +2226,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         let owner = host.open_scope(0)?;
         let point = host.snapshot_scope(owner)?;
         host.deposit(deposit_request(0)).await?;
@@ -1922,10 +2242,10 @@ mod tests {
         assert!(host.open_scope(owner + 1).is_err());
         host.close_scope(owner, false)?;
         assert!(host.require_scope(owner).is_err());
-        host.rollback().await?;
-        host.begin_block(host_block(1)).await?;
+        host.discard().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         assert_ne!(host.open_scope(0)?, owner);
-        host.rollback().await?;
+        host.discard().await?;
         Ok(())
     }
 
@@ -1935,8 +2255,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
 
         let mut request = deposit_request(0);
         request.source = Some(host_source_at(1, 0));
@@ -1957,8 +2277,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         use shieldd_sdk_compliance::admission::state as admission;
         let genesis_pair = admission::current(&*host.app.state)
             .await?
@@ -2050,8 +2370,8 @@ mod tests {
         .await
         .is_err());
         host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         let checkpoint = host.export_genesis().await?;
         let saved_pair = admission::current(&storage.latest_snapshot())
             .await?
@@ -2066,22 +2386,22 @@ mod tests {
         );
         assert_eq!(admission::epoch(&*host.app.state).await?, 1);
         // Abandon a real freeze, then replay it from the same parent.
-        host.begin_block(host_block(2)).await?;
+        host.begin_block_for_testing(host_block(2)).await?;
         let request = compliance_request(host_source_at(2, 0), UserAssetStatusAction::Freeze);
         host.apply_compliance_action(request.clone()).await?;
         assert_eq!(admission::epoch(&*host.app.state).await?, 2);
-        host.rollback().await?;
+        host.discard().await?;
         assert_eq!(admission::epoch(&*host.app.state).await?, 1);
         assert_eq!(
             admission::current(&*host.app.state).await?,
             Some(saved_pair)
         );
-        host.begin_block(host_block(2)).await?;
+        host.begin_block_for_testing(host_block(2)).await?;
         host.apply_compliance_action(request).await?;
         assert_eq!(admission::epoch(&*host.app.state).await?, 2);
         host.end_block(2).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         Ok(())
     }
 
@@ -2092,8 +2412,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
 
         let address = test_keys::ADDRESS_0.deref().clone();
         let denom = regulated_test_denom();
@@ -2128,8 +2448,8 @@ mod tests {
         state_tx.write_sct_cache(witness_tree);
         host.app.apply(state_tx);
         host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         let state_commitment_proof = host
             .app
             .state
@@ -2137,7 +2457,7 @@ mod tests {
             .await
             .witness(note_commitment)
             .context("witnessing the seized note")?;
-        host.begin_block(host_block(2)).await?;
+        host.begin_block_for_testing(host_block(2)).await?;
         let mut state_tx = StateDelta::new(host.app.state.clone());
         let leaf = state_tx
             .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 2)
@@ -2270,133 +2590,19 @@ mod tests {
         );
 
         host.end_block(2).await?;
-        host.seal_commit()?;
-        host.commit().await?;
-        let boundary =
-            shieldd_sdk_sct::permanent_nullifiers::read_boundary(&storage.latest_snapshot())
-                .await?;
+
+        host.commit_for_testing().await?;
+        let boundary = storage.manifest().context("committed fixture manifest")?;
         let status = host.nullifier_reader().status(nullifier, &boundary)?;
-        status.verify(&boundary)?;
+        status.verify(boundary.digest()?)?;
         assert!(status.spent);
         drop(host);
         let reopened =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         let status = reopened.nullifier_reader().status(nullifier, &boundary)?;
-        status.verify(&boundary)?;
+        status.verify(boundary.digest()?)?;
         assert!(status.spent);
 
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn cancelled_block_commit_requires_rollback_and_replay() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        let committed = host.committed_state().await?;
-        host.begin_block(host_block(1)).await?;
-        let request = deposit_request(0);
-        let parsed =
-            ParsedHostDeposit::parse(host.app.state.get_chain_id().await?, request.clone())?;
-        host.deposit(request.clone()).await?;
-        host.end_block(1).await?;
-        host.seal_commit()?;
-        cancel_extracted_commit(&mut host).await?;
-
-        assert!(
-            host.commit().await.is_err(),
-            "cancelled commit must not commit an empty replacement delta"
-        );
-        assert_eq!(host.committed_state().await?, committed);
-        assert!(
-            load_host_action_receipt(&storage.latest_snapshot(), &parsed.source_key())
-                .await?
-                .is_none()
-        );
-        host.rollback().await?;
-        host.begin_block(host_block(1)).await?;
-        let replay = host.deposit(request.clone()).await?;
-        assert!(!replay.events.is_empty());
-        assert!(host.deposit(request).await?.events.is_empty());
-        host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
-        drop(host);
-        let host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        assert_eq!(host.committed_state().await?.height, 1);
-        let receipt = load_host_action_receipt(&storage.latest_snapshot(), &parsed.source_key())
-            .await?
-            .expect("replayed deposit must be durable");
-        assert_eq!(receipt.request_digest, parsed.deposit_id);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn failed_storage_commit_requires_rollback_before_replay() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
-        host.end_block(1).await?;
-        host.seal_commit()?;
-        storage
-            .commit(StateDelta::new(storage.latest_snapshot()))
-            .await?;
-        let committed = host.committed_state().await?;
-        let error = host
-            .commit()
-            .await
-            .expect_err("stale application snapshot must fail");
-        assert!(
-            format!("{error:#}").contains("application changed after commit preparation"),
-            "{error:#}"
-        );
-        assert_eq!(host.phase(), HostExecutionPhase::CommitInterrupted);
-        assert!(host.commit().await.is_err());
-        assert_eq!(host.committed_state().await?, committed);
-        host.rollback().await?;
-        host.begin_block(host_block(1)).await?;
-        host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
-        assert_eq!(host.committed_state().await?.height, 1);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn cancelled_genesis_commit_requires_rollback_and_reinitialization() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        cancel_extracted_commit(&mut host).await?;
-        assert!(
-            host.commit().await.is_err(),
-            "cancelled genesis must not commit empty state"
-        );
-        assert_eq!(storage.latest_version(), u64::MAX);
-        host.rollback().await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        assert_eq!(host.committed_state().await?.height, 0);
-        assert!(App::is_ready(storage.latest_snapshot()).await);
-        Ok(())
-    }
-
-    async fn cancel_extracted_commit(host: &mut HostExecution) -> Result<()> {
-        let extracted = Arc::new(tokio::sync::Notify::new());
-        host.app.commit_extracted = Some(extracted.clone());
-        let mut commit = Box::pin(host.commit());
-        tokio::select! {
-            result = &mut commit => panic!("commit completed before cancellation checkpoint: {result:?}"),
-            result = tokio::time::timeout(Duration::from_secs(5), extracted.notified()) => result?,
-        }
-        drop(commit);
         Ok(())
     }
 
@@ -2406,15 +2612,15 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         let error = host
-            .begin_block(host_block(1))
+            .begin_block_for_testing(host_block(1))
             .await
             .expect_err("virgin storage must reject begin block");
         assert!(error.to_string().contains("initialized"), "{error:#}");
         assert_eq!(host.phase, HostExecutionPhase::Idle);
         assert_eq!(storage.latest_version(), u64::MAX);
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         Ok(())
     }
 
@@ -2424,24 +2630,27 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         for height in [1, 2] {
-            host.begin_block(host_block(height)).await?;
+            host.begin_block_for_testing(host_block(height)).await?;
             host.end_block(height).await?;
-            host.seal_commit()?;
-            host.commit().await?;
+
+            host.commit_for_testing().await?;
         }
         let committed = host.committed_state().await?;
         for rejected in [2, 1] {
-            assert!(host.begin_block(host_block(rejected)).await.is_err());
+            assert!(host
+                .begin_block_for_testing(host_block(rejected))
+                .await
+                .is_err());
             assert_eq!(host.phase(), HostExecutionPhase::Idle);
             assert_eq!(host.app.state.get_block_height().await?, 2);
             assert_eq!(host.committed_state().await?, committed);
         }
-        host.begin_block(host_block(3)).await?;
+        host.begin_block_for_testing(host_block(3)).await?;
         host.end_block(3).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         assert_eq!(host.committed_state().await?.height, 3);
         Ok(())
     }
@@ -2451,16 +2660,19 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         for height in 1..=committed_height {
-            host.begin_block(host_block(height)).await?;
+            host.begin_block_for_testing(host_block(height)).await?;
             host.end_block(height).await?;
-            host.seal_commit()?;
-            host.commit().await?;
+
+            host.commit_for_testing().await?;
         }
         let committed = host.committed_state().await?;
         let epoch = host.app.state.get_current_epoch().await?;
-        assert!(host.begin_block(host_block(supplied_height)).await.is_err());
+        assert!(host
+            .begin_block_for_testing(host_block(supplied_height))
+            .await
+            .is_err());
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(host.app.state.get_block_height().await?, committed.height);
         assert_eq!(host.app.state.get_current_epoch().await?, epoch);
@@ -2472,15 +2684,15 @@ mod tests {
             .is_err());
         assert_eq!(host.committed_state().await?, committed);
         let next = committed_height + 1;
-        host.begin_block(host_block(next)).await?;
-        host.rollback().await?;
+        host.begin_block_for_testing(host_block(next)).await?;
+        host.discard().await?;
         drop(host);
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.begin_block(host_block(next)).await?;
+        host.begin_block_for_testing(host_block(next)).await?;
         host.end_block(next).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         assert_eq!(host.committed_state().await?.height, next as u64);
         Ok(())
     }
@@ -2501,13 +2713,13 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         assert!(host.end_block(2).await.is_err());
         assert_eq!(host.phase(), HostExecutionPhase::InBlock);
         host.end_block(1).await?;
-        host.seal_commit()?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         Ok(())
     }
 
@@ -2518,13 +2730,13 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         assert!(host.committed_state().await.is_err());
-        assert!(host.commit().await.is_err());
+        assert!(host.commit_for_testing().await.is_err());
 
         host.init_genesis(host_genesis()).await?;
         assert_eq!(host.phase(), HostExecutionPhase::InitializedGenesis);
         assert!(host.app.state.host_withdrawals_enabled().await?);
         assert!(host.deposit(deposit_request(0)).await.is_err());
-        let genesis_commit = host.commit().await?;
+        let genesis_commit = host.commit_for_testing().await?;
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(genesis_commit.root_hash.len(), 32);
         assert!(App::is_ready(storage.latest_snapshot()).await);
@@ -2540,7 +2752,7 @@ mod tests {
 
         let block = host_block(1);
         let time = block.time;
-        host.begin_block(block).await?;
+        host.begin_block_for_testing(block).await?;
         assert_eq!(host.phase(), HostExecutionPhase::InBlock);
         assert_eq!(host.app.state.get_block_height().await?, 1);
         assert_eq!(host.app.state.get_block_timestamp(1).await?, time);
@@ -2550,13 +2762,9 @@ mod tests {
 
         host.end_block(1).await?;
         assert_eq!(host.phase(), HostExecutionPhase::EndedBlock);
-        assert!(
-            host.commit().await.is_err(),
-            "commit requires durable recovery intent"
-        );
-        host.seal_commit()?;
-        assert_eq!(host.phase(), HostExecutionPhase::SealedBlock);
-        let block_commit = host.commit().await?;
+
+        assert_eq!(host.phase(), HostExecutionPhase::EndedBlock);
+        let block_commit = host.commit_for_testing().await?;
         assert_eq!(block_commit.root_hash.len(), 32);
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(
@@ -2577,7 +2785,7 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
 
         let response = host.check_tx(b"not a shieldd transaction").await?;
 
@@ -2610,8 +2818,8 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         host.deposit(deposit_request(0)).await?;
 
         let withdrawals =
@@ -2637,8 +2845,8 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         host.deposit(deposit_request(0)).await?;
 
         let transfer = host_withdrawal_action();
@@ -2679,8 +2887,8 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         host.deposit(deposit_request(0)).await?;
 
         host_withdrawal_action()
@@ -2751,4 +2959,16 @@ mod tests {
 
         assert!(HostSource::try_from(source).is_err());
     }
+}
+
+fn queued_deposit_key(mut request: DepositRequest) -> Result<[u8; 32]> {
+    use prost::Message as _;
+    use sha2::{Digest as _, Sha256};
+    request.queued = false;
+    request
+        .source
+        .as_mut()
+        .context("queued deposit source missing")?
+        .msg_index = 0;
+    Ok(Sha256::digest(request.encode_to_vec()).into())
 }

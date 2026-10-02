@@ -85,10 +85,7 @@ pub trait SyncProvider: Send + Sync {
 /// Existing host trust boundary, independent of the filtering provider.
 #[async_trait]
 pub trait NullifierAnchors: Send + Sync {
-    async fn nullifier_boundary(
-        &self,
-        anchor_height: u64,
-    ) -> Result<shieldd_sdk_sct::permanent_nullifiers::Boundary>;
+    async fn nullifier_boundary(&self, anchor_height: u64) -> Result<[u8; 32]>;
 }
 
 pub(crate) async fn full(
@@ -310,19 +307,17 @@ pub(crate) async fn spends(
                     "unexpected, duplicate or mistimed spend"
                 );
                 let boundary = anchors.nullifier_boundary(page.anchor_height).await?;
-                ensure!(
-                    boundary.height == Some(page.anchor_height),
-                    "host nullifier boundary height mismatch"
-                );
                 let status: shieldd_sdk_sct::permanent_nullifiers::Status = spend
                     .status
                     .context("missing membership proof")?
                     .try_into()?;
                 ensure!(
-                    status.nullifier == nullifier && status.spent,
+                    status.nullifier == nullifier
+                        && status.spent
+                        && status.proof.manifest.height == page.anchor_height,
                     "spend status does not authenticate requested nullifier"
                 );
-                status.verify(&boundary)?;
+                status.verify(boundary)?;
             }
             if page.next_cursor.is_empty() {
                 break;
@@ -400,10 +395,7 @@ mod tests {
     struct Anchors;
     #[async_trait]
     impl NullifierAnchors for Anchors {
-        async fn nullifier_boundary(
-            &self,
-            _: u64,
-        ) -> Result<shieldd_sdk_sct::permanent_nullifiers::Boundary> {
+        async fn nullifier_boundary(&self, _: u64) -> Result<[u8; 32]> {
             anyhow::bail!("unexpected positive spend")
         }
     }

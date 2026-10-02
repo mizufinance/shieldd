@@ -1,5 +1,4 @@
 use anyhow::Error;
-use cnidarium::StateRead;
 use rand_core::OsRng;
 use shieldd_sdk_compact_block::{component::StateReadExt as _, CompactBlock, StatePayload};
 use shieldd_sdk_compliance::{
@@ -11,6 +10,7 @@ use shieldd_sdk_sct::{
     Nullifier,
 };
 use shieldd_sdk_shielded_pool::{component::StateReadExt as _, note, Note};
+use shieldd_sdk_storage::StateRead;
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_transaction::{
     memo::MemoPlaintext, plan::MemoPlan, AuthorizationData, Transaction, TransactionPlan,
@@ -50,7 +50,7 @@ impl MockClient {
 
     pub async fn with_sync_to_storage(
         mut self,
-        storage: &cnidarium::Storage,
+        storage: &shieldd_sdk_storage::Storage,
     ) -> anyhow::Result<Self> {
         let latest = storage.latest_snapshot();
         self.sync_to_latest(latest).await?;

@@ -2,7 +2,7 @@ use crate::{
     ordered_effects, Effects, Forest, ForestConfig, ForestUpdate, Manifest, Participant,
     ParticipantChange, ParticipantId, ParticipantKind, Snapshot, StateDelta,
 };
-use anyhow::{ensure, Result};
+use anyhow::{ensure, Context, Result};
 use parking_lot::RwLock;
 use std::{
     collections::BTreeMap,
@@ -21,10 +21,21 @@ pub struct BlockBoundary {
 
 /// An owned frozen update. Dropping it discards preparation without persistence.
 pub struct Prepared {
-    pub previous: Option<Manifest>,
-    pub next: Manifest,
-    pub effects: Effects,
+    previous: Option<Manifest>,
+    next: Manifest,
+    effects: Effects,
     forest: ForestUpdate,
+}
+impl Prepared {
+    pub fn previous(&self) -> Option<&Manifest> {
+        self.previous.as_ref()
+    }
+    pub fn next(&self) -> &Manifest {
+        &self.next
+    }
+    pub fn effects(&self) -> &Effects {
+        &self.effects
+    }
 }
 struct Shared {
     path: PathBuf,
@@ -42,6 +53,9 @@ impl Storage {
                 ensure!(matches!(entry.file_name().to_str(),Some("values"|"forest"|"manifest.pb")),"unrecognized storage layout; recreate prototype state or restore a matched checkpoint");
             }
         }
+        #[cfg(target_os = "linux")]
+        io_uring::IoUring::new(2)
+            .context("NOMT requires usable io_uring; enable it before opening Shieldd storage")?;
         std::fs::create_dir_all(path)?;
         let raw = crate::RawStore::open(&path.join("values"))?;
         let latest = raw.latest_snapshot()?;
@@ -81,6 +95,41 @@ impl Storage {
         }
         Ok(())
     }
+    /// Recompute the complete canonical genesis manifest without mutating
+    /// stores. Repeated InitChain must derive the same root from its inputs.
+    pub fn expected_genesis(
+        &self,
+        state: StateDelta<Snapshot>,
+        boundary: BlockBoundary,
+    ) -> Result<Manifest> {
+        let (view, cache) = state.flatten();
+        ensure!(
+            view.manifest().is_none() && boundary.height == 0 && boundary.block_id == [0; 32],
+            "invalid genesis recomputation input"
+        );
+        let mut effects = Effects::from_cache(&cache);
+        crate::archive::stage(&view, boundary.height, &mut effects)?;
+        let effects = ordered_effects(&view, effects)?;
+        let changes = effects.application_changes()?;
+        let values = changes
+            .iter()
+            .filter_map(|change| change.value.as_ref().map(|value| (change.key, value)));
+        use nomt_core::hasher::ValueHasher;
+        let root = nomt_core::update::build_trie::<nomt_core::hasher::Sha2Hasher>(
+            0,
+            values.map(|(key, value)| (key, nomt_core::hasher::Sha2Hasher::hash_value(value))),
+            |_| {},
+        );
+        let mut manifest = empty_manifest(boundary.chain_id, boundary.protocol);
+        manifest.participants[0].root = root;
+        manifest.participants[0].count = changes
+            .iter()
+            .filter(|change| change.value.is_some())
+            .count()
+            .try_into()?;
+        manifest.validate()?;
+        Ok(manifest)
+    }
     /// Freeze execution reads, neighboring ordering changes and witnessed NOMT
     /// updates before the SDK may decide this block.
     pub fn prepare(
@@ -116,7 +165,9 @@ impl Storage {
                     == Some(height)),
             "nonconsecutive storage decision"
         );
-        let effects = ordered_effects(&view, Effects::from_cache(&cache))?;
+        let mut effects = Effects::from_cache(&cache);
+        crate::archive::stage(&view, height, &mut effects)?;
+        let effects = ordered_effects(&view, effects)?;
         let application = effects.application_changes()?;
         ensure!(
             !changes.contains_key(&ParticipantId::APPLICATION),
@@ -207,7 +258,7 @@ impl Storage {
                 .map(Manifest::digest)
                 .transpose()?
                 .unwrap_or([0; 32]),
-            participants: update.next.clone(),
+            participants: update.next().to_vec(),
         };
         next.validate()?;
         Ok(Prepared {
@@ -225,7 +276,7 @@ impl Storage {
             self.manifest() == prepared.previous,
             "materialization previous boundary mismatch"
         );
-        let forest = self.0.forest.write();
+        let mut forest = self.0.forest.write();
         if let Some(previous) = &prepared.previous {
             forest.check_roots(&previous.participants)?;
         }
@@ -237,6 +288,16 @@ impl Storage {
             "raw materialized manifest mismatch"
         );
         *self.0.latest.write() = latest;
+        // Local deletion failure must never alter the decided block. The next
+        // matched materialization retries it; active participants are protected.
+        if let Err(error) = self
+            .0
+            .raw
+            .retired_volumes()
+            .and_then(|retired| forest.collect_retired(&prepared.next, &retired))
+        {
+            tracing::warn!(%error, "retired volume cleanup deferred");
+        }
         Ok(prepared.next)
     }
     pub fn rewind_decided(&self, previous: &Manifest, next: &Manifest) -> Result<()> {
@@ -256,8 +317,10 @@ impl Storage {
             .manifest()
             .ok_or_else(|| anyhow::anyhow!("validation requires a materialized boundary"))?;
         let forest = self.0.forest.write();
-        forest.check_roots(&manifest.participants)?;
-        forest.validate_application_values(&manifest.participants[0], snapshot.canonical_entries())
+        forest.validate_participants(&manifest.participants)?;
+        forest
+            .validate_application_values(&manifest.participants[0], snapshot.canonical_entries())?;
+        snapshot.validate_archive()
     }
     /// Matched checkpoint callers hold the publication boundary and join their
     /// materializer before entering this method.
@@ -272,9 +335,6 @@ impl Storage {
         );
         let forest = self.0.forest.write();
         forest.check_roots(&expected.participants)?;
-        let snapshot = self.latest_snapshot();
-        forest
-            .validate_application_values(&expected.participants[0], snapshot.canonical_entries())?;
         std::fs::create_dir_all(destination)?;
         self.0.raw.checkpoint(&destination.join("values"))?;
         forest.checkpoint(&destination.join("forest"), &expected.participants)?;
@@ -287,6 +347,170 @@ impl Storage {
         file.write_all(&expected.encode()?)?;
         file.sync_all()?;
         std::fs::File::open(destination)?.sync_all()?;
+        Ok(())
+    }
+    /// Complete validation of an immutable capture. Run outside the live
+    /// publication guard; roots/counts come from the SDK-anchored manifest.
+    pub fn validate_checkpoint(
+        source: &Path,
+        config: ForestConfig,
+        anchor: [u8; 32],
+    ) -> Result<Manifest> {
+        let descriptor = Manifest::decode(&std::fs::read(source.join("manifest.pb"))?)?;
+        ensure!(
+            descriptor.digest()? == anchor,
+            "checkpoint differs from the trusted SDK anchor"
+        );
+        let expected: std::collections::BTreeSet<_> = descriptor
+            .participants
+            .iter()
+            .map(|p| {
+                ParticipantId {
+                    kind: p.kind,
+                    generation: p.generation,
+                }
+                .name()
+            })
+            .collect();
+        let actual: std::collections::BTreeSet<_> = std::fs::read_dir(source.join("forest"))?
+            .map(|entry| -> Result<String> {
+                let entry = entry?;
+                ensure!(
+                    entry.file_type()?.is_dir(),
+                    "checkpoint forest contains unexpected files or links"
+                );
+                entry
+                    .file_name()
+                    .into_string()
+                    .map_err(|_| anyhow::anyhow!("invalid checkpoint participant name"))
+            })
+            .collect::<Result<_>>()?;
+        ensure!(
+            actual == expected,
+            "checkpoint forest participant inventory differs from the SDK-anchored manifest"
+        );
+        ensure!(
+            source.join("values/CURRENT").is_file(),
+            "checkpoint raw database is missing"
+        );
+        for participant in &descriptor.participants {
+            let id = ParticipantId {
+                kind: participant.kind,
+                generation: participant.generation,
+            };
+            let path = source.join("forest").join(id.name());
+            for file in ["meta", "ln", "bbn", "ht"] {
+                ensure!(
+                    path.join(file).is_file(),
+                    "checkpoint participant file is missing"
+                );
+            }
+        }
+        let storage = Self::open(source, config)?;
+        ensure!(
+            storage.manifest().as_ref() == Some(&descriptor),
+            "checkpoint raw boundary differs from its descriptor"
+        );
+        storage.validate()?;
+        Ok(descriptor)
+    }
+    pub fn restore(
+        source: &Path,
+        destination: &Path,
+        config: ForestConfig,
+        anchor: [u8; 32],
+    ) -> Result<Self> {
+        Self::validate_checkpoint(source, config.clone(), anchor)?;
+        ensure!(
+            destination
+                .symlink_metadata()
+                .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound),
+            "restore destination already exists or is inaccessible"
+        );
+        let parent = destination
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        ensure!(parent.is_dir(), "restore parent directory is missing");
+        let required = crate::forest::file_bytes(source)?
+            .checked_add(64 * 1024 * 1024)
+            .context("restore temporary-space overflow")?;
+        ensure!(
+            crate::capacity::free_bytes(parent)? >= required,
+            "insufficient temporary space for a matched restore ({required} bytes required)"
+        );
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let temporary = parent.join(format!(".shieldd-restore-{}-{nonce}", std::process::id()));
+        ensure!(!temporary.exists(), "private restore path already exists");
+        let result = (|| -> Result<()> {
+            crate::forest::copy_files(source, &temporary)?;
+            std::fs::remove_file(temporary.join("manifest.pb"))?;
+            std::fs::File::open(&temporary)?.sync_all()?;
+            let storage = Self::open(&temporary, config.clone())?;
+            storage.0.raw.rebuild_archive_indexes()?;
+            *storage.0.latest.write() = storage.0.raw.latest_snapshot()?;
+            storage.validate()?;
+            ensure!(
+                storage
+                    .manifest()
+                    .context("restored manifest is missing")?
+                    .digest()?
+                    == anchor,
+                "restored boundary changed"
+            );
+            drop(storage);
+            std::fs::rename(&temporary, destination)?;
+            std::fs::File::open(parent)?.sync_all()?;
+            Ok(())
+        })();
+        if result.is_err() && temporary.exists() {
+            let _ = std::fs::remove_dir_all(&temporary);
+        }
+        result?;
+        Self::open(destination, config)
+    }
+
+    /// Activate a fully validated, closed checkpoint on the same filesystem.
+    /// The live pathname always names either the old or the replacement store;
+    /// a crash cannot leave the missing-directory gap of two ordinary renames.
+    pub fn activate_checkpoint(prepared: &Path, live: &Path) -> Result<()> {
+        use std::os::unix::ffi::OsStrExt;
+        ensure!(
+            prepared.parent() == live.parent(),
+            "checkpoint replacement must share its parent filesystem"
+        );
+        ensure!(
+            prepared.is_dir() && live.is_dir(),
+            "checkpoint replacement directories are missing"
+        );
+        let from = std::ffi::CString::new(prepared.as_os_str().as_bytes())?;
+        let to = std::ffi::CString::new(live.as_os_str().as_bytes())?;
+        // SAFETY: both paths are valid nul-terminated strings. Atomic exchange
+        // is required; unsupported filesystems fail without moving either path.
+        #[cfg(target_os = "macos")]
+        let result = unsafe { libc::renamex_np(from.as_ptr(), to.as_ptr(), libc::RENAME_SWAP) };
+        #[cfg(target_os = "linux")]
+        let result = unsafe {
+            libc::syscall(
+                libc::SYS_renameat2,
+                libc::AT_FDCWD,
+                from.as_ptr(),
+                libc::AT_FDCWD,
+                to.as_ptr(),
+                libc::RENAME_EXCHANGE,
+            )
+        };
+        #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+        anyhow::bail!("atomic checkpoint activation is unsupported on this platform");
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        ensure!(
+            result == 0,
+            "atomic checkpoint activation failed: {}",
+            std::io::Error::last_os_error()
+        );
+        std::fs::File::open(live.parent().context("checkpoint parent is missing")?)?.sync_all()?;
         Ok(())
     }
 }
@@ -315,6 +539,23 @@ fn empty_manifest(chain_id: String, protocol: [u8; 32]) -> Manifest {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn checkpoint_activation_exchanges_directories_without_a_missing_live_path() {
+        let parent = tempfile::tempdir().unwrap();
+        let live = parent.path().join("live");
+        let prepared = parent.path().join("prepared");
+        std::fs::create_dir(&live).unwrap();
+        std::fs::create_dir(&prepared).unwrap();
+        std::fs::write(live.join("boundary"), b"old").unwrap();
+        std::fs::write(prepared.join("boundary"), b"matched").unwrap();
+        super::Storage::activate_checkpoint(&prepared, &live).unwrap();
+        assert_eq!(std::fs::read(live.join("boundary")).unwrap(), b"matched");
+        assert_eq!(std::fs::read(prepared.join("boundary")).unwrap(), b"old");
+        assert!(
+            super::Storage::activate_checkpoint(&parent.path().join("missing"), &live).is_err()
+        );
+        assert_eq!(std::fs::read(live.join("boundary")).unwrap(), b"matched");
+    }
     use super::*;
     use crate::{StateRead, StateWrite};
     fn config() -> ForestConfig {
@@ -342,6 +583,116 @@ mod tests {
         let mut state = StateDelta::new(storage.latest_snapshot());
         state.put_raw("key".into(), value.to_vec());
         state
+    }
+    #[tokio::test]
+    async fn retained_blocks_use_one_mmr_and_detect_aborted_reads_missing_values_and_extras() {
+        use futures::StreamExt;
+        let temporary = tempfile::tempdir().unwrap();
+        let storage = Storage::open(&temporary.path().join("state"), config()).unwrap();
+        let mut stable_count = None;
+        for height in 0..6 {
+            let mut delta = state(&storage, b"ordinary-state");
+            for index in 0..19 {
+                delta.nonverifiable_put_raw(
+                    format!("compactblock/payload/{height:020}/{index:020}").into_bytes(),
+                    vec![height as u8, index as u8],
+                );
+            }
+            let prepared = storage
+                .prepare(delta, boundary(height, height as i64), BTreeMap::new())
+                .unwrap();
+            let manifest = storage.materialize(prepared).unwrap();
+            assert_eq!(
+                *stable_count.get_or_insert(manifest.participants[0].count),
+                manifest.participants[0].count,
+                "archive records must not each grow the application NOMT"
+            );
+        }
+        storage.validate().unwrap();
+        let view = storage.latest_snapshot();
+        let prefix = format!("compactblock/payload/{:020}/", 2).into_bytes();
+        let records: Vec<_> = view
+            .nonverifiable_range_raw(
+                Some(&prefix),
+                format!("{:020}", 5).into_bytes()..format!("{:020}", 13).into_bytes(),
+            )
+            .unwrap()
+            .collect()
+            .await;
+        assert_eq!(records.len(), 8);
+        for (offset, record) in records.into_iter().enumerate() {
+            assert_eq!(record.unwrap().1, vec![2, (5 + offset) as u8]);
+        }
+        storage
+            .forest()
+            .read()
+            .authenticate_reads(&storage.manifest().unwrap(), view.observations())
+            .unwrap();
+        let checkpoint = temporary.path().join("checkpoint");
+        let manifest = storage.manifest().unwrap();
+        storage.checkpoint(&checkpoint, &manifest).unwrap();
+        Storage::validate_checkpoint(&checkpoint, config(), manifest.digest().unwrap()).unwrap();
+        let restored = Storage::restore(
+            &checkpoint,
+            &temporary.path().join("restored"),
+            config(),
+            manifest.digest().unwrap(),
+        )
+        .unwrap();
+        restored.validate().unwrap();
+        let key = format!("compactblock/payload/{:020}/{:020}", 2, 7).into_bytes();
+        storage
+            .0
+            .raw
+            .corrupt_for_test(crate::Space::Archive, &key, None);
+        let raw = storage.0.raw.latest_snapshot().unwrap();
+        assert!(raw.nonverifiable_get_raw(&key).await.is_err());
+        assert!(
+            storage
+                .forest()
+                .read()
+                .authenticate_reads(&manifest, raw.observations())
+                .is_err(),
+            "discarding failed call writes must not erase archive integrity failure"
+        );
+        let extra = format!("compactblock/payload/{:020}/{:020}", 2, 99).into_bytes();
+        storage
+            .0
+            .raw
+            .corrupt_for_test(crate::Space::Archive, &extra, Some(b"extra"));
+        storage
+            .0
+            .raw
+            .corrupt_for_test(crate::Space::Archive, &key, Some(&[2, 7]));
+        *storage.0.latest.write() = storage.0.raw.latest_snapshot().unwrap();
+        assert!(
+            storage.validate().is_err(),
+            "complete validation must reject uncommitted raw archive entries"
+        );
+    }
+    #[test]
+    fn offline_growth_preserves_complete_roots_and_rejects_shrink() {
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("state");
+        let storage = Storage::open(&path, config()).unwrap();
+        let prepared = storage
+            .prepare(state(&storage, b"value"), boundary(0, 0), BTreeMap::new())
+            .unwrap();
+        let manifest = storage.materialize(prepared).unwrap();
+        let anchor = manifest.digest().unwrap();
+        drop(storage);
+        assert!(
+            Storage::grow_offline(&path, config(), ParticipantId::APPLICATION, 512, anchor)
+                .is_err()
+        );
+        assert_eq!(
+            Storage::grow_offline(&path, config(), ParticipantId::APPLICATION, 2048, anchor)
+                .unwrap(),
+            manifest
+        );
+        let storage = Storage::open(&path, config()).unwrap();
+        storage.validate().unwrap();
+        assert_eq!(storage.capacity().unwrap()[0].bucket_capacity, 2048);
     }
     #[test]
     fn genesis_reopens_and_reconciles_only_the_exact_canonical_input() {
@@ -560,6 +911,25 @@ mod tests {
                 expected_days
             );
             storage.materialize(prepared).unwrap();
+        }
+        let retired = temporary
+            .path()
+            .join("state/forest/volume-00000000000000000000");
+        assert!(retired.is_dir());
+        for height in 4..=6 {
+            let prepared = storage
+                .prepare(
+                    state(&storage, &[height as u8]),
+                    boundary(height, 88_201),
+                    BTreeMap::new(),
+                )
+                .unwrap();
+            storage.materialize(prepared).unwrap();
+            assert_eq!(
+                retired.exists(),
+                height <= 5,
+                "retain two completed undo boundaries before physical GC"
+            );
         }
         let manifest = storage.manifest().unwrap();
         let checkpoint = temporary.path().join("checkpoint");

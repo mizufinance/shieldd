@@ -1,5 +1,5 @@
 use anyhow::{ensure, Context, Result};
-use cnidarium::{StateRead, StateWrite};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 
 pub const FRAGMENT_BYTES: usize = 64 * 1024;
 
@@ -91,8 +91,8 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn fragments_bound_reads_and_reject_missing_continuations() -> Result<()> {
-        let storage = cnidarium::TempStorage::new().await?;
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let storage = shieldd_sdk_storage::TempStorage::new().await?;
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         let bytes: Vec<_> = (0..FRAGMENT_BYTES * 3 + 17)
             .map(|i| (i % 251) as u8)
             .collect();

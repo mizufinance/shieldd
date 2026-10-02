@@ -35,7 +35,7 @@ impl ParticipantId {
             generation: day.0,
         })
     }
-    fn name(self) -> String {
+    pub(crate) fn name(self) -> String {
         match self.kind {
             ParticipantKind::Application => "application".into(),
             ParticipantKind::Permanent => format!("permanent-{:02}", self.generation),
@@ -44,12 +44,22 @@ impl ParticipantId {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct ForestConfig {
     pub buckets: u32,
     pub cache_mib: usize,
     pub preallocate: bool,
     pub materialization_workers: usize,
+}
+impl ForestConfig {
+    pub fn from_env() -> Result<Self> {
+        match std::env::var("SHIELDD_STORAGE") {
+            Ok(json) => Ok(serde_json::from_str(&json)?),
+            Err(std::env::VarError::NotPresent) => Ok(Self::default()),
+            Err(error) => Err(error.into()),
+        }
+    }
 }
 impl Default for ForestConfig {
     fn default() -> Self {
@@ -69,9 +79,15 @@ pub struct ParticipantChange {
 }
 
 pub struct ForestUpdate {
-    pub previous: Vec<Participant>,
-    pub next: Vec<Participant>,
+    previous: Vec<Participant>,
+    next: Vec<Participant>,
     sessions: Vec<(ParticipantId, FinishedSession)>,
+}
+
+impl ForestUpdate {
+    pub fn next(&self) -> &[Participant] {
+        &self.next
+    }
 }
 
 /// One ordered persistence owner. Proof sessions are confined to individual calls
@@ -230,34 +246,87 @@ impl Forest {
         nullifier: &[u8; 32],
         observations: &crate::Observations,
     ) -> Result<bool> {
-        let key = crate::nullifier_key(nullifier);
-        let shard = crate::nullifier_shard(&key);
-        let index = 1 + shard as usize;
-        let participant = manifest
-            .participants
-            .get(index)
-            .context("permanent shard is missing from view")?;
-        ensure!(
-            participant.kind == ParticipantKind::Permanent
-                && participant.generation == shard as u64,
-            "permanent view identity mismatch"
-        );
-        let db = self.db(ParticipantId::permanent(shard)?)?;
-        ensure!(
-            db.root().into_inner() == participant.root,
-            "permanent read boundary is unavailable"
-        );
-        let value = db.read(key)?;
-        ensure!(
-            value.as_deref().is_none_or(|v| v == crate::SPENT),
-            "invalid permanent nullifier marker"
-        );
-        observations.record(crate::ObservedValue {
-            participant: index as u32,
-            key,
-            value: value.as_deref().map(Sha2Hasher::hash_value),
-        })?;
-        Ok(value.is_some())
+        let result = (|| -> Result<bool> {
+            let key = crate::nullifier_key(nullifier);
+            let shard = crate::nullifier_shard(&key);
+            let index = 1 + shard as usize;
+            let participant = manifest
+                .participants
+                .get(index)
+                .context("permanent shard is missing from view")?;
+            ensure!(
+                participant.kind == ParticipantKind::Permanent
+                    && participant.generation == shard as u64,
+                "permanent view identity mismatch"
+            );
+            let db = self.db(ParticipantId::permanent(shard)?)?;
+            ensure!(
+                db.root().into_inner() == participant.root,
+                "permanent read boundary is unavailable"
+            );
+            observations.reserve_read(index as u32, key)?;
+            let value = db.read(key)?;
+            ensure!(
+                value.as_deref().is_none_or(|v| v == crate::SPENT),
+                "invalid permanent nullifier marker"
+            );
+            observations.record(crate::ObservedValue {
+                participant: index as u32,
+                key,
+                value: value.as_deref().map(Sha2Hasher::hash_value),
+            })?;
+            Ok(value.is_some())
+        })();
+        if let Err(error) = &result {
+            if !error.is::<crate::ProtocolLimitExceeded>() {
+                observations.poison();
+            }
+        }
+        result
+    }
+
+    pub fn observe_volume(
+        &self,
+        manifest: &Manifest,
+        day: crate::Day,
+        nullifier: &[u8; 32],
+        observations: &crate::Observations,
+    ) -> Result<bool> {
+        let result = (|| -> Result<bool> {
+            let Some(index) = manifest
+                .participants
+                .iter()
+                .position(|p| p.kind == ParticipantKind::Volume && p.generation == day.0)
+            else {
+                // Generation absence is authenticated by the entire manifest.
+                return Ok(false);
+            };
+            let participant = &manifest.participants[index];
+            let key = crate::volume_key(day, nullifier)?;
+            let db = self.db(ParticipantId::volume(day)?)?;
+            ensure!(
+                db.root().into_inner() == participant.root,
+                "volume read boundary is unavailable"
+            );
+            observations.reserve_read(index as u32, key)?;
+            let value = db.read(key)?;
+            ensure!(
+                value.as_deref().is_none_or(|v| v == crate::SPENT),
+                "invalid volume marker"
+            );
+            observations.record(crate::ObservedValue {
+                participant: index as u32,
+                key,
+                value: value.as_deref().map(Sha2Hasher::hash_value),
+            })?;
+            Ok(value.is_some())
+        })();
+        if let Err(error) = &result {
+            if !error.is::<crate::ProtocolLimitExceeded>() {
+                observations.poison();
+            }
+        }
+        result
     }
 
     pub fn authenticated_read(
@@ -285,24 +354,38 @@ impl Forest {
         manifest: &Manifest,
         observations: &crate::Observations,
     ) -> Result<()> {
+        self.verify_reads(manifest, observations, true)
+    }
+    pub fn authenticate_result(
+        &self,
+        manifest: &Manifest,
+        observations: &crate::Observations,
+    ) -> Result<()> {
+        self.verify_reads(manifest, observations, false)
+    }
+    fn verify_reads(
+        &self,
+        manifest: &Manifest,
+        observations: &crate::Observations,
+        freeze: bool,
+    ) -> Result<()> {
         self.check_roots(&manifest.participants)?;
-        let sessions = manifest
-            .participants
-            .iter()
-            .map(|p| {
-                self.db(ParticipantId {
-                    kind: p.kind,
-                    generation: p.generation,
-                })
-                .map(|db| db.begin_session(SessionParams::default()))
-            })
-            .collect::<Result<Vec<_>>>()?;
-        observations.freeze(|index, key| {
+        let mut sessions = BTreeMap::new();
+        let prove = |index: u32, key| {
             let participant = manifest
                 .participants
                 .get(index as usize)
                 .context("observation participant is absent")?;
-            let session = &sessions[index as usize];
+            let session = match sessions.entry(index) {
+                std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
+                std::collections::btree_map::Entry::Vacant(entry) => entry.insert(
+                    self.db(ParticipantId {
+                        kind: participant.kind,
+                        generation: participant.generation,
+                    })?
+                    .begin_session(SessionParams::default()),
+                ),
+            };
             let value = session.read(key)?;
             authenticate(
                 &session.prove(key)?,
@@ -310,7 +393,12 @@ impl Forest {
                 key,
                 value.as_deref(),
             )
-        })
+        };
+        if freeze {
+            observations.freeze(prove)
+        } else {
+            observations.authenticate(prove)
+        }
     }
 
     /// Authenticate both prior values and the complete update witness; a corrupt
@@ -412,6 +500,35 @@ impl Forest {
 
     /// The SDK decision must already be durable. Failure leaves raw state at the
     /// previous manifest; recovery rewinds just the participants that advanced.
+    /// Only after raw durability: the forest writer drains readers and jobs.
+    /// Retired handles must not keep their resident indexes alive indefinitely.
+    pub(crate) fn collect_retired(
+        &mut self,
+        manifest: &Manifest,
+        retired: &[(crate::Day, u64)],
+    ) -> Result<()> {
+        let active = |id: &ParticipantId| {
+            manifest
+                .participants
+                .iter()
+                .any(|p| p.kind == id.kind && p.generation == id.generation)
+        };
+        self.databases
+            .retain(|id, _| id.kind != ParticipantKind::Volume || active(id));
+        for &(day, height) in retired {
+            let id = ParticipantId::volume(day)?;
+            if active(&id) || manifest.height <= height.saturating_add(2) {
+                continue;
+            }
+            let path = self.directory.join(id.name());
+            match std::fs::remove_dir_all(&path) {
+                Ok(()) => std::fs::File::open(&self.directory)?.sync_all()?,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            }
+        }
+        Ok(())
+    }
     pub fn materialize(&self, update: ForestUpdate) -> Result<()> {
         self.check_roots(&update.previous)?;
         let mut jobs = update.sessions.into_iter();
@@ -470,6 +587,7 @@ impl Forest {
                 );
                 let exists = self.directory.join(id.name()).exists();
                 self.open_participant(id, !exists)?;
+                sync_directory(&self.directory)?;
             }
             let old = previous
                 .iter()
@@ -549,8 +667,107 @@ impl Forest {
         Ok(())
     }
 
-    /// Validate all indexed entries before copying the quiesced files. Counts
-    /// come from the authenticated manifest, never from the local value index.
+    pub fn capacity(
+        &self,
+        participants: &[Participant],
+    ) -> Result<Vec<crate::ParticipantCapacity>> {
+        self.check_roots(participants)?;
+        participants
+            .iter()
+            .map(|participant| {
+                let id = ParticipantId {
+                    kind: participant.kind,
+                    generation: participant.generation,
+                };
+                let usage = self.db(id)?.storage_usage()?;
+                let path = self.directory.join(id.name());
+                let files = [
+                    ("ln", u64::from(usage.leaf_next_page)),
+                    ("bbn", u64::from(usage.branch_next_page)),
+                ]
+                .into_iter()
+                .map(|(file, next_page)| {
+                    let usable_pages = u64::from(u32::MAX) - 1;
+                    Ok(crate::FileCapacity {
+                        file: file.into(),
+                        file_bytes: fs::metadata(path.join(file))?.len(),
+                        next_page,
+                        usable_pages,
+                        address_headroom_pages: usable_pages.saturating_sub(next_page),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+                let undo_file_bytes = fs::read_dir(&path)?.try_fold(0u64, |bytes, entry| {
+                    let entry = entry?;
+                    let name = entry.file_name();
+                    if name.to_str().is_some_and(|name| name.contains("rollback"))
+                        && entry.file_type()?.is_file()
+                    {
+                        bytes
+                            .checked_add(entry.metadata()?.len())
+                            .context("undo file size overflow")
+                    } else {
+                        Ok(bytes)
+                    }
+                })?;
+                Ok(crate::ParticipantCapacity {
+                    participant: id.name(),
+                    entries: participant.count,
+                    files,
+                    bucket_capacity: usage.bucket_capacity,
+                    occupied_buckets: usage.occupied_buckets,
+                    resident_branch_count: usage.resident_branch_count,
+                    resident_branch_page_bytes: usage.resident_branch_page_bytes,
+                    resident_bucket_metadata_bytes: usage.resident_bucket_metadata_bytes,
+                    pool_mapped_bytes: usage.pool_mapped_bytes,
+                    resident_map_node_bytes: usage.resident_map_node_bytes,
+                    resident_branch_header_bytes: usage.resident_branch_header_bytes,
+                    resident_index_requested_bytes: usage
+                        .resident_branch_page_bytes
+                        .checked_add(usage.resident_map_node_bytes)
+                        .and_then(|n| n.checked_add(usage.resident_branch_header_bytes))
+                        .and_then(|n| n.checked_add(usage.resident_bucket_metadata_bytes))
+                        .context("resident index accounting overflow")?,
+                    undo_file_bytes,
+                    undo_first_record: usage.undo_first_record,
+                    undo_last_record: usage.undo_last_record,
+                })
+            })
+            .collect()
+    }
+
+    pub fn validate_participants(&self, participants: &[Participant]) -> Result<()> {
+        self.check_roots(participants)?;
+        for participant in participants {
+            let id = ParticipantId {
+                kind: participant.kind,
+                generation: participant.generation,
+            };
+            self.db(id)?
+                .export_sorted(participant.root, participant.count, |key, value| {
+                    match participant.kind {
+                        ParticipantKind::Application => {
+                            crate::ValueCommitment::decode(&value)?;
+                        }
+                        ParticipantKind::Permanent => {
+                            ensure!(
+                                value == crate::SPENT
+                                    && u64::from(crate::nullifier_shard(&key))
+                                        == participant.generation,
+                                "invalid permanent checkpoint entry"
+                            );
+                        }
+                        ParticipantKind::Volume => {
+                            ensure!(value == crate::SPENT, "invalid volume checkpoint entry");
+                        }
+                    }
+                    Ok(())
+                })?;
+        }
+        Ok(())
+    }
+    /// Capture quiesced files only. Full sorted validation runs against the copy
+    /// after releasing the live publication boundary.
     pub fn checkpoint(&self, destination: &Path, participants: &[Participant]) -> Result<()> {
         ensure!(
             !destination.exists(),
@@ -563,8 +780,6 @@ impl Forest {
                 kind: participant.kind,
                 generation: participant.generation,
             };
-            self.db(id)?
-                .export_sorted(participant.root, participant.count, |_, _| Ok(()))?;
             copy_files(
                 &self.directory.join(id.name()),
                 &destination.join(id.name()),
@@ -785,7 +1000,24 @@ mod tests {
     }
 }
 
-fn copy_files(source: &Path, destination: &Path) -> Result<()> {
+pub(crate) fn file_bytes(source: &Path) -> Result<u64> {
+    fs::read_dir(source)?.try_fold(0u64, |bytes, entry| {
+        let entry = entry?;
+        let kind = entry.file_type()?;
+        let size = if kind.is_file() {
+            entry.metadata()?.len()
+        } else if kind.is_dir() {
+            file_bytes(&entry.path())?
+        } else {
+            anyhow::bail!("checkpoint contains a link or special file");
+        };
+        bytes
+            .checked_add(size)
+            .context("checkpoint file size overflow")
+    })
+}
+
+pub(crate) fn copy_files(source: &Path, destination: &Path) -> Result<()> {
     ensure!(source.is_dir(), "NOMT checkpoint source is missing");
     fs::create_dir_all(destination)?;
     for entry in fs::read_dir(source)? {
@@ -799,9 +1031,39 @@ fn copy_files(source: &Path, destination: &Path) -> Result<()> {
                 kind.is_file(),
                 "NOMT checkpoint contains a nonregular entry"
             );
-            fs::copy(entry.path(), &target)?;
+            clone_file(&entry.path(), &target)?;
             fs::File::open(&target)?.sync_all()?;
         }
     }
     sync_directory(destination)
+}
+
+fn clone_file(source: &Path, target: &Path) -> Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        let source = std::ffi::CString::new(source.as_os_str().as_bytes())?;
+        let target = std::ffi::CString::new(target.as_os_str().as_bytes())?;
+        if unsafe { libc::clonefile(source.as_ptr(), target.as_ptr(), 0) } == 0 {
+            return Ok(());
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::fd::AsRawFd;
+        let source_file = fs::File::open(source)?;
+        let target_file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(target)?;
+        // Linux FICLONE takes a source descriptor and makes private COW extents.
+        if unsafe { libc::ioctl(target_file.as_raw_fd(), 0x40049409, source_file.as_raw_fd()) } == 0
+        {
+            return Ok(());
+        }
+        drop(target_file);
+        fs::remove_file(target)?;
+    }
+    fs::copy(source, target)?;
+    Ok(())
 }

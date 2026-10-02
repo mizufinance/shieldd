@@ -3,6 +3,8 @@
 /// Children inherit their parent's execution view.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OpenScopeRequest {
+    #[prost(bool, tag = "5")]
+    pub finalization: bool,
     #[prost(bool, tag = "1")]
     pub disposable: bool,
     #[prost(uint64, tag = "2")]
@@ -228,6 +230,9 @@ pub struct DepositRequest {
     /// Host-chain source used for replay protection and deposit identity.
     #[prost(message, optional, tag = "4")]
     pub source: ::core::option::Option<HostSource>,
+    /// Uses capacity reserved before the SDK escrow write. Internal EndBlock only.
+    #[prost(bool, tag = "5")]
+    pub queued: bool,
 }
 impl ::prost::Name for DepositRequest {
     const NAME: &'static str = "DepositRequest";
@@ -480,6 +485,10 @@ pub struct DeliverTxRequest {
     /// Raw Shieldd transaction bytes.
     #[prost(bytes = "vec", tag = "1")]
     pub tx: ::prost::alloc::vec::Vec<u8>,
+    /// Canonical SDK routing position. Native replay uses the same position;
+    /// verification artifacts are optional local work and never receipt inputs.
+    #[prost(message, optional, tag = "2")]
+    pub position: ::core::option::Option<VerificationPosition>,
 }
 impl ::prost::Name for DeliverTxRequest {
     const NAME: &'static str = "DeliverTxRequest";
@@ -489,6 +498,69 @@ impl ::prost::Name for DeliverTxRequest {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.execution_client.v1.DeliverTxRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VerificationPosition {
+    #[prost(uint32, tag = "1")]
+    pub tx_index: u32,
+    #[prost(uint32, repeated, tag = "2")]
+    pub message_path: ::prost::alloc::vec::Vec<u32>,
+}
+impl ::prost::Name for VerificationPosition {
+    const NAME: &'static str = "VerificationPosition";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.VerificationPosition".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.VerificationPosition".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VerificationCandidate {
+    #[prost(message, optional, tag = "1")]
+    pub position: ::core::option::Option<VerificationPosition>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub tx: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for VerificationCandidate {
+    const NAME: &'static str = "VerificationCandidate";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.VerificationCandidate".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.VerificationCandidate".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StartVerificationRequest {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+    #[prost(message, repeated, tag = "2")]
+    pub candidates: ::prost::alloc::vec::Vec<VerificationCandidate>,
+}
+impl ::prost::Name for StartVerificationRequest {
+    const NAME: &'static str = "StartVerificationRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.StartVerificationRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.StartVerificationRequest".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct StartVerificationResponse {}
+impl ::prost::Name for StartVerificationResponse {
+    const NAME: &'static str = "StartVerificationResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.StartVerificationResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.StartVerificationResponse".into()
     }
 }
 /// DeliverTxResponse contains the Shieldd transaction execution result.
@@ -643,35 +715,39 @@ impl ::prost::Name for EventAttribute {
         "/shieldd.execution_client.v1.EventAttribute".into()
     }
 }
-/// CommitRequest is empty because all pending state is held by the execution
-/// client.
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct CommitRequest {}
-impl ::prost::Name for CommitRequest {
-    const NAME: &'static str = "CommitRequest";
-    const PACKAGE: &'static str = "shieldd.execution_client.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.CommitRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.CommitRequest".into()
-    }
-}
-/// CommitResponse contains the root hash committed by Shieldd.
+/// Materialize the exact SDK-decided receipt. Height zero with an empty digest
+/// is permitted only for fresh genesis before the first ordinary SDK commit.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CommitResponse {
-    /// Committed Shieldd application root hash.
-    #[prost(bytes = "vec", tag = "1")]
-    pub root_hash: ::prost::alloc::vec::Vec<u8>,
+pub struct MaterializeRequest {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+    #[prost(bytes = "vec", tag = "2")]
+    pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
 }
-impl ::prost::Name for CommitResponse {
-    const NAME: &'static str = "CommitResponse";
+impl ::prost::Name for MaterializeRequest {
+    const NAME: &'static str = "MaterializeRequest";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.CommitResponse".into()
+        "shieldd.execution_client.v1.MaterializeRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.CommitResponse".into()
+        "/shieldd.execution_client.v1.MaterializeRequest".into()
+    }
+}
+/// Accepted durable SDK decision; GetCommittedState waits for native completion.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MaterializeResponse {
+    #[prost(message, optional, tag = "1")]
+    pub decided: ::core::option::Option<GetCommittedStateResponse>,
+}
+impl ::prost::Name for MaterializeResponse {
+    const NAME: &'static str = "MaterializeResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.MaterializeResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.MaterializeResponse".into()
     }
 }
 /// GetCommittedStateRequest is empty because Shieldd always returns its latest
@@ -710,31 +786,31 @@ impl ::prost::Name for GetCommittedStateResponse {
         "/shieldd.execution_client.v1.GetCommittedStateResponse".into()
     }
 }
-/// RollbackRequest is empty because rollback applies to the current pending
+/// DiscardRequest is empty because discard applies to the current pending
 /// execution phase.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct RollbackRequest {}
-impl ::prost::Name for RollbackRequest {
-    const NAME: &'static str = "RollbackRequest";
+pub struct DiscardRequest {}
+impl ::prost::Name for DiscardRequest {
+    const NAME: &'static str = "DiscardRequest";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.RollbackRequest".into()
+        "shieldd.execution_client.v1.DiscardRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.RollbackRequest".into()
+        "/shieldd.execution_client.v1.DiscardRequest".into()
     }
 }
-/// RollbackResponse is empty on success.
+/// DiscardResponse is empty on success.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct RollbackResponse {}
-impl ::prost::Name for RollbackResponse {
-    const NAME: &'static str = "RollbackResponse";
+pub struct DiscardResponse {}
+impl ::prost::Name for DiscardResponse {
+    const NAME: &'static str = "DiscardResponse";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.RollbackResponse".into()
+        "shieldd.execution_client.v1.DiscardResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.RollbackResponse".into()
+        "/shieldd.execution_client.v1.DiscardResponse".into()
     }
 }
 /// ExportGenesisRequest is empty because it exports the latest committed state.
@@ -767,36 +843,213 @@ impl ::prost::Name for ExportGenesisResponse {
         "/shieldd.execution_client.v1.ExportGenesisResponse".into()
     }
 }
-/// Persist Shieldd/NOMT recovery intent before the host's first durable change.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SealCommitRequest {
-    #[prost(message, optional, tag = "1")]
-    pub expected: ::core::option::Option<GetCommittedStateResponse>,
-}
-impl ::prost::Name for SealCommitRequest {
-    const NAME: &'static str = "SealCommitRequest";
+/// Freeze authenticates execution observations and returns canonical Rust-owned
+/// replay bytes. It performs no persistence and creates no separate journal.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct FreezeRequest {}
+impl ::prost::Name for FreezeRequest {
+    const NAME: &'static str = "FreezeRequest";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.SealCommitRequest".into()
+        "shieldd.execution_client.v1.FreezeRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.SealCommitRequest".into()
+        "/shieldd.execution_client.v1.FreezeRequest".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SealCommitResponse {
-    #[prost(message, optional, tag = "1")]
+pub struct FreezeResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub receipt: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "3")]
     pub previous: ::core::option::Option<GetCommittedStateResponse>,
-    #[prost(message, optional, tag = "2")]
+    #[prost(message, optional, tag = "4")]
     pub next: ::core::option::Option<GetCommittedStateResponse>,
 }
-impl ::prost::Name for SealCommitResponse {
-    const NAME: &'static str = "SealCommitResponse";
+impl ::prost::Name for FreezeResponse {
+    const NAME: &'static str = "FreezeResponse";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.SealCommitResponse".into()
+        "shieldd.execution_client.v1.FreezeResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.SealCommitResponse".into()
+        "/shieldd.execution_client.v1.FreezeResponse".into()
+    }
+}
+/// Reconcile against the SDK's authenticated durable decision before serving.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecoverDecidedRequest {
+    #[prost(message, optional, tag = "1")]
+    pub decided: ::core::option::Option<GetCommittedStateResponse>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub receipt: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for RecoverDecidedRequest {
+    const NAME: &'static str = "RecoverDecidedRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.RecoverDecidedRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.RecoverDecidedRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecoverDecidedResponse {
+    #[prost(message, optional, tag = "1")]
+    pub materialized: ::core::option::Option<GetCommittedStateResponse>,
+}
+impl ::prost::Name for RecoverDecidedResponse {
+    const NAME: &'static str = "RecoverDecidedResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.RecoverDecidedResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.RecoverDecidedResponse".into()
+    }
+}
+/// Local checkpoint transport; the boundary is authenticated by the SDK snapshot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScheduleCheckpointRequest {
+    #[prost(message, optional, tag = "1")]
+    pub boundary: ::core::option::Option<GetCommittedStateResponse>,
+    #[prost(string, tag = "2")]
+    pub path: ::prost::alloc::string::String,
+}
+impl ::prost::Name for ScheduleCheckpointRequest {
+    const NAME: &'static str = "ScheduleCheckpointRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ScheduleCheckpointRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ScheduleCheckpointRequest".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ScheduleCheckpointResponse {}
+impl ::prost::Name for ScheduleCheckpointResponse {
+    const NAME: &'static str = "ScheduleCheckpointResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ScheduleCheckpointResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ScheduleCheckpointResponse".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct AwaitCheckpointRequest {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+}
+impl ::prost::Name for AwaitCheckpointRequest {
+    const NAME: &'static str = "AwaitCheckpointRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AwaitCheckpointRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AwaitCheckpointRequest".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct AwaitCheckpointResponse {}
+impl ::prost::Name for AwaitCheckpointResponse {
+    const NAME: &'static str = "AwaitCheckpointResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.AwaitCheckpointResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.AwaitCheckpointResponse".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ReleaseCheckpointRequest {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+}
+impl ::prost::Name for ReleaseCheckpointRequest {
+    const NAME: &'static str = "ReleaseCheckpointRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ReleaseCheckpointRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ReleaseCheckpointRequest".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ReleaseCheckpointResponse {}
+impl ::prost::Name for ReleaseCheckpointResponse {
+    const NAME: &'static str = "ReleaseCheckpointResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ReleaseCheckpointResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ReleaseCheckpointResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RestoreCheckpointRequest {
+    #[prost(message, optional, tag = "1")]
+    pub boundary: ::core::option::Option<GetCommittedStateResponse>,
+    #[prost(string, tag = "2")]
+    pub path: ::prost::alloc::string::String,
+}
+impl ::prost::Name for RestoreCheckpointRequest {
+    const NAME: &'static str = "RestoreCheckpointRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.RestoreCheckpointRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.RestoreCheckpointRequest".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct RestoreCheckpointResponse {}
+impl ::prost::Name for RestoreCheckpointResponse {
+    const NAME: &'static str = "RestoreCheckpointResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.RestoreCheckpointResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.RestoreCheckpointResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReserveQueuedDepositRequest {
+    #[prost(message, optional, tag = "1")]
+    pub deposit: ::core::option::Option<DepositRequest>,
+}
+impl ::prost::Name for ReserveQueuedDepositRequest {
+    const NAME: &'static str = "ReserveQueuedDepositRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ReserveQueuedDepositRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ReserveQueuedDepositRequest".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ReserveQueuedDepositResponse {}
+impl ::prost::Name for ReserveQueuedDepositResponse {
+    const NAME: &'static str = "ReserveQueuedDepositResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.ReserveQueuedDepositResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.ReserveQueuedDepositResponse".into()
     }
 }

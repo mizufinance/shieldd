@@ -1,11 +1,11 @@
 use anyhow::Context;
-use cnidarium::TempStorage;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
     test_support::{TestHost, TEST_CHAIN_ID},
 };
 use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
 use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
+use shieldd_sdk_storage::TempStorage;
 use shieldd_sdk_transaction::ActionPlan;
 use shieldd_sdk_view::{
     planning_io::PlanningIo, NoteManager, NoteManagerPlanningResult, Storage, StoragePlanningIo,
@@ -17,7 +17,7 @@ async fn local_wallet_plan_preserves_inputs_outputs_context_and_insufficient_bal
 ) -> anyhow::Result<()> {
     let chain = TempStorage::new().await?;
     let mut host = TestHost::new(
-        chain.as_ref().clone(),
+        chain.storage().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         shieldd_sdk_app_tests::registry(),
@@ -116,7 +116,7 @@ async fn wallet_catch_up_uses_each_blocks_timestamp() -> anyhow::Result<()> {
     use shieldd_sdk_sct::component::clock::EpochRead as _;
     let chain = TempStorage::new().await?;
     let mut host = TestHost::new(
-        chain.as_ref().clone(),
+        chain.storage().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         shieldd_sdk_app_tests::registry(),

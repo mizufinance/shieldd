@@ -1,6 +1,5 @@
 use super::{check_historical_with_context, ClaimedAnchorValidationCache, HistoricalCheckContext};
 use anyhow::Result;
-use cnidarium::StateRead;
 use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
 use shieldd_sdk_shielded_pool::{
@@ -8,6 +7,7 @@ use shieldd_sdk_shielded_pool::{
     ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedWithdrawalChangeBody,
     ShieldedWithdrawalFamilyId, ShieldedWithdrawalProof, VolumeAccumulatorPayload,
 };
+use shieldd_sdk_storage::StateRead;
 use shieldd_sdk_transaction::{Action, Transaction};
 use std::{any::Any, ops::RangeBounds, sync::Arc};
 use tokio::sync::Notify;

@@ -1,12 +1,12 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::StateWrite;
 use shieldd_sdk_compliance::{ComplianceRegistryRead, ComplianceRegistryWrite};
 use shieldd_sdk_fee::component::StateReadExt as _;
 use shieldd_sdk_proto::{DomainType, Message};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead};
 use shieldd_sdk_shielded_pool::component::NoteManager as _;
+use shieldd_sdk_storage::StateWrite;
 use tracing::instrument;
 
 use crate::{state_key, CompactBlock, PendingRoutingAction, RoutingAction, RoutingRecord};
@@ -273,9 +273,9 @@ impl<T: StateWrite + ?Sized> Inner for T {}
 mod tests {
     use super::*;
     use crate::component::StateReadExt as _;
-    use cnidarium::{StateDelta, StateRead as _, TempStorage};
     use shieldd_sdk_sct::CommitmentSource;
     use shieldd_sdk_shielded_pool::{discovery::RoutingTag, NotePayload};
+    use shieldd_sdk_storage::{StateDelta, StateRead as _, TempStorage};
     use shieldd_sdk_txhash::TransactionId;
 
     #[tokio::test]

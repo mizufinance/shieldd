@@ -14,7 +14,6 @@ const ABI_VERSION: u32 = 5;
 const STATUS_OVERLOADED: i32 = 6;
 const STATUS_SNAPSHOT_EXPIRED: i32 = 7;
 const STATUS_UNAVAILABLE: i32 = 8;
-const METHOD_PUBLISH_COMMITTED: u32 = 13;
 const STATUS_OK: i32 = 0;
 const STATUS_INVALID_ARGUMENT: i32 = 1;
 const STATUS_FAILED_PRECONDITION: i32 = 2;
@@ -28,8 +27,8 @@ const METHOD_DEPOSIT: u32 = 3;
 const METHOD_CHECK_TX: u32 = 4;
 const METHOD_DELIVER_TX: u32 = 5;
 const METHOD_END_BLOCK: u32 = 6;
-const METHOD_COMMIT: u32 = 7;
-const METHOD_ROLLBACK: u32 = 8;
+const METHOD_MATERIALIZE: u32 = 7;
+const METHOD_DISCARD: u32 = 8;
 const METHOD_EXPORT_GENESIS: u32 = 9;
 const METHOD_GET_COMMITTED_STATE: u32 = 10;
 const METHOD_APPLY_COMPLIANCE_ACTION: u32 = 12;
@@ -41,13 +40,22 @@ const METHOD_QUERY_COMPLIANCE_ASSET_STATUS: u32 = 1_000_002;
 const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
 const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
+const METHOD_QUERY_PUBLISHED_BOUNDARY: u32 = 1_000_015;
+const METHOD_QUERY_ARCHIVE_RANGE: u32 = 1_000_014;
 const METHOD_QUERY_NULLIFIER_STATUS: u32 = 1_000_013;
-const METHOD_SEAL_COMMIT: u32 = 14;
+const METHOD_FREEZE: u32 = 14;
 const METHOD_OPEN_SCOPE: u32 = 15;
 const METHOD_PREPARE_SCOPE: u32 = 16;
 const METHOD_CLOSE_SCOPE: u32 = 17;
 const METHOD_SNAPSHOT_SCOPE: u32 = 18;
 const METHOD_REVERT_SCOPE: u32 = 19;
+const METHOD_RECOVER_DECIDED: u32 = 20;
+const METHOD_START_VERIFICATION: u32 = 21;
+const METHOD_RESERVE_QUEUED_DEPOSIT: u32 = 22;
+const METHOD_SCHEDULE_CHECKPOINT: u32 = 23;
+const METHOD_AWAIT_CHECKPOINT: u32 = 24;
+const METHOD_RESTORE_CHECKPOINT: u32 = 25;
+const METHOD_RELEASE_CHECKPOINT: u32 = 26;
 const METHOD_QUERY_COMMITTED_TRANSACTION: u32 = 1_000_008;
 const METHOD_QUERY_TRANSACTIONS_BY_HEIGHT: u32 = 1_000_009;
 const METHOD_QUERY_COMPACT_BLOCK_PAGE: u32 = 1_000_010;
@@ -55,37 +63,46 @@ const METHOD_QUERY_FILTERED_BLOCK_PAGE: u32 = 1_000_011;
 const METHOD_QUERY_SPEND_STATUS_PAGE: u32 = 1_000_012;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u32)]
 enum Method {
-    OpenScope,
-    PrepareScope,
-    CloseScope,
-    SnapshotScope,
-    RevertScope,
-    PublishCommitted,
-    SealCommit,
-    InitGenesis,
-    BeginBlock,
-    Deposit,
-    CheckTx,
-    DeliverTx,
-    EndBlock,
-    Commit,
-    Rollback,
-    ExportGenesis,
-    GetCommittedState,
-    ApplyComplianceAction,
-    QueryAppParameters,
-    QueryAssetMetadataById,
-    QueryComplianceAssetStatus,
-    QueryComplianceBatchMerkleProofs,
-    QueryComplianceUserLeaf,
-    QueryKeyValue,
-    QueryNullifierStatus,
-    QueryCommittedTransaction,
-    QueryTransactionsByHeight,
-    QueryCompactBlockPage,
-    QueryFilteredBlockPage,
-    QuerySpendStatusPage,
+    OpenScope = 15,
+    PrepareScope = 16,
+    CloseScope = 17,
+    SnapshotScope = 18,
+    RevertScope = 19,
+    RecoverDecided = 20,
+    StartVerification = 21,
+    ReserveQueuedDeposit = 22,
+    ScheduleCheckpoint = 23,
+    AwaitCheckpoint = 24,
+    RestoreCheckpoint = 25,
+    ReleaseCheckpoint = 26,
+    Freeze = 14,
+    InitGenesis = 1,
+    BeginBlock = 2,
+    Deposit = 3,
+    CheckTx = 4,
+    DeliverTx = 5,
+    EndBlock = 6,
+    Materialize = 7,
+    Discard = 8,
+    ExportGenesis = 9,
+    GetCommittedState = 10,
+    ApplyComplianceAction = 12,
+    QueryAppParameters = 1000000,
+    QueryAssetMetadataById = 1000001,
+    QueryComplianceAssetStatus = 1000002,
+    QueryComplianceBatchMerkleProofs = 1000003,
+    QueryComplianceUserLeaf = 1000004,
+    QueryKeyValue = 1000005,
+    QueryArchiveRange = 1000014,
+    QueryPublishedBoundary = 1000015,
+    QueryNullifierStatus = 1000013,
+    QueryCommittedTransaction = 1000008,
+    QueryTransactionsByHeight = 1000009,
+    QueryCompactBlockPage = 1000010,
+    QueryFilteredBlockPage = 1000011,
+    QuerySpendStatusPage = 1000012,
 }
 
 #[repr(C)]
@@ -167,9 +184,21 @@ impl ShielddResult {
     }
 }
 
-struct FfiError {
+pub(crate) struct FfiError {
     status: i32,
     message: String,
+}
+
+impl std::fmt::Display for FfiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl From<ServiceError> for FfiError {
+    fn from(error: ServiceError) -> Self {
+        Self::service(error)
+    }
 }
 
 impl FfiError {
@@ -215,16 +244,22 @@ impl TryFrom<u32> for Method {
             METHOD_CLOSE_SCOPE => Ok(Self::CloseScope),
             METHOD_SNAPSHOT_SCOPE => Ok(Self::SnapshotScope),
             METHOD_REVERT_SCOPE => Ok(Self::RevertScope),
-            METHOD_PUBLISH_COMMITTED => Ok(Self::PublishCommitted),
-            METHOD_SEAL_COMMIT => Ok(Self::SealCommit),
+            METHOD_RECOVER_DECIDED => Ok(Self::RecoverDecided),
+            METHOD_START_VERIFICATION => Ok(Self::StartVerification),
+            METHOD_RESERVE_QUEUED_DEPOSIT => Ok(Self::ReserveQueuedDeposit),
+            METHOD_SCHEDULE_CHECKPOINT => Ok(Self::ScheduleCheckpoint),
+            METHOD_AWAIT_CHECKPOINT => Ok(Self::AwaitCheckpoint),
+            METHOD_RESTORE_CHECKPOINT => Ok(Self::RestoreCheckpoint),
+            METHOD_RELEASE_CHECKPOINT => Ok(Self::ReleaseCheckpoint),
+            METHOD_FREEZE => Ok(Self::Freeze),
             METHOD_INIT_GENESIS => Ok(Self::InitGenesis),
             METHOD_BEGIN_BLOCK => Ok(Self::BeginBlock),
             METHOD_DEPOSIT => Ok(Self::Deposit),
             METHOD_CHECK_TX => Ok(Self::CheckTx),
             METHOD_DELIVER_TX => Ok(Self::DeliverTx),
             METHOD_END_BLOCK => Ok(Self::EndBlock),
-            METHOD_COMMIT => Ok(Self::Commit),
-            METHOD_ROLLBACK => Ok(Self::Rollback),
+            METHOD_MATERIALIZE => Ok(Self::Materialize),
+            METHOD_DISCARD => Ok(Self::Discard),
             METHOD_EXPORT_GENESIS => Ok(Self::ExportGenesis),
             METHOD_GET_COMMITTED_STATE => Ok(Self::GetCommittedState),
             METHOD_APPLY_COMPLIANCE_ACTION => Ok(Self::ApplyComplianceAction),
@@ -236,6 +271,8 @@ impl TryFrom<u32> for Method {
             }
             METHOD_QUERY_COMPLIANCE_USER_LEAF => Ok(Self::QueryComplianceUserLeaf),
             METHOD_QUERY_KEY_VALUE => Ok(Self::QueryKeyValue),
+            METHOD_QUERY_PUBLISHED_BOUNDARY => Ok(Self::QueryPublishedBoundary),
+            METHOD_QUERY_ARCHIVE_RANGE => Ok(Self::QueryArchiveRange),
             METHOD_QUERY_NULLIFIER_STATUS => Ok(Self::QueryNullifierStatus),
             METHOD_QUERY_COMMITTED_TRANSACTION => Ok(Self::QueryCommittedTransaction),
             METHOD_QUERY_COMPACT_BLOCK_PAGE => Ok(Self::QueryCompactBlockPage),
@@ -359,7 +396,57 @@ pub extern "C" fn shieldd_call(
                 "query request exceeds configured budget",
             ));
         }
+        if method == Method::StartVerification
+            && request_len > handle.queries.limits.proof_memory_bytes
+        {
+            return Err(FfiError::service(ServiceError::unavailable(
+                anyhow::anyhow!("local verification input memory ceiling exceeded"),
+            )));
+        }
         let request = unsafe { input_bytes(request, request_len)? };
+        if matches!(method, Method::AwaitCheckpoint | Method::ReleaseCheckpoint) {
+            if scope != 0 {
+                return Err(FfiError::invalid_argument(
+                    "checkpoint operations do not accept writable scopes",
+                ));
+            }
+            use shieldd_sdk_proto::execution_client::v1::*;
+            return match method {
+                Method::AwaitCheckpoint => {
+                    let request: AwaitCheckpointRequest = decode(request)?;
+                    handle
+                        .runtime
+                        .block_on(handle.queries.checkpoints.wait(request.height))
+                        .map_err(|e| FfiError::service(ServiceError::unavailable(e)))?;
+                    Ok(ShielddBuffer::from_vec(
+                        AwaitCheckpointResponse {}.encode_to_vec(),
+                    ))
+                }
+                _ => {
+                    let request: ReleaseCheckpointRequest = decode(request)?;
+                    handle
+                        .queries
+                        .checkpoints
+                        .release(request.height)
+                        .map_err(|e| FfiError::service(ServiceError::unavailable(e)))?;
+                    Ok(ShielddBuffer::from_vec(
+                        ReleaseCheckpointResponse {}.encode_to_vec(),
+                    ))
+                }
+            };
+        }
+        if method == Method::StartVerification {
+            if scope != 0 {
+                return Err(FfiError::invalid_argument(
+                    "stateless verification does not accept a writable scope",
+                ));
+            }
+            let response = handle
+                .runtime
+                .block_on(handle.queries.start_verification(decode(request)?))
+                .map_err(FfiError::service)?;
+            return Ok(ShielddBuffer::from_vec(response.encode_to_vec()));
+        }
         if is_query {
             let _slot = if method == Method::CheckTx {
                 None
@@ -382,7 +469,11 @@ pub extern "C" fn shieldd_call(
             let response =
                 handle
                     .runtime
-                    .block_on(dispatch_query(&handle.queries, method, request))?;
+                    .block_on(handle.queries.authenticated(dispatch_query(
+                        &handle.queries,
+                        method,
+                        request,
+                    )))?;
             if response.len() > handle.queries.limits.response_page_bytes {
                 return Err(FfiError::service(ServiceError::overloaded()));
             }
@@ -390,7 +481,7 @@ pub extern "C" fn shieldd_call(
         } else {
             let response = handle.runtime.block_on(async {
                 let mut service = handle.service.lock().await;
-                dispatch(&mut service, scope, method, request).await
+                recorded_dispatch(&mut service, scope, method, request).await
             })?;
             Ok(ShielddBuffer::from_vec(response))
         }
@@ -524,6 +615,8 @@ impl Method {
                 | Self::QueryComplianceBatchMerkleProofs
                 | Self::QueryComplianceUserLeaf
                 | Self::QueryKeyValue
+                | Self::QueryArchiveRange
+                | Self::QueryPublishedBoundary
                 | Self::QueryNullifierStatus
         )
     }
@@ -535,6 +628,15 @@ async fn dispatch_query(
     request: &[u8],
 ) -> std::result::Result<Vec<u8>, FfiError> {
     match method {
+        Method::QueryPublishedBoundary => {
+            let _: shieldd_sdk_proto::execution_client::v1::GetCommittedStateRequest =
+                decode(request)?;
+            service
+                .published_boundary()
+                .await
+                .map(|r| r.encode_to_vec())
+                .map_err(FfiError::service)
+        }
         Method::QuerySpendStatusPage => service
             .spend_status_page(decode(request)?)
             .await
@@ -590,6 +692,11 @@ async fn dispatch_query(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        Method::QueryArchiveRange => service
+            .archive_range(decode(request)?)
+            .await
+            .map(|r| r.encode_to_vec())
+            .map_err(FfiError::service),
         Method::QueryKeyValue => service
             .key_value(decode(request)?)
             .await
@@ -604,6 +711,126 @@ async fn dispatch_query(
     }
 }
 
+async fn recorded_dispatch(
+    service: &mut ExecutionService,
+    scope: u64,
+    method: Method,
+    request: &[u8],
+) -> Result<Vec<u8>, FfiError> {
+    if matches!(
+        method,
+        Method::ScheduleCheckpoint | Method::RestoreCheckpoint
+    ) {
+        if scope != 0 {
+            return Err(FfiError::invalid_argument(
+                "checkpoint operations do not accept writable scopes",
+            ));
+        }
+        return dispatch(service, scope, method, request).await;
+    }
+    if !matches!(method, Method::CloseScope) {
+        service
+            .await_materializer()
+            .await
+            .map_err(FfiError::service)?;
+    }
+    let recording = service
+        .reserve_call(scope, method as u32, request)
+        .map_err(FfiError::service)?;
+    let mut result = dispatch(service, scope, method, request).await;
+    if matches!(
+        method,
+        Method::Deposit
+            | Method::DeliverTx
+            | Method::ApplyComplianceAction
+            | Method::ReserveQueuedDeposit
+    ) {
+        service
+            .authenticate_disposable_result(scope)
+            .map_err(FfiError::service)?;
+    }
+    if recording && result.is_ok() {
+        if let Err(error) = service.reserve_scope_reads(scope) {
+            result = Err(FfiError::service(error));
+        }
+    }
+    if recording {
+        let (outcome, bytes) = match &result {
+            Ok(response) => (STATUS_OK as u32, response.as_slice()),
+            Err(error) => (error.status as u32, error.message.as_bytes()),
+        };
+        service
+            .finish_call(outcome, bytes)
+            .map_err(FfiError::service)?;
+    }
+    result
+}
+
+pub(crate) async fn replay(
+    service: &mut ExecutionService,
+    receipt: &shieldd_sdk_storage::Receipt,
+) -> Result<(), FfiError> {
+    use shieldd_sdk_storage::ReplayAction;
+    let mut scopes = std::collections::BTreeMap::<u32, u64>::new();
+    scopes.insert(0, 0);
+    for step in &receipt.steps {
+        match step.action {
+            ReplayAction::Open => {
+                let parent = *scopes
+                    .get(&step.parent)
+                    .ok_or_else(|| FfiError::internal("replay parent is missing"))?;
+                let scope = service
+                    .open_reserved_scope(parent, step.finalization)
+                    .map_err(FfiError::service)?;
+                if scopes.insert(step.scope, scope).is_some() {
+                    return Err(FfiError::internal("reused replay scope"));
+                }
+            }
+            ReplayAction::Prepare => service
+                .prepare_scope(scopes[&step.scope])
+                .map_err(FfiError::service)?,
+            ReplayAction::Close => service
+                .close_scope(scopes[&step.scope], step.adopt)
+                .map_err(FfiError::service)?,
+            ReplayAction::Snapshot => {
+                let point = service
+                    .snapshot_scope(scopes[&step.scope])
+                    .map_err(FfiError::service)?;
+                if point != u64::from(step.point) {
+                    return Err(FfiError::internal("replay savepoint differs"));
+                }
+            }
+            ReplayAction::Revert => service
+                .revert_scope(scopes[&step.scope], u64::from(step.point))
+                .map_err(FfiError::service)?,
+            ReplayAction::Call => {
+                let scope = *scopes
+                    .get(&step.scope)
+                    .ok_or_else(|| FfiError::internal("replay call owner is missing"))?;
+                let result = Box::pin(recorded_dispatch(
+                    service,
+                    scope,
+                    Method::try_from(step.method)?,
+                    &step.input,
+                ))
+                .await;
+                let (outcome, output) = match result {
+                    Ok(output) => (STATUS_OK as u32, output),
+                    Err(error) => (error.status as u32, error.message.into_bytes()),
+                };
+                if outcome != step.outcome
+                    || shieldd_sdk_storage::receipt_response_digest(outcome, &output) != step.output
+                {
+                    return Err(FfiError::internal(
+                        "native replay response differs from decided receipt",
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 async fn dispatch(
     service: &mut ExecutionService,
     scope: u64,
@@ -613,14 +840,47 @@ async fn dispatch(
     use shieldd_sdk_proto::execution_client::v1::*;
     if matches!(
         method,
-        Method::Deposit | Method::DeliverTx | Method::ApplyComplianceAction
+        Method::Deposit
+            | Method::DeliverTx
+            | Method::ApplyComplianceAction
+            | Method::ReserveQueuedDeposit
     ) {
         service.require_scope(scope).map_err(FfiError::service)?;
     }
     match method {
+        Method::ReserveQueuedDeposit => service
+            .reserve_queued_deposit(scope, decode(request)?)
+            .await
+            .map(|r| r.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::ScheduleCheckpoint => service
+            .schedule_checkpoint(decode(request)?)
+            .await
+            .map(|r| r.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::RestoreCheckpoint => service
+            .restore_checkpoint(decode(request)?)
+            .await
+            .map(|r| r.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::AwaitCheckpoint | Method::ReleaseCheckpoint => Err(FfiError::internal(
+            "checkpoint wait dispatched to execution",
+        )),
+        Method::StartVerification => Err(FfiError::internal(
+            "stateless verification dispatched to execution",
+        )),
+        Method::RecoverDecided => Box::pin(service.recover_decided(decode(request)?))
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         Method::OpenScope => {
             let request: OpenScopeRequest = decode(request)?;
             let scope_id = if request.disposable {
+                if request.finalization {
+                    return Err(FfiError::invalid_argument(
+                        "disposable roots cannot reserve finalization capacity",
+                    ));
+                }
                 if scope != 0 {
                     return Err(FfiError::invalid_argument(
                         "disposable roots cannot have a parent",
@@ -649,7 +909,7 @@ async fn dispatch(
                         "height is only valid for disposable roots",
                     ));
                 }
-                service.open_scope(scope)
+                service.open_reserved_scope(scope, request.finalization)
             }
             .map_err(FfiError::service)?;
             Ok(OpenScopeResponse { scope_id }.encode_to_vec())
@@ -678,16 +938,8 @@ async fn dispatch(
                 .map_err(FfiError::service)?;
             Ok(RevertScopeResponse {}.encode_to_vec())
         }
-        Method::PublishCommitted => {
-            service
-                .queries()
-                .publish_committed(decode(request)?)
-                .await
-                .map_err(FfiError::service)?;
-            Ok(Vec::new())
-        }
-        Method::SealCommit => service
-            .seal_commit(decode(request)?)
+        Method::Freeze => service
+            .freeze(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -716,8 +968,8 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        Method::Commit => service
-            .commit(decode(request)?)
+        Method::Materialize => service
+            .materialize(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -726,8 +978,8 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
-        Method::Rollback => service
-            .rollback(decode(request)?)
+        Method::Discard => service
+            .discard(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
@@ -770,7 +1022,6 @@ mod tests {
     use shieldd_sdk_app::genesis::{AppState, Content};
     use shieldd_sdk_asset::asset;
     use shieldd_sdk_keys::test_keys::ADDRESS_0;
-    use shieldd_sdk_proto::cnidarium::v1::{KeyValueRequest, KeyValueResponse};
     use shieldd_sdk_proto::core::app::v1::{AppParametersRequest, AppParametersResponse};
     use shieldd_sdk_proto::core::component::compact_block::v1::{
         CompactBlockPageRequest, CompactBlockPageResponse,
@@ -786,14 +1037,16 @@ mod tests {
     };
     use shieldd_sdk_proto::execution_client::v1::{
         ApplyComplianceActionRequest, BeginBlockRequest, BeginBlockResponse, CheckTxRequest,
-        CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse,
-        EndBlockRequest, EndBlockResponse, GetCommittedStateRequest, GetCommittedStateResponse,
-        HostSource, InitGenesisRequest, InitGenesisResponse, SealCommitRequest, SealCommitResponse,
+        CheckTxResponse, DeliverTxRequest, DeliverTxResponse, EndBlockRequest, EndBlockResponse,
+        FreezeRequest, FreezeResponse, GetCommittedStateRequest, GetCommittedStateResponse,
+        HostSource, InitGenesisRequest, InitGenesisResponse, MaterializeRequest,
+        MaterializeResponse,
     };
     use shieldd_sdk_proto::execution_client::v1::{
         CloseScopeRequest, CloseScopeResponse, OpenScopeRequest, OpenScopeResponse,
         PrepareScopeRequest, PrepareScopeResponse,
     };
+    use shieldd_sdk_proto::storage::v1::{KeyValueRequest, KeyValueResponse};
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
         let path = directory
@@ -814,8 +1067,7 @@ mod tests {
             METHOD_GET_COMMITTED_STATE,
             GetCommittedStateRequest {},
         );
-        let _: shieldd_sdk_proto::execution_client::v1::CommitRequest =
-            call(handle, METHOD_PUBLISH_COMMITTED, state);
+        assert_eq!(state.root_hash.len(), 32);
     }
 
     fn close(handle: *mut ShielddHandle) {
@@ -912,11 +1164,11 @@ mod tests {
             (METHOD_CHECK_TX, Method::CheckTx),
             (METHOD_DELIVER_TX, Method::DeliverTx),
             (METHOD_END_BLOCK, Method::EndBlock),
-            (METHOD_COMMIT, Method::Commit),
-            (METHOD_ROLLBACK, Method::Rollback),
+            (METHOD_MATERIALIZE, Method::Materialize),
+            (METHOD_DISCARD, Method::Discard),
             (METHOD_EXPORT_GENESIS, Method::ExportGenesis),
             (METHOD_GET_COMMITTED_STATE, Method::GetCommittedState),
-            (METHOD_SEAL_COMMIT, Method::SealCommit),
+            (METHOD_FREEZE, Method::Freeze),
             (METHOD_OPEN_SCOPE, Method::OpenScope),
             (METHOD_PREPARE_SCOPE, Method::PrepareScope),
             (METHOD_CLOSE_SCOPE, Method::CloseScope),
@@ -944,6 +1196,11 @@ mod tests {
                 Method::QueryComplianceUserLeaf,
             ),
             (METHOD_QUERY_KEY_VALUE, Method::QueryKeyValue),
+            (METHOD_QUERY_ARCHIVE_RANGE, Method::QueryArchiveRange),
+            (
+                METHOD_QUERY_PUBLISHED_BOUNDARY,
+                Method::QueryPublishedBoundary,
+            ),
             (METHOD_QUERY_NULLIFIER_STATUS, Method::QueryNullifierStatus),
             (
                 METHOD_QUERY_COMMITTED_TRANSACTION,
@@ -1033,8 +1290,129 @@ mod tests {
                 ),
             },
         );
-        let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+        let _: MaterializeResponse = call(
+            handle,
+            METHOD_MATERIALIZE,
+            MaterializeRequest {
+                height: 0,
+                receipt_digest: vec![],
+            },
+        );
         publish(handle);
+    }
+
+    #[test]
+    fn decided_receipt_replays_owned_rejection_and_aborted_calls_once() {
+        use shieldd_sdk_proto::execution_client::v1::{
+            RecoverDecidedRequest, RecoverDecidedResponse, StartVerificationRequest,
+            StartVerificationResponse, VerificationCandidate, VerificationPosition,
+        };
+        let directory = tempfile::tempdir().unwrap();
+        let handle = open(directory.path());
+        initialize(handle);
+        let position = VerificationPosition {
+            tx_index: 0,
+            message_path: vec![0],
+        };
+        let invalid = b"invalid native transaction".to_vec();
+        let _: StartVerificationResponse = call(
+            handle,
+            METHOD_START_VERIFICATION,
+            StartVerificationRequest {
+                height: 1,
+                candidates: vec![VerificationCandidate {
+                    position: Some(position.clone()),
+                    tx: invalid.clone(),
+                }],
+            },
+        );
+        let mut begin = BeginBlockRequest {
+            height: 1,
+            block_id: vec![1; 32],
+            time: Some(Default::default()),
+        };
+        begin.time.as_mut().unwrap().seconds = 1_700_000_001;
+        let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin);
+        let scope: OpenScopeResponse = call(handle, METHOD_OPEN_SCOPE, OpenScopeRequest::default());
+        let rejected: DeliverTxResponse = call_at(
+            handle,
+            scope.scope_id,
+            METHOD_DELIVER_TX,
+            DeliverTxRequest {
+                tx: invalid,
+                position: Some(position),
+            },
+        );
+        assert_ne!(rejected.code, 0);
+        let _: CloseScopeResponse = call_at(
+            handle,
+            scope.scope_id,
+            METHOD_CLOSE_SCOPE,
+            CloseScopeRequest { adopt: false },
+        );
+        let scope: OpenScopeResponse = call(handle, METHOD_OPEN_SCOPE, OpenScopeRequest::default());
+        let request =
+            shieldd_sdk_proto::execution_client::v1::DepositRequest::default().encode_to_vec();
+        let failed = shieldd_call(
+            handle,
+            scope.scope_id,
+            METHOD_DEPOSIT,
+            request.as_ptr(),
+            request.len(),
+        );
+        assert_eq!(failed.status, STATUS_INVALID_ARGUMENT);
+        free_result(failed);
+        let _: CloseScopeResponse = call_at(
+            handle,
+            scope.scope_id,
+            METHOD_CLOSE_SCOPE,
+            CloseScopeRequest { adopt: false },
+        );
+        let _: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height: 1 });
+        let frozen: FreezeResponse = call(handle, METHOD_FREEZE, FreezeRequest {});
+        let decided = frozen.next.clone().unwrap();
+        close(handle);
+        let handle = open(directory.path());
+        let mut corrupt = frozen.receipt.clone();
+        corrupt[0] ^= 1;
+        let request = RecoverDecidedRequest {
+            decided: Some(decided.clone()),
+            receipt_digest: frozen.receipt_digest.clone(),
+            receipt: corrupt,
+        }
+        .encode_to_vec();
+        let result = shieldd_call(
+            handle,
+            0,
+            METHOD_RECOVER_DECIDED,
+            request.as_ptr(),
+            request.len(),
+        );
+        assert_ne!(result.status, STATUS_OK);
+        free_result(result);
+        let recovered: RecoverDecidedResponse = call(
+            handle,
+            METHOD_RECOVER_DECIDED,
+            RecoverDecidedRequest {
+                decided: Some(decided.clone()),
+                receipt_digest: frozen.receipt_digest.clone(),
+                receipt: frozen.receipt,
+            },
+        );
+        assert_eq!(recovered.materialized, Some(decided.clone()));
+        // A matched restore/repeated restart needs the authenticated header,
+        // but no replay blob and no repetition of already materialized calls.
+        let recovered: RecoverDecidedResponse = call(
+            handle,
+            METHOD_RECOVER_DECIDED,
+            RecoverDecidedRequest {
+                decided: Some(decided.clone()),
+                receipt_digest: frozen.receipt_digest,
+                receipt: vec![],
+            },
+        );
+        assert_eq!(recovered.materialized, Some(decided));
+        close(handle);
     }
 
     fn commit_empty_block(handle: *mut ShielddHandle, height: i64) {
@@ -1050,14 +1428,16 @@ mod tests {
             .seconds = 1_700_000_000 + height;
         let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
         let ended: EndBlockResponse = call(handle, METHOD_END_BLOCK, EndBlockRequest { height });
-        let _: SealCommitResponse = call(
+        let frozen: FreezeResponse = call(handle, METHOD_FREEZE, FreezeRequest {});
+        assert_eq!(frozen.next, ended.prepared);
+        let _: MaterializeResponse = call(
             handle,
-            METHOD_SEAL_COMMIT,
-            SealCommitRequest {
-                expected: ended.prepared,
+            METHOD_MATERIALIZE,
+            MaterializeRequest {
+                height: height as u64,
+                receipt_digest: frozen.receipt_digest,
             },
         );
-        let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
         publish(handle);
     }
 
@@ -1067,7 +1447,7 @@ mod tests {
         let handle = open(directory.path());
 
         for _ in 0..2 {
-            let result = shieldd_call(handle, 0, METHOD_ROLLBACK, ptr::null(), 0);
+            let result = shieldd_call(handle, 0, METHOD_DISCARD, ptr::null(), 0);
             assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
             assert_eq!(result.response.len, 0);
             free_result(result);
@@ -1081,7 +1461,7 @@ mod tests {
 
     #[test]
     fn invalid_inputs_return_c_safe_statuses() {
-        let null_handle = shieldd_call(ptr::null_mut(), 0, METHOD_ROLLBACK, ptr::null(), 0);
+        let null_handle = shieldd_call(ptr::null_mut(), 0, METHOD_DISCARD, ptr::null(), 0);
         assert_eq!(null_handle.status, STATUS_INVALID_ARGUMENT);
         assert!(error_text(&null_handle).contains("handle must not be null"));
         free_result(null_handle);
@@ -1191,7 +1571,7 @@ mod tests {
                 std::thread::spawn(move || {
                     let handle = handle_address as *mut ShielddHandle;
                     for _ in 0..16 {
-                        let result = shieldd_call(handle, 0, METHOD_ROLLBACK, ptr::null(), 0);
+                        let result = shieldd_call(handle, 0, METHOD_DISCARD, ptr::null(), 0);
                         assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
                         free_result(result);
                     }
@@ -1220,7 +1600,14 @@ mod tests {
                 ),
             },
         );
-        let commit: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+        let commit: MaterializeResponse = call(
+            handle,
+            METHOD_MATERIALIZE,
+            MaterializeRequest {
+                height: 0,
+                receipt_digest: vec![],
+            },
+        );
         publish(handle);
         let committed: GetCommittedStateResponse = call(
             handle,
@@ -1229,7 +1616,7 @@ mod tests {
         );
 
         assert_eq!(committed.height, 0);
-        assert_eq!(committed.root_hash, commit.root_hash);
+        assert_eq!(committed.root_hash, commit.decided.unwrap().root_hash);
         close(handle);
     }
 
@@ -1337,7 +1724,7 @@ mod tests {
             },
         );
         assert!(key_response.value.is_some());
-        assert!(key_response.proof.is_none());
+        assert!(key_response.proof.is_empty());
 
         let status: NullifierResponse = call(
             handle,
@@ -1349,7 +1736,7 @@ mod tests {
         let status: shieldd_sdk_sct::permanent_nullifiers::Status =
             status.try_into().expect("valid status proof");
         assert!(!status.spent);
-        assert_eq!(status.boundary.height, Some(0));
+        assert_eq!(status.proof.manifest.height, 0);
         close(handle);
     }
 
@@ -1436,6 +1823,7 @@ mod tests {
             METHOD_DELIVER_TX,
             DeliverTxRequest {
                 tx: b"not a shieldd transaction".to_vec(),
+                position: None,
             },
         );
 

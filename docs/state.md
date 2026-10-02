@@ -39,12 +39,13 @@ position. Metadata, payload fragments, other compact collections and canonical
 signed transactions are separate records. Signed transaction bytes remain intact.
 Tag indexes store reversed bits, permitting range scans for low-bit selectors.
 
-Cnidarium has one database owner and one ordered application writer. Queries use
-independent snapshots explicitly published by Bankd only after its commit,
-Shieldd's commit and the durable recovery record succeed. Recovery inspection is
-separate from public reads. CheckTx uses disposable deltas with bounded admission;
-delivery still validates current state. Local query budgets and buffer ownership
-are defined in [Embedded artifacts](embedded-artifacts.md).
+NOMT authenticates application values and ordering/completeness; RocksDB keeps
+full values and native nodes. Native SCT and compliance reads are bound to their
+existing commitments. Retained archive records authenticate through per-block
+Merkle trees and an MMR. Checkpoints rebuild indexes from validated canonical
+records. [Storage lifecycle](nullifier-history.md) defines coordinated durability,
+recovery, publication and capacity. Local query budgets and buffer ownership are
+defined in [Embedded artifacts](embedded-artifacts.md).
 
 ## Validator compliance trees
 

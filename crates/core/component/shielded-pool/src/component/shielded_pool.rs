@@ -5,9 +5,9 @@ use crate::{discovery, genesis, state_key};
 use anyhow::anyhow;
 use anyhow::Result;
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
-use cnidarium_component::Component;
-use futures::StreamExt as _;
+use shieldd_sdk_storage::Component;
+use shieldd_sdk_storage::{StateRead, StateWrite};
+
 use shieldd_sdk_proto::StateReadProto as _;
 use shieldd_sdk_proto::StateWriteProto as _;
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _, MAX_NULLIFIERS_PER_BLOCK};
@@ -20,9 +20,8 @@ use super::{AssetRegistry, NoteManager};
 pub struct ShieldedPool {}
 
 const GENESIS_SCT_BLOCK_CAPACITY: usize = u16::MAX as usize + 1;
-/// Volume entries cannot exceed half the combined proof-bound nullifier budget:
-/// each ordinary Transfer also carries at least one spend nullifier.
-const MAX_VOLUME_NULLIFIER_DELETIONS_PER_BLOCK: usize = MAX_NULLIFIERS_PER_BLOCK / 2;
+pub const PENDING_VOLUME: &str = "shielded_pool/volume_nullifiers/pending";
+pub type PendingVolume = imbl::OrdMap<shieldd_sdk_storage::Day, imbl::OrdSet<[u8; 32]>>;
 
 #[async_trait]
 impl Component for ShieldedPool {
@@ -78,18 +77,19 @@ impl Component for ShieldedPool {
         }
     }
 
-    #[instrument(name = "shielded_pool", skip(state, begin_block))]
+    #[instrument(name = "shielded_pool", skip(state, _begin_block))]
     async fn begin_block<S: StateWrite + 'static>(
         state: &mut Arc<S>,
-        begin_block: &cnidarium_component::BlockContext,
+        _begin_block: &shieldd_sdk_storage::BlockContext,
     ) {
-        let now = u64::try_from(begin_block.time.unix_timestamp())
-            .expect("consensus timestamps must be after the Unix epoch");
+        // Retire generations through the next native manifest. There are no
+        // per-entry authenticated deletions or day-marker scans on this path.
         Arc::get_mut(state)
             .expect("the state should not be shared")
-            .prune_volume_nullifiers(now)
-            .await
-            .expect("daily volume nullifier pruning must succeed");
+            .object_put(PENDING_VOLUME, PendingVolume::new());
+        Arc::get_mut(state)
+            .expect("the state should not be shared")
+            .object_put(shieldd_sdk_storage::PENDING_VOLUME_COUNT, 0usize);
     }
 
     #[instrument(name = "shielded_pool", skip_all)]
@@ -151,12 +151,24 @@ pub trait StateReadExt: StateRead {
     }
 
     async fn volume_nullifier_exists(&self, day_start: u64, nullifier: Nullifier) -> Result<bool> {
-        Ok(self
-            .get_raw(&state_key::volume_nullifiers::by_day_and_nullifier(
-                day_start, nullifier,
-            ))
-            .await?
-            .is_some())
+        let day = shieldd_sdk_storage::Day(day_start);
+        anyhow::ensure!(day_start % 86_400 == 0, "noncanonical volume day");
+        if self
+            .object_get::<PendingVolume>(PENDING_VOLUME)
+            .is_some_and(|pending| {
+                pending
+                    .get(&day)
+                    .is_some_and(|set| set.contains(&nullifier.to_bytes()))
+            })
+        {
+            return Ok(true);
+        }
+        let reader = self
+            .object_get::<shieldd_sdk_sct::permanent_nullifiers::Reader>(
+                shieldd_sdk_sct::state_key::nullifiers::reader(),
+            )
+            .ok_or_else(|| anyhow!("native nullifier reader is missing"))?;
+        reader.volume_exists(self, day, nullifier)
     }
 
     async fn check_volume_nullifier_unspent(
@@ -204,70 +216,27 @@ pub trait StateWriteExt: StateWrite + StateReadExt {
     ) -> Result<()> {
         self.check_volume_nullifier_unspent(day_start, nullifier)
             .await?;
-        self.put_raw(
-            state_key::volume_nullifiers::by_day_and_nullifier(day_start, nullifier).into(),
-            vec![1],
-        );
-        self.put_raw(
-            state_key::volume_nullifiers::day_marker(day_start).into(),
-            vec![1],
-        );
-        Ok(())
-    }
-
-    async fn prune_volume_nullifiers(&mut self, now: u64) -> Result<()> {
-        self.prune_volume_nullifiers_with_limit(now, MAX_VOLUME_NULLIFIER_DELETIONS_PER_BLOCK)
-            .await?;
-        Ok(())
-    }
-
-    /// Deletes at most `limit` expired entry or marker keys and returns the count.
-    async fn prune_volume_nullifiers_with_limit(
-        &mut self,
-        now: u64,
-        limit: usize,
-    ) -> Result<usize> {
-        if limit == 0 {
-            return Ok(0);
+        let day = shieldd_sdk_storage::Day(day_start);
+        let mut pending = self
+            .object_get::<PendingVolume>(PENDING_VOLUME)
+            .unwrap_or_default();
+        let mut values = pending.get(&day).cloned().unwrap_or_default();
+        values.insert(nullifier.to_bytes());
+        pending.insert(day, values);
+        let total = pending.values().map(|values| values.len()).sum::<usize>()
+            + self.pending_nullifiers().len();
+        if total > MAX_NULLIFIERS_PER_BLOCK {
+            return Err(shieldd_sdk_storage::ProtocolLimitExceeded(
+                "combined block nullifier limit exceeded",
+            )
+            .into());
         }
-        let marker_prefix = state_key::volume_nullifiers::day_marker_prefix();
-        let marker_keys = self
-            .prefix_keys(marker_prefix)
-            .collect::<Vec<_>>()
-            .await
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()?;
-        let mut deleted = 0usize;
-        for marker_key in marker_keys {
-            if deleted == limit {
-                break;
-            }
-            let day_start: u64 = marker_key
-                .strip_prefix(marker_prefix)
-                .ok_or_else(|| anyhow!("invalid volume nullifier day marker"))?
-                .parse()?;
-            if now <= day_start.saturating_add(crate::VOLUME_ACCUMULATOR_RETENTION_SECS) {
-                continue;
-            }
-            let remaining = limit - deleted;
-            let keys = self
-                .prefix_keys(&state_key::volume_nullifiers::day_prefix(day_start))
-                .take(remaining.saturating_add(1))
-                .collect::<Vec<_>>()
-                .await
-                .into_iter()
-                .collect::<Result<Vec<_>, _>>()?;
-            let has_more = keys.len() > remaining;
-            for key in keys.into_iter().take(remaining) {
-                self.delete(key.into());
-                deleted += 1;
-            }
-            if !has_more && deleted < limit {
-                self.delete(marker_key.into());
-                deleted += 1;
-            }
-        }
-        Ok(deleted)
+        self.object_put(
+            shieldd_sdk_storage::PENDING_VOLUME_COUNT,
+            total - self.pending_nullifiers().len(),
+        );
+        self.object_put(PENDING_VOLUME, pending);
+        Ok(())
     }
 }
 
@@ -276,77 +245,29 @@ impl<T: StateWrite + ?Sized> StateWriteExt for T {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::{StateDelta, TempStorage};
     use shieldd_sdk_crypto::Fq;
+    use shieldd_sdk_storage::{StateDelta, TempStorage};
 
     #[tokio::test]
-    async fn volume_nullifiers_are_exclusive_and_pruned_after_the_buffer() -> Result<()> {
+    async fn volume_nullifiers_are_exclusive_in_the_pending_generation() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
+        state.object_put(
+            shieldd_sdk_sct::state_key::nullifiers::reader(),
+            shieldd_sdk_sct::permanent_nullifiers::Reader(storage.storage().clone()),
+        );
         let day_start = 86_400u64;
         let nullifier = Nullifier(Fq::from(9u64));
-
         state.record_volume_nullifier(day_start, nullifier).await?;
         assert!(state.volume_nullifier_exists(day_start, nullifier).await?);
         assert!(state
             .record_volume_nullifier(day_start, nullifier)
             .await
             .is_err());
-
-        state
-            .prune_volume_nullifiers(
-                day_start.saturating_add(crate::VOLUME_ACCUMULATOR_RETENTION_SECS),
-            )
-            .await?;
-        assert!(state.volume_nullifier_exists(day_start, nullifier).await?);
-
-        state
-            .prune_volume_nullifiers(
-                day_start
-                    .saturating_add(crate::VOLUME_ACCUMULATOR_RETENTION_SECS)
-                    .saturating_add(1),
-            )
-            .await?;
-        assert!(!state.volume_nullifier_exists(day_start, nullifier).await?);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn volume_nullifier_pruning_is_bounded_and_resumes_from_the_marker() -> Result<()> {
-        let storage = TempStorage::new().await?;
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        let day_start = 86_400u64;
-        let expired = day_start
-            .saturating_add(crate::VOLUME_ACCUMULATOR_RETENTION_SECS)
-            .saturating_add(1);
-        let nullifiers = [
-            Nullifier(Fq::from(1u64)),
-            Nullifier(Fq::from(2u64)),
-            Nullifier(Fq::from(3u64)),
-        ];
-        for nullifier in nullifiers {
-            state.record_volume_nullifier(day_start, nullifier).await?;
-        }
-
-        assert_eq!(
-            state.prune_volume_nullifiers_with_limit(expired, 2).await?,
-            2
-        );
-        let mut remaining = 0;
-        for nullifier in nullifiers {
-            remaining += usize::from(state.volume_nullifier_exists(day_start, nullifier).await?);
-        }
-        assert_eq!(remaining, 1);
-        assert_eq!(
-            state.prune_volume_nullifiers_with_limit(expired, 2).await?,
-            2
-        );
-        for nullifier in nullifiers {
-            assert!(!state.volume_nullifier_exists(day_start, nullifier).await?);
-        }
-        assert_eq!(
-            state.prune_volume_nullifiers_with_limit(expired, 2).await?,
-            0
+        assert!(
+            !state
+                .volume_nullifier_exists(day_start + 86_400, nullifier)
+                .await?
         );
         Ok(())
     }

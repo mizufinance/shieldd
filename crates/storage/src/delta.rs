@@ -106,6 +106,38 @@ impl<S: StateRead> StateDelta<S> {
     }
 }
 
+impl StateDelta<crate::Snapshot> {
+    /// Authenticate every committed neighbor needed by newly staged writes
+    /// before the enclosing SDK cache may be adopted. Persistent-map diff skips
+    /// unchanged subtrees from earlier transactions.
+    pub fn reserve_ordering_since(&self, prior: &Self) -> Result<()> {
+        anyhow::ensure!(
+            Arc::ptr_eq(&self.base, &prior.base),
+            "overlay provenance differs at adoption"
+        );
+        use imbl::ordmap::DiffItem;
+        let base = self.base.read();
+        let view = base.as_ref().expect("overlay family already consumed");
+        for item in prior.cache.application.diff(&self.cache.application) {
+            let key = match item {
+                DiffItem::Add(key, _) | DiffItem::Remove(key, _) => key,
+                DiffItem::Update { new: (key, _), .. } => key,
+            };
+            view.reserve_ordering(crate::Space::Application, key.as_bytes())?;
+        }
+        for item in prior.cache.raw.diff(&self.cache.raw) {
+            let key = match item {
+                DiffItem::Add(key, _) | DiffItem::Remove(key, _) => key,
+                DiffItem::Update { new: (key, _), .. } => key,
+            };
+            if crate::archive::height(key).is_none() && crate::native::tree(key).is_none() {
+                view.reserve_ordering(crate::Space::Raw, key)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<S: StateWrite> StateDelta<S> {
     pub fn apply(self) -> (S, Vec<Event>) {
         let (mut base, mut cache) = self.flatten();
@@ -198,6 +230,14 @@ impl<S: StateRead> StateRead for StateDelta<S> {
         )
     }
     fn nonverifiable_get_raw(&self, key: &[u8]) -> Self::GetRawFut {
+        if crate::native::tree(key).is_some() {
+            if let Some(view) = self.read_view() {
+                view.observations.poison();
+            }
+            return Either::Left(futures::future::ready(Err(anyhow::anyhow!(
+                "native tree nodes require an authentication scope"
+            ))));
+        }
         if let Some(value) = self.cache.raw.get(key) {
             return Either::Left(futures::future::ready(Ok(value
                 .as_ref()
@@ -210,6 +250,51 @@ impl<S: StateRead> StateRead for StateDelta<S> {
                 .expect("overlay family consumed")
                 .nonverifiable_get_raw(key),
         )
+    }
+    fn native_get_raw(&self, scope: &crate::NativeReadScope, key: &[u8]) -> Self::GetRawFut {
+        if let Some(view) = self.read_view() {
+            if let Err(error) = scope.check(&view.observations, key) {
+                view.observations.poison();
+                return Either::Left(futures::future::ready(Err(error)));
+            }
+        }
+        if let Some(value) = self.cache.raw.get(key) {
+            return Either::Left(futures::future::ready(Ok(value
+                .as_ref()
+                .map(|v| v.to_vec()))));
+        }
+        Either::Right(
+            self.base
+                .read()
+                .as_ref()
+                .expect("overlay family consumed")
+                .native_get_raw(scope, key),
+        )
+    }
+    fn native_range_raw(
+        &self,
+        scope: &crate::NativeReadScope,
+        prefix: &[u8],
+        range: impl RangeBounds<Vec<u8>>,
+    ) -> Result<Self::NonconsensusRangeRawStream> {
+        let start = range.start_bound().cloned();
+        let end = range.end_bound().cloned();
+        let changes = self
+            .cache
+            .raw
+            .range(prefix.to_vec()..)
+            .take_while(|(k, _)| k.starts_with(prefix))
+            .filter(|(k, _)| (start.clone(), end.clone()).contains(&k[prefix.len()..].to_vec()))
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        let base = self
+            .base
+            .read()
+            .as_ref()
+            .expect("overlay family consumed")
+            .native_range_raw(scope, prefix, range)?
+            .boxed();
+        Ok(merge(base, changes))
     }
     fn object_get<T: Any + Send + Sync + Clone>(&self, key: &'static str) -> Option<T> {
         if let Some(value) = self.cache.objects.get(key) {
@@ -258,6 +343,17 @@ impl<S: StateRead> StateRead for StateDelta<S> {
             .boxed()
     }
     fn nonverifiable_prefix_raw(&self, prefix: &[u8]) -> Self::NonconsensusPrefixRawStream {
+        if crate::native::intersects(prefix) {
+            if let Some(view) = self.read_view() {
+                view.observations.poison();
+            }
+            return futures::stream::once(async {
+                Err(anyhow::anyhow!(
+                    "native tree scans require an authentication scope"
+                ))
+            })
+            .boxed();
+        }
         let changes = self
             .cache
             .raw
@@ -280,6 +376,12 @@ impl<S: StateRead> StateRead for StateDelta<S> {
         range: impl RangeBounds<Vec<u8>>,
     ) -> Result<Self::NonconsensusRangeRawStream> {
         let prefix = prefix.unwrap_or_default();
+        if crate::native::intersects(prefix) {
+            if let Some(view) = self.read_view() {
+                view.observations.poison();
+            }
+            anyhow::bail!("native tree scans require an authentication scope");
+        }
         let start = match range.start_bound() {
             Bound::Included(k) => Bound::Included(k.clone()),
             Bound::Excluded(k) => Bound::Excluded(k.clone()),

@@ -15,7 +15,6 @@ pub use metrics::*;
 
 /// Registers all metrics used by this crate.
 pub fn register_metrics() {
-    cnidarium::register_metrics();
     describe_gauge!(
         NULLIFIER_BUCKETS,
         Unit::Count,

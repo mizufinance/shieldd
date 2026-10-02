@@ -2,10 +2,10 @@ use super::*;
 
 use std::time::Duration;
 
-use cnidarium::ArcStateDeltaExt as _;
 use shieldd_sdk_compact_block::component::StateReadExt as _;
 use shieldd_sdk_sct::component::tree::SctRead as _;
 use shieldd_sdk_shielded_pool::{HostWithdrawal, Note, NoteReshapeFamilyId};
+use shieldd_sdk_storage::ArcStateDeltaExt as _;
 use tokio::sync::OnceCell;
 
 use crate::app::{HostBlock, HostExecution, MAX_BLOCK_TXS_PAYLOAD_BYTES};
@@ -254,7 +254,7 @@ const FIXTURE_ALLOCATION_AMOUNT: u64 = 1_000_000;
 const FIXTURE_REQUIRED_NOTES: usize = 6;
 
 async fn build_fixture_storage() -> Result<FixtureStorage> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let allocations = std::iter::repeat(Allocation {
         raw_amount: u128::from(FIXTURE_ALLOCATION_AMOUNT).into(),
         raw_denom: BASE_ASSET_DENOM.deref().base_denom().denom,
@@ -273,7 +273,7 @@ async fn build_fixture_storage() -> Result<FixtureStorage> {
 
     let initial_time = Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?;
     let mut node = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         initial_time,
         registry(),
@@ -660,7 +660,7 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     );
 
     let storage_guard = build_fixture_storage().await?;
-    let storage = storage_guard.as_ref().clone();
+    let storage = storage_guard.storage().clone();
     let mut app = App::new(
         storage.latest_snapshot(),
         registry(),
@@ -668,7 +668,7 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     )
     .await?;
     let context = app.benchmark_block_context().await?;
-    let begin_block = cnidarium_component::BlockContext {
+    let begin_block = shieldd_sdk_storage::BlockContext {
         height: context.height,
         time: context.time,
     };
@@ -878,11 +878,10 @@ async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<(
         let hash = tx_hash(&invalid_bytes);
 
         let checked_cache = Arc::new(StatelessCache::new());
-        let mut checked_host = HostExecution::with_reader(
-            family_set._storage_guard.as_ref().clone(),
+        let mut checked_host = HostExecution::with_cache(
+            family_set._storage_guard.storage().clone(),
             checked_cache.clone(),
             registry(),
-            family_set._storage_guard.reader.clone(),
         )
         .await?;
         let check_response = checked_host.check_tx(&invalid_bytes).await?;
@@ -910,11 +909,10 @@ async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<(
         assert_cache_invalid(&checked_cache, &hash, &invalid_bytes, fixture.label());
 
         let cold_cache = Arc::new(StatelessCache::new());
-        let mut cold_host = HostExecution::with_reader(
-            family_set._storage_guard.as_ref().clone(),
+        let mut cold_host = HostExecution::with_cache(
+            family_set._storage_guard.storage().clone(),
             cold_cache.clone(),
             registry(),
-            family_set._storage_guard.reader.clone(),
         )
         .await?;
         cold_host
@@ -931,7 +929,12 @@ async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<(
             "{}: cold HostExecution delivery accepted an invalid proof",
             fixture.label()
         );
-        assert_cache_invalid(&cold_cache, &hash, &invalid_bytes, fixture.label());
+        assert!(
+            cold_cache
+                .get(registry().id(), &hash, &invalid_bytes)
+                .is_none(),
+            "canonical delivery does not populate the CheckTx LRU"
+        );
     }
 
     assert_eq!(
@@ -1177,7 +1180,7 @@ async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result
             )
             .await?;
             let context = app.benchmark_block_context().await?;
-            app.begin_block(&cnidarium_component::BlockContext {
+            app.begin_block(&shieldd_sdk_storage::BlockContext {
                 height: context.height,
                 time: context.time,
             })
@@ -1247,7 +1250,7 @@ async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result
                 assert_eq!(app.state.get_user_tree_root().await?, before);
                 if fixture.label() == "transfer" {
                     app.end_block(context.height).await;
-                    app.commit_for_testing(storage.as_ref().clone()).await?;
+                    app.commit_for_testing(storage.storage().clone()).await?;
                     let client = MockClient::new(test_keys::SPEND_KEY.clone())
                         .with_sync_to_storage(&storage)
                         .await?;
@@ -1280,7 +1283,7 @@ async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result
                         .await?;
                     let refreshed = client.witness_auth_build(&plan, registry()).await?;
                     let context = app.benchmark_block_context().await?;
-                    app.begin_block(&cnidarium_component::BlockContext {
+                    app.begin_block(&shieldd_sdk_storage::BlockContext {
                         height: context.height,
                         time: context.time,
                     })

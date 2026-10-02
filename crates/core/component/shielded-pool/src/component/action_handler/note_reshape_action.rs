@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::StateWrite;
-use cnidarium_component::ActionHandler;
 use shieldd_sdk_compliance::ComplianceRegistryRead as _;
 use shieldd_sdk_proof_params::pari::{Verification, Verified};
+use shieldd_sdk_storage::ActionHandler;
+use shieldd_sdk_storage::StateWrite;
 use shieldd_sdk_txhash::TransactionContext;
 
 use crate::{
@@ -150,10 +150,10 @@ mod tests {
     #[tokio::test]
     async fn note_reshape_projection_matches_and_raw_execution_fails_closed_for_every_family() {
         let mut rng = OsRng;
-        let storage = cnidarium::TempStorage::new()
+        let storage = shieldd_sdk_storage::TempStorage::new()
             .await
             .expect("temporary storage");
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         for family_id in NoteReshapeFamilyId::ALL {
             let input_count = family_id.min_real_inputs();
             let output_count = family_id.min_real_outputs();

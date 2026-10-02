@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
-use cnidarium_component::Component;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_storage::Component;
+use shieldd_sdk_storage::{StateRead, StateWrite};
 use tracing::instrument;
 
 use crate::{epoch::Epoch, genesis, params::SctParameters, state_key};
@@ -48,7 +48,7 @@ impl Component for Sct {
     #[instrument(name = "sct_component", skip(state, begin_block))]
     async fn begin_block<S: StateWrite + 'static>(
         state: &mut Arc<S>,
-        begin_block: &cnidarium_component::BlockContext,
+        begin_block: &shieldd_sdk_storage::BlockContext,
     ) {
         let state = Arc::get_mut(state).expect("there's only one reference to the state");
         state.put_block_height(begin_block.height);

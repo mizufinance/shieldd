@@ -1,8 +1,8 @@
 use crate::{epoch::Epoch, state_key};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 use std::str::FromStr;
 
 #[async_trait]
@@ -18,7 +18,7 @@ pub trait EpochRead: StateRead {
             .ok_or_else(|| anyhow!("Missing block_height"))
     }
 
-    /// Gets the current block timestamp from the JMT
+    /// Gets the current block timestamp from authenticated state
     ///
     /// # Errors
     /// Returns an error if the block timestamp is missing.

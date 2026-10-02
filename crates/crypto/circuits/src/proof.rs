@@ -86,6 +86,13 @@ fn transcript(family: Family) -> Transcript {
 }
 
 impl Envelope {
+    /// Heap capacity owned by the decoded claim; proof elements are inline.
+    pub fn allocated_bytes(&self) -> usize {
+        self.claim.public_inputs.capacity() * std::mem::size_of::<Scalar>()
+            + self.claim.commitments.capacity()
+                * std::mem::size_of::<commonware_cryptography::bls12381::primitives::group::G1>()
+    }
+
     pub fn family(&self) -> Family {
         self.family
     }

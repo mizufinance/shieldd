@@ -1,8 +1,10 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use shieldd_sdk_sct::{
-    permanent_nullifiers::{Boundary, Config, Store},
-    Nullifier,
+use shieldd_sdk_sct::{permanent_nullifiers::Reader, Nullifier};
+use shieldd_sdk_storage::{
+    nullifier_key, nullifier_shard, BlockBoundary, ForestConfig, ParticipantChange, ParticipantId,
+    StateDelta, Storage, SPENT,
 };
+use std::collections::BTreeMap;
 
 fn configured_sizes() -> Vec<usize> {
     std::env::var("SHIELDD_NULLIFIER_BENCH_SIZES")
@@ -27,35 +29,65 @@ fn bench_nullifier_storage(c: &mut Criterion) {
     for size in configured_sizes() {
         assert!(size > 0);
         let directory = tempfile::tempdir().unwrap();
-        let config = Config {
-            buckets: (size as u32).max(1024),
-            cache_mib: 8,
-            preallocate: false,
-        };
-        let mut store = Store::open(&directory.path().join("nullifiers"), &config, true).unwrap();
-        let mut boundary = Boundary::default();
-        store.recover(&boundary).unwrap();
-        for (height, chunk) in (0..size).collect::<Vec<_>>().chunks(32768).enumerate() {
-            let mut block_id = [0; 32];
-            block_id[..8].copy_from_slice(&(height as u64).to_be_bytes());
+        let store = Storage::open(
+            &directory.path().join("state"),
+            ForestConfig {
+                buckets: (size as u32).max(1024),
+                cache_mib: 8,
+                preallocate: false,
+                materialization_workers: 2,
+            },
+        )
+        .unwrap();
+        let genesis = store
+            .prepare(
+                StateDelta::new(store.latest_snapshot()),
+                BlockBoundary {
+                    chain_id: "nullifier-benchmark".into(),
+                    protocol: [1; 32],
+                    height: 0,
+                    block_id: [0; 32],
+                    time: 0,
+                },
+                BTreeMap::new(),
+            )
+            .unwrap();
+        let mut boundary = store.materialize(genesis).unwrap();
+        for (index, chunk) in (0..size).collect::<Vec<_>>().chunks(131_072).enumerate() {
+            let height = index as u64 + 1;
+            let mut changes: BTreeMap<ParticipantId, Vec<ParticipantChange>> = BTreeMap::new();
+            for index in chunk {
+                let key = nullifier_key(&nullifier(*index).to_bytes());
+                changes
+                    .entry(ParticipantId::permanent(nullifier_shard(&key)).unwrap())
+                    .or_default()
+                    .push(ParticipantChange {
+                        key,
+                        value: Some(SPENT.to_vec()),
+                    });
+            }
             let prepared = store
                 .prepare(
-                    height as u64,
-                    block_id,
-                    &boundary,
-                    chunk.iter().copied().map(nullifier).collect(),
+                    StateDelta::new(store.latest_snapshot()),
+                    BlockBoundary {
+                        chain_id: "nullifier-benchmark".into(),
+                        protocol: [1; 32],
+                        height,
+                        block_id: [height as u8; 32],
+                        time: height as i64,
+                    },
+                    changes,
                 )
                 .unwrap();
-            store.persist_intent(&prepared).unwrap();
-            boundary = store.commit(prepared).unwrap().next;
-            store.complete(&boundary).unwrap();
+            boundary = store.materialize(prepared).unwrap();
         }
+        let reader = Reader(store);
         for (label, nf) in [
             ("authenticated_hit", nullifier(size / 2)),
             ("authenticated_miss", nullifier(size + 1)),
         ] {
             group.bench_with_input(BenchmarkId::new(label, size), &nf, |b, nf| {
-                b.iter(|| store.status(*nf, &boundary).unwrap())
+                b.iter(|| reader.status(*nf, &boundary).unwrap())
             });
         }
     }

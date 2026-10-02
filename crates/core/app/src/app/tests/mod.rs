@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use crate::test_support::{TestHost, TEST_CHAIN_ID};
 use anyhow::{anyhow, Context, Result};
-use cnidarium::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
 use futures::StreamExt as _;
 use group::GroupEncoding;
 use prost::bytes::Bytes;
@@ -35,6 +34,7 @@ use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::component::NoteManager as _;
 use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
 use shieldd_sdk_shielded_pool::{genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan};
+use shieldd_sdk_storage::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_transaction::{
     memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
@@ -49,7 +49,6 @@ use super::{BatchCandidate, BatchPreparation, BatchVerdict};
 use crate::app::CandidateEnvelope;
 use crate::genesis::{AppState, Content};
 use crate::stateless_cache::{CacheEntry, StatelessCache};
-use crate::SUBSTORE_PREFIXES;
 
 use super::{App, BlockTxIndexingMode, StateReadExt};
 
@@ -71,9 +70,9 @@ pub(super) fn registry() -> Arc<shieldd_sdk_proof_params::pari::Registry> {
 
 #[tokio::test]
 async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let mut base_state = StateDelta::new(storage.latest_snapshot());
-    initialize_nullifier_state(&mut base_state).await?;
+    initialize_nullifier_state(&mut base_state, storage.storage()).await?;
     let mut state = Arc::new(base_state);
     let nullifier = Nullifier(Fq::from(71u64));
     let source = CommitmentSource::Transaction {
@@ -179,17 +178,8 @@ fn proposal_transaction_size_policy_is_fixed_at_boundary() {
 
 #[tokio::test]
 async fn oversized_checktx_bytes_reject_before_decode_or_cache() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let reader = super::PermanentWriter::open(
-        storage.as_ref().clone(),
-        &shieldd_sdk_sct::permanent_nullifiers::Config {
-            buckets: 1024,
-            cache_mib: 1,
-            preallocate: false,
-        },
-    )
-    .await?
-    .reader();
+    let storage = TempStorage::new().await?;
+    let reader = shieldd_sdk_sct::permanent_nullifiers::Reader(storage.storage().clone());
     let mut app = App::new(storage.latest_snapshot(), registry(), reader).await?;
     let cache = StatelessCache::new();
     let maximum_transaction_size = super::MAX_TRANSACTION_SIZE_BYTES;
@@ -332,14 +322,42 @@ async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8]) -> Result<()>
 where
     S: StateRead + StateWrite + ?Sized,
 {
+    // Fault injection authenticates the original owner first, then deliberately
+    // corrupts its derived records. This helper is confined to owning tests.
+    let owner = if prefix.starts_with(b"compliance/tree/user/") {
+        shieldd_sdk_storage::NativeTree::ComplianceUser
+    } else {
+        shieldd_sdk_storage::NativeTree::Sct
+    };
+    let native = if owner == shieldd_sdk_storage::NativeTree::Sct {
+        vec![
+            shieldd_sdk_sct::state_key::tree::incremental_hash_prefix().as_bytes(),
+            shieldd_sdk_sct::state_key::tree::incremental_commitment_prefix().as_bytes(),
+        ]
+    } else {
+        vec![prefix]
+    };
+    let scope = shieldd_sdk_storage::NativeReadScope::new(state, owner)?;
     let mut keys = Vec::new();
-    {
-        let stream = state.nonverifiable_prefix_raw(prefix);
+    for prefix in native {
+        let stream = state.native_range_raw(&scope, prefix, Vec::new()..)?;
         futures::pin_mut!(stream);
         while let Some(item) = stream.next().await {
-            let (key, _) = item?;
-            keys.push(key);
+            keys.push(item?.0);
         }
+    }
+    scope.finish(Ok(()))?;
+    if owner == shieldd_sdk_storage::NativeTree::Sct {
+        keys.push(
+            shieldd_sdk_sct::state_key::tree::incremental_position()
+                .as_bytes()
+                .to_vec(),
+        );
+        keys.push(
+            shieldd_sdk_sct::state_key::tree::incremental_forgotten()
+                .as_bytes()
+                .to_vec(),
+        );
     }
     for key in keys {
         state.nonverifiable_delete(key);
@@ -348,7 +366,7 @@ where
 }
 
 async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<Vec<u8>>)> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
 
     let allocations: Vec<Allocation> = std::iter::repeat(Allocation {
         raw_amount: 1_000_000u128.into(),
@@ -369,7 +387,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
 
     let initial_time = tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?;
     let mut test_node = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         initial_time,
         registry(),
@@ -455,7 +473,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
 
 #[tokio::test]
 async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let authority_vk = rdsa::VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
     let regulated_denom = "wregulated_usd";
     let regulated_asset_id = asset::REGISTRY.parse_unit(regulated_denom).id();
@@ -520,7 +538,7 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     }))?;
 
     let mut test_node = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         registry(),
@@ -566,32 +584,21 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         .await?;
     let before_registration = storage.latest_snapshot();
     let prior_nullifier_directory = tempfile::tempdir()?;
-    let prior_boundary =
-        shieldd_sdk_sct::permanent_nullifiers::read_boundary(&before_registration).await?;
-    test_node
-        .execution
-        .nullifier_reader()
-        .0
-        .read()
-        .unwrap()
-        .history(&prior_boundary)?
-        .export(&prior_nullifier_directory.path().join("history"))?;
-    let mut prior_store = shieldd_sdk_sct::permanent_nullifiers::Store::open(
+    let prior_manifest = storage.manifest().context("committed fixture boundary")?;
+    let checkpoint = prior_nullifier_directory.path().join("checkpoint");
+    storage.checkpoint(&checkpoint, &prior_manifest)?;
+    let prior_storage = shieldd_sdk_storage::Storage::restore(
+        &checkpoint,
         &prior_nullifier_directory.path().join("working"),
-        &shieldd_sdk_sct::permanent_nullifiers::Config {
+        shieldd_sdk_storage::ForestConfig {
             buckets: 1024,
             cache_mib: 1,
             preallocate: false,
+            materialization_workers: 2,
         },
-        true,
+        prior_manifest.digest()?,
     )?;
-    prior_store.restore(
-        &prior_nullifier_directory.path().join("history"),
-        &prior_boundary,
-    )?;
-    let prior_reader = shieldd_sdk_sct::permanent_nullifiers::Reader(Arc::new(
-        std::sync::RwLock::new(prior_store),
-    ));
+    let prior_reader = shieldd_sdk_sct::permanent_nullifiers::Reader(prior_storage);
     test_node
         .execute(vec![registration_tx.encode_to_vec()])
         .await?;
@@ -843,17 +850,15 @@ async fn process_candidate_envelope_accepts_valid_fixture() -> Result<()> {
     )
     .await?;
     let starting_generation =
-        shieldd_sdk_sct::permanent_nullifiers::read_boundary(Arc::as_ref(&app.state)).await?;
+        shieldd_sdk_sct::permanent_nullifiers::manifest(Arc::as_ref(&app.state))?;
 
     let verdict = app.process_candidate_envelope(&envelope, None).await?;
     assert!(matches!(verdict, BatchVerdict::Accept));
     assert_eq!(app.state.pending_nullifiers().len(), 4);
     assert!(!app.state.nullifier_block_is_sealed());
     assert_eq!(
-        shieldd_sdk_sct::permanent_nullifiers::read_boundary(Arc::as_ref(&app.state))
-            .await?
-            .roots,
-        starting_generation.roots,
+        shieldd_sdk_sct::permanent_nullifiers::manifest(Arc::as_ref(&app.state))?.participants,
+        starting_generation.participants,
         "ProcessProposal should reuse delivery semantics without building a disposable tree",
     );
 
@@ -890,7 +895,7 @@ async fn execute_validated_candidate_envelope_rechecks_metadata() -> Result<()> 
     )
     .await?;
     assert!(app
-        .execute_validated_candidate_envelope_profiled(&execution_only, storage.as_ref().clone())
+        .execute_validated_candidate_envelope_profiled(&execution_only, storage.storage().clone())
         .await
         .is_err());
     let committed = storage.latest_snapshot();
@@ -903,9 +908,7 @@ async fn execute_validated_candidate_envelope_rechecks_metadata() -> Result<()> 
                 .await?[0]
         );
     }
-    _node.execution.nullifier_reader().validate_boundary(
-        &shieldd_sdk_sct::permanent_nullifiers::read_boundary(&committed).await?,
-    )?;
+    storage.check_materialized()?;
 
     Ok(())
 }
@@ -969,7 +972,7 @@ async fn canonical_execution_rejects_same_block_nullifier_conflicts() -> Result<
 
 #[tokio::test]
 async fn batched_nullify_matches_repeated_nullify_and_preserves_pending_order() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let snapshot = storage.latest_snapshot();
 
     let nullifiers = vec![
@@ -983,14 +986,14 @@ async fn batched_nullify_matches_repeated_nullify_and_preserves_pending_order() 
 
     let mut repeated = StateDelta::new(snapshot.clone());
     repeated.put_block_height(42);
-    initialize_nullifier_state(&mut repeated).await?;
+    initialize_nullifier_state(&mut repeated, storage.storage()).await?;
     for nullifier in &nullifiers {
         repeated.nullify(*nullifier, source.clone()).await?;
     }
 
     let mut batched = StateDelta::new(snapshot);
     batched.put_block_height(42);
-    initialize_nullifier_state(&mut batched).await?;
+    initialize_nullifier_state(&mut batched, storage.storage()).await?;
     batched.nullify_all(&nullifiers, source).await?;
 
     assert_eq!(repeated.pending_nullifiers(), batched.pending_nullifiers());
@@ -1004,55 +1007,43 @@ async fn batched_nullify_matches_repeated_nullify_and_preserves_pending_order() 
 
     repeated.seal_nullifier_block().await?;
     batched.seal_nullifier_block().await?;
-    assert_eq!(
-        shieldd_sdk_sct::permanent_nullifiers::read_boundary(&repeated)
-            .await?
-            .roots,
-        shieldd_sdk_sct::permanent_nullifiers::read_boundary(&batched)
-            .await?
-            .roots,
-    );
+    assert_eq!(repeated.pending_nullifiers(), batched.pending_nullifiers());
+    assert!(repeated.nullifier_block_is_sealed());
+    assert!(batched.nullifier_block_is_sealed());
 
     Ok(())
 }
 
 #[tokio::test]
 async fn app_readiness_requires_initialized_state() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     assert!(!App::is_ready(storage.latest_snapshot()).await);
     Ok(())
 }
 
-async fn readiness_state(storage: &TempStorage) -> StateDelta<cnidarium::Snapshot> {
+async fn readiness_state(storage: &TempStorage) -> StateDelta<shieldd_sdk_storage::Snapshot> {
     let mut state = StateDelta::new(storage.latest_snapshot());
-    <shieldd_sdk_compliance::Compliance as cnidarium_component::Component>::init_chain(
+    <shieldd_sdk_compliance::Compliance as shieldd_sdk_storage::Component>::init_chain(
         &mut state,
         Some(&Default::default()),
     )
     .await;
+    state.put_sct_params(SctParameters {
+        epoch_duration: 10,
+        sct_anchor_retention_blocks: 100,
+    });
+    state.put_block_height(0);
+    let mut tree = tct::Tree::new();
+    let block_root = tree.end_block().expect("empty block root");
+    state.write_sct(0, tree, block_root, None).await;
     state
 }
 
 #[tokio::test]
 async fn app_readiness_fails_on_corrupted_sct_nv() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let mut state = readiness_state(&storage).await;
-    initialize_nullifier_state(&mut state).await?;
-    let previous = shieldd_sdk_sct::permanent_nullifiers::read_boundary(&state).await?;
-    let next = shieldd_sdk_sct::permanent_nullifiers::Boundary {
-        height: Some(1),
-        block_id: [1; 32],
-        roots: previous.roots.clone(),
-    };
-    shieldd_sdk_sct::permanent_nullifiers::stage_boundary(
-        &mut state,
-        &shieldd_sdk_sct::permanent_nullifiers::Transition {
-            previous,
-            next,
-            nullifiers: vec![],
-        },
-    )
-    .await?;
+    initialize_nullifier_state(&mut state, storage.storage()).await?;
     state.put_sct_params(SctParameters {
         epoch_duration: 10,
         sct_anchor_retention_blocks: 100,
@@ -1092,24 +1083,9 @@ async fn app_readiness_fails_on_corrupted_sct_nv() -> Result<()> {
 
 #[tokio::test]
 async fn app_readiness_fails_on_corrupted_compliance_nv() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let mut state = readiness_state(&storage).await;
-    initialize_nullifier_state(&mut state).await?;
-    let previous = shieldd_sdk_sct::permanent_nullifiers::read_boundary(&state).await?;
-    let next = shieldd_sdk_sct::permanent_nullifiers::Boundary {
-        height: Some(1),
-        block_id: [1; 32],
-        roots: previous.roots.clone(),
-    };
-    shieldd_sdk_sct::permanent_nullifiers::stage_boundary(
-        &mut state,
-        &shieldd_sdk_sct::permanent_nullifiers::Transition {
-            previous,
-            next,
-            nullifiers: vec![],
-        },
-    )
-    .await?;
+    initialize_nullifier_state(&mut state, storage.storage()).await?;
     state
         .test_only_add_compliance_leaf(ComplianceLeaf::registered_for_test(
             Address::dummy(&mut rand::thread_rng()),
@@ -1342,29 +1318,13 @@ fn pending_note_records(app: &App) -> Vec<(tct::Position, Vec<u8>, CommitmentSou
         .collect()
 }
 
-async fn initialize_nullifier_state(state: &mut StateDelta<cnidarium::Snapshot>) -> Result<()> {
-    use shieldd_sdk_sct::permanent_nullifiers::*;
-    let directory = tempfile::tempdir()?;
-    let directory = Arc::new(directory);
-    let mut store = Store::open(
-        &directory.path().join("nullifiers"),
-        &Config {
-            buckets: 1024,
-            cache_mib: 1,
-            preallocate: false,
-        },
-        true,
-    )?;
-    store.recover(&Boundary::default())?;
-    let prepared = store.prepare(0, [0; 32], &Boundary::default(), vec![])?;
-    store.persist_intent(&prepared)?;
-    let transition = store.commit(prepared)?;
-    store.complete(&transition.next)?;
-    stage_boundary(state, &transition).await?;
+async fn initialize_nullifier_state(
+    state: &mut StateDelta<shieldd_sdk_storage::Snapshot>,
+    storage: &shieldd_sdk_storage::Storage,
+) -> Result<()> {
     state.object_put(
         shieldd_sdk_sct::state_key::nullifiers::reader(),
-        Reader(Arc::new(std::sync::RwLock::new(store))),
+        shieldd_sdk_sct::permanent_nullifiers::Reader(storage.clone()),
     );
-    state.object_put("test/nullifier-directory", directory);
     Ok(())
 }

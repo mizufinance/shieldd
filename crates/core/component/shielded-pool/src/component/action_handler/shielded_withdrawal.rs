@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
-use cnidarium::StateRead;
 use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext as _;
+use shieldd_sdk_storage::StateRead;
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, TransactionContext};
 
@@ -117,7 +117,7 @@ pub(crate) async fn validate_volume<S: StateRead>(
         .await
 }
 
-pub(crate) async fn execute_volume<S: cnidarium::StateWrite>(
+pub(crate) async fn execute_volume<S: shieldd_sdk_storage::StateWrite>(
     state: &mut S,
     payload: &crate::VolumeAccumulatorPayload,
 ) -> Result<()> {

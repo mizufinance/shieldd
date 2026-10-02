@@ -348,10 +348,8 @@ pub struct SctFrontierResponse {
     #[prost(bytes = "vec", tag = "3")]
     pub compact_frontier: ::prost::alloc::vec::Vec<u8>,
     /// A proof of existence or non-existence, if requested.
-    #[prost(message, optional, tag = "4")]
-    pub proof: ::core::option::Option<
-        ::ibc_proto::ibc::core::commitment::v1::MerkleProof,
-    >,
+    #[prost(bytes = "vec", tag = "4")]
+    pub proof: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for SctFrontierResponse {
     const NAME: &'static str = "SctFrontierResponse";
@@ -364,72 +362,6 @@ impl ::prost::Name for SctFrontierResponse {
     }
 }
 /// Permanent nullifier root at an authenticated application boundary.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PermanentNullifierBoundary {
-    #[prost(uint64, tag = "1")]
-    pub height: u64,
-    #[prost(bytes = "vec", tag = "2")]
-    pub block_id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", repeated, tag = "3")]
-    pub partition_roots: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
-    #[prost(bytes = "vec", tag = "4")]
-    pub aggregate_root: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for PermanentNullifierBoundary {
-    const NAME: &'static str = "PermanentNullifierBoundary";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.PermanentNullifierBoundary".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.PermanentNullifierBoundary".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullifierLeaf {
-    #[prost(bytes = "vec", tag = "1")]
-    pub key_path: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "2")]
-    pub value_hash: ::prost::alloc::vec::Vec<u8>,
-}
-impl ::prost::Name for NullifierLeaf {
-    const NAME: &'static str = "NullifierLeaf";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierLeaf".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierLeaf".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullifierPathProof {
-    /// Root-to-leaf order, at most 256 fixed-width hashes.
-    #[prost(bytes = "vec", repeated, tag = "3")]
-    pub siblings: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
-    #[prost(oneof = "nullifier_path_proof::Terminal", tags = "1, 2")]
-    pub terminal: ::core::option::Option<nullifier_path_proof::Terminal>,
-}
-/// Nested message and enum types in `NullifierPathProof`.
-pub mod nullifier_path_proof {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Terminal {
-        #[prost(message, tag = "1")]
-        Leaf(super::NullifierLeaf),
-        #[prost(bytes, tag = "2")]
-        Terminator(::prost::alloc::vec::Vec<u8>),
-    }
-}
-impl ::prost::Name for NullifierPathProof {
-    const NAME: &'static str = "NullifierPathProof";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullifierPathProof".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullifierPathProof".into()
-    }
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NullifierRequest {
     #[prost(message, optional, tag = "1")]
@@ -451,10 +383,9 @@ pub struct NullifierResponse {
     pub nullifier: ::core::option::Option<Nullifier>,
     #[prost(bool, tag = "2")]
     pub spent: bool,
-    #[prost(message, optional, tag = "3")]
-    pub boundary: ::core::option::Option<PermanentNullifierBoundary>,
-    #[prost(message, optional, tag = "4")]
-    pub proof: ::core::option::Option<NullifierPathProof>,
+    /// Canonical NOMT proof anchored by the SDK native manifest commitment.
+    #[prost(bytes = "vec", tag = "3")]
+    pub proof: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for NullifierResponse {
     const NAME: &'static str = "NullifierResponse";
@@ -466,7 +397,6 @@ impl ::prost::Name for NullifierResponse {
         "/shieldd.core.component.sct.v1.NullifierResponse".into()
     }
 }
-/// Trusted-provider spend discovery; absence is not a completeness proof.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SpendStatusPageRequest {
     #[prost(message, repeated, tag = "1")]

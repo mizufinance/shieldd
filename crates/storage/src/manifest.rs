@@ -2,14 +2,16 @@ use anyhow::{ensure, Context, Result};
 use prost::Message;
 use sha2::{Digest, Sha256};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub enum ParticipantKind {
     Application = 1,
     Permanent = 2,
     Volume = 3,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Participant {
     pub kind: ParticipantKind,
     pub generation: u64,
@@ -17,7 +19,9 @@ pub struct Participant {
     pub count: u64,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct Day(pub u64);
 
 impl Day {
@@ -49,7 +53,7 @@ impl Day {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Manifest {
     pub chain_id: String,
     pub protocol: [u8; 32],

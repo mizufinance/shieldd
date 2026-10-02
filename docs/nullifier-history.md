@@ -1,120 +1,121 @@
-# Permanent spend nullifiers
+# Authenticated storage and permanent nullifiers
 
-Every validator stores the complete spend-nullifier set in sixteen fixed NOMT
-partitions. Transfer, reshape, withdrawal, fee funding and seizure use the same
-spentness check regardless of note age. Day-scoped volume nullifiers retain their
-separate policy semantics. There are no generation, chunk or historical-spend
-proofs, windows, archive workers or pruning paths.
+Shieldd has one storage owner in `shieldd-sdk-storage`. NOMT authenticates the
+application and sixteen permanent spend-nullifier shards. RocksDB stores original
+keys, full values, ordered records, native tree nodes and retained wallet history.
+There is no JMT, Cnidarium database, duplicate permanent set, per-nullifier height
+index or archived-nullifier backfill.
 
-## Authentication and ordering
+## Commit and execution ownership
 
-[The domain](../crates/core/component/sct/src/permanent_nullifiers.rs) owns exact
-key and root encodings: SHA-256 with explicit domains, canonical little-endian
-nullifier bytes, the high four key bits as partition selector, a fixed spent
-value, and an aggregate of all sixteen ordered roots. NOMT is pinned to
-`c3c0e55794500262dfde7c83b6f7455d2aeb303e`. All replicas store all partitions;
-physical bucket counts, preallocation and cache sizes are node-local.
+Permanent keys use a canonical domain-separated hash; the high four bits select
+one of sixteen shards. Values are one-byte spent markers. Application NOMT values
+contain a hash and checked byte length; reads verify the original RocksDB bytes.
+Volume nullifiers use canonical UTC-day generations. Logical retirement is strictly
+after `day_start + 88,200` seconds. A local retirement ledger shares the raw commit
+batch; retired handles close after durability and files are collected after two
+retained boundaries, under the writer that drains proof sessions. GC does not
+change consensus effects.
 
-Linux storage requires kernel 6.0 or newer and permission for `io_uring_setup`
-and `io_uring_enter`. Startup checks this before creating nullifier state.
-Containers use the [NOMT seccomp profile](../deployments/seccomp/README.md);
-Docker's default profile denies this I/O backend. Offline maintenance has the
-same requirement. macOS uses NOMT's synchronous backend.
+The canonical manifest binds format, chain/protocol identity, height, block ID,
+previous boundary and ordered participant roots/counts. Bankd authenticates its
+digest, the replay-receipt digest and boundary header in the SDK Shieldd module.
+The exact normal SDK Commit metadata `WriteSync` batch also writes one private
+receipt blob. That SDK commit is the authoritative block decision.
 
-The block-local ordered log contains exactly accepted nullifiers, including
-padding and fee inputs. Duplicate checks precede sorting. Authenticated absence
-under the previous roots and the exact update witness must both verify before a
-transition can commit. A flat-index miss or successful write is insufficient.
-Proposal state and failed transactions are disposable.
+SDK message caches and EVM savepoints own matching disposable native scopes.
+Successful effects are adopted only after the enclosing SDK operation succeeds;
+failed messages, post handlers, gas checks, panics and EVM reverts discard writes.
+Reads, transcript entries and resource charges survive that discard. Simulation,
+tracing and disposable calls cannot adopt into canonical state. Writable scope
+capabilities belong to the exact SDK multistore; inherited capabilities through
+unpaired caches fail closed.
 
-[PermanentWriter](../crates/core/app/src/app/permanent_writer.rs) freezes the exact
-application write batch and exposes its root at EndBlock. Bankd records that root
-and the canonical FinalizeBlock hash in authenticated state before computing its
-AppHash. The root for H is consequently covered by Bankd state H; CometBFT carries
-that AppHash in the next block. This does not imply validation of H's execution
-root before the vote for H.
+Freeze authenticates committed observations from successful, failed and aborted
+calls before SDK durability. NOMT participants then materialize, followed by one
+synced RocksDB values/manifest batch. Public SDK and native queries wait for a
+matched boundary. SDK Commit acknowledges the durable decision while native
+materialization and proof-session draining run in the background. Stateless proof
+verification for H+1 overlaps H persistence; H+1 cannot decide before H finishes.
+Owned chunks contain at most 128 transactions/16 MiB, preserve transaction order
+and do not impose a block admission limit.
 
-Seal persists canonical insertion intent before any durable participant changes.
-Bankd then commits, followed by NOMT partitions and Shieldd application state.
-Only completion of every participant allows public query publication. Empty blocks
-advance height and identity too. A partial commit stops execution/publication.
-Authenticated current/previous Bankd roots and identities select recovery; Bankd
-needs no separate recovery file. Before rolling back exactly one block, Bankd
-verifies the retained target state and the current/target CometBFT AppHashes.
-Interrupted rollback resumes only from the authenticated target. NOMT partitions
-ahead of Shieldd roll back one native commit. Unknown roots, missing history,
-stale schemas and unrecoverable gaps fail closed.
+## Recovery and proofs
 
-## Queries and wallet recovery
+Startup reconciles before normal traffic. If SDK H is durable and raw Shieldd is
+H−1, the receipt must match its SDK-authenticated digest. Only changed NOMT
+participants that advanced are rewound, then native calls and scope outcomes are
+replayed and outputs, canonical deltas and every root are compared. SDK transfers
+and EVM execution are never replayed by this procedure. Native stores retain two
+undo boundaries. All persistence jobs join before recovery or shutdown.
 
-Nullifier status returns a detached membership or absence proof, all partition
-roots, and the published height/block identity. A consumer must verify it against
-an independently authenticated boundary, including the aggregate root. Reads
-retain no NOMT session after returning. Admission bounds concurrent work; a
-caller cannot retain a read session and indefinitely stall the writer.
+Matched checkpoints need no receipt. Missing inputs, unexpected roots or replay
+results, and native state ahead of SDK fail closed and require matched repair.
+Unilateral SDK/Comet rollback commands are refused. Restore SDK, Comet and Shieldd
+at one matched boundary, then use ordinary full Comet/SDK replay.
 
-SpendStatusPage scans retained compact headers and nullifier records, at most
-64 headers and 2,048 records per call, with the configured request item limit.
-It returns spend height and a membership proof at the published tip. There is no
-additional full per-nullifier height index. Spend heights and result completeness
-remain provider trust; membership proofs authenticate only spentness. Cursors bind
-chain, query and published version and expire when publication advances. An expired
-query must be discarded and restarted. Arbitrary historical NOMT roots are not
-served. Status requests can link queried nullifiers to their requester.
+State and nullifier proofs carry participant identity and the manifest. Consumers
+verify through shared Rust/native/WASM code against a separately authenticated
+SDK Shieldd commitment. A proof's own manifest is not a trust anchor.
 
-Seed recovery still requires retained note ciphertexts, compact history, current
-SCT witnesses and compliance data. Permanent nullifiers remove historical proof
-backfill, not these recovery requirements. See [Wallet](wallet.md).
+Retained compact/ciphertext/routing/transaction records have sorted per-block
+Merkle commitments accumulated in an MMR. Only its count and peaks enter
+application state. Local proof nodes and indexes are derived. `ArchiveRange`
+returns canonical proofs of records, rank neighbors, block identity, an MMR path
+and the NOMT proof of MMR state. The verifier binds exact prefix, inclusive start,
+exclusive end and page limit, and returns the proven continuation key. This
+supports mid-history membership and range completeness. Existing filtered pages
+remain opt-in trusted-provider discovery; spend-height metadata also retains its
+provider-trust contract. This prototype retains archive history from genesis.
 
-## Snapshots and maintenance
+## Checkpoints and offline maintenance
 
-The offline `shieldd-store` tool opens the exclusive database only after Bankd
-has stopped at a jointly committed boundary. Obtain ROOTHEX from the authenticated
-Bankd snapshot, not from Shieldd's local recovery record.
+Stop Bankd at a matched boundary for offline work. Obtain ROOTHEX from
+SDK-authenticated state, not from the local native manifest.
 
 ```sh
 shieldd-store capacity DB ROOTHEX
 shieldd-store export DB SNAPSHOT ROOTHEX
 shieldd-store restore SNAPSHOT NEW_DB ROOTHEX
+shieldd-store grow DB permanent-00 BUCKETS ROOTHEX
 ```
 
-Export checkpoints RocksDB and copies canonical insertion history separately from
-mutable NOMT databases. Completion manifests are written last. Restore checks the
-application root and verifies Merkle membership of the format, boundary and
-aggregate-root records, checks the height against that authenticated boundary,
-and then replays exact insertions into a fresh NOMT store.
-Recovery uses the same authenticated boundary checks. Every resulting NOMT root
-is checked; any mismatch refuses readiness.
-Restore and interrupted replay destinations are disposable; restart in a fresh
-path. Restore an old snapshot only with retained canonical history and matching
-application/Bankd state through the current committed boundary before resuming.
-Never start an old nullifier store against newer Bankd state.
+Export captures a RocksDB checkpoint and quiesced active NOMT files at one
+published boundary. Validation checks complete sorted NOMT export, roots/counts,
+raw-value commitments, retained archive completeness and native SCT/compliance
+commitments. Restore rebuilds derived indexes in a private destination before
+publication. Live replacement uses atomic same-filesystem directory exchange.
+SDK state-sync requires the Shieldd extension exactly once; its boundary must
+match the restored SDK state.
 
-Take Bankd/CometBFT backups at the same stopped boundary as Shieldd. Retain all
-canonical insertion records and note-recovery data. Copy snapshots and history to
-a separate account/failure domain with deletion-resistant retention. Configure
-backup credentials outside the validator process, restrict its account from
-removing retained objects, and test authenticated restoration before activation.
-Remote account provisioning and uploads remain deployment operations.
+`SHIELDD_STORAGE` supplies local bucket, cache, preallocation and worker options.
+Linux requires usable `io_uring`; containers use the
+[NOMT seccomp profile](../deployments/seccomp/README.md). macOS uses the synchronous
+backend. Nodes store all permanent shards; sharding does not reduce aggregate RAM.
 
-`SHIELDD_NULLIFIER_STORAGE` supplies local JSON physical options. The default
-64,000 4-KiB buckets per partition allocate approximately 4.2 GB across hash tables,
-excluding value indexes, history and filesystem overhead. This is a development
-starting point, not production sizing. The fixed layout leaves source-derived
-page-count headroom; whole-set footprint and throughput remain unmeasured.
+Capacity reports per-participant file/address headroom, occupancy, undo space,
+branch pages, branch headers, actual map-node allocations and bucket metadata.
+Requested resident-index allocations exclude allocator rounding, fragmentation
+and transient copy-on-write roots; mapped pool bytes are not RSS. Monitor process
+RSS and filesystem free space separately. Offline growth checks temporary space
+for the replacement hash table, then validates complete roots/counts/proofs before
+and after rehash. Keep a validated matched backup in another failure domain.
+Before projected twelve-month usage reaches 70% of usable file-address space or
+configured aggregate resident-index budget, qualify wider addressing or a bounded
+index. Increasing shard count alone does not satisfy this qualification.
 
-Capacity output reports each partition's occupied buckets and warning at 70% or
-critical at 80%. The ordered writer also updates per-partition capacity/occupancy
-gauges at every completed commit. Configure the deployment alert system on their
-ratio at these thresholds; schedule maintenance before critical occupancy. Monitor filesystem capacity independently and keep at
-least 30% ordinary free space. Neither alert threshold changes consensus validity.
-Growth requires old storage plus a snapshot and a freshly replayed larger store;
-ordinary free space does not cover that temporary requirement. Set a larger bucket
-count for restore, authenticate the unchanged root, then switch directories while
-offline. Keep the previous copy until validation and a fresh backup complete.
+## Admission and performance limits
 
-Maintain one validator at a time, first confirming the other three are healthy.
-Do not assume another simultaneous outage fits the configured PoA fault budget.
-Measure replay time, I/O, working memory and temporary disk on deployment hardware
-before scheduling a production growth window. TPS and long soaks are later
-qualification, separate from correctness and integration gates.
+The shared nullifier cap is 131,072 per block; per-transaction limits are unchanged.
+Protocol-versioned recording allows 131,072 calls, 262,144 scopes, depth 1,024 and
+64 MiB encoded receipts, with a separate 128 MiB observation cap. Closing records,
+EndBlock work and queued deposits reserve capacity before side effects. Failed
+and aborted work is charged. Decoded artifacts have a configurable local memory
+ceiling; exhaustion cancels processing rather than changing transaction validity.
+
+At five-second blocks, 5,000 TPS with two nullifiers per transaction requires
+50,000 nullifiers, below the new cap. Comet's unchanged 22,020,096-byte block limit
+allows only about 881 bytes per transaction at 25,000 transactions/block; gas and
+byte limits remain independent constraints. This rewrite removes storage and
+admission blockers. It does not demonstrate measured 5,000-TPS performance, and
+no benchmarks are part of this work.

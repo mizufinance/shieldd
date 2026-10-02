@@ -38,6 +38,7 @@ struct Scope {
     points: BTreeMap<u64, SavedState>,
     next_point: u64,
     prepared: bool,
+    finalization: bool,
 }
 
 #[derive(Default)]
@@ -56,6 +57,15 @@ impl Scopes {
     }
 
     pub fn open(&mut self, app: &mut App, parent: u64, id: u64) -> Result<u64> {
+        self.open_reserved(app, parent, id, false)
+    }
+    pub fn open_reserved(
+        &mut self,
+        app: &mut App,
+        parent: u64,
+        id: u64,
+        finalization: bool,
+    ) -> Result<u64> {
         ensure!(
             parent == self.active(),
             "scope parent is not the active owner"
@@ -67,7 +77,13 @@ impl Scopes {
         if self.stack.len() >= MAX_SCOPE_DEPTH {
             return Err(shieldd_sdk_storage::ProtocolLimitExceeded("scope depth exceeded").into());
         }
-        if self.opened >= MAX_SCOPES_PER_BLOCK {
+        if self.opened
+            >= if finalization {
+                MAX_SCOPES_PER_BLOCK
+            } else {
+                MAX_SCOPES_PER_BLOCK - 2
+            }
+        {
             return Err(shieldd_sdk_storage::ProtocolLimitExceeded("scope count exceeded").into());
         }
         ensure!(id != 0, "scope capability is read-only");
@@ -79,6 +95,7 @@ impl Scopes {
             points: BTreeMap::new(),
             next_point: 0,
             prepared: false,
+            finalization,
         });
         Ok(id)
     }
@@ -97,7 +114,12 @@ impl Scopes {
         Ok(())
     }
 
-    pub fn prepare(&mut self, id: u64) -> Result<()> {
+    pub fn reserve_writes(&mut self, app: &App, id: u64) -> Result<()> {
+        app.state
+            .reserve_ordering_since(&self.owner(id)?.saved.state)
+    }
+    pub fn prepare(&mut self, app: &App, id: u64) -> Result<()> {
+        self.reserve_writes(app, id)?;
         self.owner(id)?.prepared = true;
         Ok(())
     }
@@ -115,9 +137,20 @@ impl Scopes {
         Ok(())
     }
 
+    pub fn next_savepoint(&mut self, id: u64) -> Result<u64> {
+        self.writable(id)?;
+        Ok(self.owner(id)?.next_point)
+    }
     pub fn snapshot(&mut self, app: &mut App, id: u64) -> Result<u64> {
         self.writable(id)?;
-        if self.opened >= MAX_SCOPES_PER_BLOCK {
+        let finalization = self.owner(id)?.finalization && self.owner(id)?.points.is_empty();
+        if self.opened
+            >= if finalization {
+                MAX_SCOPES_PER_BLOCK
+            } else {
+                MAX_SCOPES_PER_BLOCK - 2
+            }
+        {
             return Err(shieldd_sdk_storage::ProtocolLimitExceeded(
                 "scope/savepoint count exceeded",
             )

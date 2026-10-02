@@ -7,7 +7,6 @@ use std::process::Command;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use cnidarium::TempStorage;
 use rand_core::OsRng;
 use reddsa::VerificationKey;
 use serde::{Deserialize, Serialize};
@@ -15,7 +14,7 @@ use sha2::Digest as _;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
     test_support::{TestHost, TEST_CHAIN_ID},
-    APP_VERSION, SUBSTORE_PREFIXES,
+    APP_VERSION,
 };
 use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_compliance::{
@@ -29,6 +28,7 @@ use shieldd_sdk_mock_client::MockClient;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan};
+use shieldd_sdk_storage::TempStorage;
 use shieldd_sdk_transaction::{
     memo::MemoPlaintext, plan::MemoPlan, Transaction, TransactionParameters,
 };
@@ -78,7 +78,7 @@ pub struct ProofTxPoolMetadata {
 pub async fn setup_proof_storage(
     n: usize,
 ) -> anyhow::Result<(TempStorage, TestHost, Arc<MockClient>)> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
 
     let asset_id = asset::REGISTRY.parse_unit(REGULATED_DENOM).id();
     let allocations: Vec<Allocation> = std::iter::repeat(Allocation {
@@ -146,7 +146,7 @@ pub async fn setup_proof_storage(
     let initial_time = tendermint::Time::parse_from_rfc3339(SYNTHETIC_BENCHMARK_TIME_RFC3339)
         .context("parsing synthetic benchmark initial timestamp")?;
     let mut test_node = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         AppState::Content(content),
         initial_time,
         registry()?,

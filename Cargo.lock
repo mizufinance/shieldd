@@ -716,7 +716,6 @@ version = "2.1.0"
 dependencies = [
  "anyhow",
  "base64 0.21.7",
- "cnidarium",
  "ff 0.13.0",
  "group 0.13.0",
  "rand_core 0.6.4",
@@ -730,6 +729,7 @@ dependencies = [
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-transaction",
  "tokio",
 ]
@@ -740,7 +740,6 @@ version = "2.1.0"
 dependencies = [
  "anyhow",
  "base64 0.21.7",
- "cnidarium",
  "ff 0.13.0",
  "group 0.13.0",
  "hex",
@@ -758,6 +757,7 @@ dependencies = [
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-transaction",
  "tokio",
 ]
@@ -1350,50 +1350,6 @@ name = "cmov"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
-
-[[package]]
-name = "cnidarium"
-version = "0.83.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.21.7",
- "borsh",
- "futures",
- "hex",
- "ibc-proto",
- "ibc-types",
- "ics23",
- "jmt",
- "metrics",
- "once_cell",
- "parking_lot",
- "pbjson",
- "pin-project",
- "prost 0.13.4",
- "regex",
- "rocksdb",
- "serde",
- "sha2 0.10.8",
- "smallvec",
- "tempfile",
- "tendermint",
- "tokio",
- "tokio-stream",
- "tonic 0.12.3",
- "tracing",
-]
-
-[[package]]
-name = "cnidarium-component"
-version = "2.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "cnidarium",
- "tendermint",
- "tokio",
-]
 
 [[package]]
 name = "cobs"
@@ -3821,8 +3777,7 @@ dependencies = [
 [[package]]
 name = "imbl"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc3be8d8cd36f33a46b1849f31f837c44d9fa87223baee3b4bd96b8f11df81eb"
+source = "git+https://github.com/AntoineCyr/imbl?rev=1ae53453b70fd06f5c15b67c409bb3d5c93f785f#1ae53453b70fd06f5c15b67c409bb3d5c93f785f"
 dependencies = [
  "bitmaps",
  "imbl-sized-chunks 0.1.3",
@@ -4054,28 +4009,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "875a5a69ac2bab1a891711cf5eccbec1ce0341ea805560dcd90b7a2e925132e8"
 dependencies = [
  "jiff-tzdb",
-]
-
-[[package]]
-name = "jmt"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf2a10370b45cd850e64993ccd81d25ea2d4b5b0d0312546e7489fed82064f2e"
-dependencies = [
- "anyhow",
- "borsh",
- "digest 0.10.7",
- "hashbrown 0.13.2",
- "hex",
- "ics23",
- "itertools 0.10.5",
- "mirai-annotations",
- "num-derive",
- "num-traits",
- "serde",
- "sha2 0.10.8",
- "thiserror 1.0.69",
- "tracing",
 ]
 
 [[package]]
@@ -4441,12 +4374,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mirai-annotations"
-version = "1.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9be0862c1b3f26a88803c4a49de6889c10e608b3ee9344e6ef5b45fb37ad3d1"
-
-[[package]]
 name = "multimap"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4465,7 +4392,7 @@ dependencies = [
 [[package]]
 name = "nomt"
 version = "1.0.5"
-source = "git+https://github.com/AntoineCyr/nomt?rev=4232b9b3a805492509c40e278570d3fc9f38b8c6#4232b9b3a805492509c40e278570d3fc9f38b8c6"
+source = "git+https://github.com/AntoineCyr/nomt?rev=84496d5bb39495277e946950ad39048013a8b655#84496d5bb39495277e946950ad39048013a8b655"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -4482,7 +4409,6 @@ dependencies = [
  "nomt-core",
  "parking_lot",
  "rand 0.10.2",
- "serde",
  "slab",
  "thread_local",
  "threadpool",
@@ -4492,7 +4418,7 @@ dependencies = [
 [[package]]
 name = "nomt-core"
 version = "1.0.5"
-source = "git+https://github.com/AntoineCyr/nomt?rev=4232b9b3a805492509c40e278570d3fc9f38b8c6#4232b9b3a805492509c40e278570d3fc9f38b8c6"
+source = "git+https://github.com/AntoineCyr/nomt?rev=84496d5bb39495277e946950ad39048013a8b655#84496d5bb39495277e946950ad39048013a8b655"
 dependencies = [
  "arrayvec",
  "bitvec",
@@ -4515,7 +4441,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4533,17 +4459,6 @@ name = "num-conv"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6673768db2d862beb9b39a78fdcb1a69439615d5794a1be50caa9bc92c81967"
-
-[[package]]
-name = "num-derive"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
-dependencies = [
- "proc-macro2 1.0.93",
- "quote",
- "syn 1.0.109",
-]
 
 [[package]]
 name = "num-integer"
@@ -6606,11 +6521,8 @@ name = "shieldd"
 version = "2.1.0"
 dependencies = [
  "anyhow",
- "cnidarium",
- "cnidarium-component",
  "futures",
  "ibc-proto",
- "ibc-types",
  "prost 0.13.4",
  "serde",
  "serde_json",
@@ -6663,8 +6575,6 @@ dependencies = [
  "async-trait",
  "bincode",
  "cfg-if",
- "cnidarium",
- "cnidarium-component",
  "commonware-codec",
  "commonware-cryptography",
  "commonware-math",
@@ -6673,7 +6583,6 @@ dependencies = [
  "futures",
  "group 0.13.0",
  "hex",
- "jmt",
  "metrics",
  "once_cell",
  "parking_lot",
@@ -6716,7 +6625,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "camino",
- "cnidarium",
  "ff 0.13.0",
  "group 0.13.0",
  "hex",
@@ -6738,6 +6646,7 @@ dependencies = [
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-test-subscriber",
  "shieldd-sdk-transaction",
  "shieldd-sdk-view",
@@ -6790,7 +6699,6 @@ dependencies = [
  "anyhow",
  "bytes",
  "clap",
- "cnidarium",
  "criterion",
  "ff 0.13.0",
  "group 0.13.0",
@@ -6807,6 +6715,7 @@ dependencies = [
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-transaction",
  "tempfile",
@@ -6819,7 +6728,6 @@ name = "shieldd-sdk-bench-support"
 version = "2.1.0"
 dependencies = [
  "anyhow",
- "cnidarium",
  "csv",
  "ff 0.13.0",
  "group 0.13.0",
@@ -6841,6 +6749,7 @@ dependencies = [
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-transaction",
  "tempfile",
  "tendermint",
@@ -6877,8 +6786,6 @@ dependencies = [
  "async-trait",
  "blake2b_simd",
  "bytes",
- "cnidarium",
- "cnidarium-component",
  "futures",
  "imbl 7.0.2",
  "metrics",
@@ -6892,6 +6799,7 @@ dependencies = [
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-txhash",
  "tendermint",
@@ -6909,8 +6817,6 @@ dependencies = [
  "base64 0.21.7",
  "bincode",
  "blake2b_simd",
- "cnidarium",
- "cnidarium-component",
  "commonware-cryptography",
  "ff 0.13.0",
  "futures",
@@ -6932,6 +6838,7 @@ dependencies = [
  "shieldd-sdk-num",
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-txhash",
  "tempfile",
@@ -7036,8 +6943,6 @@ version = "2.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "cnidarium",
- "cnidarium-component",
  "ff 0.13.0",
  "group 0.13.0",
  "reddsa",
@@ -7047,6 +6952,7 @@ dependencies = [
  "shieldd-sdk-num",
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
+ "shieldd-sdk-storage",
  "tokio",
  "tracing",
 ]
@@ -7095,7 +7001,6 @@ name = "shieldd-sdk-mock-client"
 version = "2.1.0"
 dependencies = [
  "anyhow",
- "cnidarium",
  "rand_core 0.6.4",
  "shieldd-sdk-asset",
  "shieldd-sdk-compact-block",
@@ -7105,6 +7010,7 @@ dependencies = [
  "shieldd-sdk-proof-params",
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-transaction",
  "shieldd-sdk-view",
@@ -7148,11 +7054,9 @@ dependencies = [
  "async-trait",
  "bech32",
  "bytes",
- "cnidarium",
  "futures",
  "hex",
  "ibc-proto",
- "ics23",
  "pbjson",
  "pbjson-types",
  "pin-project",
@@ -7161,6 +7065,7 @@ dependencies = [
  "serde",
  "serde_json",
  "shieldd-sdk-crypto",
+ "shieldd-sdk-storage",
  "tendermint",
  "tonic 0.12.3",
  "tracing",
@@ -7173,21 +7078,14 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bincode",
- "bitvec",
  "blake2b_simd",
  "bytes",
  "chrono",
- "cnidarium",
- "cnidarium-component",
  "futures",
  "getrandom 0.2.15",
  "hex",
- "ibc-types",
  "imbl 7.0.2",
- "io-uring",
  "metrics",
- "nomt",
- "nomt-core",
  "once_cell",
  "pbjson-types",
  "rand 0.8.6",
@@ -7200,6 +7098,7 @@ dependencies = [
  "shieldd-sdk-crypto",
  "shieldd-sdk-keys",
  "shieldd-sdk-proto",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-txhash",
  "tempfile",
@@ -7219,8 +7118,6 @@ dependencies = [
  "blake2b_simd",
  "bytes",
  "chacha20poly1305 0.9.1",
- "cnidarium",
- "cnidarium-component",
  "commonware-cryptography",
  "commonware-parallel",
  "criterion",
@@ -7229,7 +7126,6 @@ dependencies = [
  "group 0.13.0",
  "hex",
  "imbl 7.0.2",
- "jmt",
  "metrics",
  "once_cell",
  "proptest",
@@ -7251,6 +7147,7 @@ dependencies = [
  "shieldd-sdk-proto",
  "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-storage",
  "shieldd-sdk-tct",
  "shieldd-sdk-txhash",
  "tap",
@@ -7265,18 +7162,24 @@ name = "shieldd-sdk-storage"
 version = "2.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "bitvec",
  "futures",
  "imbl 7.0.2",
+ "io-uring",
+ "libc",
  "nomt",
  "nomt-core",
  "parking_lot",
  "prost 0.13.4",
  "rocksdb",
+ "serde",
+ "serde_json",
  "sha2 0.10.8",
  "tempfile",
  "tendermint",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

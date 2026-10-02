@@ -1,109 +1,133 @@
-//! Permanent spend-nullifier commitments and detached authentication proofs.
+//! Permanent spentness is one participant of the native manifest.
 use crate::Nullifier;
 use anyhow::{ensure, Context, Result};
-use bitvec::prelude::*;
-use nomt_core::{
-    hasher::{Sha2Hasher, ValueHasher},
-    proof::PathProof,
-    trie::LeafData,
-};
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use shieldd_sdk_storage::{nullifier_key, nullifier_shard, Manifest, StateProof, SPENT};
 
-pub const PARTITIONS: usize = 16;
-pub const SPENT_VALUE: &[u8] = b"shieldd.spent.v1";
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Roots(pub [[u8; 32]; PARTITIONS]);
-
-impl Default for Roots {
-    fn default() -> Self {
-        Self([[0; 32]; PARTITIONS])
-    }
-}
-
-impl Roots {
-    pub fn commitment(&self) -> [u8; 32] {
-        let mut hash = Sha256::new();
-        hash.update(b"shieldd.nomt.roots.v1\0");
-        hash.update((PARTITIONS as u16).to_be_bytes());
-        for root in self.0 {
-            hash.update(root);
-        }
-        hash.finalize().into()
-    }
-}
-
-/// Authenticated application boundary, including blocks with no spends.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Boundary {
-    pub height: Option<u64>,
-    pub block_id: [u8; 32],
-    pub roots: Roots,
-}
-
-fn key(nullifier: Nullifier) -> [u8; 32] {
-    let mut hash = Sha256::new();
-    hash.update(b"shieldd.spend-nullifier.v1\0");
-    hash.update(nullifier.to_bytes());
-    hash.finalize().into()
-}
-fn partition(key: &[u8; 32]) -> usize {
-    (key[0] >> 4) as usize
-}
-
-/// A detached query result: no NOMT read session survives this call.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug)]
 pub struct Status {
     pub nullifier: Nullifier,
-    pub boundary: Boundary,
     pub spent: bool,
-    pub proof: PathProof,
+    pub proof: StateProof,
 }
 impl Status {
-    pub fn verify(&self, committed: &Boundary) -> Result<()> {
+    pub fn verify(&self, sdk_anchor: [u8; 32]) -> Result<()> {
+        let key = nullifier_key(&self.nullifier.to_bytes());
+        self.proof
+            .verify(sdk_anchor, 1 + u32::from(nullifier_shard(&key)), key)?;
         ensure!(
-            &self.boundary == committed,
-            "nullifier status boundary is not committed"
+            self.proof.value.as_deref() == self.spent.then_some(SPENT),
+            "spent marker mismatch"
         );
-        let path = key(self.nullifier);
-        let verified = self
-            .proof
-            .verify::<Sha2Hasher>(
-                path.view_bits::<Msb0>(),
-                self.boundary.roots.0[partition(&path)],
-            )
-            .map_err(|e| anyhow::anyhow!("invalid nullifier status path: {e:?}"))?;
-        if self.spent {
-            ensure!(
-                verified
-                    .confirm_value(&LeafData {
-                        key_path: path,
-                        value_hash: Sha2Hasher::hash_value(SPENT_VALUE)
-                    })
-                    .map_err(|e| anyhow::anyhow!("nullifier status out of scope: {e:?}"))?,
-                "invalid spent value"
-            );
-        } else {
-            ensure!(
-                verified
-                    .confirm_nonexistence(&path)
-                    .map_err(|e| anyhow::anyhow!("nullifier status out of scope: {e:?}"))?,
-                "nullifier is spent"
-            );
-        }
         Ok(())
     }
 }
 
 #[cfg(feature = "component")]
-mod store;
+#[derive(Clone)]
+pub struct Reader(pub shieldd_sdk_storage::Storage);
 #[cfg(feature = "component")]
-pub use store::{
-    read_boundary, read_committed_boundary, stage_boundary, Config, History, PartitionCapacity,
-    Prepared, Reader, Store, Transition,
-};
+impl Reader {
+    pub fn status(&self, nullifier: Nullifier, manifest: &Manifest) -> Result<Status> {
+        let key = nullifier_key(&nullifier.to_bytes());
+        let participant = 1 + u32::from(nullifier_shard(&key));
+        let (value, path) = self
+            .0
+            .forest()
+            .read()
+            .authenticated_read(&manifest.participants[participant as usize], key)?;
+        let status = Status {
+            nullifier,
+            spent: value.is_some(),
+            proof: StateProof {
+                manifest: manifest.clone(),
+                participant,
+                key,
+                value,
+                path,
+            },
+        };
+        status.verify(manifest.digest()?)?;
+        Ok(status)
+    }
+    pub async fn contains<S: shieldd_sdk_storage::StateRead + ?Sized>(
+        &self,
+        state: &S,
+        values: &[Nullifier],
+    ) -> Result<Vec<bool>> {
+        let view = state
+            .read_view()
+            .context("native reads require an owned immutable view")?;
+        let Some(manifest) = view.manifest else {
+            ensure!(
+                self.0.manifest().is_none(),
+                "uninitialized read has a committed owner"
+            );
+            return Ok(vec![false; values.len()]);
+        };
+        let forest = self.0.forest().read();
+        values
+            .iter()
+            .map(|value| forest.observe_permanent(&manifest, &value.to_bytes(), &view.observations))
+            .collect()
+    }
+    pub fn volume_exists<S: shieldd_sdk_storage::StateRead + ?Sized>(
+        &self,
+        state: &S,
+        day: shieldd_sdk_storage::Day,
+        nullifier: Nullifier,
+    ) -> Result<bool> {
+        let view = state
+            .read_view()
+            .context("volume reads require an owned immutable view")?;
+        let Some(manifest) = view.manifest else {
+            ensure!(
+                self.0.manifest().is_none(),
+                "uninitialized read has a committed owner"
+            );
+            return Ok(false);
+        };
+        self.0.forest().read().observe_volume(
+            &manifest,
+            day,
+            &nullifier.to_bytes(),
+            &view.observations,
+        )
+    }
+}
 
-mod codec;
+#[cfg(feature = "component")]
+pub fn manifest<S: shieldd_sdk_storage::StateRead + ?Sized>(
+    state: &S,
+) -> Result<std::sync::Arc<Manifest>> {
+    state
+        .read_view()
+        .context("native read view is missing")?
+        .manifest
+        .context("native boundary is not initialized")
+}
+
+impl TryFrom<shieldd_sdk_proto::core::component::sct::v1::NullifierResponse> for Status {
+    type Error = anyhow::Error;
+    fn try_from(
+        value: shieldd_sdk_proto::core::component::sct::v1::NullifierResponse,
+    ) -> Result<Self> {
+        let status = Self {
+            nullifier: value.nullifier.context("missing nullifier")?.try_into()?,
+            spent: value.spent,
+            proof: StateProof::decode(&value.proof)?,
+        };
+        status.verify(status.proof.manifest.digest()?)?;
+        Ok(status)
+    }
+}
+impl TryFrom<Status> for shieldd_sdk_proto::core::component::sct::v1::NullifierResponse {
+    type Error = anyhow::Error;
+    fn try_from(value: Status) -> Result<Self> {
+        value.verify(value.proof.manifest.digest()?)?;
+        Ok(Self {
+            nullifier: Some(value.nullifier.into()),
+            spent: value.spent,
+            proof: value.proof.encode()?,
+        })
+    }
+}

@@ -1,13 +1,13 @@
 use crate::registration::ensure_regulated_asset_id;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
 use futures::StreamExt;
 use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeMap;
 
@@ -307,26 +307,159 @@ fn parse_leaf_key(key: &[u8], prefix: &str) -> Result<u64> {
     Ok(suffix.parse()?)
 }
 
+/// Read a native node only inside the owner's commitment authentication region.
+async fn scoped_node<S: StateRead + ?Sized>(
+    state: &S,
+    scope: &shieldd_sdk_storage::NativeReadScope,
+    owner: shieldd_sdk_storage::NativeTree,
+    level: u8,
+    position: u64,
+) -> Result<StateCommitment> {
+    use shieldd_sdk_storage::NativeTree;
+    let (key, default) = match owner {
+        NativeTree::ComplianceUser => (
+            state_key::tree_storage::user_node(level, position),
+            ZERO_HASHES[level as usize],
+        ),
+        NativeTree::ComplianceAsset => (
+            state_key::tree_storage::asset_node(level, position),
+            IMT_ZERO_HASHES[level as usize],
+        ),
+        _ => anyhow::bail!("incorrect compliance node owner"),
+    };
+    state
+        .native_get_raw(scope, key.as_bytes())
+        .await?
+        .map(decode_commitment)
+        .transpose()
+        .map(|v| v.unwrap_or(default))
+}
+async fn committed_native_root<S: StateRead + ?Sized>(
+    state: &S,
+    owner: shieldd_sdk_storage::NativeTree,
+) -> Result<StateCommitment> {
+    use shieldd_sdk_storage::NativeTree;
+    let (key, empty) = match owner {
+        NativeTree::ComplianceUser => (state_key::user_tree_root(), QuadTree::new().root()),
+        NativeTree::ComplianceAsset => (
+            state_key::asset_imt_root(),
+            IMT_ZERO_HASHES[crate::tree::DEFAULT_DEPTH as usize],
+        ),
+        _ => anyhow::bail!("incorrect compliance root owner"),
+    };
+    match state.get::<StateCommitment>(key).await? {
+        Some(root) => Ok(root),
+        None if state.read_view().is_none_or(|view| view.manifest.is_none()) => Ok(empty),
+        None => anyhow::bail!("initialized compliance tree is missing its committed root"),
+    }
+}
+/// Authenticate one subtree and its path to the existing native root. The
+/// returned siblings can be reused to derive writes without rereading raw nodes.
+async fn authenticated_native_path<S: StateRead + ?Sized>(
+    state: &S,
+    owner: shieldd_sdk_storage::NativeTree,
+    level: u8,
+    position: u64,
+) -> Result<(StateCommitment, Vec<[StateCommitment; 3]>)> {
+    use shieldd_sdk_storage::{NativeReadScope, NativeTree};
+    anyhow::ensure!(
+        level <= crate::tree::DEFAULT_DEPTH
+            && position < 4u64.pow(u32::from(crate::tree::DEFAULT_DEPTH - level)),
+        "compliance subtree position exceeds capacity"
+    );
+    let expected = committed_native_root(state, owner).await?;
+    let scope = NativeReadScope::new(state, owner)?;
+    let result = async {
+        let leaf = scoped_node(state, &scope, owner, level, position).await?;
+        let mut current = leaf;
+        let mut index = position;
+        let mut path = Vec::new();
+        for height in level..crate::tree::DEFAULT_DEPTH {
+            let slot = (index % 4) as usize;
+            let base = (index / 4) * 4;
+            let mut children = [current; 4];
+            let mut siblings = [current; 3];
+            let mut sibling = 0;
+            for child in 0..4 {
+                if child == slot {
+                    continue;
+                }
+                children[child] =
+                    scoped_node(state, &scope, owner, height, base + child as u64).await?;
+                siblings[sibling] = children[child];
+                sibling += 1;
+            }
+            path.push(siblings);
+            current = match owner {
+                NativeTree::ComplianceUser => QuadTree::hash_children(
+                    height + 1,
+                    children[0],
+                    children[1],
+                    children[2],
+                    children[3],
+                ),
+                NativeTree::ComplianceAsset => IndexedMerkleTree::hash_children(
+                    height + 1,
+                    children[0],
+                    children[1],
+                    children[2],
+                    children[3],
+                ),
+                _ => unreachable!(),
+            };
+            index /= 4;
+        }
+        anyhow::ensure!(
+            current == expected,
+            "compliance native path does not authenticate to its committed root"
+        );
+        Ok((leaf, path))
+    }
+    .await;
+    scope.finish(result)
+}
+
 /// Extension trait for reading compliance registry state.
 #[async_trait]
 pub trait ComplianceRegistryRead: StateRead {
     /// Load user-tree nodes from nonverifiable storage.
     async fn load_user_tree_nodes(&self) -> Result<BTreeMap<u64, StateCommitment>> {
-        let mut nodes = BTreeMap::new();
-        let stream = self.nonverifiable_range_raw(
-            Some(state_key::tree_storage::user_node_prefix().as_bytes()),
-            Vec::new()..,
+        let expected =
+            committed_native_root(self, shieldd_sdk_storage::NativeTree::ComplianceUser).await?;
+        let scope = shieldd_sdk_storage::NativeReadScope::new(
+            self,
+            shieldd_sdk_storage::NativeTree::ComplianceUser,
         )?;
-        futures::pin_mut!(stream);
-        while let Some((key, bytes)) = stream.next().await.transpose()? {
-            let (level, position) =
-                parse_node_key(&key, state_key::tree_storage::user_node_prefix())?;
-            nodes.insert(
-                QuadTree::packed_node_key(level, position),
-                decode_commitment(bytes)?,
-            );
+        let result = async {
+            let mut nodes = BTreeMap::new();
+            let stream = self.native_range_raw(
+                &scope,
+                state_key::tree_storage::user_node_prefix().as_bytes(),
+                Vec::new()..,
+            )?;
+            futures::pin_mut!(stream);
+            while let Some((key, bytes)) = stream.next().await.transpose()? {
+                let (level, position) =
+                    parse_node_key(&key, state_key::tree_storage::user_node_prefix())?;
+                anyhow::ensure!(
+                    key == state_key::tree_storage::user_node(level, position).as_bytes(),
+                    "noncanonical compliance user node key"
+                );
+                nodes.insert(
+                    QuadTree::packed_node_key(level, position),
+                    decode_commitment(bytes)?,
+                );
+            }
+            let root = if nodes.is_empty() {
+                QuadTree::new().root()
+            } else {
+                QuadTree::try_from_sparse_nodes(crate::tree::DEFAULT_DEPTH, nodes.clone())?.root()
+            };
+            anyhow::ensure!(root == expected, "compliance user tree root mismatch");
+            Ok(nodes)
         }
-        Ok(nodes)
+        .await;
+        scope.finish(result)
     }
 
     /// Reconstruct the user compliance tree from nonverifiable storage.
@@ -341,21 +474,51 @@ pub trait ComplianceRegistryRead: StateRead {
 
     /// Load asset IMT nodes from nonverifiable storage.
     async fn load_asset_imt_nodes(&self) -> Result<BTreeMap<u64, StateCommitment>> {
-        let mut nodes = BTreeMap::new();
-        let stream = self.nonverifiable_range_raw(
-            Some(state_key::tree_storage::asset_node_prefix().as_bytes()),
-            Vec::new()..,
+        let expected =
+            committed_native_root(self, shieldd_sdk_storage::NativeTree::ComplianceAsset).await?;
+        let leaves = self.load_asset_imt_leaves().await?;
+        let count = self.get_asset_count().await?;
+        let scope = shieldd_sdk_storage::NativeReadScope::new(
+            self,
+            shieldd_sdk_storage::NativeTree::ComplianceAsset,
         )?;
-        futures::pin_mut!(stream);
-        while let Some((key, bytes)) = stream.next().await.transpose()? {
-            let (level, position) =
-                parse_node_key(&key, state_key::tree_storage::asset_node_prefix())?;
-            nodes.insert(
-                IndexedMerkleTree::packed_node_key(level, position),
-                decode_commitment(bytes)?,
-            );
+        let result = async {
+            let mut nodes = BTreeMap::new();
+            let stream = self.native_range_raw(
+                &scope,
+                state_key::tree_storage::asset_node_prefix().as_bytes(),
+                Vec::new()..,
+            )?;
+            futures::pin_mut!(stream);
+            while let Some((key, bytes)) = stream.next().await.transpose()? {
+                let (level, position) =
+                    parse_node_key(&key, state_key::tree_storage::asset_node_prefix())?;
+                anyhow::ensure!(
+                    key == state_key::tree_storage::asset_node(level, position).as_bytes(),
+                    "noncanonical compliance asset node key"
+                );
+                nodes.insert(
+                    IndexedMerkleTree::packed_node_key(level, position),
+                    decode_commitment(bytes)?,
+                );
+            }
+            let root = if nodes.is_empty() {
+                IMT_ZERO_HASHES[crate::tree::DEFAULT_DEPTH as usize]
+            } else {
+                IndexedMerkleTree::try_from_sparse_parts(
+                    crate::tree::DEFAULT_DEPTH,
+                    nodes.clone(),
+                    leaves,
+                    count,
+                )
+                .context("reconstruct asset IMT")?
+                .root()
+            };
+            anyhow::ensure!(root == expected, "compliance asset IMT root mismatch");
+            Ok(nodes)
         }
-        Ok(nodes)
+        .await;
+        scope.finish(result)
     }
 
     /// Load asset IMT leaves from nonverifiable storage.
@@ -406,29 +569,25 @@ pub trait ComplianceRegistryRead: StateRead {
     }
 
     async fn read_user_node(&self, level: u8, position: u64) -> Result<StateCommitment> {
-        anyhow::ensure!(
-            level <= crate::tree::DEFAULT_DEPTH,
-            "user tree level {level} exceeds depth {}",
-            crate::tree::DEFAULT_DEPTH
-        );
-        self.nonverifiable_get_raw(state_key::tree_storage::user_node(level, position).as_bytes())
-            .await?
-            .map(decode_commitment)
-            .transpose()
-            .map(|node| node.unwrap_or(ZERO_HASHES[level as usize]))
+        Ok(authenticated_native_path(
+            self,
+            shieldd_sdk_storage::NativeTree::ComplianceUser,
+            level,
+            position,
+        )
+        .await?
+        .0)
     }
 
     async fn read_asset_node(&self, level: u8, position: u64) -> Result<StateCommitment> {
-        anyhow::ensure!(
-            level <= crate::tree::DEFAULT_DEPTH,
-            "asset tree level {level} exceeds depth {}",
-            crate::tree::DEFAULT_DEPTH
-        );
-        self.nonverifiable_get_raw(state_key::tree_storage::asset_node(level, position).as_bytes())
-            .await?
-            .map(decode_commitment)
-            .transpose()
-            .map(|node| node.unwrap_or(IMT_ZERO_HASHES[level as usize]))
+        Ok(authenticated_native_path(
+            self,
+            shieldd_sdk_storage::NativeTree::ComplianceAsset,
+            level,
+            position,
+        )
+        .await?
+        .0)
     }
 
     async fn read_asset_leaf(&self, position: u64) -> Result<IndexedLeaf> {
@@ -445,68 +604,28 @@ pub trait ComplianceRegistryRead: StateRead {
     }
 
     async fn read_user_auth_path_direct(&self, position: u64) -> Result<Vec<[StateCommitment; 3]>> {
-        let max_leaves = QuadTree::max_leaves_for_depth(crate::tree::DEFAULT_DEPTH);
-        anyhow::ensure!(
-            position < max_leaves,
-            "Position {position} exceeds maximum leaves {max_leaves} for depth {}",
-            crate::tree::DEFAULT_DEPTH
-        );
-
-        let mut path = Vec::with_capacity(crate::tree::DEFAULT_DEPTH as usize);
-        let mut current_position = position;
-        for level in 0..crate::tree::DEFAULT_DEPTH {
-            let child_index = (current_position % 4) as usize;
-            let base_position = (current_position / 4) * 4;
-            let children = [
-                self.read_user_node(level, base_position).await?,
-                self.read_user_node(level, base_position + 1).await?,
-                self.read_user_node(level, base_position + 2).await?,
-                self.read_user_node(level, base_position + 3).await?,
-            ];
-            path.push(match child_index {
-                0 => [children[1], children[2], children[3]],
-                1 => [children[0], children[2], children[3]],
-                2 => [children[0], children[1], children[3]],
-                3 => [children[0], children[1], children[2]],
-                _ => unreachable!(),
-            });
-            current_position /= 4;
-        }
-        Ok(path)
+        Ok(authenticated_native_path(
+            self,
+            shieldd_sdk_storage::NativeTree::ComplianceUser,
+            0,
+            position,
+        )
+        .await?
+        .1)
     }
 
     async fn read_asset_auth_path_direct(
         &self,
         position: u64,
     ) -> Result<Vec<[StateCommitment; 3]>> {
-        let max_leaves = QuadTree::max_leaves_for_depth(crate::tree::DEFAULT_DEPTH);
-        anyhow::ensure!(
-            position < max_leaves,
-            "Position {position} exceeds maximum leaves {max_leaves} for depth {}",
-            crate::tree::DEFAULT_DEPTH
-        );
-
-        let mut path = Vec::with_capacity(crate::tree::DEFAULT_DEPTH as usize);
-        let mut current_position = position;
-        for level in 0..crate::tree::DEFAULT_DEPTH {
-            let child_index = (current_position % 4) as usize;
-            let base_position = (current_position / 4) * 4;
-            let children = [
-                self.read_asset_node(level, base_position).await?,
-                self.read_asset_node(level, base_position + 1).await?,
-                self.read_asset_node(level, base_position + 2).await?,
-                self.read_asset_node(level, base_position + 3).await?,
-            ];
-            path.push(match child_index {
-                0 => [children[1], children[2], children[3]],
-                1 => [children[0], children[2], children[3]],
-                2 => [children[0], children[1], children[3]],
-                3 => [children[0], children[1], children[2]],
-                _ => unreachable!(),
-            });
-            current_position /= 4;
-        }
-        Ok(path)
+        Ok(authenticated_native_path(
+            self,
+            shieldd_sdk_storage::NativeTree::ComplianceAsset,
+            0,
+            position,
+        )
+        .await?
+        .1)
     }
 
     async fn read_asset_position_by_value(&self, value: Fq) -> Result<Option<u64>> {
@@ -841,6 +960,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             Vec::with_capacity(updates.len() * (crate::tree::DEFAULT_DEPTH as usize + 1));
 
         for &(position, leaf_hash) in updates {
+            let path = self.read_user_auth_path_direct(position).await?;
             let mut current_position = position;
             let mut current_hash = leaf_hash;
             overlay.insert((0, current_position), current_hash);
@@ -850,24 +970,18 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
                 let parent_position = current_position / 4;
                 let base_position = parent_position * 4;
                 let child_index = (current_position % 4) as usize;
-                let mut children = [
-                    overlay
-                        .get(&(level, base_position))
+                let mut children = [current_hash; 4];
+                let mut sibling = 0;
+                for child in 0..4 {
+                    if child == child_index {
+                        continue;
+                    }
+                    children[child] = overlay
+                        .get(&(level, base_position + child as u64))
                         .copied()
-                        .unwrap_or(self.read_user_node(level, base_position).await?),
-                    overlay
-                        .get(&(level, base_position + 1))
-                        .copied()
-                        .unwrap_or(self.read_user_node(level, base_position + 1).await?),
-                    overlay
-                        .get(&(level, base_position + 2))
-                        .copied()
-                        .unwrap_or(self.read_user_node(level, base_position + 2).await?),
-                    overlay
-                        .get(&(level, base_position + 3))
-                        .copied()
-                        .unwrap_or(self.read_user_node(level, base_position + 3).await?),
-                ];
+                        .unwrap_or(path[level as usize][sibling]);
+                    sibling += 1;
+                }
                 children[child_index] = current_hash;
                 current_hash = QuadTree::hash_children(
                     level + 1,
@@ -910,6 +1024,7 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
             Vec::with_capacity(updates.len() * (crate::tree::DEFAULT_DEPTH as usize + 1));
 
         for &(position, leaf_hash) in updates {
+            let path = self.read_asset_auth_path_direct(position).await?;
             let mut current_position = position;
             let mut current_hash = leaf_hash;
             overlay.insert((0, current_position), current_hash);
@@ -919,24 +1034,18 @@ trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
                 let parent_position = current_position / 4;
                 let base_position = parent_position * 4;
                 let child_index = (current_position % 4) as usize;
-                let mut children = [
-                    overlay
-                        .get(&(level, base_position))
+                let mut children = [current_hash; 4];
+                let mut sibling = 0;
+                for child in 0..4 {
+                    if child == child_index {
+                        continue;
+                    }
+                    children[child] = overlay
+                        .get(&(level, base_position + child as u64))
                         .copied()
-                        .unwrap_or(self.read_asset_node(level, base_position).await?),
-                    overlay
-                        .get(&(level, base_position + 1))
-                        .copied()
-                        .unwrap_or(self.read_asset_node(level, base_position + 1).await?),
-                    overlay
-                        .get(&(level, base_position + 2))
-                        .copied()
-                        .unwrap_or(self.read_asset_node(level, base_position + 2).await?),
-                    overlay
-                        .get(&(level, base_position + 3))
-                        .copied()
-                        .unwrap_or(self.read_asset_node(level, base_position + 3).await?),
-                ];
+                        .unwrap_or(path[level as usize][sibling]);
+                    sibling += 1;
+                }
                 children[child_index] = current_hash;
                 current_hash = IndexedMerkleTree::hash_children(
                     level + 1,
