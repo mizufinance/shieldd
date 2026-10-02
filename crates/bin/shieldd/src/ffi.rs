@@ -41,6 +41,7 @@ const METHOD_QUERY_COMPLIANCE_BATCH_MERKLE_PROOFS: u32 = 1_000_003;
 const METHOD_QUERY_COMPLIANCE_USER_LEAF: u32 = 1_000_004;
 const METHOD_QUERY_KEY_VALUE: u32 = 1_000_005;
 const METHOD_QUERY_PUBLISHED_BOUNDARY: u32 = 1_000_015;
+const METHOD_QUERY_ARCHIVE_RANGE: u32 = 1_000_014;
 const METHOD_QUERY_NULLIFIER_STATUS: u32 = 1_000_013;
 const METHOD_FREEZE: u32 = 14;
 const METHOD_RECOVER_DECIDED: u32 = 20;
@@ -84,6 +85,7 @@ enum Method {
     QueryComplianceBatchMerkleProofs = 1000003,
     QueryComplianceUserLeaf = 1000004,
     QueryKeyValue = 1000005,
+    QueryArchiveRange = 1000014,
     QueryPublishedBoundary = 1000015,
     QueryNullifierStatus = 1000013,
     QueryCommittedTransaction = 1000008,
@@ -255,6 +257,7 @@ impl TryFrom<u32> for Method {
             METHOD_QUERY_COMPLIANCE_USER_LEAF => Ok(Self::QueryComplianceUserLeaf),
             METHOD_QUERY_KEY_VALUE => Ok(Self::QueryKeyValue),
             METHOD_QUERY_PUBLISHED_BOUNDARY => Ok(Self::QueryPublishedBoundary),
+            METHOD_QUERY_ARCHIVE_RANGE => Ok(Self::QueryArchiveRange),
             METHOD_QUERY_NULLIFIER_STATUS => Ok(Self::QueryNullifierStatus),
             METHOD_QUERY_COMMITTED_TRANSACTION => Ok(Self::QueryCommittedTransaction),
             METHOD_QUERY_COMPACT_BLOCK_PAGE => Ok(Self::QueryCompactBlockPage),
@@ -586,6 +589,7 @@ impl Method {
                 | Self::QueryComplianceBatchMerkleProofs
                 | Self::QueryComplianceUserLeaf
                 | Self::QueryKeyValue
+                | Self::QueryArchiveRange
                 | Self::QueryPublishedBoundary
                 | Self::QueryNullifierStatus
         )
@@ -661,6 +665,11 @@ async fn dispatch_query(
             .compliance_user_leaf(decode(request)?)
             .await
             .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
+        Method::QueryArchiveRange => service
+            .archive_range(decode(request)?)
+            .await
+            .map(|r| r.encode_to_vec())
             .map_err(FfiError::service),
         Method::QueryKeyValue => service
             .key_value(decode(request)?)
@@ -1024,6 +1033,7 @@ mod tests {
                 Method::QueryComplianceUserLeaf,
             ),
             (METHOD_QUERY_KEY_VALUE, Method::QueryKeyValue),
+            (METHOD_QUERY_ARCHIVE_RANGE, Method::QueryArchiveRange),
             (
                 METHOD_QUERY_PUBLISHED_BOUNDARY,
                 Method::QueryPublishedBoundary,

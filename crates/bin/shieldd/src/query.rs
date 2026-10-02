@@ -851,6 +851,69 @@ impl QueryService {
         })
     }
 
+    pub async fn archive_range(
+        &self,
+        request: shieldd_sdk_proto::storage::v1::ArchiveRangeRequest,
+    ) -> Result<shieldd_sdk_proto::storage::v1::ArchiveRangeResponse, ServiceError> {
+        self.authenticated(self.archive_range_in_view(request))
+            .await
+    }
+    async fn archive_range_in_view(
+        &self,
+        request: shieldd_sdk_proto::storage::v1::ArchiveRangeRequest,
+    ) -> Result<shieldd_sdk_proto::storage::v1::ArchiveRangeResponse, ServiceError> {
+        let snapshot = self.snapshot()?;
+        let manifest = snapshot
+            .manifest()
+            .context("archive boundary is missing")
+            .map_err(ServiceError::unavailable)?;
+        let query = shieldd_sdk_storage::ArchiveQuery {
+            height: request.height,
+            prefix: request.prefix,
+            start: request.start,
+            end: request.end,
+            limit: request.limit as usize,
+        };
+        query.validate().map_err(ServiceError::invalid_argument)?;
+        if query.height > manifest.height {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "archive height is not jointly committed"
+            )));
+        }
+        let key = shieldd_sdk_storage::application_key(
+            shieldd_sdk_storage::Space::Application,
+            b"storage/archive/mmr.v1",
+        );
+        let owner = self
+            .storage
+            .read()
+            .expect("storage lock poisoned")
+            .clone()
+            .ok_or_else(ServiceError::closed)?;
+        let (value, path) = owner
+            .forest()
+            .read()
+            .authenticated_read(&manifest.participants[0], key)
+            .map_err(ServiceError::unavailable)?;
+        let anchor = shieldd_sdk_storage::StateProof {
+            manifest: manifest.clone(),
+            participant: 0,
+            key,
+            value,
+            path,
+        };
+        let proof = snapshot
+            .archive_range_proof(
+                anchor,
+                &query,
+                self.limits.payload_page_bytes().min(16 * 1024 * 1024),
+            )
+            .map_err(ServiceError::unavailable)?;
+        Ok(shieldd_sdk_proto::storage::v1::ArchiveRangeResponse {
+            proof: proof.encode_canonical().map_err(ServiceError::internal)?,
+        })
+    }
+
     pub async fn nullifier_status(
         &self,
         request: NullifierRequest,

@@ -1,5 +1,6 @@
 //! Authenticated state contracts and owned execution overlays.
 mod action_handler;
+mod archive;
 #[cfg(feature = "persistent")]
 mod capacity;
 mod commitment;
@@ -24,6 +25,9 @@ mod test_support;
 mod write;
 
 pub use action_handler::ActionHandler;
+pub use archive::proof::{
+    ArchiveQuery, ArchiveRangeProof, VerifiedArchivePage, VerifiedArchiveRecord,
+};
 #[cfg(feature = "persistent")]
 pub use capacity::{qualification_required, FileCapacity, ParticipantCapacity};
 pub use commitment::{nullifier_key, nullifier_shard, volume_key, ValueCommitment, SPENT};

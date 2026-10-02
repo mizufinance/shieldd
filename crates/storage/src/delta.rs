@@ -131,7 +131,7 @@ impl StateDelta<crate::Snapshot> {
                 DiffItem::Add(key, _) | DiffItem::Remove(key, _) => key,
                 DiffItem::Update { new: (key, _), .. } => key,
             };
-            if crate::native::tree(key).is_none() {
+            if crate::archive::height(key).is_none() && crate::native::tree(key).is_none() {
                 view.reserve_ordering(crate::Space::Raw, key)?;
             }
         }
