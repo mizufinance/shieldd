@@ -852,20 +852,34 @@ impl ExecutionService {
             manifest.digest().map_err(ServiceError::internal)?,
         )
         .map_err(ServiceError::unavailable)?;
-        shieldd_sdk_app::app_version::check_app_version(&restored)
-            .await
-            .map_err(ServiceError::unavailable)?;
-        let view = restored.latest_snapshot();
-        shieldd_sdk_app::registry_binding::check(&view, self.registry.id())
-            .await
-            .map_err(ServiceError::unavailable)?;
-        restored
-            .forest()
-            .read()
-            .authenticate_reads(&manifest, view.observations())
-            .map_err(ServiceError::unavailable)?;
-        drop(view);
+        let validation = async {
+            shieldd_sdk_app::app_version::check_app_version(&restored)
+                .await
+                .map_err(ServiceError::unavailable)?;
+            let view = restored.latest_snapshot();
+            if !shieldd_sdk_app::app::App::is_ready(view.clone()).await {
+                return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                    "restored native commitments are inconsistent"
+                )));
+            }
+            shieldd_sdk_app::registry_binding::check(&view, self.registry.id())
+                .await
+                .map_err(ServiceError::unavailable)?;
+            restored
+                .forest()
+                .read()
+                .authenticate_reads(&manifest, view.observations())
+                .map_err(ServiceError::unavailable)?;
+            Ok(())
+        }
+        .await;
         drop(restored);
+        if let Err(error) = validation {
+            if let Err(cleanup) = std::fs::remove_dir_all(&staging) {
+                tracing::warn!(%cleanup, "rejected checkpoint files require local cleanup");
+            }
+            return Err(error);
+        }
         // Prepare and validate before dropping the live handles. Exchange is
         // atomic, and old files remain under staging until local cleanup.
         queries.detach_storage();
@@ -1250,6 +1264,44 @@ mod tests {
         assert_eq!(committed.height, 0);
         assert_eq!(committed.root_hash, commit.decided.unwrap().root_hash);
 
+        let capture_parent = tempfile::tempdir().expect("checkpoint parent");
+        let path = capture_parent.path().join("capture");
+        service
+            .schedule_checkpoint(
+                shieldd_sdk_proto::execution_client::v1::ScheduleCheckpointRequest {
+                    boundary: Some(committed.clone()),
+                    path: path.to_str().unwrap().to_owned(),
+                },
+            )
+            .await
+            .expect("capture matched native checkpoint");
+        service
+            .queries
+            .checkpoints
+            .wait(0)
+            .await
+            .expect("validate captured checkpoint");
+        service
+            .restore_checkpoint(
+                shieldd_sdk_proto::execution_client::v1::RestoreCheckpointRequest {
+                    boundary: Some(committed.clone()),
+                    path: path.to_str().unwrap().to_owned(),
+                },
+            )
+            .await
+            .expect("validate private native copy and activate checkpoint");
+        assert_eq!(
+            service
+                .get_committed_state(GetCommittedStateRequest {})
+                .await
+                .unwrap(),
+            committed
+        );
+        service
+            .queries
+            .checkpoints
+            .release(0)
+            .expect("release consumed source capture");
         service.close().await.expect("close execution service");
 
         let mut reopened = ExecutionService::open(directory.path(), crate::test_registry())
