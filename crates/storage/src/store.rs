@@ -425,7 +425,11 @@ impl Storage {
         config: ForestConfig,
         anchor: [u8; 32],
     ) -> Result<Self> {
-        Self::validate_checkpoint(source, config.clone(), anchor)?;
+        let descriptor = Manifest::decode(&std::fs::read(source.join("manifest.pb"))?)?;
+        ensure!(
+            descriptor.digest()? == anchor,
+            "restore source differs from the trusted SDK anchor"
+        );
         ensure!(
             destination
                 .symlink_metadata()
@@ -451,12 +455,14 @@ impl Storage {
         ensure!(!temporary.exists(), "private restore path already exists");
         let result = (|| -> Result<()> {
             crate::forest::copy_files(source, &temporary)?;
+            // Validate the installed bytes and exact inventory, rather than
+            // relying on a source that could change while it is being copied.
+            Self::validate_checkpoint(&temporary, config.clone(), anchor)?;
             std::fs::remove_file(temporary.join("manifest.pb"))?;
             std::fs::File::open(&temporary)?.sync_all()?;
             let storage = Self::open(&temporary, config.clone())?;
             storage.0.raw.rebuild_archive_indexes()?;
             *storage.0.latest.write() = storage.0.raw.latest_snapshot()?;
-            storage.validate()?;
             ensure!(
                 storage
                     .manifest()

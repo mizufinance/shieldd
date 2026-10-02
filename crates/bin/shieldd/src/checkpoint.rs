@@ -159,6 +159,8 @@ impl Checkpoints {
         }
         Ok(())
     }
+    // The serialized service owner first joins materialization, which awaits
+    // the copy phase; only detached validation remains for this method to join.
     pub(crate) async fn join(&self) -> Result<()> {
         {
             let current = self.current.lock().expect("checkpoint lock poisoned");

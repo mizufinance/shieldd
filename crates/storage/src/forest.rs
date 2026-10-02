@@ -527,10 +527,13 @@ impl Forest {
             }
             let path = self.directory.join(id.name());
             match std::fs::remove_dir_all(&path) {
-                Ok(()) => std::fs::File::open(&self.directory)?.sync_all()?,
+                Ok(()) => {}
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
                 Err(error) => return Err(error.into()),
             }
+            // A retry after an earlier directory-sync failure must also make
+            // an already missing directory durable before clearing its ledger.
+            std::fs::File::open(&self.directory)?.sync_all()?;
             self.collected_retirements.insert(day);
         }
         Ok(())
