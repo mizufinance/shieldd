@@ -31,8 +31,9 @@ separately in [Bankd #355](https://github.com/mizufinance/bankd/issues/355).
 
 Freeze authenticates committed observations from successful and failed calls before SDK durability. NOMT participants then materialize, followed by one
 synced RocksDB values/manifest batch. Public SDK and native queries wait for a
-matched boundary. SDK Commit returns after native materialization and proof-session draining
-complete. The next block starts from this matched durable boundary.
+matched boundary. SDK Commit acknowledges the durable decision while native
+materialization and proof-session draining run in the background. Stateless proof
+verification for H+1 overlaps H persistence; H+1 cannot decide before H finishes.
 Owned chunks contain at most 128 transactions/16 MiB, preserve transaction order
 and do not impose a block admission limit.
 
