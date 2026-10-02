@@ -629,33 +629,3 @@ async fn materialize_waits_for_proof_drain_and_publishes_before_returning() -> R
     service.close().await?;
     Ok(())
 }
-
-#[tokio::test]
-async fn archive_query_returns_a_client_verifiable_genesis_range() -> Result<()> {
-    use shieldd_sdk_proto::storage::v1::ArchiveRangeRequest;
-    let (_storage, mut service) = initialized_client().await?;
-    let committed = service
-        .get_committed_state(GetCommittedStateRequest {})
-        .await?;
-    let prefix = b"compactblock/metadata/00000000000000000000".to_vec();
-    let request = ArchiveRangeRequest {
-        height: 0,
-        prefix: prefix.clone(),
-        start: prefix.clone(),
-        end: None,
-        limit: 1,
-    };
-    let response = service.queries().archive_range(request).await?;
-    let query = shieldd_sdk_storage::ArchiveQuery {
-        height: 0,
-        prefix: prefix.clone(),
-        start: prefix,
-        end: None,
-        limit: 1,
-    };
-    let page = shieldd_sdk_storage::ArchiveRangeProof::decode_canonical(&response.proof)?
-        .verify(committed.root_hash.try_into().unwrap(), &query)?;
-    assert_eq!(page.records.len(), 1);
-    assert!(page.next.is_none());
-    Ok(())
-}

@@ -107,8 +107,7 @@ impl Storage {
             view.manifest().is_none() && boundary.height == 0 && boundary.block_id == [0; 32],
             "invalid genesis recomputation input"
         );
-        let mut effects = Effects::from_cache(&cache);
-        crate::archive::stage(&view, boundary.height, &mut effects)?;
+        let effects = Effects::from_cache(&cache);
         let effects = ordered_effects(&view, effects)?;
         let changes = effects.application_changes()?;
         let values = changes
@@ -165,8 +164,7 @@ impl Storage {
                     == Some(height)),
             "nonconsecutive storage decision"
         );
-        let mut effects = Effects::from_cache(&cache);
-        crate::archive::stage(&view, height, &mut effects)?;
+        let effects = Effects::from_cache(&cache);
         let effects = ordered_effects(&view, effects)?;
         let application = effects.application_changes()?;
         ensure!(
@@ -325,7 +323,7 @@ impl Storage {
         forest.validate_participants(&manifest.participants)?;
         forest
             .validate_application_values(&manifest.participants[0], snapshot.canonical_entries())?;
-        snapshot.validate_archive()
+        Ok(())
     }
     /// Matched checkpoint callers hold the publication boundary and join their
     /// materializer before entering this method.
@@ -461,7 +459,6 @@ impl Storage {
             std::fs::remove_file(temporary.join("manifest.pb"))?;
             std::fs::File::open(&temporary)?.sync_all()?;
             let storage = Self::open(&temporary, config.clone())?;
-            storage.0.raw.rebuild_archive_indexes()?;
             *storage.0.latest.write() = storage.0.raw.latest_snapshot()?;
             ensure!(
                 storage
@@ -596,11 +593,10 @@ mod tests {
         state
     }
     #[tokio::test]
-    async fn retained_blocks_use_one_mmr_and_detect_aborted_reads_missing_values_and_extras() {
+    async fn retained_records_authenticate_ranges_missing_values_and_extras() {
         use futures::StreamExt;
         let temporary = tempfile::tempdir().unwrap();
         let storage = Storage::open(&temporary.path().join("state"), config()).unwrap();
-        let mut stable_count = None;
         for height in 0..6 {
             let mut delta = state(&storage, b"ordinary-state");
             for index in 0..19 {
@@ -612,12 +608,7 @@ mod tests {
             let prepared = storage
                 .prepare(delta, boundary(height, height as i64), BTreeMap::new())
                 .unwrap();
-            let manifest = storage.materialize(prepared).unwrap();
-            assert_eq!(
-                *stable_count.get_or_insert(manifest.participants[0].count),
-                manifest.participants[0].count,
-                "archive records must not each grow the application NOMT"
-            );
+            storage.materialize(prepared).unwrap();
         }
         storage.validate().unwrap();
         let view = storage.latest_snapshot();
@@ -655,30 +646,30 @@ mod tests {
         storage
             .0
             .raw
-            .corrupt_for_test(crate::Space::Archive, &key, None);
+            .corrupt_for_test(crate::Space::Raw, &key, None);
         let raw = storage.0.raw.latest_snapshot().unwrap();
-        assert!(raw.nonverifiable_get_raw(&key).await.is_err());
+        assert!(raw.nonverifiable_get_raw(&key).await.unwrap().is_none());
         assert!(
             storage
                 .forest()
                 .read()
                 .authenticate_reads(&manifest, raw.observations())
                 .is_err(),
-            "discarding failed call writes must not erase archive integrity failure"
+            "discarding failed call writes must not erase retained-record integrity failure"
         );
         let extra = format!("compactblock/payload/{:020}/{:020}", 2, 99).into_bytes();
         storage
             .0
             .raw
-            .corrupt_for_test(crate::Space::Archive, &extra, Some(b"extra"));
+            .corrupt_for_test(crate::Space::Raw, &extra, Some(b"extra"));
         storage
             .0
             .raw
-            .corrupt_for_test(crate::Space::Archive, &key, Some(&[2, 7]));
+            .corrupt_for_test(crate::Space::Raw, &key, Some(&[2, 7]));
         *storage.0.latest.write() = storage.0.raw.latest_snapshot().unwrap();
         assert!(
             storage.validate().is_err(),
-            "complete validation must reject uncommitted raw archive entries"
+            "complete validation must reject uncommitted raw retained records"
         );
     }
     #[test]

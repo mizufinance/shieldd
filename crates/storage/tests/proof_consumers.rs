@@ -26,7 +26,7 @@ fn proof(
 /// Deterministic detached proofs also consumed by the browser/WASM owning suite.
 /// Set SHIELDD_PROOF_VECTORS only when regenerating its checked-in fixture.
 #[test]
-fn detached_native_and_archive_proofs_share_consumer_vectors() -> Result<()> {
+fn detached_native_proofs_share_consumer_vectors() -> Result<()> {
     let directory = tempfile::tempdir()?;
     let storage = Storage::open(
         &directory.path().join("state"),
@@ -100,38 +100,10 @@ fn detached_native_and_archive_proofs_share_consumer_vectors() -> Result<()> {
     let spent = proof(&storage, &manifest, 1 + u32::from(shard), nf_key)?;
     spent.verify(anchor, 1 + u32::from(shard), nf_key)?;
     assert_eq!(spent.value.as_deref(), Some(SPENT));
-    let prefix = b"compactblock/payload/00000000000000000001/".to_vec();
-    let query = ArchiveQuery {
-        height: 1,
-        start: [prefix.as_slice(), &[1]].concat(),
-        prefix,
-        end: None,
-        limit: 2,
-    };
-    let mmr = proof(
-        &storage,
-        &manifest,
-        0,
-        application_key(Space::Application, b"storage/archive/mmr.v1"),
-    )?;
-    let range = storage
-        .latest_snapshot()
-        .archive_range_proof(mmr, &query, 16 * 1024 * 1024)?;
-    let page = range.verify(anchor, &query)?;
-    assert_eq!(
-        page.records
-            .iter()
-            .map(|r| r.value.clone())
-            .collect::<Vec<_>>(),
-        vec![vec![1; 3], vec![2; 3]]
-    );
-    assert_eq!(page.next, Some([query.prefix.as_slice(), &[3]].concat()));
     if let Ok(path) = std::env::var("SHIELDD_PROOF_VECTORS") {
         let vectors = serde_json::json!({ "anchor":anchor.to_vec(), "key":key, "value":value,
             "present":present.encode()?, "absentKey":absent_key, "absent":absent.encode()?,
-            "nullifier":nullifier.to_vec(), "spent":spent.encode()?, "archive":range.encode_canonical()?,
-            "query":{ "height":query.height, "prefix":query.prefix, "start":query.start, "limit":query.limit },
-            "page":page });
+            "nullifier":nullifier.to_vec(), "spent":spent.encode()? });
         std::fs::write(path, serde_json::to_vec(&vectors)?)?;
     }
     Ok(())

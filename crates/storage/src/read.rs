@@ -32,7 +32,7 @@ pub trait StateRead: Send + Sync {
     /// Gets a byte value from the raw key space.
     ///
     /// Storage authenticates consensus records through their NOMT value
-    /// commitments or an explicitly checked native tree/archive commitment.
+    /// commitments or an explicitly checked native tree commitment.
     fn nonverifiable_get_raw(&self, key: &[u8]) -> Self::GetRawFut;
 
     /// Native tree nodes are readable only inside an explicit region whose

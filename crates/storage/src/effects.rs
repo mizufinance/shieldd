@@ -10,7 +10,6 @@ pub enum Space {
     Application = 0,
     Raw = 1,
     Order = 2,
-    Archive = 3,
     Native = 4,
 }
 impl TryFrom<u32> for Space {
@@ -20,7 +19,6 @@ impl TryFrom<u32> for Space {
             0 => Ok(Self::Application),
             1 => Ok(Self::Raw),
             2 => Ok(Self::Order),
-            3 => Ok(Self::Archive),
             4 => Ok(Self::Native),
             _ => anyhow::bail!("unknown canonical key space"),
         }
@@ -66,9 +64,7 @@ impl Effects {
                     value: value.as_ref().map(|v| v.to_vec()),
                 })
                 .chain(cache.nonverifiable_changes().map(|(key, value)| Effect {
-                    space: if crate::archive::height(key).is_some() {
-                        Space::Archive
-                    } else if crate::native::tree(key).is_some() {
+                    space: if crate::native::tree(key).is_some() {
                         Space::Native
                     } else {
                         Space::Raw
