@@ -54,8 +54,18 @@ impl Storage {
             }
         }
         #[cfg(target_os = "linux")]
-        io_uring::IoUring::new(2)
-            .context("NOMT requires usable io_uring; enable it before opening Shieldd storage")?;
+        {
+            // Match NOMT's worker requirements before creating any store files.
+            // Allowing setup alone can still leave workers unable to submit I/O.
+            let ring =
+                io_uring::IoUring::<io_uring::squeue::Entry, io_uring::cqueue::Entry>::builder()
+                    .setup_single_issuer()
+                    .build(1024)
+                    .context("NOMT requires Linux 6.0+ and permitted io_uring_setup")?;
+            ring.submitter()
+                .submit()
+                .context("NOMT requires permitted io_uring_enter")?;
+        }
         std::fs::create_dir_all(path)?;
         let raw = crate::RawStore::open(&path.join("values"))?;
         let latest = raw.latest_snapshot()?;
@@ -591,6 +601,35 @@ mod tests {
         let mut state = StateDelta::new(storage.latest_snapshot());
         state.put_raw("key".into(), value.to_vec());
         state
+    }
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[ignore = "requires denied io_uring; run by the Linux container storage gate"]
+    fn unavailable_io_uring_creates_no_store() -> Result<()> {
+        let denied = std::env::var("SHIELDD_EXPECT_IO_URING_DENIAL")?;
+        ensure!(matches!(
+            denied.as_str(),
+            "io_uring_setup" | "io_uring_enter"
+        ));
+        let temporary = tempfile::tempdir()?;
+        let path = temporary.path().join("state");
+        let opened = Storage::open(&path, config());
+        assert!(
+            !path.exists(),
+            "refused startup must not create partial state"
+        );
+        let error = opened
+            .err()
+            .context("denied I/O must refuse storage startup")?;
+        assert!(error.to_string().contains(&denied), "{error:#}");
+        assert_eq!(
+            error
+                .downcast_ref::<std::io::Error>()
+                .and_then(|error| error.raw_os_error()),
+            Some(libc::EPERM),
+            "the refusal must reach the denied syscall: {error:#}"
+        );
+        Ok(())
     }
     #[tokio::test]
     async fn retained_records_authenticate_ranges_missing_values_and_extras() {
