@@ -3,8 +3,8 @@
 pub mod proof;
 
 #[cfg(feature = "persistent")]
-use crate::{Effect, Effects};
-use crate::{Space, ValueCommitment};
+use crate::Effect;
+use crate::{Effects, Space, ValueCommitment};
 use anyhow::{ensure, Context, Result};
 use sha2::{Digest, Sha256};
 
