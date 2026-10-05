@@ -250,36 +250,45 @@ impl TransactionPlan {
     pub fn witness_data(&self, sct: &shieldd_sdk_tct::Tree) -> Result<WitnessData, anyhow::Error> {
         let anchor = sct.root();
 
-        let witness_note = |spend: &shieldd_sdk_shielded_pool::ShieldedInputPlan| {
+        let witness_note = |spend: &shieldd_sdk_shielded_pool::ShieldedInputPlan| -> anyhow::Result<(
+            shieldd_sdk_tct::Position,
+            shieldd_sdk_tct::Proof,
+        )> {
             let commitment = spend.note.commit();
-            sct.witness(commitment)
-                .ok_or_else(|| anyhow::anyhow!("commitment should exist in tree"))
-                .map(|proof| (commitment, proof))
+            let proof = sct
+                .witness(spend.position)
+                .ok_or_else(|| anyhow::anyhow!("input position is not retained in tree"))?;
+            anyhow::ensure!(
+                proof.commitment() == commitment,
+                "input position has a different commitment"
+            );
+            proof.verify(anchor)?;
+            Ok((spend.position, proof))
         };
 
         let mut state_commitment_proofs = std::collections::BTreeMap::new();
         for action in &self.actions {
             for spend in action.spends() {
-                let (commitment, proof) = witness_note(spend)?;
-                state_commitment_proofs.insert(commitment, proof);
+                let (position, proof) = witness_note(spend)?;
+                state_commitment_proofs.insert(position, proof);
             }
-            let accumulator_commitment = match action {
-                ActionPlan::Transfer(plan) => plan.accumulator_prior_commitment(),
-                ActionPlan::ShieldedHostWithdrawal(plan) => plan.accumulator_prior_commitment(),
+            let accumulator_position = match action {
+                ActionPlan::Transfer(plan) => plan.accumulator_prior_position(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.accumulator_prior_position(),
 
                 _ => None,
             };
-            if let Some(commitment) = accumulator_commitment {
-                let proof = sct.witness(commitment).ok_or_else(|| {
+            if let Some(position) = accumulator_position {
+                let proof = sct.witness(position).ok_or_else(|| {
                     anyhow::anyhow!("volume accumulator commitment should exist in tree")
                 })?;
-                state_commitment_proofs.insert(commitment, proof);
+                state_commitment_proofs.insert(position, proof);
             }
         }
         if let Some(fee_funding) = &self.fee_funding {
             for spend in &fee_funding.transfer.spends {
-                let (commitment, proof) = witness_note(spend)?;
-                state_commitment_proofs.insert(commitment, proof);
+                let (position, proof) = witness_note(spend)?;
+                state_commitment_proofs.insert(position, proof);
             }
         }
 

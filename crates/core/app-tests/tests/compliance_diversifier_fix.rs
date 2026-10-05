@@ -103,7 +103,8 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         &mut OsRng,
         note.clone(),
         client
-            .position(note.commit())
+            .positions(note.commit())
+            .next()
             .ok_or_else(|| anyhow!("sender note position unknown"))?,
     );
     let output = ShieldedOutputPlan::new(&mut OsRng, note.value(), recipient.clone());

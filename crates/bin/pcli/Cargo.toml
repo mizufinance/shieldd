@@ -9,14 +9,17 @@ license = {workspace = true}
 publish = false
 
 [features]
-default = ["demo", "disclosure"]
+default = ["demo", "disclosure", "seizure"]
 disclosure = ["dep:shieldd-sdk-disclosure", "dep:shieldd-sdk-view", "dep:tonic", "dep:tempfile", "dep:libc"]
+seizure = ["dep:shieldd-sdk-shielded-pool", "dep:shieldd-sdk-tct", "dep:tempfile", "dep:libc", "zeroize/serde"]
 disclosure-prover = ["disclosure", "shieldd-sdk-disclosure/prover"]
 demo = ["shieldd-sdk-keys/demo"]
 orbis = ["disclosure", "shieldd-sdk-disclosure/orbis", "dep:shieldd-orbis-client", "dep:orbis-authn", "dep:orbis-common", "dep:orbis-crypto"]
 
 [dependencies]
 shieldd-sdk-proof-params.workspace = true
+shieldd-sdk-shielded-pool = { workspace = true, default-features = false, features = ["prover"], optional = true }
+shieldd-sdk-tct = { workspace = true, optional = true }
 ark-std-04 = { package = "ark-std", version = "0.4" }
 shieldd-orbis-client = { workspace = true, optional = true }
 orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "0a0f935a85cc60e87561a9c7364fa80fdb3332df", optional = true }

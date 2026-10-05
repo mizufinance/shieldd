@@ -179,11 +179,11 @@ pub async fn build_proof_transactions(
     let asset_id = asset::REGISTRY.parse_unit(REGULATED_DENOM).id();
     let notes: Vec<_> = client
         .notes
-        .values()
-        .filter(|note| {
+        .iter()
+        .filter(|(_, note)| {
             note.asset_id() == asset_id && note.address() == test_keys::ADDRESS_0.deref().clone()
         })
-        .cloned()
+        .map(|(position, note)| (*position, note.clone()))
         .take(n)
         .collect();
     assert_eq!(notes.len(), n, "expected {n} notes, got {}", notes.len());
@@ -192,7 +192,7 @@ pub async fn build_proof_transactions(
     let snapshot = storage.latest_snapshot();
     let mut tasks = JoinSet::new();
 
-    for (ordinal, note) in notes.into_iter().enumerate() {
+    for (ordinal, (position, note)) in notes.into_iter().enumerate() {
         let client = client.clone();
         let permits = permits.clone();
         let snapshot = snapshot.clone();
@@ -201,9 +201,6 @@ pub async fn build_proof_transactions(
                 .acquire_owned()
                 .await
                 .expect("proof tx semaphore should not be closed");
-            let position = client
-                .position(note.commit())
-                .context("note position exists")?;
             let spend = ShieldedInputPlan::new(&mut OsRng, note.clone(), position);
             let send_amount = Amount::from(1u64);
             let change_amount = note.amount() - send_amount;

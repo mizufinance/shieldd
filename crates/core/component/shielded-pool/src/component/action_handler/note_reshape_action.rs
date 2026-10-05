@@ -183,8 +183,9 @@ mod tests {
             let anchor = tree.root();
             let proofs = notes
                 .iter()
-                .map(|note| {
-                    tree.witness(note.commit())
+                .enumerate()
+                .map(|(index, _)| {
+                    tree.witness((index as u64).into())
                         .expect("inserted note is witnessed")
                 })
                 .collect::<Vec<_>>();

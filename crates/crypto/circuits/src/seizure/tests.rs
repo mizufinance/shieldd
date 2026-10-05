@@ -1,5 +1,5 @@
 use super::*;
-use crate::group::Point;
+use crate::{group::Point, recovery};
 use commonware_cryptography::zk::circuit::build_with_values;
 use commonware_math::algebra::{Additive, Ring};
 
@@ -32,21 +32,24 @@ pub(crate) fn fixture(p: &Parameters) -> Witness {
         position: Scalar::from(42),
         siblings: std::array::from_fn(|_| std::array::from_fn(|_| Scalar::zero())),
     };
+    let g = Generators::derive(p);
+    let value_blinding = Scalar::from(37);
+    let value_commitment =
+        balance::native(p, &g, &asset, [u128::MAX, 0], [0, 0], &value_blinding).unwrap();
     Witness {
+        amount,
+        recovery_commitment: capsule.capsule.commitment,
+        value_blinding,
         statement: Statement {
             anchor: tree::native_root(p, Tree::State, commitment.clone(), 42, &path.siblings),
             nullifier: p.native(
                 domains::NOTE_NULLIFIER,
                 &[rnk.clone(), commitment.clone(), path.position.clone()],
             ),
-            commitment,
             address,
             asset,
-            amount,
-            recovery: capsule.capsule,
-            seed: capsule.seed,
             rnk_commitment: p.native(domains::REGULATED_NULLIFIER_COMMITMENT, &[rnk.clone()]),
-            authorization: Scalar::from(37),
+            value_commitment,
         },
         blinding,
         rnk,
@@ -54,40 +57,35 @@ pub(crate) fn fixture(p: &Parameters) -> Witness {
     }
 }
 fn satisfied(p: &Parameters, w: &Witness, digest: &Scalar) -> bool {
-    build_with_values(|ctx| constrain(ctx, p, w, digest))
+    build_with_values(|ctx| constrain(ctx, p, &Generators::derive(p), w, digest))
         .0
         .is_satisfied()
 }
 #[test]
-fn released_seed_note_membership_and_every_public_fact_are_bound() {
+fn whole_private_opening_and_every_public_fact_are_bound() {
     let p = Parameters::load().unwrap();
     let w = fixture(&p);
     let digest = w.statement.digest(&p);
     assert!(satisfied(&p, &w, &digest));
-    for mutation in 0..19 {
+    for mutation in 0..14 {
         let mut bad = w.clone();
         match mutation {
             0 => bad.blinding += &Scalar::one(),
             1 => bad.rnk += &Scalar::one(),
             2 => bad.path.position += &Scalar::one(),
             3 => bad.path.siblings[23][2] += &Scalar::one(),
-            4 => bad.statement.seed += &Scalar::one(),
-            5 => bad.statement.recovery.c2 += &Scalar::one(),
-            6 => bad.statement.recovery.epk = Point::identity(),
-            7 => bad.statement.recovery.salt += &Scalar::one(),
-            8 => bad.statement.recovery.confirmation += &Scalar::one(),
-            9 => bad.statement.recovery.encrypted_amount += &Scalar::one(),
-            10 => bad.statement.recovery.encrypted_blinding += &Scalar::one(),
-            11 => bad.statement.recovery.commitment += &Scalar::one(),
-            12 => bad.statement.amount += &Scalar::one(),
-            13 => bad.statement.nullifier += &Scalar::one(),
-            14 => bad.statement.rnk_commitment += &Scalar::one(),
-            15 => bad.statement.address.transmission = Point::identity(),
-            16 => bad.statement.asset += &Scalar::one(),
-            17 => {
+            4 => bad.recovery_commitment += &Scalar::one(),
+            5 => bad.value_blinding += &Scalar::one(),
+            6 => bad.amount = Scalar::zero(),
+            7 => bad.amount -= &Scalar::one(),
+            8 => bad.statement.nullifier += &Scalar::one(),
+            9 => bad.statement.rnk_commitment += &Scalar::one(),
+            10 => bad.statement.address.transmission = Point::identity(),
+            11 => bad.statement.asset += &Scalar::one(),
+            12 => bad.statement.value_commitment = group::generator(),
+            _ => {
                 bad.statement.address.transmission = group::generator().multiply(&Scalar::from(41))
             }
-            _ => bad.statement.commitment += &Scalar::one(),
         }
         assert!(
             !satisfied(&p, &bad, &bad.statement.digest(&p)),
@@ -95,7 +93,35 @@ fn released_seed_note_membership_and_every_public_fact_are_bound() {
         );
     }
     let mut changed = w.clone();
-    changed.statement.authorization += &Scalar::one();
+    changed.statement.value_commitment = group::generator();
     assert!(!satisfied(&p, &changed, &digest));
-    assert!(satisfied(&p, &changed, &changed.statement.digest(&p)));
+    assert_eq!(w.statement.fields().len(), STATEMENT_FIELDS);
+
+    let mut zero = w.clone();
+    zero.amount = Scalar::zero();
+    let commitment = Note {
+        amount: zero.amount.clone(),
+        blinding: zero.blinding.clone(),
+        recovery: zero.recovery_commitment.clone(),
+    }
+    .commitment(&p, &zero.statement.asset, &zero.statement.address);
+    zero.statement.anchor =
+        tree::native_root(&p, Tree::State, commitment.clone(), 42, &zero.path.siblings);
+    zero.statement.nullifier = p.native(
+        domains::NOTE_NULLIFIER,
+        &[zero.rnk.clone(), commitment, zero.path.position.clone()],
+    );
+    zero.statement.value_commitment = balance::native(
+        &p,
+        &Generators::derive(&p),
+        &zero.statement.asset,
+        [0, 0],
+        [0, 0],
+        &zero.value_blinding,
+    )
+    .unwrap();
+    assert!(
+        !satisfied(&p, &zero, &zero.statement.digest(&p)),
+        "an otherwise consistent zero-valued note must fail the nonzero constraint"
+    );
 }

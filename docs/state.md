@@ -22,6 +22,11 @@ Rayon is feature-gated. Builds without the `parallel` feature use the same
 reducer serially. Wallet synchronization retains the witness-aware `Keep` path
 because a root-only builder cannot retain owned-note witnesses.
 
+SCT in-memory indexes and serde fixtures use position as occurrence identity;
+equal commitments retain separate positions. Recreate pre-change serialized tree
+fixtures as well as stale app/wallet state. Serde trees are local implementation
+details, not an authenticated-history or migration interface.
+
 ## Permanent spend-nullifier set
 
 Transactions authenticate committed absence through the native read capability

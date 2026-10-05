@@ -1,7 +1,6 @@
 use std::fmt::Display;
 use std::sync::Arc;
 
-use hash_hasher::HashedMap;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -78,14 +77,14 @@ fn hash_level(level: &[Hash], height: u8) -> Vec<Hash> {
 /// This is one block in an [`epoch`](crate::builder::epoch), which is one epoch in a [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
 pub struct Builder {
-    index: HashedMap<StateCommitment, index::within::Block>,
+    index: std::collections::BTreeMap<u16, StateCommitment>,
     inner: Arc<frontier::Top<Item>>,
 }
 
 impl Default for Builder {
     fn default() -> Self {
         Self {
-            index: HashedMap::default(),
+            index: Default::default(),
             inner: Arc::new(frontier::Top::new(frontier::TrackForgotten::No)),
         }
     }
@@ -95,7 +94,7 @@ impl Default for Builder {
 /// [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
 pub struct Finalized {
-    pub(in super::super) index: HashedMap<StateCommitment, index::within::Block>,
+    pub(in super::super) index: std::collections::BTreeMap<u16, StateCommitment>,
     pub(in super::super) inner: Insert<complete::Top<complete::Item>>,
 }
 
@@ -122,7 +121,7 @@ impl Finalized {
 impl From<Root> for Finalized {
     fn from(root: Root) -> Self {
         Self {
-            index: HashedMap::default(),
+            index: Default::default(),
             inner: Insert::Hash(root.0),
         }
     }
@@ -209,23 +208,15 @@ impl Builder {
 
         // Get the position of the insertion, if it would succeed
         let position = u16::try_from(self.inner.position().ok_or(InsertError)?)
-            .expect("position of block is never greater than `u16::MAX`")
-            .into();
+            .expect("position of block is never greater than `u16::MAX`");
 
         // Insert the commitment into the inner tree
         Arc::make_mut(&mut self.inner)
             .insert(item)
             .expect("inserting a commitment must succeed when block has a position");
 
-        // Keep track of the position of this just-inserted commitment in the index, if it was
-        // slated to be kept
         if let Witness::Keep = witness {
-            if let Some(replaced) = self.index.insert(commitment, position) {
-                // This case is handled for completeness, but should not happen in
-                // practice because commitments should be unique
-                let forgotten = Arc::make_mut(&mut self.inner).forget(replaced);
-                debug_assert!(forgotten);
-            }
+            self.index.insert(u16::from(position), commitment);
         }
 
         Ok(())
@@ -419,7 +410,7 @@ impl Finalized {
             anyhow::ensure!(hash == expected.0, "sparse block path root mismatch");
         }
         let mut inner: Insert<complete::Top<complete::Item>> = Insert::Hash(expected.0);
-        let mut index = HashedMap::default();
+        let mut index = std::collections::BTreeMap::new();
         for proof in proofs {
             inner = Insert::Keep(
                 complete::Top::uninitialized_out_of_order_insert_commitment_owned(
@@ -428,7 +419,7 @@ impl Finalized {
                     proof.commitment,
                 ),
             );
-            index.insert(proof.commitment, index::within::Block::from(proof.position));
+            index.insert(proof.position, proof.commitment);
         }
         if let Insert::Keep(tree) = &mut inner {
             for ((height, index), hash) in nodes {
@@ -468,8 +459,8 @@ mod sparse_tests {
         b.insert_block(sparse)?;
         for position in [0, 5, 16] {
             assert_eq!(
-                a.witness(commitments[position]),
-                b.witness(commitments[position])
+                a.witness(crate::Position::from(position as u64)),
+                b.witness(crate::Position::from(position as u64))
             );
         }
         a.insert_block(Root(Hash::one()))?;
@@ -479,8 +470,8 @@ mod sparse_tests {
         assert_eq!(a.root(), b.root());
         for position in [0, 5, 16] {
             assert_eq!(
-                a.witness(commitments[position]),
-                b.witness(commitments[position])
+                a.witness(crate::Position::from(position as u64)),
+                b.witness(crate::Position::from(position as u64))
             );
         }
         let mut bad = selected.clone();

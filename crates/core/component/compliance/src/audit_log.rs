@@ -22,9 +22,10 @@ use crate::{
     WithdrawalComplianceCiphertext,
 };
 
-pub const AUDIT_LOG_VERSION: u32 = 2;
+pub const AUDIT_LOG_VERSION: u32 = 3;
 pub const MAX_AUDIT_CHAIN_ID_BYTES: usize = 128;
-pub const MAX_AUDIT_RECORD_BYTES: usize = 4096;
+pub const MAX_AUDIT_RECORD_BYTES: usize = 16 * 1024;
+pub const MAX_SEIZED_NULLIFIERS: usize = 256;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AuditSource {
@@ -167,10 +168,10 @@ pub enum AuditEffect {
         asset_id: asset::Id,
         is_regulated: bool,
     },
-    NoteSeized {
+    NotesSeized {
         asset_id: asset::Id,
         address: Address,
-        nullifier: [u8; 32],
+        nullifiers: Vec<[u8; 32]>,
         amount: u128,
         freeze_generation: u64,
         authorization_commitment: Fq,
@@ -331,17 +332,22 @@ impl AuditEffect {
                 7
             }
 
-            Self::NoteSeized {
+            Self::NotesSeized {
                 asset_id,
                 address,
-                nullifier,
+                nullifiers,
                 amount,
                 freeze_generation,
                 authorization_commitment,
             } => {
                 fields[0] = asset_id.0;
                 fields[1] = audit_bytes_commitment(&address.to_vec());
-                fields[2] = encoding::field(nullifier)?;
+                let mut list = Vec::with_capacity(4 + 32 * nullifiers.len());
+                put_u32(&mut list, nullifiers.len().try_into()?);
+                for nf in nullifiers {
+                    list.extend_from_slice(nf);
+                }
+                fields[2] = audit_bytes_commitment(&list);
                 fields[3] = u128_field(*amount);
                 fields[4] = Fq::from(*freeze_generation);
                 fields[5] = *authorization_commitment;
@@ -415,12 +421,24 @@ impl AuditEffectRecord {
                     )
                 }
             },
-            AuditEffect::NoteSeized {
+            AuditEffect::NotesSeized {
+                nullifiers,
                 amount,
                 freeze_generation,
                 authorization_commitment,
                 ..
             } => {
+                ensure!(
+                    (1..=MAX_SEIZED_NULLIFIERS).contains(&nullifiers.len()),
+                    "invalid seized nullifier count"
+                );
+                ensure!(
+                    nullifiers.windows(2).all(|p| p[0] < p[1]),
+                    "seized nullifiers must be unique and ordered"
+                );
+                for nf in nullifiers {
+                    encoding::field(nf)?;
+                }
                 ensure!(*amount > 0, "seized audit amount must be nonzero");
                 ensure!(
                     *freeze_generation > 0,
@@ -520,10 +538,19 @@ impl AuditEffectRecord {
                     value => anyhow::bail!("invalid audit regulation flag {value}"),
                 },
             },
-            9 => AuditEffect::NoteSeized {
+            9 => AuditEffect::NotesSeized {
                 asset_id: reader.read_asset_id()?,
                 address: reader.read_address()?,
-                nullifier: reader.read_fixed()?,
+                nullifiers: {
+                    let count = reader.read_u32()? as usize;
+                    ensure!(
+                        (1..=MAX_SEIZED_NULLIFIERS).contains(&count),
+                        "invalid seized nullifier count"
+                    );
+                    (0..count)
+                        .map(|_| reader.read_fixed())
+                        .collect::<Result<_>>()?
+                },
                 amount: u128::from_le_bytes(reader.read_fixed()?),
                 freeze_generation: reader.read_u64()?,
                 authorization_commitment: reader.read_fq()?,
@@ -646,10 +673,10 @@ impl AuditEffectRecord {
                 out.push(u8::from(*is_regulated));
             }
 
-            AuditEffect::NoteSeized {
+            AuditEffect::NotesSeized {
                 asset_id,
                 address,
-                nullifier,
+                nullifiers,
                 amount,
                 freeze_generation,
                 authorization_commitment,
@@ -657,7 +684,10 @@ impl AuditEffectRecord {
                 out.push(9);
                 out.extend_from_slice(&asset_id.0.to_bytes());
                 put_bytes(&mut out, &address.to_vec())?;
-                out.extend_from_slice(nullifier);
+                put_u32(&mut out, nullifiers.len().try_into()?);
+                for nf in nullifiers {
+                    out.extend_from_slice(nf);
+                }
                 out.extend_from_slice(&amount.to_le_bytes());
                 put_u64(&mut out, *freeze_generation);
                 out.extend_from_slice(&authorization_commitment.to_bytes());
@@ -1124,18 +1154,18 @@ mod tests {
                 message_index: 2,
                 effect_index: 0,
             },
-            effect: AuditEffect::NoteSeized {
+            effect: AuditEffect::NotesSeized {
                 asset_id: asset::Id(Fq::from(9u64)),
                 address: Address::dummy(&mut OsRng),
-                nullifier: Fq::from(11u64).to_bytes(),
+                nullifiers: vec![Fq::from(11u64).to_bytes()],
                 amount: 7,
                 freeze_generation: 2,
                 authorization_commitment: Fq::from(13u64),
             },
         };
         let mut other = base.clone();
-        if let AuditEffect::NoteSeized { nullifier, .. } = &mut other.effect {
-            *nullifier = Fq::from(12u64).to_bytes();
+        if let AuditEffect::NotesSeized { nullifiers, .. } = &mut other.effect {
+            nullifiers[0] = Fq::from(12u64).to_bytes();
         }
         assert_ne!(base.commitment().unwrap(), other.commitment().unwrap());
         let encoded = base.encode().unwrap();

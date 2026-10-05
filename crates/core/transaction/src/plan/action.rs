@@ -2,7 +2,7 @@
 use crate::{Action, WitnessData};
 use anyhow::anyhow;
 #[cfg(all(feature = "prover", any(unix, windows)))]
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
@@ -61,22 +61,15 @@ impl ActionPlan {
                     .iter()
                     .map(|spend| {
                         let note_commitment = spend.note.commit();
-                        witness_data
-                            .state_commitment_proofs
-                            .get(&note_commitment)
-                            .cloned()
-                            .context(format!("could not get proof for {note_commitment:?}"))
+                        witness_data.proof(spend.position, note_commitment)
                     })
                     .collect::<Result<Vec<_>>>()?;
                 let mut auth_paths = auth_paths;
-                if let Some(commitment) = transfer_plan.accumulator_prior_commitment() {
-                    auth_paths.push(
-                        witness_data
-                            .state_commitment_proofs
-                            .get(&commitment)
-                            .cloned()
-                            .context(format!("could not get proof for {commitment:?}"))?,
-                    );
+                if let Some(position) = transfer_plan.accumulator_prior_position() {
+                    let commitment = transfer_plan
+                        .accumulator_prior_commitment()
+                        .expect("continuation commitment");
+                    auth_paths.push(witness_data.proof(position, commitment)?);
                 }
 
                 Action::Transfer(
@@ -99,11 +92,7 @@ impl ActionPlan {
                     .iter()
                     .map(|spend| {
                         let note_commitment = spend.note.commit();
-                        witness_data
-                            .state_commitment_proofs
-                            .get(&note_commitment)
-                            .cloned()
-                            .context(format!("could not get proof for {note_commitment:?}"))
+                        witness_data.proof(spend.position, note_commitment)
                     })
                     .collect::<Result<Vec<_>>>()?;
 
@@ -130,21 +119,14 @@ impl ActionPlan {
                     .iter()
                     .map(|spend| {
                         let note_commitment = spend.note.commit();
-                        witness_data
-                            .state_commitment_proofs
-                            .get(&note_commitment)
-                            .cloned()
-                            .context(format!("could not get proof for {note_commitment:?}"))
+                        witness_data.proof(spend.position, note_commitment)
                     })
                     .collect::<Result<Vec<_>>>()?;
-                if let Some(commitment) = plan.accumulator_prior_commitment() {
-                    auth_paths.push(
-                        witness_data
-                            .state_commitment_proofs
-                            .get(&commitment)
-                            .cloned()
-                            .context(format!("could not get proof for {commitment:?}"))?,
-                    );
+                if let Some(position) = plan.accumulator_prior_position() {
+                    let commitment = plan
+                        .accumulator_prior_commitment()
+                        .expect("continuation commitment");
+                    auth_paths.push(witness_data.proof(position, commitment)?);
                 }
                 Action::ShieldedHostWithdrawal(
                     plan.build_unauth_shielded_host_withdrawal(

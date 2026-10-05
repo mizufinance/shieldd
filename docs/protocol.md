@@ -47,7 +47,8 @@ recovery capsules have a separate proved relation described in
 A [positioned nullifier](../crates/core/component/sct/src/nullifier.rs) is
 `hash_3(Fq(BLAKE2b-512("shieldd.nullifier")), (nk, commitment, position))`.
 Regulated actions use the effective compliance-scoped nullifier key selected by
-the proved policy relation. Consensus rejects duplicate/spent nullifiers.
+the proved policy relation. Consensus rejects duplicate/spent nullifiers. Equal note commitments at distinct
+accepted SCT positions are allowed and have separate positional nullifiers.
 [Permanent nullifiers](nullifier-history.md) defines the authenticated set and
 coordinated durable transition.
 

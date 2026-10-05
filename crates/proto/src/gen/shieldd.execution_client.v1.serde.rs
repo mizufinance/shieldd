@@ -4592,7 +4592,7 @@ impl<'de> serde::Deserialize<'de> for ScheduleCheckpointResponse {
         deserializer.deserialize_struct("shieldd.execution_client.v1.ScheduleCheckpointResponse", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for SeizeNoteRequest {
+impl serde::Serialize for SeizeNotesRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -4606,7 +4606,7 @@ impl serde::Serialize for SeizeNoteRequest {
         if self.seizure.is_some() {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.SeizeNoteRequest", len)?;
+        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.SeizeNotesRequest", len)?;
         if let Some(v) = self.source.as_ref() {
             struct_ser.serialize_field("source", v)?;
         }
@@ -4616,7 +4616,7 @@ impl serde::Serialize for SeizeNoteRequest {
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for SeizeNoteRequest {
+impl<'de> serde::Deserialize<'de> for SeizeNotesRequest {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -4664,13 +4664,13 @@ impl<'de> serde::Deserialize<'de> for SeizeNoteRequest {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = SeizeNoteRequest;
+            type Value = SeizeNotesRequest;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.SeizeNoteRequest")
+                formatter.write_str("struct shieldd.execution_client.v1.SeizeNotesRequest")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SeizeNoteRequest, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SeizeNotesRequest, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
@@ -4695,16 +4695,16 @@ impl<'de> serde::Deserialize<'de> for SeizeNoteRequest {
                         }
                     }
                 }
-                Ok(SeizeNoteRequest {
+                Ok(SeizeNotesRequest {
                     source: source__,
                     seizure: seizure__,
                 })
             }
         }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.SeizeNoteRequest", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("shieldd.execution_client.v1.SeizeNotesRequest", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for SeizeNoteResponse {
+impl serde::Serialize for SeizeNotesResponse {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -4727,7 +4727,7 @@ impl serde::Serialize for SeizeNoteResponse {
         if self.freeze_generation != 0 {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.SeizeNoteResponse", len)?;
+        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.SeizeNotesResponse", len)?;
         if let Some(v) = self.source.as_ref() {
             struct_ser.serialize_field("source", v)?;
         }
@@ -4750,7 +4750,7 @@ impl serde::Serialize for SeizeNoteResponse {
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for SeizeNoteResponse {
+impl<'de> serde::Deserialize<'de> for SeizeNotesResponse {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -4809,13 +4809,13 @@ impl<'de> serde::Deserialize<'de> for SeizeNoteResponse {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = SeizeNoteResponse;
+            type Value = SeizeNotesResponse;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.SeizeNoteResponse")
+                formatter.write_str("struct shieldd.execution_client.v1.SeizeNotesResponse")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SeizeNoteResponse, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SeizeNotesResponse, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
@@ -4863,7 +4863,7 @@ impl<'de> serde::Deserialize<'de> for SeizeNoteResponse {
                         }
                     }
                 }
-                Ok(SeizeNoteResponse {
+                Ok(SeizeNotesResponse {
                     source: source__,
                     replayed: replayed__.unwrap_or_default(),
                     withdrawal: withdrawal__,
@@ -4872,7 +4872,7 @@ impl<'de> serde::Deserialize<'de> for SeizeNoteResponse {
                 })
             }
         }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.SeizeNoteResponse", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("shieldd.execution_client.v1.SeizeNotesResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for StartVerificationRequest {

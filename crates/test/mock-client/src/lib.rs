@@ -28,10 +28,10 @@ pub struct MockClient {
     sk: SpendKey,
     pub fvk: FullViewingKey,
     /// All notes, whether spent or not.
-    pub notes: BTreeMap<note::StateCommitment, Note>,
-    pub nullifiers: BTreeMap<note::StateCommitment, Nullifier>,
+    pub notes: BTreeMap<tct::Position, Note>,
+    pub nullifiers: BTreeMap<tct::Position, Nullifier>,
     /// Whether a note was spent or not.
-    pub spent_notes: BTreeMap<note::StateCommitment, ()>,
+    pub spent_notes: BTreeMap<tct::Position, ()>,
     pub sct: shieldd_sdk_tct::Tree,
 }
 
@@ -116,36 +116,12 @@ impl MockClient {
                 StatePayload::Note { note: payload, .. } => {
                     match payload.trial_decrypt(&self.fvk) {
                         Some(note) => {
-                            self.sct.insert(Keep, payload.note_commitment)?;
-                            let position = self
-                                .position(payload.note_commitment)
-                                .expect("newly inserted note should be present in sct");
-                            let nk = match state.get_asset_policy(note.asset_id()).await? {
-                                Some(policy) => {
-                                    let leaf = state
-                                        .get_user_leaf(&note.address(), note.asset_id())
-                                        .await?
-                                        .ok_or_else(|| {
-                                            anyhow::anyhow!(
-                                                "regulated note is missing its compliance leaf"
-                                            )
-                                        })?;
-                                    effective_nullifier_key(
-                                        *self.fvk.nullifier_key(),
-                                        self.fvk.incoming(),
-                                        &note.address(),
-                                        note.asset_id(),
-                                        policy.ring.ring_pk,
-                                        leaf.rnk_dh_pk,
-                                        true,
-                                    )?
-                                }
-                                None => *self.fvk.nullifier_key(),
-                            };
+                            let position = self.sct.insert(Keep, payload.note_commitment)?;
+                            let nk = self.note_nullifier_key(&note, state).await?;
                             let nullifier =
                                 Nullifier::derive(&nk, position, &payload.note_commitment);
-                            self.notes.insert(payload.note_commitment, note.clone());
-                            self.nullifiers.insert(payload.note_commitment, nullifier);
+                            self.notes.insert(position, note.clone());
+                            self.nullifiers.insert(position, nullifier);
                         }
                         None => {
                             self.sct.insert(Forget, payload.note_commitment)?;
@@ -160,9 +136,12 @@ impl MockClient {
                     self.sct.insert(witness, payload.commitment)?;
                 }
                 StatePayload::RolledUp { commitment, .. } => {
-                    if self.notes.contains_key(&commitment) {
-                        // This is a note we anticipated, so retain its auth path.
-                        self.sct.insert(Keep, commitment)?;
+                    if let Some(note) = self.note_by_commitment(&commitment) {
+                        let position = self.sct.insert(Keep, commitment)?;
+                        let nk = self.note_nullifier_key(&note, state).await?;
+                        self.nullifiers
+                            .insert(position, Nullifier::derive(&nk, position, &commitment));
+                        self.notes.insert(position, note);
                     } else {
                         // This is someone else's note.
                         self.sct.insert(Forget, commitment)?;
@@ -198,46 +177,60 @@ impl MockClient {
         Ok(())
     }
 
+    async fn note_nullifier_key<R: StateRead + Send + Sync>(
+        &self,
+        note: &Note,
+        state: &R,
+    ) -> anyhow::Result<shieldd_sdk_keys::keys::NullifierKey> {
+        let nk = match state.get_asset_policy(note.asset_id()).await? {
+            Some(policy) => {
+                let leaf = state
+                    .get_user_leaf(&note.address(), note.asset_id())
+                    .await?
+                    .ok_or_else(|| {
+                        anyhow::anyhow!("regulated note is missing its compliance leaf")
+                    })?;
+                effective_nullifier_key(
+                    *self.fvk.nullifier_key(),
+                    self.fvk.incoming(),
+                    &note.address(),
+                    note.asset_id(),
+                    policy.ring.ring_pk,
+                    leaf.rnk_dh_pk,
+                    true,
+                )?
+            }
+            None => *self.fvk.nullifier_key(),
+        };
+        Ok(nk)
+    }
+
     pub fn latest_height_and_sct_root(&self) -> (u64, shieldd_sdk_tct::Root) {
         (self.latest_height, self.sct.root())
     }
 
     pub fn note_by_commitment(&self, commitment: &note::StateCommitment) -> Option<Note> {
-        self.notes.get(commitment).cloned()
+        self.notes
+            .values()
+            .find(|note| note.commit() == *commitment)
+            .cloned()
     }
 
-    pub fn position(&self, commitment: note::StateCommitment) -> Option<shieldd_sdk_tct::Position> {
-        self.sct.witness(commitment).map(|proof| proof.position())
-    }
-
-    pub fn witness_commitment(
+    pub fn positions(
         &self,
         commitment: note::StateCommitment,
-    ) -> Option<shieldd_sdk_tct::Proof> {
-        self.sct.witness(commitment)
+    ) -> impl Iterator<Item = tct::Position> + '_ {
+        self.notes
+            .iter()
+            .filter_map(move |(position, note)| (note.commit() == commitment).then_some(*position))
+    }
+
+    pub fn witness_position(&self, position: tct::Position) -> Option<tct::Proof> {
+        self.sct.witness(position)
     }
 
     pub fn witness_plan(&self, plan: &TransactionPlan) -> Result<WitnessData, Error> {
-        let action_spends = plan.actions.iter().flat_map(|action| action.spends());
-        let fee_funding_spends = plan
-            .fee_funding
-            .iter()
-            .flat_map(|fee_funding| fee_funding.transfer.spends.iter());
-        let commitments = action_spends
-            .chain(fee_funding_spends)
-            .map(|spend| spend.note.commit());
-
-        let witness = |commitment| {
-            self.sct
-                .witness(commitment)
-                .ok_or_else(|| anyhow::anyhow!("note commitment {commitment:?} unknown to client"))
-                .map(|proof| (commitment, proof))
-        };
-
-        Ok(WitnessData {
-            anchor: self.sct.root(),
-            state_commitment_proofs: commitments.map(witness).collect::<Result<_, Error>>()?,
-        })
+        plan.witness_data(&self.sct)
     }
 
     pub fn authorize_plan(&self, plan: &TransactionPlan) -> Result<AuthorizationData, Error> {
@@ -306,8 +299,8 @@ impl MockClient {
             .filter(move |n| n.asset_id() == asset_id)
     }
 
-    pub fn spent_note(&self, commitment: &note::StateCommitment) -> bool {
-        self.spent_notes.contains_key(commitment)
+    pub fn spent_note(&self, position: &tct::Position) -> bool {
+        self.spent_notes.contains_key(position)
     }
 
     pub fn spendable_notes_by_asset(
@@ -315,8 +308,11 @@ impl MockClient {
         asset_id: shieldd_sdk_asset::asset::Id,
     ) -> impl Iterator<Item = &Note> + '_ {
         self.notes
-            .values()
-            .filter(move |n| n.asset_id() == asset_id && !self.spent_note(&n.commit()))
+            .iter()
+            .filter(move |(position, note)| {
+                note.asset_id() == asset_id && !self.spent_note(position)
+            })
+            .map(|(_, note)| note)
     }
 }
 
@@ -530,7 +526,7 @@ mod tests {
         assert!(
             witness_data
                 .state_commitment_proofs
-                .contains_key(&commitment),
+                .contains_key(&0u64.into()),
             "hidden-arity transfer spent note commitment should be witnessed",
         );
     }
@@ -587,7 +583,7 @@ mod tests {
         assert!(
             witness_data
                 .state_commitment_proofs
-                .contains_key(&commitment),
+                .contains_key(&0u64.into()),
             "fee-funding spent note commitment should be witnessed",
         );
     }

@@ -70,9 +70,13 @@ messages bind the chain, asset, ring key and identifiers, suite-tagged address,
 RNK DH point and RNK commitment. General-audit messages bind the chain,
 asset and canonical policy encoding, including the suite-tagged audit keys.
 RNK derivation retains its address/asset-bound static DH and separate ring key.
-Capsules carry no address-derived encryption capability. Their release contract
-is limited to authority-approved public opening of an exact accepted note;
-[seizure](compliance/enforcement-and-seizure.md) defines its authorization boundary.
+Capsules carry no address-derived encryption capability or public owner/asset
+locator. Private seizure discovery requires authorized internal key-wide capsule
+matching, accepted provenance, confidential recipient-bound matching results and
+separately authorized RNK delivery. The external adapter requires agreement with
+ACP/Orbis owners; [seizure](compliance/enforcement-and-seizure.md) defines the trust
+scope and consensus boundary. Shared points and openings are absent from public
+seizure requests.
 
 Issuer decryption evidence uses a Chaum–Pedersen proof over the SpendAuth base
 and accepted ciphertext EPK. Its challenge is personalized Blake2b-512

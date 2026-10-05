@@ -88,6 +88,11 @@ impl ShieldedHostWithdrawalPlan {
         .then(|| self.volume_accumulator.prior_commitment())
     }
 
+    pub fn accumulator_prior_position(&self) -> Option<tct::Position> {
+        self.accumulator_prior_commitment()
+            .map(|_| self.volume_accumulator.prior_position().into())
+    }
+
     pub fn volume_accumulator_payload(
         &self,
         fvk: &FullViewingKey,
@@ -614,9 +619,7 @@ mod tests {
         let mut tree = tct::Tree::new();
         tree.insert(tct::Witness::Keep, note.commit())
             .expect("insert withdrawal note");
-        let state_commitment_proof = tree
-            .witness(note.commit())
-            .expect("witness withdrawal note");
+        let state_commitment_proof = tree.witness(0u64.into()).expect("witness withdrawal note");
         let spend = ShieldedInputPlan::new(&mut OsRng, note, state_commitment_proof.position());
         let withdrawal = HostWithdrawal {
             value,

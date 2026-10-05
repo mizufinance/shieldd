@@ -7,7 +7,7 @@ use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::{discovery, VolumeAccumulatorPayload, VolumeAccumulatorState};
-use shieldd_sdk_tct::{self as tct, StateCommitment};
+use shieldd_sdk_tct as tct;
 
 use crate::{storage::ComplianceBlockPlan, SpendableNoteRecord, Storage};
 
@@ -16,7 +16,7 @@ const SCT_BLOCK_CAPACITY: usize = u16::MAX as usize + 1;
 /// Contains the results of scanning a single block.
 #[derive(Debug, Clone)]
 pub struct FilteredBlock {
-    pub new_notes: BTreeMap<StateCommitment, SpendableNoteRecord>,
+    pub new_notes: BTreeMap<tct::Position, SpendableNoteRecord>,
     pub spent_nullifiers: Vec<Nullifier>,
     pub height: u64,
     pub discovery_parameters: Option<discovery::Parameters>,
@@ -39,7 +39,29 @@ pub async fn scan_block(
     storage: &Storage,
     compliance: Option<&ComplianceBlockPlan>,
 ) -> anyhow::Result<FilteredBlock> {
-    scan(fvk, tree, block, None, storage, compliance).await
+    block.validate_payload_references()?;
+    let position = tree
+        .position()
+        .ok_or_else(|| anyhow::anyhow!("wallet SCT is full"))?;
+    anyhow::ensure!(
+        u64::from(position) & 65535 == 0
+            && (block.state_payloads.is_empty()
+                || block.state_payload_start_position == u64::from(position)),
+        "full block starts at the wrong SCT position"
+    );
+    let owners = block
+        .routing_actions
+        .iter()
+        .flat_map(|action| {
+            action
+                .payload_positions
+                .iter()
+                .map(move |position| (*position, action.transaction_id))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let mut filtered = scan(fvk, tree, block, None, storage, compliance).await?;
+    attribute_sources(&mut filtered, &owners);
+    Ok(filtered)
 }
 
 pub async fn scan_sparse_block(
@@ -80,7 +102,8 @@ pub async fn scan_sparse_block(
                 || sparse.block.state_payload_start_position == u64::from(position)),
         "sparse block starts at the wrong SCT position"
     );
-    scan(
+    let owners = sparse.owners;
+    let mut filtered = scan(
         fvk,
         tree,
         sparse.block,
@@ -88,7 +111,20 @@ pub async fn scan_sparse_block(
         storage,
         compliance,
     )
-    .await
+    .await?;
+    attribute_sources(&mut filtered, &owners);
+    Ok(filtered)
+}
+
+fn attribute_sources(
+    filtered: &mut FilteredBlock,
+    owners: &BTreeMap<u64, shieldd_sdk_txhash::TransactionId>,
+) {
+    for (position, record) in &mut filtered.new_notes {
+        if let Some(id) = owners.get(&u64::from(*position)) {
+            record.source = shieldd_sdk_sct::CommitmentSource::Transaction { id: Some(id.0) };
+        }
+    }
 }
 
 #[tracing::instrument(skip_all, fields(height = %height))]
@@ -183,7 +219,8 @@ async fn scan(
 
             // We need to insert each commitment, so use a match statement to ensure we
             // exhaustively cover all possible cases.
-            if let Some((volume_payload, state)) = volume_advice.remove(payload.commitment()) {
+            if let Some((volume_payload, state)) = volume_advice.get(payload.commitment()).cloned()
+            {
                 let position = if let Some((_, proofs)) = &sparse {
                     kept_proofs.push(proofs[payload_index].clone());
                     tct::Position::from(
@@ -264,7 +301,7 @@ async fn scan(
                             fvk.incoming().index_for_diversifier(note.diversifier());
 
                         new_notes.insert(
-                            *payload.commitment(),
+                            position,
                             SpendableNoteRecord {
                                 note_commitment: *payload.commitment(),
                                 height_spent: None,
@@ -369,7 +406,7 @@ mod selective_tests {
             RecoveryCommitment::unavailable(),
         )?;
         storage.give_advice(note.clone()).await?;
-        // Duplicate commitments must retain their actual positions; the latest witness wins.
+        // Equal commitments must retain both actual positions in full and sparse scans.
         let commitments = vec![
             tct::StateCommitment(shieldd_sdk_crypto::Fq::from(99)),
             note.commit(),
@@ -383,7 +420,21 @@ mod selective_tests {
             tct::Position::from(3u64),
             &note.commit(),
         );
+        let owners = BTreeMap::from([
+            (1, shieldd_sdk_txhash::TransactionId([1; 32])),
+            (3, shieldd_sdk_txhash::TransactionId([2; 32])),
+        ]);
         let block = CompactBlock {
+            routing_actions: owners
+                .iter()
+                .map(
+                    |(position, transaction_id)| shieldd_sdk_compact_block::RoutingAction {
+                        transaction_id: *transaction_id,
+                        action_index: 0,
+                        payload_positions: vec![*position],
+                    },
+                )
+                .collect(),
             state_payloads: commitments
                 .into_iter()
                 .map(|commitment| StatePayload::RolledUp {
@@ -395,6 +446,17 @@ mod selective_tests {
             block_root: root,
             ..Default::default()
         };
+        let mut shifted = block.clone();
+        shifted.state_payload_start_position = 1;
+        let mut unmodified = tct::Tree::new();
+        let before = unmodified.clone();
+        assert!(scan_block(fvk, &mut unmodified, shifted, &storage, None)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("wrong SCT position"));
+        assert_eq!(unmodified.root(), before.root());
+        assert_eq!(unmodified.position(), before.position());
         let mut sparse_block = block.clone();
         sparse_block.state_payloads = vec![
             block.state_payloads[1].clone(),
@@ -404,26 +466,43 @@ mod selective_tests {
             block: sparse_block,
             payload_count: 4,
             proofs: vec![proofs.proof(1)?, proofs.proof(3)?],
-            owners: Default::default(),
+            owners: owners.clone(),
         };
         let mut full_tree = tct::Tree::new();
         let mut sparse_tree = tct::Tree::new();
         let full = scan_block(fvk, &mut full_tree, block, &storage, None).await?;
         let filtered = scan_sparse_block(fvk, &mut sparse_tree, sparse, &storage, None).await?;
         assert_eq!(
-            full.new_notes[&note.commit()].position,
+            full.new_notes[&tct::Position::from(3u64)].position,
             tct::Position::from(3u64)
         );
         assert_eq!(
-            full.new_notes[&note.commit()].position,
-            filtered.new_notes[&note.commit()].position
+            full.new_notes[&tct::Position::from(3u64)].position,
+            filtered.new_notes[&tct::Position::from(3u64)].position
+        );
+        for (position, id) in owners {
+            let expected = shieldd_sdk_sct::CommitmentSource::Transaction { id: Some(id.0) };
+            assert_eq!(full.new_notes[&position.into()].source, expected);
+            assert_eq!(filtered.new_notes[&position.into()].source, expected);
+        }
+        assert_eq!(full.new_notes.len(), 2);
+        assert_eq!(filtered.new_notes.len(), 2);
+        for position in [1u64, 3] {
+            assert_eq!(
+                full_tree.witness(position.into()),
+                sparse_tree.witness(position.into())
+            );
+        }
+        assert_ne!(
+            full.new_notes[&1u64.into()].nullifier,
+            full.new_notes[&3u64.into()].nullifier
         );
         assert_eq!(full.spent_nullifiers, vec![nullifier]);
         assert_eq!(full.spent_nullifiers, filtered.spent_nullifiers);
         assert_eq!(full_tree.root(), sparse_tree.root());
         assert_eq!(
-            full_tree.witness(note.commit()),
-            sparse_tree.witness(note.commit())
+            full_tree.witness(tct::Position::from(3u64)),
+            sparse_tree.witness(tct::Position::from(3u64))
         );
         for tree in [&mut full_tree, &mut sparse_tree] {
             tree.end_epoch()?;
@@ -431,8 +510,8 @@ mod selective_tests {
         }
         assert_eq!(full_tree.root(), sparse_tree.root());
         assert_eq!(
-            full_tree.witness(note.commit()),
-            sparse_tree.witness(note.commit())
+            full_tree.witness(tct::Position::from(3u64)),
+            sparse_tree.witness(tct::Position::from(3u64))
         );
         Ok(())
     }

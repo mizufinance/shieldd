@@ -414,7 +414,7 @@ mod tests {
             sct.insert(tct::Witness::Keep, input_note.commit())
                 .expect("insert registered base-asset note");
             let state_commitment_proof = sct
-                .witness(input_note.commit())
+                .witness((position as u64).into())
                 .expect("witness registered base-asset note");
             let anchor = sct.root();
 

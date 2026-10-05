@@ -332,7 +332,7 @@ mod block_admission_tests {
         };
         Ok(Candidate {
             block: FilteredBlock {
-                new_notes: BTreeMap::from([(note.commit(), record)]),
+                new_notes: BTreeMap::from([(position, record)]),
                 spent_nullifiers: vec![],
                 height: 0,
                 discovery_parameters: None,
@@ -343,6 +343,110 @@ mod block_admission_tests {
             tree,
             note,
         })
+    }
+
+    #[tokio::test]
+    async fn duplicate_occurrences_persist_spend_independently_and_supply_later_advice(
+    ) -> anyhow::Result<()> {
+        let directory = tempfile::tempdir()?;
+        let path = Utf8Path::from_path(directory.path())
+            .unwrap()
+            .join("wallet.sqlite");
+        let storage = Storage::initialize(
+            Some(&path),
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await?;
+        let base = candidate(11)?;
+        let mut tree = tct::Tree::new();
+        let mut records = BTreeMap::new();
+        for tx in [1u8, 2] {
+            let position = tree.insert(tct::Witness::Keep, base.note.commit())?;
+            let mut record = base.block.new_notes.values().next().unwrap().clone();
+            record.position = position;
+            record.nullifier = Nullifier::derive(
+                test_keys::FULL_VIEWING_KEY.nullifier_key(),
+                position,
+                &base.note.commit(),
+            );
+            record.source = CommitmentSource::Transaction { id: Some([tx; 32]) };
+            records.insert(position, record);
+        }
+        tree.end_block()?;
+        let mut block = base.block.clone();
+        block.new_notes = records.clone();
+        storage
+            .record_block(
+                block.clone(),
+                vec![],
+                &mut tree,
+                None,
+                None,
+                Default::default(),
+            )
+            .await?;
+        let rows = storage.notes(false, None, None, None).await?;
+        assert_eq!(rows.len(), 2);
+        assert_ne!(rows[0].nullifier, rows[1].nullifier);
+        for row in rows {
+            assert_eq!(row.source, records[&row.position].source);
+        }
+        let first = records[&0u64.into()].nullifier;
+        block.height = 1;
+        block.new_notes.clear();
+        block.spent_nullifiers = vec![first];
+        tree.end_block()?;
+        storage
+            .record_block(block, vec![], &mut tree, None, None, Default::default())
+            .await?;
+        assert!(tree.witness(0u64.into()).is_none());
+        assert!(tree.witness(1u64.into()).is_some());
+        assert_eq!(storage.notes(false, None, None, None).await?.len(), 1);
+        assert!(storage
+            .scan_advice(vec![base.note.commit()])
+            .await?
+            .contains_key(&base.note.commit()));
+        drop(storage);
+        let storage = Storage::load(&path).await?;
+        let mut tree = storage.state_commitment_tree().await?;
+        assert!(tree.witness(0u64.into()).is_none());
+        assert!(tree.witness(1u64.into()).is_some());
+        let position = tree.insert(tct::Witness::Keep, base.note.commit())?;
+        let mut record = records[&1u64.into()].clone();
+        record.position = position;
+        record.height_created = 2;
+        record.nullifier = Nullifier::derive(
+            test_keys::FULL_VIEWING_KEY.nullifier_key(),
+            position,
+            &base.note.commit(),
+        );
+        record.source = CommitmentSource::Genesis;
+        let mut block = base.block;
+        block.height = 2;
+        block.new_notes = BTreeMap::from([(position, record.clone())]);
+        tree.end_block()?;
+        storage
+            .record_block(
+                block.clone(),
+                vec![],
+                &mut tree,
+                None,
+                None,
+                Default::default(),
+            )
+            .await?;
+        assert_eq!(storage.notes(false, None, None, None).await?.len(), 2);
+        block.height = 3;
+        block.new_notes.clear();
+        block.spent_nullifiers = vec![record.nullifier];
+        tree.end_block()?;
+        storage
+            .record_block(block, vec![], &mut tree, None, None, Default::default())
+            .await?;
+        assert!(tree.witness(1u64.into()).is_some());
+        assert!(tree.witness(position).is_none());
+        Ok(())
     }
 
     #[tokio::test]
@@ -398,7 +502,7 @@ mod block_admission_tests {
         let persisted = storage.state_commitment_tree().await?;
         assert_eq!(persisted.root(), winner.tree.root());
         assert_eq!(persisted.position(), winner.tree.position());
-        assert!(persisted.witness(winner.note.commit()).is_some());
+        assert!(persisted.witness(tct::Position::from(0u64)).is_some());
         Ok(())
     }
 }
@@ -1334,83 +1438,6 @@ impl Storage {
         .await?
     }
 
-    /// Query for a note by its note commitment, optionally waiting until the note is detected.
-    pub async fn note_by_commitment(
-        &self,
-        note_commitment: tct::StateCommitment,
-        await_detection: bool,
-    ) -> anyhow::Result<SpendableNoteRecord> {
-        // Start subscribing now, before querying for whether we already
-        // have the record, so that we can't miss it if we race a write.
-        let mut rx = self.scanned_notes_tx.subscribe();
-
-        let pool = self.pool.clone();
-
-        if let Some(record) = spawn_blocking(move || {
-            // Check if we already have the record
-            pool.get()?
-                .prepare(&format!(
-                    "SELECT
-                        notes.note_commitment,
-                        spendable_notes.height_created,
-                        notes.address,
-                        notes.amount,
-                        notes.asset_id,
-                        notes.rseed,
-                        notes.recovery_commitment,
-                        spendable_notes.address_index,
-                        spendable_notes.source,
-                        spendable_notes.height_spent,
-                        spendable_notes.nullifier,
-                        spendable_notes.position,
-                        tx.return_address
-                    FROM notes
-                    JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
-                    LEFT JOIN tx ON spendable_notes.tx_hash = tx.tx_hash
-                    WHERE notes.note_commitment = x'{}'",
-                    hex::encode(note_commitment.0.to_bytes())
-                ))?
-                .query_and_then((), |record| record.try_into())?
-                .next()
-                .transpose()
-        })
-        .await??
-        {
-            return Ok(record);
-        }
-
-        if !await_detection {
-            anyhow::bail!("Note commitment {} not found", note_commitment);
-        }
-
-        // Otherwise, wait for newly detected notes and check whether they're
-        // the requested one.
-
-        loop {
-            match rx.recv().await {
-                Ok(record) => {
-                    if record.note_commitment == note_commitment {
-                        return Ok(record);
-                    }
-                }
-
-                Err(e) => match e {
-                    RecvError::Closed => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: closed (no more active senders)"
-                        );
-                    }
-                    RecvError::Lagged(count) => {
-                        anyhow::bail!(
-                            "Receiver error during note detection: lagged (by {:?} messages)",
-                            count
-                        );
-                    }
-                },
-            };
-        }
-    }
-
     /// Query for a nullifier's status, optionally waiting until the nullifier is detected.
     pub async fn nullifier_status(
         &self,
@@ -2033,8 +2060,7 @@ impl Storage {
     /// Return advice about note contents for use in scanning.
     ///
     /// Given a list of note commitments, this method checks whether any of them
-    /// correspond to notes that have been recorded in the database but not yet
-    /// observed during scanning.
+    /// correspond to known contents, including commitments with other accepted occurrences.
     pub async fn scan_advice(
         &self,
         note_commitments: Vec<note::StateCommitment>,
@@ -2044,9 +2070,6 @@ impl Storage {
         }
 
         let pool = self.pool.clone();
-
-        // This query gives advice about notes which are known but which have not already been recorded as spendable,
-        // in part to avoid revealing information about which notes have been spent.
 
         spawn_blocking(move || {
             pool.get()?
@@ -2058,8 +2081,7 @@ impl Storage {
                         notes.rseed,
                         notes.recovery_commitment
                     FROM notes
-                    LEFT OUTER JOIN spendable_notes ON notes.note_commitment = spendable_notes.note_commitment
-                    WHERE (spendable_notes.note_commitment IS NULL) AND (notes.note_commitment IN ({}))",
+                    WHERE notes.note_commitment IN ({})",
                     note_commitments
                         .iter()
                         .map(|cm| format!("x'{}'", hex::encode(cm.0.to_bytes())))
@@ -2070,11 +2092,13 @@ impl Storage {
                     let address = Address::try_from(row.get::<_, Vec<u8>>("address")?)?;
                     let amount = row.get::<_, [u8; 16]>("amount")?;
                     let amount_u128: u128 = u128::from_be_bytes(amount);
-                    let asset_id = asset::Id(shieldd_sdk_crypto::encoding::field(&row.get::<_, [u8; 32]>("asset_id")?).expect("asset id malformed"));
+                    let asset_id = asset::Id(
+                        shieldd_sdk_crypto::encoding::field(&row.get::<_, [u8; 32]>("asset_id")?)
+                            .expect("asset id malformed"),
+                    );
                     let rseed = Rseed(row.get::<_, [u8; 32]>("rseed")?);
-                    let recovery_commitment = row
-                        .get::<_, [u8; 32]>("recovery_commitment")?
-                        .try_into()?;
+                    let recovery_commitment =
+                        row.get::<_, [u8; 32]>("recovery_commitment")?.try_into()?;
                     let note = Note::from_parts(
                         address,
                         Value {
@@ -2087,7 +2111,8 @@ impl Storage {
                     anyhow::Ok((note.commit(), note))
                 })?
                 .collect::<anyhow::Result<BTreeMap<_, _>>>()
-        }).await?
+        })
+        .await?
     }
 
     /// Filters for nullifiers whose notes we control
@@ -2198,14 +2223,7 @@ impl Storage {
                     "INSERT INTO spendable_notes
                     (note_commitment, nullifier, position, height_created, address_index, source, height_spent, tx_hash)
                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7)
-                    ON CONFLICT (note_commitment)
-                    DO UPDATE SET nullifier = excluded.nullifier,
-                    position = excluded.position,
-                    height_created = excluded.height_created,
-                    address_index = excluded.address_index,
-                    source = excluded.source,
-                    height_spent = excluded.height_spent,
-                    tx_hash = excluded.tx_hash",
+                    ON CONFLICT (position) DO NOTHING",
                     (
                         &note_commitment,
                         &nullifier,
@@ -2217,6 +2235,15 @@ impl Storage {
                         &tx_hash,
                     ),
                 )?;
+                let matches: bool = dbtx.query_row(
+                    "SELECT note_commitment = ?1 AND nullifier = ?2 AND height_created = ?4
+                         AND address_index = ?5 AND source = ?6 AND tx_hash IS ?7
+                     FROM spendable_notes WHERE position = ?3",
+                    (&note_commitment, &nullifier, position, height_created, &address_index, &source, &tx_hash),
+                    |row| row.get(0),
+                )?;
+                anyhow::ensure!(matches, "conflicting note occurrence at position {position}");
+
             }
 
             // Update any rows of the table with matching nullifiers to have height_spent
@@ -2225,24 +2252,24 @@ impl Storage {
                 let nullifier_bytes = nullifier.to_bytes().to_vec();
 
 
-                let spent_commitment: Option<StateCommitment> = dbtx.prepare_cached(
-                    "UPDATE spendable_notes SET height_spent = ?1 WHERE nullifier = ?2 RETURNING note_commitment"
+                let spent_position: Option<tct::Position> = dbtx.prepare_cached(
+                    "UPDATE spendable_notes SET height_spent = ?1 WHERE nullifier = ?2 RETURNING position"
                 )?
                     .query_and_then(
                         (height_spent, &nullifier_bytes),
                         |row| {
-                            let bytes: Vec<u8> = row.get("note_commitment")?;
-                            StateCommitment::try_from(&bytes[..]).context("invalid commitment bytes")
+                            let position: u64 = row.get("position")?;
+                            anyhow::Ok(tct::Position::from(position))
                         },
                     )?
                     .next()
                     .transpose()?;
 
                 // Mark spent notes as spent
-                if let Some(spent_commitment) = spent_commitment {
-                    tracing::debug!(?nullifier, ?spent_commitment, "detected spent note commitment");
-                    tracing::debug!(?nullifier, ?spent_commitment, "forgetting spent note commitment");
-                    new_sct.forget(spent_commitment);
+                if let Some(spent_position) = spent_position {
+                    tracing::debug!(?nullifier, ?spent_position, "detected spent note commitment");
+                    tracing::debug!(?nullifier, ?spent_position, "forgetting spent note commitment");
+                    new_sct.forget(spent_position);
                 };
             }
 
@@ -2285,10 +2312,10 @@ impl Storage {
                 let recovery_status = i64::from(
                     !prior_is_complete || expected_nullifier != recovered.payload.nullifier,
                 );
-                if let Some((prior_commitment, _, _)) = &prior {
-                    let prior_commitment = StateCommitment::try_from(prior_commitment.as_slice())?;
+                if let Some((_, prior_position, _)) = &prior {
+                    let prior_position = tct::Position::from(u64::try_from(*prior_position)?);
                     anyhow::ensure!(
-                        new_sct.forget(prior_commitment),
+                        new_sct.forget(prior_position),
                         "stored volume accumulator commitment is not retained in the wallet SCT"
                     );
                 }

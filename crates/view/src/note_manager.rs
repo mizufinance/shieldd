@@ -15,7 +15,7 @@ use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::view::v1::NotesRequest;
 use shieldd_sdk_shielded_pool::{
-    note, HostWithdrawal, NoteReshapeFamilyId, ShieldedInputPlan, ShieldedOutputPlan,
+    HostWithdrawal, NoteReshapeFamilyId, ShieldedInputPlan, ShieldedOutputPlan,
 };
 use shieldd_sdk_transaction::{
     memo::MemoPlaintext,
@@ -227,7 +227,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             });
 
             let action_needs_maintenance = selected.len() > 2;
-            let excluded_fee_notes = selected_note_commitments(&selected);
+            let excluded_fee_notes = selected_note_positions(&selected);
             let fee_funding_selection = if self_funded {
                 None
             } else {
@@ -541,7 +541,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                     .plan_base_withdrawal_maintenance(view, source, &withdrawal)
                     .await;
             }
-            let excluded_fee_notes = selected_note_commitments(&selected);
+            let excluded_fee_notes = selected_note_positions(&selected);
             let fee_funding_selection = if self_funded {
                 None
             } else {
@@ -1284,7 +1284,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         view: &mut V,
         source: AddressIndex,
         fee: Fee,
-        excluded_note_commitments: &BTreeSet<note::StateCommitment>,
+        excluded_note_positions: &BTreeSet<shieldd_sdk_tct::Position>,
     ) -> Result<BaseFeeFundingSelection> {
         anyhow::ensure!(
             fee.asset_id() == *BASE_ASSET_ID,
@@ -1302,7 +1302,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .load_notes_for_asset(view, source, *BASE_ASSET_ID)
             .await?
             .into_iter()
-            .filter(|record| !excluded_note_commitments.contains(&record.note_commitment))
+            .filter(|record| !excluded_note_positions.contains(&record.position))
             .collect::<Vec<_>>();
         let selected = match note_indices_covering(&notes, minimum_total, &[])? {
             Some(indices) => indices
@@ -1359,7 +1359,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             });
         }
 
-        let excluded_fee_notes = fee_funding_excluded_note_commitments(&primary_actions);
+        let excluded_fee_notes = fee_funding_excluded_note_positions(&primary_actions);
         let mut fee = zero_base_fee();
 
         for _ in 0..4 {
@@ -1613,16 +1613,15 @@ fn collapse_transfer_values(values: Vec<Value>) -> Result<Option<Value>> {
     }))
 }
 
-fn selected_note_commitments(selected: &[SpendableNoteRecord]) -> BTreeSet<note::StateCommitment> {
-    selected
-        .iter()
-        .map(|record| record.note_commitment)
-        .collect()
+fn selected_note_positions(
+    selected: &[SpendableNoteRecord],
+) -> BTreeSet<shieldd_sdk_tct::Position> {
+    selected.iter().map(|record| record.position).collect()
 }
 
-fn fee_funding_excluded_note_commitments(
+fn fee_funding_excluded_note_positions(
     actions: &[ActionIntent],
-) -> BTreeSet<note::StateCommitment> {
+) -> BTreeSet<shieldd_sdk_tct::Position> {
     let mut commitments = BTreeSet::new();
     for action in actions {
         commitments.extend(
@@ -1630,7 +1629,7 @@ fn fee_funding_excluded_note_commitments(
                 .spends()
                 .iter()
                 .filter(|spend| spend.note.asset_id() == *BASE_ASSET_ID)
-                .map(|spend| spend.note.commit()),
+                .map(|spend| spend.position),
         );
     }
     commitments
@@ -2712,7 +2711,7 @@ mod tests {
             test_address(0),
             &[1_000_000_000, 60, 60, 60],
         );
-        let primary = view.notes.lock().unwrap()[0].note_commitment;
+        let primary = view.notes.lock().unwrap()[0].position;
         let mut manager = NoteManager::new(rng);
         manager.set_gas_prices(nonzero_base_gas_prices());
         let result = manager
@@ -2729,14 +2728,14 @@ mod tests {
         };
         assert!(maintenance_plan
             .spends()
-            .all(|planned| planned.spend.note.commit() != primary));
+            .all(|planned| planned.spend.position != primary));
         confirm_self_transfer(&view, &maintenance_plan);
         assert!(view
             .notes
             .lock()
             .unwrap()
             .iter()
-            .any(|record| record.note_commitment == primary));
+            .any(|record| record.position == primary));
     }
 
     #[tokio::test]

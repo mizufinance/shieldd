@@ -24,6 +24,8 @@ async fn run() -> Result<()> {
             return cmd.exec(opt.home.as_path()).await;
         }
         Command::Compliance(cmd) => return cmd.exec(),
+        #[cfg(feature = "seizure")]
+        Command::Seizure(cmd) => return cmd.exec(opt.pari_keys.as_deref()),
         #[cfg(feature = "disclosure")]
         Command::Disclosure(cmd) => {
             return cmd.exec(opt.home.as_path(), opt.pari_keys.as_deref()).await

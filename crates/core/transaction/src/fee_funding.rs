@@ -1,5 +1,3 @@
-#[cfg(all(feature = "prover", any(unix, windows)))]
-use anyhow::Context;
 use anyhow::{anyhow, Error, Result};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::balance;
@@ -50,11 +48,7 @@ impl FeeFundingPlan {
             .iter()
             .map(|spend| {
                 let note_commitment = spend.note.commit();
-                witness_data
-                    .state_commitment_proofs
-                    .get(&note_commitment)
-                    .cloned()
-                    .context(format!("could not get proof for {note_commitment:?}"))
+                witness_data.proof(spend.position, note_commitment)
             })
             .collect::<Result<Vec<_>>>()?;
 

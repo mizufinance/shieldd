@@ -850,41 +850,6 @@ impl ::prost::Name for DiscoveryParametersResponse {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoteByCommitmentRequest {
-    #[prost(message, optional, tag = "2")]
-    pub note_commitment: ::core::option::Option<
-        super::super::crypto::tct::v1::StateCommitment,
-    >,
-    /// If set to true, waits to return until the requested note is detected.
-    #[prost(bool, tag = "3")]
-    pub await_detection: bool,
-}
-impl ::prost::Name for NoteByCommitmentRequest {
-    const NAME: &'static str = "NoteByCommitmentRequest";
-    const PACKAGE: &'static str = "shieldd.view.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.view.v1.NoteByCommitmentRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.view.v1.NoteByCommitmentRequest".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoteByCommitmentResponse {
-    #[prost(message, optional, tag = "1")]
-    pub spendable_note: ::core::option::Option<SpendableNoteRecord>,
-}
-impl ::prost::Name for NoteByCommitmentResponse {
-    const NAME: &'static str = "NoteByCommitmentResponse";
-    const PACKAGE: &'static str = "shieldd.view.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.view.v1.NoteByCommitmentResponse".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.view.v1.NoteByCommitmentResponse".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NullifierStatusRequest {
     #[prost(message, optional, tag = "2")]
     pub nullifier: ::core::option::Option<

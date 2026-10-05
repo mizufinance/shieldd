@@ -11,6 +11,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 /// A vector capable of storing at most 3 elements.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Derivative, Serialize)]
 #[derivative(Debug = "transparent")]
+#[serde(transparent)]
 pub struct Three<T> {
     elems: Vec<T>,
 }

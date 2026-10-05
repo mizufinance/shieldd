@@ -262,14 +262,18 @@ impl Write for TreeStore<'_, '_> {
         position: Position,
         commitment: StateCommitment,
     ) -> Result<(), Self::Error> {
-        let position = u64::from(position) as i64;
-        let commitment = <[u8; 32]>::from(commitment).to_vec();
-
-        self.0.prepare_cached(
-            "INSERT INTO sct_commitments (position, commitment) VALUES (?1, ?2) ON CONFLICT DO NOTHING"
+        let stored_position = u64::from(position) as i64;
+        let bytes = <[u8; 32]>::from(commitment).to_vec();
+        let inserted = self.0.prepare_cached(
+            "INSERT INTO sct_commitments (position, commitment) VALUES (?1, ?2) ON CONFLICT(position) DO NOTHING"
         ).context("failed to prepare commitment insert")?
-            .execute((&position, &commitment))
-            .context("failed to insert commitment")?;
+            .execute((stored_position, &bytes))?;
+        if inserted == 0 {
+            ensure!(
+                self.commitment(position)? == Some(commitment),
+                "conflicting SCT commitment at position {stored_position}"
+            );
+        }
 
         Ok(())
     }
@@ -383,20 +387,20 @@ mod test {
         let third = StateCommitment::try_from([3; 32]).unwrap();
         let mut tree = shieldd_sdk_tct::Tree::new();
 
-        tree.insert(Witness::Keep, first).unwrap();
+        let first_position = tree.insert(Witness::Keep, first).unwrap();
         tree.end_block().unwrap();
         tree = persist_and_reopen(&mut db, &tree);
 
         tree.insert(Witness::Forget, StateCommitment::try_from([0; 32]).unwrap())
             .unwrap();
-        tree.insert(Witness::Keep, second).unwrap();
+        let second_position = tree.insert(Witness::Keep, second).unwrap();
         tree.end_block().unwrap();
         tree = persist_and_reopen(&mut db, &tree);
 
-        assert!(tree.forget(first));
+        assert!(tree.forget(first_position));
         tree = persist_and_reopen(&mut db, &tree);
-        assert!(tree.witness(first).is_none());
-        assert!(tree.witness(second).is_some());
+        assert!(tree.witness(first_position).is_none());
+        assert!(tree.witness(second_position).is_some());
         let forgotten_count: i64 = db
             .query_row(
                 "SELECT COUNT(*) FROM sct_commitments WHERE position = 0",
@@ -407,10 +411,10 @@ mod test {
         assert_eq!(forgotten_count, 0);
 
         tree.end_epoch().unwrap();
-        tree.insert(Witness::Keep, third).unwrap();
+        let third_position = tree.insert(Witness::Keep, third).unwrap();
         tree = persist_and_reopen(&mut db, &tree);
-        assert!(tree.witness(second).is_some());
-        assert!(tree.witness(third).is_some());
+        assert!(tree.witness(second_position).is_some());
+        assert!(tree.witness(third_position).is_some());
         persist_and_reopen(&mut db, &tree);
     }
 }

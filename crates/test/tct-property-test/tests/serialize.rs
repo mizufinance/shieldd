@@ -18,7 +18,7 @@ enum Action {
     EndEpoch,
     EndBlock,
     Insert(Witness, StateCommitment),
-    Forget(StateCommitment),
+    Forget(u8),
 }
 
 impl Action {
@@ -36,8 +36,14 @@ impl Action {
             Action::EvaluateRoot => {
                 let _ = tree.root();
             }
-            Action::Forget(commitment) => {
-                tree.forget(*commitment);
+            Action::Forget(choice) => {
+                let position = tree
+                    .commitments()
+                    .nth(usize::from(*choice) % tree.witnessed_count().max(1))
+                    .map(|(position, _)| position);
+                if let Some(position) = position {
+                    tree.forget(position);
+                }
             }
             Action::Serialize => {
                 tree.to_writer(state)?;

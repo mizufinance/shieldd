@@ -541,20 +541,19 @@ pub(crate) fn seizure(
     let s = crate::public_input_hash::seizure_statement(p)?;
     let statement = c::seizure::Statement {
         anchor: field(&s.anchor),
-        commitment: field(&s.commitment),
         nullifier: field(&s.nullifier),
-        address: address(&p.authorization.address),
+        address: address(&p.address),
         asset: field(&s.asset),
-        amount: field(&s.amount),
-        recovery: capsule(&p.recovery_capsule),
-        seed: field(&s.seed),
         rnk_commitment: field(&s.rnk_commitment),
-        authorization: field(&s.authorization),
+        value_commitment: point(&p.entry.value_commitment.0),
     };
     Ok(c::catalogue::Witness::Seizure(Box::new(
         c::seizure::Witness {
             statement,
+            amount: amount(w.amount.value()),
             blinding: field(&w.note_blinding),
+            recovery_commitment: field(&w.recovery_commitment.0),
+            value_blinding: scalar(w.value_blinding),
             rnk: field(&w.rnk),
             path: state_path(&w.state_commitment_proof),
         },

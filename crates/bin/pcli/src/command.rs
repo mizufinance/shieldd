@@ -9,6 +9,10 @@ pub use view::ViewCmd;
 
 mod compliance;
 mod init;
+#[cfg(feature = "seizure")]
+mod seizure;
+#[cfg(feature = "seizure")]
+pub use seizure::SeizureCmd;
 mod threshold;
 mod view;
 
@@ -18,6 +22,9 @@ pub enum Command {
     #[cfg(feature = "disclosure")]
     #[clap(subcommand)]
     Disclosure(DisclosureCmd),
+    #[cfg(feature = "seizure")]
+    #[clap(subcommand)]
+    Seizure(SeizureCmd),
     /// Initialize or reset wallet keys and custody configuration.
     Init(InitCmd),
     /// Derive wallet identifiers and addresses locally.

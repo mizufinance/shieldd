@@ -113,62 +113,32 @@ message ZKNoteSeizureProof {
   bytes inner = 1;
 }
 
-// Immutable facts signed by the asset's seizure authority.
+// One canonical nullifier and its freshly blinded complete note value.
+message SeizureEntry {
+  sct.v1.Nullifier nullifier = 1;
+  asset.v1.BalanceCommitment value_commitment = 2;
+}
+
+// Immutable total-valued batch signed by the asset's seizure authority.
 message NoteSeizureAuthorizationBody {
-  reserved 10;
-
   string chain_id = 1;
-  crypto.tct.v1.StateCommitment note_commitment = 2;
-  sct.v1.Nullifier nullifier = 3;
-  keys.v1.Address address = 4;
-  asset.v1.AssetId asset_id = 5;
-  num.v1.Amount amount = 6;
-  uint64 freeze_generation = 7;
-  uint64 frozen_since_height = 8;
-  HostWithdrawal withdrawal = 9;
-  uint64 expiry_height = 11;
+  keys.v1.Address address = 2;
+  asset.v1.AssetId asset_id = 3;
+  uint64 freeze_generation = 4;
+  uint64 frozen_since_height = 5;
+  HostWithdrawal withdrawal = 6;
+  uint64 expiry_height = 7;
+  bytes registry_id = 8;
+  repeated SeizureEntry entries = 9;
+  bytes aggregate_blinding = 10;
 }
 
-// Canonical metadata for a future ACP-gated release of one recovery capsule.
-message CapsuleReleaseRequest {
-  string chain_id = 1;
-  string ring_id = 2;
-  string policy_id = 3;
-  string permission = 4;
-  string resource = 5;
-  bytes ring_pk = 6;
-  asset.v1.AssetId asset_id = 7;
-  keys.v1.Address address = 8;
-  reserved 9;
-  reserved "capk";
-  bytes payload_key = 15;
-  uint64 audit_epoch = 16;
-  crypto.tct.v1.StateCommitment note_commitment = 10;
-  bytes recovery_commitment = 11;
-  bytes capsule_epk = 12;
-  bytes authority_instruction_commitment = 13;
-  uint64 expiry_height = 14;
-}
-
-// A capsule-specific point and proof returned by a future Orbis release API.
-message CapsuleReleaseEvidence {
-  bytes release_id = 1;
-  bytes recovered_point = 2;
-  compliance.v1.DleqProof proof = 3;
-}
-
-// Complete evidence needed to seize one note. It is submitted through the
-// privileged host execution boundary rather than as a user transaction.
-message NoteSeizure {
-  reserved 7, 9, 10, 11;
-
+// Ordinary individual proofs share the batch's admitted anchor.
+message NoteSeizureBatch {
   NoteSeizureAuthorizationBody authorization = 1;
   crypto.redjubjub_rdsa.v1.SpendAuthSignature authority_signature = 2;
   crypto.tct.v1.MerkleRoot anchor = 3;
-  RecoveryCapsule recovery_capsule = 6;
-  bytes rnk_commitment = 8;
-  ZKNoteSeizureProof proof = 12;
-  CapsuleReleaseEvidence capsule_release = 15;
+  repeated ZKNoteSeizureProof proofs = 4;
 }
 
 message TransferInputBody {

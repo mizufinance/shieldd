@@ -495,16 +495,12 @@ fn relevant_transactions(
             relevant = true;
         }
 
-        // Rehydrate commitment sources.
-        for commitment in tx.state_commitments() {
-            filtered_block
-                .new_notes
-                .entry(commitment)
-                .and_modify(|record| {
-                    relevant = true;
-                    record.source = CommitmentSource::Transaction { id: Some(tx_id) };
-                });
-        }
+        // Scan attribution uses accepted positions, so equal commitments from another
+        // transaction cannot overwrite this source.
+        relevant |= filtered_block
+            .new_notes
+            .values()
+            .any(|record| record.source == CommitmentSource::Transaction { id: Some(tx_id) });
 
         if relevant {
             transactions.push(tx);

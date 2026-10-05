@@ -299,7 +299,8 @@ impl std::ops::Deref for FixtureStorage {
 
 fn spend_plan(client: &MockClient, note: Note) -> Result<ShieldedInputPlan> {
     let position = client
-        .position(note.commit())
+        .positions(note.commit())
+        .next()
         .context("fixture note position is known")?;
     Ok(ShieldedInputPlan::new(&mut OsRng, note, position))
 }

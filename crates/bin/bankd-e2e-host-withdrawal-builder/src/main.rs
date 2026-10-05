@@ -129,14 +129,14 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
         .as_str()
         .try_into()
         .with_context(|| format!("invalid withdrawal denom {}", opt.denom))?;
-    let input_note = client
+    let (position, input_note) = client
         .notes
-        .values()
-        .filter(|note| note.address() == test_keys::ADDRESS_0.deref().clone())
-        .filter(|note| note.asset_id() == denom.id())
-        .filter(|note| !client.spent_note(&note.commit()))
-        .filter(|note| note.amount() >= opt.amount)
-        .cloned()
+        .iter()
+        .filter(|(_, note)| note.address() == test_keys::ADDRESS_0.deref().clone())
+        .filter(|(_, note)| note.asset_id() == denom.id())
+        .filter(|(position, _)| !client.spent_note(position))
+        .filter(|(_, note)| note.amount() >= opt.amount)
+        .map(|(position, note)| (*position, note.clone()))
         .next()
         .ok_or_else(|| {
             anyhow!(
@@ -147,9 +147,6 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
             )
         })?;
 
-    let position = client
-        .position(input_note.commit())
-        .ok_or_else(|| anyhow!("input note commitment was unknown to mock client"))?;
     let spend = ShieldedInputPlan::new(&mut OsRng, input_note.clone(), position);
     let change_amount = input_note
         .amount()
