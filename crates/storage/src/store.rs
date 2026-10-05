@@ -525,12 +525,12 @@ impl Storage {
             .filter(|p| !p.as_os_str().is_empty())
             .unwrap_or_else(|| Path::new("."));
         ensure!(parent.is_dir(), "restore parent directory is missing");
-        let required = crate::forest::file_bytes(source)?
+        let required_space = crate::forest::file_bytes(source)?
             .checked_add(64 * 1024 * 1024)
             .context("restore temporary-space overflow")?;
         ensure!(
-            crate::capacity::free_bytes(parent)? >= required,
-            "insufficient temporary space for a matched restore ({required} bytes required)"
+            crate::capacity::free_bytes(parent)? >= required_space,
+            "insufficient temporary space for a matched restore ({required_space} bytes required)"
         );
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
