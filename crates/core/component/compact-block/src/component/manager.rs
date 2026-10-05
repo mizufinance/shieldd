@@ -284,8 +284,9 @@ mod tests {
         let mut state = StateDelta::new(storage.latest_snapshot());
         // Equal commitments still occupy two different canonical positions.
         let note = NotePayload::dummy();
+        // TempStorage's first commit is the genesis archive boundary.
         let block = CompactBlock {
-            height: 7,
+            height: 0,
             state_payload_start_position: 100,
             state_payloads: vec![
                 (note.clone(), CommitmentSource::Genesis).into(),
@@ -303,11 +304,11 @@ mod tests {
         storage.commit(state).await?;
         let snapshot = storage.latest_snapshot();
         assert_eq!(
-            snapshot.compact_block(7).await?.unwrap().encode_to_vec(),
+            snapshot.compact_block(0).await?.unwrap().encode_to_vec(),
             expected
         );
         let bytes = snapshot
-            .nonverifiable_get_raw(state_key::compact_block(7).as_bytes())
+            .nonverifiable_get_raw(state_key::compact_block(0).as_bytes())
             .await?
             .unwrap();
         let stored =
@@ -318,14 +319,14 @@ mod tests {
         assert!(stored.metadata.unwrap().state_payloads.is_empty());
         for pos in [100, 101] {
             assert!(snapshot
-                .nonverifiable_get_raw(&state_key::payload(7, pos))
+                .nonverifiable_get_raw(&state_key::payload(0, pos))
                 .await?
                 .is_some());
         }
         let mut state = StateDelta::new(snapshot);
-        state.nonverifiable_delete(state_key::payload(7, 100));
+        state.nonverifiable_delete(state_key::payload(0, 100));
         assert!(state
-            .compact_block(7)
+            .compact_block(0)
             .await
             .unwrap_err()
             .to_string()
