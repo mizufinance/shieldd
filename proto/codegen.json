@@ -1,7 +1,7 @@
 {
   "protoc_version": "33.1",
   "roots": [
-    "shieldd/cnidarium/v1/cnidarium.proto",
+    "shieldd/storage/v1/storage.proto",
     "shieldd/core/app/v1/app.proto",
     "shieldd/core/asset/v1/asset.proto",
     "shieldd/core/txhash/v1/txhash.proto",
@@ -23,7 +23,7 @@
   ],
   "rust_packages": [
     "cosmos.base.v1beta1",
-    "shieldd.cnidarium.v1",
+    "shieldd.storage.v1",
     "shieldd.core.app.v1",
     "shieldd.core.asset.v1",
     "shieldd.core.component.compact_block.v1",

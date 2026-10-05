@@ -1,5 +1,4 @@
 use anyhow::Context;
-use cnidarium::TempStorage;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
     test_support::{TestHost, TEST_CHAIN_ID},
@@ -12,6 +11,7 @@ use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{
     genesis::Allocation, HostTransfer, HostWithdrawal, HostWithdrawalDestination,
 };
+use shieldd_sdk_storage::TempStorage;
 use shieldd_sdk_transaction::ActionPlan;
 use shieldd_sdk_view::{NoteManager, NoteManagerPlanningResult, Storage, StoragePlanningIo};
 mod common;
@@ -39,7 +39,7 @@ async fn paid_withdrawal_splits_fee_note_then_resumes_and_executes() -> anyhow::
         .fixed_gas_prices
         .execution_price = 1_000;
     let mut host = TestHost::new(
-        chain.as_ref().clone(),
+        chain.storage().clone(),
         AppState::Content(genesis),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         shieldd_sdk_app_tests::registry(),

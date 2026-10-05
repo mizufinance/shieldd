@@ -29,6 +29,25 @@ class StagedArtifactsTests(unittest.TestCase):
             self.assertEqual(command[command.index("--target") + 1], "native-target")
             stage.verify(root / "out", "a" * 40, "native-target")
 
+    def test_maintenance_stages_the_restore_tool(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            executable = root / "shieldd-store"
+            executable.write_bytes(b"restore-tool")
+            event = {"reason": "compiler-artifact", "target": {"name": "shieldd-store"},
+                     "profile": {"debug_assertions": False}, "executable": str(executable)}
+            process = Mock(stdout=[json.dumps(event)], wait=Mock(return_value=0))
+            with patch.object(stage.subprocess, "Popen", return_value=process) as spawn:
+                stage.build("maintenance", root / "out", "a" * 40, "native-target")
+            command = spawn.call_args.args[0]
+            self.assertEqual(command[command.index("--bin") + 1], "shieldd-store")
+            manifest = stage.verify(root / "out", "a" * 40, "native-target")
+            self.assertEqual(set(manifest["files"]), {"bin/shieldd-store"})
+            manifest["files"].clear()
+            (root / "out/manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "omits required deliverables"):
+                stage.verify(root / "out", "a" * 40, "native-target")
+
     def test_manifest_binds_suite_revision_profile_and_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

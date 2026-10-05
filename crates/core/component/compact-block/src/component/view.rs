@@ -1,11 +1,11 @@
 use crate::state_key;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::StateRead;
 use shieldd_sdk_proto::{
     core::component::compact_block::v1::{CompactBlock, StatePayload, StoredCompactBlock},
     Message,
 };
+use shieldd_sdk_storage::StateRead;
 
 #[async_trait]
 pub trait StateReadExt: StateRead {

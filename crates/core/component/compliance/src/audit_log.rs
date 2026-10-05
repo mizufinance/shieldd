@@ -13,7 +13,7 @@ use shieldd_sdk_tct::StateCommitment;
 #[cfg(feature = "component")]
 use async_trait::async_trait;
 #[cfg(feature = "component")]
-use cnidarium::{StateRead, StateWrite};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 
 #[cfg(feature = "component")]
 use crate::state_key;
@@ -1235,8 +1235,8 @@ mod tests {
     #[cfg(feature = "component")]
     #[tokio::test]
     async fn state_persists_records_and_replays_the_authenticated_head() {
-        let storage = cnidarium::TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let storage = shieldd_sdk_storage::TempStorage::new().await.unwrap();
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         let first = record(10, 0, 1);
         let second = record(10, 1, 2);
 
@@ -1254,10 +1254,10 @@ mod tests {
     #[cfg(feature = "component")]
     #[tokio::test]
     async fn replay_rejects_missing_or_tampered_records() {
-        use cnidarium::StateWrite as _;
+        use shieldd_sdk_storage::StateWrite as _;
 
-        let storage = cnidarium::TempStorage::new().await.unwrap();
-        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let storage = shieldd_sdk_storage::TempStorage::new().await.unwrap();
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
         state.append_audit_effect(record(10, 0, 1)).await.unwrap();
         state.append_audit_effect(record(10, 1, 2)).await.unwrap();
 

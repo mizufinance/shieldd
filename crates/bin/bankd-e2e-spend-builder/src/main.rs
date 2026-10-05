@@ -4,11 +4,9 @@ use std::{env, fs, ops::Deref, path::PathBuf, str::FromStr};
 
 use anyhow::{anyhow, bail, Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use cnidarium::Storage;
 use rand_core::OsRng;
 use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
 use serde::Deserialize;
-use shieldd_sdk_app::SUBSTORE_PREFIXES;
 use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_compliance::{
     structs::{
@@ -23,6 +21,7 @@ use shieldd_sdk_mock_client::MockClient;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan};
+use shieldd_sdk_storage::Storage;
 use shieldd_sdk_transaction::{
     memo::MemoPlaintext, plan::MemoPlan, ActionPlan, Transaction, TransactionParameters,
     TransactionPlan,
@@ -185,8 +184,7 @@ fn read_spend_key_file(path: PathBuf) -> Result<SpendKey> {
 }
 
 async fn build_tx(opt: &Opt) -> Result<BuiltTx> {
-    let storage = Storage::load(opt.db.clone(), SUBSTORE_PREFIXES.to_vec())
-        .await
+    let storage = Storage::open(&opt.db, shieldd_sdk_storage::ForestConfig::from_env()?)
         .with_context(|| format!("failed to open Shieldd RocksDB at {}", opt.db.display()))?;
 
     let spend_key = match &opt.operation {
@@ -314,7 +312,6 @@ async fn build_spend_tx(
             chain_id: chain_id.to_owned(),
             ..Default::default()
         },
-        nullifier_window: None,
     };
 
     let plan = client

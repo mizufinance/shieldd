@@ -1,14 +1,14 @@
 use super::AssetRegistryRead;
-use cnidarium_component::QueryError as Status;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_proto::core::component::shielded_pool::v1::{
     AssetMetadataByIdRequest, AssetMetadataByIdResponse,
 };
+use shieldd_sdk_storage::QueryError as Status;
 use tracing::instrument;
 
 #[instrument(skip(state, request))]
 pub async fn asset_metadata_by_id(
-    state: &impl cnidarium::StateRead,
+    state: &impl shieldd_sdk_storage::StateRead,
     request: AssetMetadataByIdRequest,
 ) -> Result<AssetMetadataByIdResponse, Status> {
     let id: asset::Id = request

@@ -4,23 +4,23 @@ use crate::{
     group,
     hash::Parameters,
     note::Note,
-    range::{decompose, less_or_equal_bounded},
+    range::decompose,
     recovery::{self, Capsule},
     tree::{self, Path, STATE_DEPTH, Tree},
 };
 use commonware_cryptography::{
     bls12381::primitives::group::Scalar,
-    zk::circuit::{BoolVar, Context, Var},
+    zk::circuit::{Context, Var},
 };
 use shieldd_sdk_crypto::domains;
+
+pub const STATEMENT_FIELDS: usize = 20;
 
 #[derive(Clone)]
 pub struct Statement<F> {
     pub anchor: F,
     pub commitment: F,
     pub nullifier: F,
-    pub history_required: F,
-    pub recent_floor: F,
     pub address: Address<F>,
     pub asset: F,
     pub amount: F,
@@ -35,8 +35,6 @@ impl<F: Clone> Statement<F> {
             self.anchor.clone(),
             self.commitment.clone(),
             self.nullifier.clone(),
-            self.history_required.clone(),
-            self.recent_floor.clone(),
         ];
         fields.extend(crate::transfer::address_fields(&self.address));
         fields.extend([
@@ -83,8 +81,6 @@ pub fn constrain<'a>(
         anchor: var(&s.anchor),
         commitment: var(&s.commitment),
         nullifier: var(&s.nullifier),
-        history_required: var(&s.history_required),
-        recent_floor: var(&s.recent_floor),
         address: Address {
             diversified: point(&s.address.diversified),
             transmission: point(&s.address.transmission),
@@ -118,9 +114,6 @@ pub fn constrain<'a>(
     let position = decompose(ctx, &path.position, 48);
     tree::root_with_position_bits(ctx, p, Tree::State, s.commitment.clone(), &path, &position)
         .assert_eq(&s.anchor);
-    let floor = decompose(ctx, &s.recent_floor, 48);
-    (!less_or_equal_bounded(ctx, &floor, &position))
-        .assert_eq(&BoolVar::assert(s.history_required.clone()));
     let digest = var(claimed);
     p.circuit(domains::SEIZURE_STATEMENT, &s.fields())
         .assert_eq(&digest);

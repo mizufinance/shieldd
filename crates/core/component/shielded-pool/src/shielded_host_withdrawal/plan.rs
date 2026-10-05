@@ -240,7 +240,6 @@ impl ShieldedHostWithdrawalPlan {
         fvk: &FullViewingKey,
         state_commitment_proofs: &[tct::Proof],
         anchor: tct::Root,
-        recent_position_floor: u64,
     ) -> Result<
         (
             ShieldedWithdrawalProofPublic,
@@ -274,12 +273,6 @@ impl ShieldedHostWithdrawalPlan {
             .map(|spend| {
                 Ok(ShieldedWithdrawalInputPublic {
                     nullifier: spend.nullifier(&nullifier_key),
-
-                    history_required: shieldd_sdk_sct::nullifier_generation::is_old(
-                        u64::from(spend.position),
-                        recent_position_floor,
-                    )
-                    .map_err(|error| crate::ProofError::InvalidPublicInput(error.to_string()))?,
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -287,8 +280,6 @@ impl ShieldedHostWithdrawalPlan {
         pad_to_len(&mut input_publics, PADDED_HOST_WITHDRAWAL_INPUTS, |slot| {
             ShieldedWithdrawalInputPublic {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
-
-                history_required: false,
             }
         });
 
@@ -372,7 +363,6 @@ impl ShieldedHostWithdrawalPlan {
                 routing_tag,
                 routing_parameter_set_id: self.routing_parameters.id(),
                 withdrawal_compliance_ciphertext: withdrawal_compliance.ciphertext.clone(),
-                recent_position_floor,
                 volume_accumulator: crate::VolumeAccumulatorPublic {
                     nullifier: volume_payload.nullifier,
                     commitment: volume_payload.commitment,
@@ -417,7 +407,6 @@ impl ShieldedHostWithdrawalPlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         anchor: tct::Root,
-        recent_position_floor: u64,
     ) -> anyhow::Result<ShieldedHostWithdrawalBody> {
         self.validate()?;
 
@@ -425,7 +414,7 @@ impl ShieldedHostWithdrawalPlan {
         let mut inputs = self
             .spends
             .iter()
-            .map(|spend| spend.action_input_body(fvk, &nullifier_key, recent_position_floor))
+            .map(|spend| spend.action_input_body(fvk, &nullifier_key))
             .collect::<anyhow::Result<Vec<_>>>()?;
         let padder = self.padder();
         pad_to_len(&mut inputs, PADDED_HOST_WITHDRAWAL_INPUTS, |slot| {
@@ -437,7 +426,6 @@ impl ShieldedHostWithdrawalPlan {
                 encrypted_backref: crate::Backref::new(dummy_note.commit())
                     .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
-                history_required: false,
             }
         });
 
@@ -499,19 +487,14 @@ impl ShieldedHostWithdrawalPlan {
         state_commitment_proofs: Vec<tct::Proof>,
         anchor: tct::Root,
         memo_key: &PayloadKey,
-        recent_position_floor: u64,
         registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<ShieldedHostWithdrawal, crate::ProofError> {
         let body = self
-            .action_body(fvk, memo_key, anchor, recent_position_floor)
+            .action_body(fvk, memo_key, anchor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
-        let (public, private) = self.shielded_host_withdrawal_public_private(
-            fvk,
-            &state_commitment_proofs,
-            anchor,
-            recent_position_floor,
-        )?;
+        let (public, private) =
+            self.shielded_host_withdrawal_public_private(fvk, &state_commitment_proofs, anchor)?;
         let proof = ShieldedWithdrawalProof::prove(public, private, registry)?;
 
         Ok(ShieldedHostWithdrawal {
@@ -528,10 +511,9 @@ impl ShieldedHostWithdrawalPlan {
         anchor: tct::Root,
         memo_key: &PayloadKey,
         proof: ShieldedWithdrawalProof,
-        recent_position_floor: u64,
     ) -> Result<ShieldedHostWithdrawal, crate::ProofError> {
         let body = self
-            .action_body(fvk, memo_key, anchor, recent_position_floor)
+            .action_body(fvk, memo_key, anchor)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
         Ok(ShieldedHostWithdrawal {
@@ -660,7 +642,6 @@ mod tests {
             &test_keys::FULL_VIEWING_KEY,
             &[state_commitment_proof],
             tree.root(),
-            0,
         )
         .expect("derive host withdrawal proof inputs")
     }
@@ -693,7 +674,6 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
                 tct::Tree::default().root(),
-                0,
             )
             .expect("body should build");
         assert_eq!(body.inputs.len(), 2);
@@ -866,7 +846,6 @@ mod admission_tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
                 shieldd_sdk_tct::Tree::default().root(),
-                0,
             )
             .expect("body should build");
         assert_eq!(body.inputs.len(), 2);
@@ -1002,7 +981,7 @@ mod admission_tests {
         let anchor = tct::Tree::default().root();
 
         let error = plan
-            .shielded_host_withdrawal_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor, 0)
+            .shielded_host_withdrawal_public_private(&test_keys::FULL_VIEWING_KEY, &[], anchor)
             .expect_err("proof materialization must require one proof per real spend");
         assert!(error
             .to_string()
@@ -1046,7 +1025,6 @@ mod admission_tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
                 shieldd_sdk_tct::Tree::default().root(),
-                0,
             )
             .expect("derive action body")
             .into();
@@ -1075,7 +1053,6 @@ mod admission_tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &[7u8; 32].into(),
                 shieldd_sdk_tct::Tree::default().root(),
-                0,
             )
             .expect("derive body from complete plan");
         assert_eq!(body.asset_anchor, new_asset_anchor);

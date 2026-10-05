@@ -27,6 +27,7 @@ const HOST_NOTE_SEIZURE_DOMAIN: &[u8] = b"shieldd.host_note_seizure";
 
 #[derive(Clone, Debug)]
 pub struct HostBlock {
+    pub block_id: [u8; 32],
     pub height: i64,
     pub time: Time,
 }
@@ -104,6 +105,7 @@ pub struct HostCommit {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostCommittedState {
+    pub block_id: [u8; 32],
     pub height: u64,
     pub root_hash: Vec<u8>,
 }
@@ -116,7 +118,22 @@ pub struct HostExecution {
     app: App,
     stateless_cache: Arc<StatelessCache>,
     phase: HostExecutionPhase,
-    generation_packs: Option<shieldd_sdk_sct::generation_pack::GenerationPackRepository>,
+    prepared: Option<shieldd_sdk_storage::Prepared>,
+    recorder: Option<shieldd_sdk_storage::Recorder>,
+    frozen_receipt: Option<(Vec<u8>, [u8; 32])>,
+    block_id: Option<[u8; 32]>,
+    pending_call: Option<super::call::SavedState>,
+    finalization_reads: Option<shieldd_sdk_storage::DeferredReadCredit>,
+    queued_reads: std::collections::BTreeMap<
+        [u8; 32],
+        std::collections::VecDeque<(usize, shieldd_sdk_storage::DeferredReadCredit)>,
+    >,
+    active_queued_reads: Option<shieldd_sdk_storage::DeferredReadGuard>,
+}
+
+pub struct HostEndBlock {
+    pub events: Vec<abci::Event>,
+    pub prepared: shieldd_sdk_storage::Manifest,
 }
 
 #[derive(Debug)]
@@ -239,6 +256,44 @@ impl From<HostSource> for ProtoHostSource {
 }
 
 impl HostExecution {
+    /// Owning component suites have no SDK/EVM side effects. Receipt replay is
+    /// tested through the ABI rather than manufacturing a transcript here.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub async fn commit_for_testing(&mut self) -> Result<HostCommit> {
+        if matches!(
+            self.phase,
+            HostExecutionPhase::InitializedGenesis
+                | HostExecutionPhase::InitializedCheckpointGenesis
+        ) {
+            return self.materialize_genesis().await;
+        }
+        ensure!(
+            self.phase == HostExecutionPhase::EndedBlock,
+            "owning fixture requires EndBlock"
+        );
+        let update = self
+            .prepared
+            .take()
+            .context("owning fixture update is missing")?;
+        self.phase = HostExecutionPhase::CommitInterrupted;
+        let manifest = self.storage.materialize(update)?;
+        self.recorder = None;
+        self.finish_materialization()?;
+        Ok(HostCommit {
+            root_hash: manifest.digest()?.to_vec(),
+        })
+    }
+
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub async fn begin_block_for_testing(
+        &mut self,
+        block: HostBlock,
+    ) -> Result<HostExecutionResponse> {
+        let response = self.begin_block(block).await?;
+        self.recorder = Some(Default::default());
+        Ok(response)
+    }
+
     pub async fn new(storage: Storage, registry: Arc<Registry>) -> Result<Self> {
         Self::with_cache(storage, Arc::new(StatelessCache::new()), registry).await
     }
@@ -248,27 +303,70 @@ impl HostExecution {
         stateless_cache: Arc<StatelessCache>,
         registry: Arc<Registry>,
     ) -> Result<Self> {
-        let mut app = App::new(storage.latest_snapshot(), registry).await?;
+        crate::app_version::check_app_version(&storage).await?;
+        let mut app = App::new(
+            storage.latest_snapshot(),
+            registry,
+            shieldd_sdk_sct::permanent_nullifiers::Reader(storage.clone()),
+        )
+        .await?;
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-
         Ok(Self {
             storage,
             app,
             stateless_cache,
             phase: HostExecutionPhase::Idle,
-            generation_packs: None,
+            prepared: None,
+            recorder: None,
+            frozen_receipt: None,
+            block_id: None,
+            pending_call: None,
+            finalization_reads: None,
+            queued_reads: Default::default(),
+            active_queued_reads: None,
         })
     }
-
-    pub fn set_generation_packs(
-        &mut self,
-        repository: shieldd_sdk_sct::generation_pack::GenerationPackRepository,
-    ) {
-        self.generation_packs = Some(repository);
+    pub fn nullifier_reader(&self) -> shieldd_sdk_sct::permanent_nullifiers::Reader {
+        shieldd_sdk_sct::permanent_nullifiers::Reader(self.storage.clone())
     }
 
     pub fn phase(&self) -> HostExecutionPhase {
         self.phase
+    }
+
+    pub fn begin_native_call(&mut self) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock && self.pending_call.is_none(),
+            "native call requires an idle open block"
+        );
+        self.pending_call = Some(self.app.save_call()?);
+        Ok(())
+    }
+    pub fn finish_native_call(&mut self, success: bool) -> Result<()> {
+        let saved = self
+            .pending_call
+            .take()
+            .context("native call is not active")?;
+        if !success {
+            self.app.restore_call(saved);
+            return Ok(());
+        }
+        if let Err(error) = self.app.reserve_call_writes(&saved) {
+            self.app.restore_call(saved);
+            return Err(error);
+        }
+        Ok(())
+    }
+    pub async fn deliver_owned(
+        &mut self,
+        tx_bytes: &[u8],
+        verified: std::result::Result<Arc<crate::stateless_cache::VerifiedTxArtifact>, String>,
+    ) -> Result<HostTxResponse> {
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock,
+            "delivery requires an open block"
+        );
+        Self::execute_delivery(&mut self.app, tx_bytes, Some(verified)).await
     }
 
     /// Initializes execution state from content genesis or verifies a checkpoint root.
@@ -282,14 +380,35 @@ impl HostExecution {
         );
 
         match &genesis {
-            AppState::Content(_) => {
-                ensure!(
-                    self.storage.latest_version() == u64::MAX,
-                    "database already initialized"
-                );
-                self.app.init_chain(&genesis).await;
-                self.phase = HostExecutionPhase::InitializedGenesis;
-            }
+            AppState::Content(_) => match self.storage.manifest() {
+                None => {
+                    self.app.init_chain(&genesis).await;
+                    self.phase = HostExecutionPhase::InitializedGenesis;
+                }
+                Some(actual) => {
+                    ensure!(
+                        actual.height == 0,
+                        "content genesis requires height-zero storage"
+                    );
+                    let input = self.storage.latest_snapshot().genesis_input();
+                    let mut rebuilt =
+                        App::new(input, self.app.registry.clone(), self.nullifier_reader()).await?;
+                    rebuilt.init_chain(&genesis).await;
+                    let state = rebuilt.take_commit_state(&self.storage).await?;
+                    let (boundary, changes) = App::native_inputs(&state, 0, [0; 32]).await?;
+                    ensure!(
+                        changes.values().all(|changes| changes.is_empty()),
+                        "genesis cannot consume nullifiers"
+                    );
+                    let expected = self.storage.expected_genesis(state, boundary)?;
+                    ensure!(
+                        expected == actual,
+                        "repeated canonical genesis differs from materialized native state"
+                    );
+                    self.storage.validate()?;
+                    self.phase = HostExecutionPhase::InitializedCheckpointGenesis;
+                }
+            },
             AppState::Checkpoint(expected_root_hash) => {
                 crate::app_version::check_app_version(&self.storage).await?;
                 ensure!(
@@ -339,6 +458,10 @@ impl HostExecution {
         let height = snapshot.get_block_height().await?;
         let root_hash = snapshot.root_hash().await?;
         Ok(HostCommittedState {
+            block_id: snapshot
+                .manifest()
+                .context("committed manifest is missing")?
+                .block_id,
             height,
             root_hash: root_hash.0.to_vec(),
         })
@@ -374,11 +497,25 @@ impl HostExecution {
             block.time.unix_timestamp() >= 0,
             "begin_block time must not precede the Unix epoch"
         );
-        let begin_block = cnidarium_component::BlockContext {
+        let begin_block = shieldd_sdk_storage::BlockContext {
             height,
             time: block.time,
         };
+        // Bounded compliance pruning plus the SCT/epoch/fee/discovery
+        // constants and their four-observation ordering reservations.
+        let reads = self
+            .app
+            .state
+            .read_view()
+            .context("block observation owner is missing")?
+            .observations;
+        self.finalization_reads = Some(
+            reads
+                .reserve_work(shieldd_sdk_compliance::admission::FINALIZATION_OBSERVATIONS + 256)?,
+        );
+        self.queued_reads.clear();
         let events = self.app.begin_block(&begin_block).await?;
+        self.block_id = Some(block.block_id);
         self.phase = HostExecutionPhase::InBlock;
         Ok(HostExecutionResponse { events })
     }
@@ -424,6 +561,7 @@ impl HostExecution {
             self.storage.latest_snapshot(),
             self.app.registry.clone(),
             self.stateless_cache.clone(),
+            self.nullifier_reader(),
             tx_bytes,
         )
         .await
@@ -431,16 +569,20 @@ impl HostExecution {
 
     /// Validate against a caller-selected committed snapshot, never execution's pending delta.
     pub async fn check_tx_at(
-        snapshot: cnidarium::Snapshot,
+        snapshot: shieldd_sdk_storage::Snapshot,
         registry: Arc<Registry>,
         cache: Arc<StatelessCache>,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
         tx_bytes: &[u8],
     ) -> Result<HostTxResponse> {
-        let mut app = App::new(snapshot, registry).await?;
+        let mut app = App::new(snapshot, registry, reader).await?;
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         Ok(
             match app.deliver_tx_bytes(tx_bytes, Some(cache.as_ref())).await {
                 Ok(events) => HostTxResponse::accepted(events, Vec::new()),
+                Err(error) if error.is::<shieldd_sdk_storage::LocalProcessingFailure>() => {
+                    return Err(error)
+                }
                 Err(error) => HostTxResponse::rejected(error),
             },
         )
@@ -453,33 +595,44 @@ impl HostExecution {
             self.phase
         );
 
+        Self::execute_delivery(&mut self.app, tx_bytes, None).await
+    }
+
+    async fn execute_delivery(
+        app: &mut App,
+        tx_bytes: &[u8],
+        verified: Option<
+            std::result::Result<Arc<crate::stateless_cache::VerifiedTxArtifact>, String>,
+        >,
+    ) -> Result<HostTxResponse> {
         let tx = match super::delivery::DecodedTransaction::decode(tx_bytes) {
             Ok(tx) => tx,
             Err(error) => return Ok(HostTxResponse::rejected(error)),
         };
-        let withdrawals = match self.resolve_host_withdrawals(tx.tx()).await {
+        let withdrawals = match Self::resolve_host_withdrawals(app, tx.tx()).await {
             Ok(withdrawals) => withdrawals,
             Err(error) => return Ok(HostTxResponse::rejected(error)),
         };
 
-        Ok(
-            match self
-                .app
-                .deliver_decoded_tx(tx, Some(self.stateless_cache.as_ref()))
-                .await
-            {
-                Ok(events) => HostTxResponse::accepted(events, withdrawals),
-                Err(error) => HostTxResponse::rejected(error),
-            },
-        )
+        let execution = match verified {
+            Some(Ok(artifact)) => app.deliver_tx_with_verified_stateless(artifact, None).await,
+            Some(Err(error)) => Err(anyhow::anyhow!(error)),
+            None => app.deliver_decoded_tx(tx, None).await,
+        };
+        Ok(match execution {
+            Ok(events) => HostTxResponse::accepted(events, withdrawals),
+            Err(error) if error.is::<shieldd_sdk_storage::LocalProcessingFailure>() => {
+                return Err(error)
+            }
+            Err(error) => HostTxResponse::rejected(error),
+        })
     }
 
-    async fn resolve_host_withdrawals(&self, tx: &Transaction) -> Result<Vec<HostWithdrawal>> {
+    async fn resolve_host_withdrawals(app: &App, tx: &Transaction) -> Result<Vec<HostWithdrawal>> {
         let mut withdrawals = Vec::new();
         for action in tx.shielded_host_withdrawals() {
             let value = action.body.withdrawal.value;
-            let metadata = self
-                .app
+            let metadata = app
                 .state
                 .denom_metadata_by_asset(&value.asset_id)
                 .await
@@ -494,7 +647,11 @@ impl HostExecution {
     }
 
     /// Finishes the current host block without producing validator set updates.
-    pub async fn end_block(&mut self, height: i64) -> Result<HostExecutionResponse> {
+    pub async fn end_block(&mut self, height: i64) -> Result<HostEndBlock> {
+        ensure!(
+            self.pending_call.is_none(),
+            "end_block has an unfinished native call"
+        );
         ensure!(
             self.phase == HostExecutionPhase::InBlock,
             "end_block called while host execution phase is {:?}",
@@ -506,53 +663,279 @@ impl HostExecution {
             height == self.app.state.get_block_height().await?,
             "end_block height differs from the open block"
         );
+        let _allowance = self
+            .finalization_reads
+            .take()
+            .context("finalization observation allowance is missing")?
+            .activate()?;
+        let prior = std::sync::Arc::get_mut(&mut self.app.state)
+            .context("finalization state is still borrowed")?
+            .fork();
         let events = self.app.end_block(height).await;
-        self.phase = HostExecutionPhase::EndedBlock;
-        Ok(HostExecutionResponse { events })
-    }
-
-    /// Commits execution state without standalone chain halt or upgrade handling.
-    pub async fn commit(&mut self) -> Result<HostCommit> {
-        ensure!(
-            matches!(
-                self.phase,
-                HostExecutionPhase::InitializedGenesis | HostExecutionPhase::EndedBlock
-            ),
-            "commit called while host execution phase is {:?}",
-            self.phase
-        );
-
+        self.app.state.reserve_ordering_since(&prior)?;
         self.phase = HostExecutionPhase::CommitInterrupted;
-        let root_hash = self
-            .app
-            .commit(self.storage.clone(), self.generation_packs.as_ref())
-            .await?;
+        let state = self.app.take_commit_state(&self.storage).await?;
+        let update = App::prepare_native(
+            &self.storage,
+            state,
+            height,
+            self.block_id.context("active block identity is missing")?,
+        )
+        .await?;
+        let prepared = update.next().clone();
+        self.prepared = Some(update);
+        self.phase = HostExecutionPhase::EndedBlock;
+        Ok(HostEndBlock { events, prepared })
+    }
+    pub fn prepared_commit(&self) -> Result<&shieldd_sdk_storage::Manifest> {
+        Ok(self
+            .prepared
+            .as_ref()
+            .context("block is not frozen")?
+            .next())
+    }
+    pub fn previous_commit(&self) -> Result<shieldd_sdk_storage::Manifest> {
+        self.storage
+            .manifest()
+            .context("previous boundary is missing")
+    }
+    pub fn preceding_height(&self) -> Result<u64> {
+        self.storage
+            .manifest()
+            .map(|manifest| manifest.height)
+            .context("native preceding boundary is missing")
+    }
+    pub fn storage(&self) -> &Storage {
+        &self.storage
+    }
+    pub async fn start_replay(&mut self, receipt: &shieldd_sdk_storage::Receipt) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::Idle && self.pending_call.is_none(),
+            "recovery requires quiescent native execution"
+        );
+        self.storage
+            .rewind_decided(&receipt.previous, &receipt.next)?;
+        self.prepared = None;
+        self.recorder = None;
+        self.frozen_receipt = None;
+        self.app = App::new(
+            self.storage.latest_snapshot(),
+            self.app.registry.clone(),
+            self.nullifier_reader(),
+        )
+        .await?;
+        self.app
+            .set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        Ok(())
+    }
+    pub fn reserve_call(&mut self, method: u32, input: &[u8]) -> Result<bool> {
+        if method == 2 {
+            ensure!(self.recorder.is_none(), "block transcript already exists");
+            self.recorder = Some(Default::default());
+        }
+        if !matches!(method, 2 | 3 | 5 | 6 | 12 | 22) {
+            return Ok(false);
+        }
+        let queued = if method == 3 {
+            use prost::Message as _;
+            let request = DepositRequest::decode(input)?;
+            request
+                .queued
+                .then(|| queued_deposit_key(request))
+                .transpose()?
+        } else {
+            None
+        };
+        if let Some(key) = queued {
+            let (capacity, credit) = self
+                .queued_reads
+                .get_mut(&key)
+                .and_then(|queue| queue.pop_front())
+                .context("queued deposit has no admission reservation")?;
+            self.active_queued_reads = Some(credit.activate()?);
+            self.recorder
+                .as_mut()
+                .context("block transcript is missing")?
+                .reserve_deferred_call(method, input, capacity)?;
+        } else {
+            self.recorder
+                .as_mut()
+                .context("block transcript is missing")?
+                .reserve_call(method, input)?;
+        }
+        Ok(true)
+    }
+    pub async fn reserve_queued_deposit(&mut self, request: DepositRequest) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::InBlock,
+            "admission requires an open block"
+        );
+        let app = &mut self.app;
+        let chain = app.state.get_chain_id().await?;
+        let parsed = ParsedHostDeposit::parse(chain, request.clone())?;
+        parsed
+            .source
+            .validate_height(app.state.get_block_height().await?)?;
+        use prost::Message as _;
+        // EndBlock supplies a uint32 message index and the queued bit (8 bytes).
+        let capacity = request
+            .encoded_len()
+            .checked_add(8)
+            .context("queued input reservation overflow")?;
+        // Deposit has at most 24 committed reads and 16 ordinary changed keys;
+        // each changed key needs at most four ordering observations. Keep an
+        // additional fixed allowance for sparse policy/idempotency absence.
+        let credit = app
+            .state
+            .read_view()
+            .context("deposit observation owner missing")?
+            .observations
+            .reserve_work(24 + 16 * 4 + 40)?;
+        self.recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .reserve_future_call(capacity)?;
+        self.queued_reads
+            .entry(queued_deposit_key(request)?)
+            .or_default()
+            .push_back((capacity, credit));
+        Ok(())
+    }
+    pub fn finish_call(&mut self, outcome: u32, output: &[u8]) -> Result<()> {
+        let result = self
+            .recorder
+            .as_mut()
+            .context("block transcript is missing")?
+            .finish_call(outcome, output);
+        self.active_queued_reads.take();
+        result
+    }
+    pub fn freeze(&mut self) -> Result<(Vec<u8>, [u8; 32])> {
+        ensure!(
+            self.phase == HostExecutionPhase::EndedBlock,
+            "Freeze requires EndBlock"
+        );
+        let prepared = self.prepared.as_ref().context("frozen state is missing")?;
+        let receipt = self
+            .recorder
+            .take()
+            .context("block transcript is missing")?
+            .finish(
+                prepared
+                    .previous()
+                    .cloned()
+                    .context("block base is missing")?,
+                prepared.next().clone(),
+                prepared.effects().digest()?,
+            )?;
+        let bytes = receipt.encode()?;
+        let digest = shieldd_sdk_storage::Receipt::encoded_digest(&bytes);
+        self.frozen_receipt = Some((bytes.clone(), digest));
+        Ok((bytes, digest))
+    }
+    /// Transfer the frozen update to the single materializer after SDK durability.
+    pub fn take_decided(
+        &mut self,
+        height: u64,
+        digest: [u8; 32],
+    ) -> Result<shieldd_sdk_storage::Prepared> {
+        ensure!(
+            self.phase == HostExecutionPhase::EndedBlock,
+            "materialization requires a frozen block"
+        );
+        ensure!(
+            height == self.prepared_commit()?.height
+                && self
+                    .frozen_receipt
+                    .as_ref()
+                    .is_some_and(|(_, actual)| *actual == digest),
+            "SDK decision does not match frozen native receipt"
+        );
+        self.phase = HostExecutionPhase::CommitInterrupted;
+        self.prepared.take().context("prepared update is missing")
+    }
+    pub fn finish_materialization(&mut self) -> Result<()> {
+        ensure!(
+            self.phase == HostExecutionPhase::CommitInterrupted,
+            "no materialization is pending"
+        );
+        self.storage.check_materialized()?;
+        let reader = self.nullifier_reader();
+        self.app.reset_committed(&self.storage, reader);
+        self.frozen_receipt = None;
+        self.block_id = None;
         self.phase = HostExecutionPhase::Idle;
+        Ok(())
+    }
+    /// Genesis has no prior SDK block decision and completes synchronously.
+    pub async fn materialize_genesis(&mut self) -> Result<HostCommit> {
+        if self.phase == HostExecutionPhase::InitializedCheckpointGenesis {
+            self.phase = HostExecutionPhase::Idle;
+            return Ok(HostCommit {
+                root_hash: self
+                    .storage
+                    .manifest()
+                    .context("genesis manifest is missing")?
+                    .digest()?
+                    .to_vec(),
+            });
+        }
+        ensure!(
+            self.phase == HostExecutionPhase::InitializedGenesis,
+            "genesis is not initialized"
+        );
+        let state = self.app.take_commit_state(&self.storage).await?;
+        let prepared = App::prepare_native(&self.storage, state, 0, [0; 32]).await?;
+        self.phase = HostExecutionPhase::CommitInterrupted;
+        let committed = self.storage.materialize(prepared)?;
+        self.finish_materialization()?;
         Ok(HostCommit {
-            root_hash: root_hash.0.to_vec(),
+            root_hash: committed.digest()?.to_vec(),
         })
     }
-
-    pub async fn rollback(&mut self) -> Result<()> {
-        let mut app = App::new(self.storage.latest_snapshot(), self.app.registry.clone()).await?;
+    /// Abandon execution only before a durable decision; decided recovery is a
+    /// separate operation and never rewinds an SDK or Comet block.
+    pub async fn discard(&mut self) -> Result<()> {
+        ensure!(
+            self.frozen_receipt.is_none(),
+            "frozen decision requires reconciliation"
+        );
+        self.pending_call = None;
+        self.prepared = None;
+        self.recorder = None;
+        let mut app = App::new(
+            self.storage.latest_snapshot(),
+            self.app.registry.clone(),
+            self.nullifier_reader(),
+        )
+        .await?;
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         self.app = app;
+        self.block_id = None;
         self.phase = HostExecutionPhase::Idle;
         Ok(())
     }
 
-    /// Drops application snapshots before shutting down Cnidarium and RocksDB.
+    /// Drops execution snapshots before closing the authenticated and raw stores.
     pub async fn release(self) {
         let Self {
             storage,
             app,
             stateless_cache,
             phase: _,
-            generation_packs: _,
+            prepared,
+            recorder: _,
+            frozen_receipt: _,
+            block_id: _,
+            pending_call: _,
+            finalization_reads: _,
+            queued_reads: _,
+            active_queued_reads: _,
         } = self;
         drop(app);
+        drop(prepared);
         drop(stateless_cache);
-        storage.release().await;
+        drop(storage);
     }
 }
 
@@ -790,22 +1173,7 @@ impl App {
             "note seizure RNK commitment differs from the current compliance leaf"
         );
 
-        let current_window = shieldd_sdk_sct::nullifier_tree::generation_state(&state_tx)
-            .await?
-            .window();
-        ensure!(
-            seizure.nullifier_window == current_window,
-            "note seizure nullifier window is stale"
-        );
         state_tx.check_claimed_anchor(seizure.anchor).await?;
-        if let Some(history) = seizure.historical_nullifier_proof.as_ref() {
-            verify_historical_nullifier_proof(
-                authorization.nullifier,
-                current_window,
-                history,
-                &self.registry,
-            )?;
-        }
 
         let authorization_commitment = authorization.commitment()?;
         let release = CapsuleReleaseRequest {
@@ -1165,9 +1533,6 @@ fn hash_bytes(hasher: &mut sha2::Sha256, bytes: &[u8]) {
 mod tests {
     use super::*;
     use crate::genesis::{AppState, Content};
-    use crate::SUBSTORE_PREFIXES;
-    use cnidarium::TempStorage;
-    use cnidarium_component::ActionHandler as _;
     use group::Group;
     use reddsa::{sapling::SpendAuth, SigningKey};
     use shieldd_sdk_asset::BASE_ASSET_DENOM;
@@ -1189,13 +1554,13 @@ mod tests {
         ShieldedHostWithdrawalBody, ShieldedWithdrawalChangeBody, ShieldedWithdrawalFamilyId,
         ShieldedWithdrawalProof,
     };
+    use shieldd_sdk_storage::ActionHandler as _;
+    use shieldd_sdk_storage::TempStorage;
     use shieldd_sdk_tct as tct;
     use std::ops::Deref as _;
 
     async fn temp_storage() -> TempStorage {
-        TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec())
-            .await
-            .expect("temp storage")
+        TempStorage::new().await.expect("temp storage")
     }
 
     fn host_genesis() -> AppState {
@@ -1204,6 +1569,7 @@ mod tests {
 
     fn host_block(height: i64) -> HostBlock {
         HostBlock {
+            block_id: [height as u8; 32],
             height,
             time: Time::from_unix_timestamp(1_700_000_000, 0).expect("valid host block time"),
         }
@@ -1224,6 +1590,7 @@ mod tests {
 
     fn deposit_request(msg_index: u32) -> DepositRequest {
         DepositRequest {
+            queued: false,
             denom: BASE_ASSET_DENOM.to_string(),
             amount: "100".to_owned(),
             recipient: test_keys::ADDRESS_0.to_string(),
@@ -1239,6 +1606,7 @@ mod tests {
 
     fn regulated_deposit_request(msg_index: u32) -> DepositRequest {
         DepositRequest {
+            queued: false,
             denom: regulated_test_denom().to_string(),
             ..deposit_request(msg_index)
         }
@@ -1348,14 +1716,14 @@ mod tests {
 
     #[tokio::test]
     async fn rollback_does_not_import_another_registry() -> Result<()> {
-        use cnidarium::{StateDelta, StateRead, StateWrite};
+        use shieldd_sdk_storage::{StateDelta, StateRead, StateWrite};
         let storage = temp_storage().await;
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         let mut changed = StateDelta::new(storage.latest_snapshot());
         changed.put_raw(crate::registry_binding::KEY.into(), vec![0; 32]);
         storage.commit(changed).await?;
-        assert!(host.rollback().await.is_err());
+        assert!(host.discard().await.is_err());
         assert!(host
             .app
             .state
@@ -1409,15 +1777,15 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         let stored_version = storage.latest_version();
         let mut block = host_block(1);
         block.time = Time::from_unix_timestamp(-1, 0)?;
-        assert!(host.begin_block(block).await.is_err());
+        assert!(host.begin_block_for_testing(block).await.is_err());
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(host.app.state.get_block_height().await?, 0);
         assert_eq!(storage.latest_version(), stored_version);
-        host.begin_block(host_block(1)).await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         assert_eq!(host.phase(), HostExecutionPhase::InBlock);
         Ok(())
     }
@@ -1429,11 +1797,11 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         assert!(admission::current(&*host.app.state).await?.is_none());
         let mut first = host_block(1);
         first.time = Time::from_unix_timestamp(1000, 0)?;
-        host.begin_block(first).await?;
+        host.begin_block_for_testing(first).await?;
         assert_eq!(
             admission::current(&*host.app.state)
                 .await?
@@ -1441,25 +1809,26 @@ mod tests {
                 .observed_time_seconds,
             1000
         );
-        host.rollback().await?;
+        host.discard().await?;
         assert!(admission::current(&*host.app.state).await?.is_none());
         let mut first = host_block(1);
         first.time = Time::from_unix_timestamp(2000, 0)?;
-        host.begin_block(first).await?;
+        host.begin_block_for_testing(first).await?;
         host.end_block(1).await?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         let version = storage.latest_version();
         let mut next = host_block(2);
         next.time = Time::from_unix_timestamp(1999, 0)?;
         assert!(host
-            .begin_block(next)
+            .begin_block_for_testing(next)
             .await
             .unwrap_err()
             .to_string()
             .contains("parent block time"));
         assert!(
             host.app
-                .begin_block(&cnidarium_component::BlockContext {
+                .begin_block(&shieldd_sdk_storage::BlockContext {
                     height: 2,
                     time: Time::from_unix_timestamp(1999, 0)?,
                 })
@@ -1472,20 +1841,20 @@ mod tests {
         assert_eq!(storage.latest_version(), version);
         let mut next = host_block(2);
         next.time = Time::from_unix_timestamp(2000, 0)?;
-        host.begin_block(next).await?;
+        host.begin_block_for_testing(next).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn begin_block_rejects_incompatible_state_without_mutation() -> Result<()> {
-        use cnidarium::StateWrite;
         use shieldd_sdk_proto::StateWriteProto;
+        use shieldd_sdk_storage::StateWrite;
         for version in [None, Some(crate::APP_VERSION - 1)] {
             let storage = temp_storage().await;
             let mut host =
                 HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
             host.init_genesis(host_genesis()).await?;
-            host.commit().await?;
+            host.commit_for_testing().await?;
             drop(host);
             let mut state = StateDelta::new(storage.latest_snapshot());
             let key = crate::app::state_key::app_version::safeguard()
@@ -1497,11 +1866,12 @@ mod tests {
             }
             storage.commit(state).await?;
             let stored_version = storage.latest_version();
-            let mut host =
-                HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-            assert!(host.begin_block(host_block(1)).await.is_err());
-            assert_eq!(host.phase(), HostExecutionPhase::Idle);
-            assert_eq!(host.app.state.get_block_height().await?, 0);
+            assert!(
+                HostExecution::new(storage.deref().clone(), crate::app::tests::registry())
+                    .await
+                    .is_err(),
+                "incompatible state must be rejected before opening execution"
+            );
             assert_eq!(storage.latest_version(), stored_version);
         }
         Ok(())
@@ -1513,8 +1883,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
 
         let mut request = deposit_request(0);
         request.source = Some(host_source_at(1, 0));
@@ -1530,13 +1900,42 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn failed_native_call_restores_deposit_effects_and_replay_marker() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host =
+            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        host.init_genesis(host_genesis()).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
+
+        host.begin_native_call()?;
+        let first = host.deposit(deposit_request(0)).await?;
+        assert!(!first.events.is_empty());
+        host.finish_native_call(false)?;
+
+        host.begin_native_call()?;
+        let retry = host.deposit(deposit_request(0)).await?;
+        assert_eq!(retry.response.deposit_id, first.response.deposit_id);
+        assert!(
+            !retry.events.is_empty(),
+            "failed call left an idempotency marker"
+        );
+        host.finish_native_call(true)?;
+        let replay = host.deposit(deposit_request(0)).await?;
+        assert!(replay.events.is_empty(), "successful call was not retained");
+        host.end_block(1).await?;
+        host.commit_for_testing().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn compliance_actions_are_typed_atomic_and_replay_safe() -> Result<()> {
         let storage = temp_storage().await;
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         use shieldd_sdk_compliance::admission::state as admission;
         let genesis_pair = admission::current(&*host.app.state)
             .await?
@@ -1628,7 +2027,8 @@ mod tests {
         .await
         .is_err());
         host.end_block(1).await?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         let checkpoint = host.export_genesis().await?;
         let saved_pair = admission::current(&storage.latest_snapshot())
             .await?
@@ -1643,21 +2043,22 @@ mod tests {
         );
         assert_eq!(admission::epoch(&*host.app.state).await?, 1);
         // Abandon a real freeze, then replay it from the same parent.
-        host.begin_block(host_block(2)).await?;
+        host.begin_block_for_testing(host_block(2)).await?;
         let request = compliance_request(host_source_at(2, 0), UserAssetStatusAction::Freeze);
         host.apply_compliance_action(request.clone()).await?;
         assert_eq!(admission::epoch(&*host.app.state).await?, 2);
-        host.rollback().await?;
+        host.discard().await?;
         assert_eq!(admission::epoch(&*host.app.state).await?, 1);
         assert_eq!(
             admission::current(&*host.app.state).await?,
             Some(saved_pair)
         );
-        host.begin_block(host_block(2)).await?;
+        host.begin_block_for_testing(host_block(2)).await?;
         host.apply_compliance_action(request).await?;
         assert_eq!(admission::epoch(&*host.app.state).await?, 2);
         host.end_block(2).await?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         Ok(())
     }
 
@@ -1668,8 +2069,8 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
 
         let address = test_keys::ADDRESS_0.deref().clone();
         let denom = regulated_test_denom();
@@ -1699,20 +2100,26 @@ mod tests {
             .test_only_register_asset(asset_id, policy.clone(), true)
             .await?;
         state_tx.test_only_add_compliance_leaf(leaf).await?;
-        let leaf = state_tx
-            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 1)
-            .await?
-            .leaf;
         let mut witness_tree = state_tx.get_sct().await;
         witness_tree.insert(tct::Witness::Keep, note_commitment)?;
-        let block_root = witness_tree.end_block()?;
-        let state_commitment_proof = witness_tree
+        state_tx.write_sct_cache(witness_tree);
+        host.app.apply(state_tx);
+        host.end_block(1).await?;
+
+        host.commit_for_testing().await?;
+        let state_commitment_proof = host
+            .app
+            .state
+            .get_sct()
+            .await
             .witness(note_commitment)
             .context("witnessing the seized note")?;
-        state_tx.write_sct(1, witness_tree, block_root, None).await;
-        let nullifier_window = shieldd_sdk_sct::nullifier_tree::generation_state(&state_tx)
+        host.begin_block_for_testing(host_block(2)).await?;
+        let mut state_tx = StateDelta::new(host.app.state.clone());
+        let leaf = state_tx
+            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Freeze, 2)
             .await?
-            .window();
+            .leaf;
         host.app.apply(state_tx);
 
         let nullifier = shieldd_sdk_sct::Nullifier::derive(
@@ -1760,8 +2167,6 @@ mod tests {
         let proof_public = NoteSeizureProofPublic {
             authorization: authorization.clone(),
             anchor: state_commitment_proof.root(),
-            history_required: false,
-            recent_position_floor: nullifier_window.recent_position_floor,
             recovery_capsule: recovery_capsule.clone(),
             recovery_seed: opening.seed,
             rnk_commitment: compliance_nullifier_key_commitment(rnk),
@@ -1781,20 +2186,16 @@ mod tests {
             authority_signature: authority_sk
                 .sign(rand_core::OsRng, &authorization.signing_bytes()?),
             anchor: proof_public.anchor,
-            history_required: false,
-            recent_position_floor: nullifier_window.recent_position_floor,
             recovery_capsule,
             rnk_commitment: proof_public.rnk_commitment,
             capsule_release,
             proof,
-            nullifier_window,
-            historical_nullifier_proof: None,
         };
         let before_audit = host.app.state.get_audit_log_state().await?;
         let mut invalid_seizure = seizure.clone();
         invalid_seizure.capsule_release.recovered_point += Element::generator();
         let invalid = SeizeNoteRequest {
-            source: Some(host_source(0)),
+            source: Some(host_source_at(2, 0)),
             seizure: Some(invalid_seizure.into()),
         };
         let error = host
@@ -1815,7 +2216,7 @@ mod tests {
         );
 
         let request = SeizeNoteRequest {
-            source: Some(host_source(0)),
+            source: Some(host_source_at(2, 0)),
             seizure: Some(seizure.into()),
         };
 
@@ -1829,7 +2230,7 @@ mod tests {
         );
 
         let mut duplicate = request.clone();
-        duplicate.source = Some(host_source(1));
+        duplicate.source = Some(host_source_at(2, 1));
         assert!(host
             .seize_note(duplicate)
             .await
@@ -1845,114 +2246,20 @@ mod tests {
             before_audit.length + 2
         );
 
-        Ok(())
-    }
+        host.end_block(2).await?;
 
-    #[tokio::test]
-    async fn cancelled_block_commit_requires_rollback_and_replay() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        let committed = host.committed_state().await?;
-        host.begin_block(host_block(1)).await?;
-        let request = deposit_request(0);
-        let parsed =
-            ParsedHostDeposit::parse(host.app.state.get_chain_id().await?, request.clone())?;
-        host.deposit(request.clone()).await?;
-        host.end_block(1).await?;
-        cancel_extracted_commit(&mut host).await?;
-
-        assert!(
-            host.commit().await.is_err(),
-            "cancelled commit must not commit an empty replacement delta"
-        );
-        assert_eq!(host.committed_state().await?, committed);
-        assert!(
-            load_host_action_receipt(&storage.latest_snapshot(), &parsed.source_key())
-                .await?
-                .is_none()
-        );
-        host.rollback().await?;
-        host.begin_block(host_block(1)).await?;
-        let replay = host.deposit(request.clone()).await?;
-        assert!(!replay.events.is_empty());
-        assert!(host.deposit(request).await?.events.is_empty());
-        host.end_block(1).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
+        let boundary = storage.manifest().context("committed fixture manifest")?;
+        let status = host.nullifier_reader().status(nullifier, &boundary)?;
+        status.verify(boundary.digest()?)?;
+        assert!(status.spent);
         drop(host);
-        let host =
+        let reopened =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        assert_eq!(host.committed_state().await?.height, 1);
-        let receipt = load_host_action_receipt(&storage.latest_snapshot(), &parsed.source_key())
-            .await?
-            .expect("replayed deposit must be durable");
-        assert_eq!(receipt.request_digest, parsed.deposit_id);
-        Ok(())
-    }
+        let status = reopened.nullifier_reader().status(nullifier, &boundary)?;
+        status.verify(boundary.digest()?)?;
+        assert!(status.spent);
 
-    #[tokio::test]
-    async fn failed_storage_commit_requires_rollback_before_replay() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
-        host.end_block(1).await?;
-        storage
-            .commit(StateDelta::new(storage.latest_snapshot()))
-            .await?;
-        let committed = host.committed_state().await?;
-        let error = host
-            .commit()
-            .await
-            .expect_err("stale application snapshot must fail");
-        assert!(
-            format!("{error:#}").contains("delta forked from version"),
-            "{error:#}"
-        );
-        assert_eq!(host.phase(), HostExecutionPhase::CommitInterrupted);
-        assert!(host.commit().await.is_err());
-        assert_eq!(host.committed_state().await?, committed);
-        host.rollback().await?;
-        host.begin_block(host_block(1)).await?;
-        host.end_block(1).await?;
-        host.commit().await?;
-        assert_eq!(host.committed_state().await?.height, 1);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn cancelled_genesis_commit_requires_rollback_and_reinitialization() -> Result<()> {
-        let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.init_genesis(host_genesis()).await?;
-        cancel_extracted_commit(&mut host).await?;
-        assert!(
-            host.commit().await.is_err(),
-            "cancelled genesis must not commit empty state"
-        );
-        assert_eq!(storage.latest_version(), u64::MAX);
-        host.rollback().await?;
-        host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        assert_eq!(host.committed_state().await?.height, 0);
-        assert!(App::is_ready(storage.latest_snapshot()).await);
-        Ok(())
-    }
-
-    async fn cancel_extracted_commit(host: &mut HostExecution) -> Result<()> {
-        let extracted = Arc::new(tokio::sync::Notify::new());
-        host.app.commit_extracted = Some(extracted.clone());
-        let mut commit = Box::pin(host.commit());
-        tokio::select! {
-            result = &mut commit => panic!("commit completed before cancellation checkpoint: {result:?}"),
-            result = tokio::time::timeout(Duration::from_secs(5), extracted.notified()) => result?,
-        }
-        drop(commit);
         Ok(())
     }
 
@@ -1962,15 +2269,15 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         let error = host
-            .begin_block(host_block(1))
+            .begin_block_for_testing(host_block(1))
             .await
             .expect_err("virgin storage must reject begin block");
         assert!(error.to_string().contains("initialized"), "{error:#}");
         assert_eq!(host.phase, HostExecutionPhase::Idle);
         assert_eq!(storage.latest_version(), u64::MAX);
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         Ok(())
     }
 
@@ -1980,22 +2287,27 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         for height in [1, 2] {
-            host.begin_block(host_block(height)).await?;
+            host.begin_block_for_testing(host_block(height)).await?;
             host.end_block(height).await?;
-            host.commit().await?;
+
+            host.commit_for_testing().await?;
         }
         let committed = host.committed_state().await?;
         for rejected in [2, 1] {
-            assert!(host.begin_block(host_block(rejected)).await.is_err());
+            assert!(host
+                .begin_block_for_testing(host_block(rejected))
+                .await
+                .is_err());
             assert_eq!(host.phase(), HostExecutionPhase::Idle);
             assert_eq!(host.app.state.get_block_height().await?, 2);
             assert_eq!(host.committed_state().await?, committed);
         }
-        host.begin_block(host_block(3)).await?;
+        host.begin_block_for_testing(host_block(3)).await?;
         host.end_block(3).await?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         assert_eq!(host.committed_state().await?.height, 3);
         Ok(())
     }
@@ -2005,15 +2317,19 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
         for height in 1..=committed_height {
-            host.begin_block(host_block(height)).await?;
+            host.begin_block_for_testing(host_block(height)).await?;
             host.end_block(height).await?;
-            host.commit().await?;
+
+            host.commit_for_testing().await?;
         }
         let committed = host.committed_state().await?;
         let epoch = host.app.state.get_current_epoch().await?;
-        assert!(host.begin_block(host_block(supplied_height)).await.is_err());
+        assert!(host
+            .begin_block_for_testing(host_block(supplied_height))
+            .await
+            .is_err());
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(host.app.state.get_block_height().await?, committed.height);
         assert_eq!(host.app.state.get_current_epoch().await?, epoch);
@@ -2025,14 +2341,15 @@ mod tests {
             .is_err());
         assert_eq!(host.committed_state().await?, committed);
         let next = committed_height + 1;
-        host.begin_block(host_block(next)).await?;
-        host.rollback().await?;
+        host.begin_block_for_testing(host_block(next)).await?;
+        host.discard().await?;
         drop(host);
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        host.begin_block(host_block(next)).await?;
+        host.begin_block_for_testing(host_block(next)).await?;
         host.end_block(next).await?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         assert_eq!(host.committed_state().await?.height, next as u64);
         Ok(())
     }
@@ -2053,12 +2370,13 @@ mod tests {
         let mut host =
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         assert!(host.end_block(2).await.is_err());
         assert_eq!(host.phase(), HostExecutionPhase::InBlock);
         host.end_block(1).await?;
-        host.commit().await?;
+
+        host.commit_for_testing().await?;
         Ok(())
     }
 
@@ -2069,13 +2387,13 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         assert!(host.committed_state().await.is_err());
-        assert!(host.commit().await.is_err());
+        assert!(host.commit_for_testing().await.is_err());
 
         host.init_genesis(host_genesis()).await?;
         assert_eq!(host.phase(), HostExecutionPhase::InitializedGenesis);
         assert!(host.app.state.host_withdrawals_enabled().await?);
         assert!(host.deposit(deposit_request(0)).await.is_err());
-        let genesis_commit = host.commit().await?;
+        let genesis_commit = host.commit_for_testing().await?;
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(genesis_commit.root_hash.len(), 32);
         assert!(App::is_ready(storage.latest_snapshot()).await);
@@ -2091,7 +2409,7 @@ mod tests {
 
         let block = host_block(1);
         let time = block.time;
-        host.begin_block(block).await?;
+        host.begin_block_for_testing(block).await?;
         assert_eq!(host.phase(), HostExecutionPhase::InBlock);
         assert_eq!(host.app.state.get_block_height().await?, 1);
         assert_eq!(host.app.state.get_block_timestamp(1).await?, time);
@@ -2101,7 +2419,9 @@ mod tests {
 
         host.end_block(1).await?;
         assert_eq!(host.phase(), HostExecutionPhase::EndedBlock);
-        let block_commit = host.commit().await?;
+
+        assert_eq!(host.phase(), HostExecutionPhase::EndedBlock);
+        let block_commit = host.commit_for_testing().await?;
         assert_eq!(block_commit.root_hash.len(), 32);
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
         assert_eq!(
@@ -2122,7 +2442,7 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
+        host.commit_for_testing().await?;
 
         let response = host.check_tx(b"not a shieldd transaction").await?;
 
@@ -2155,13 +2475,13 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         host.deposit(deposit_request(0)).await?;
 
-        let withdrawals = host
-            .resolve_host_withdrawals(&host_withdrawal_transaction())
-            .await?;
+        let withdrawals =
+            HostExecution::resolve_host_withdrawals(&host.app, &host_withdrawal_transaction())
+                .await?;
 
         assert_eq!(withdrawals.len(), 1);
         assert!(matches!(
@@ -2182,8 +2502,8 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         host.deposit(deposit_request(0)).await?;
 
         let transfer = host_withdrawal_action();
@@ -2203,7 +2523,7 @@ mod tests {
             Action::ShieldedHostWithdrawal(execution),
         ];
 
-        let withdrawals = host.resolve_host_withdrawals(&tx).await?;
+        let withdrawals = HostExecution::resolve_host_withdrawals(&host.app, &tx).await?;
 
         assert!(matches!(
             withdrawals[0].destination,
@@ -2224,8 +2544,8 @@ mod tests {
             HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
 
         host.init_genesis(host_genesis()).await?;
-        host.commit().await?;
-        host.begin_block(host_block(1)).await?;
+        host.commit_for_testing().await?;
+        host.begin_block_for_testing(host_block(1)).await?;
         host.deposit(deposit_request(0)).await?;
 
         host_withdrawal_action()
@@ -2296,4 +2616,16 @@ mod tests {
 
         assert!(HostSource::try_from(source).is_err());
     }
+}
+
+fn queued_deposit_key(mut request: DepositRequest) -> Result<[u8; 32]> {
+    use prost::Message as _;
+    use sha2::{Digest as _, Sha256};
+    request.queued = false;
+    request
+        .source
+        .as_mut()
+        .context("queued deposit source missing")?
+        .msg_index = 0;
+    Ok(Sha256::digest(request.encode_to_vec()).into())
 }

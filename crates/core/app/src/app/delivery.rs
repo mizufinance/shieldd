@@ -11,7 +11,7 @@ pub(super) struct HistoricalCheckGate {
 
 pub(super) struct DecodedTransaction<'a> {
     bytes: &'a [u8],
-    tx: Arc<Transaction>,
+    pub(super) tx: Arc<Transaction>,
 }
 
 impl<'a> DecodedTransaction<'a> {
@@ -96,44 +96,25 @@ impl App {
         } else {
             "checktx_uncached"
         };
-        let artifact = {
-            let stateless =
-                Self::build_tx_artifact_for_stage(self.registry.clone(), stage, tx.clone());
-            let state = self.state.clone();
-            #[cfg(test)]
-            let gate = self.historical_check_gate.clone();
-            let historical = async move {
-                #[cfg(test)]
-                if let Some(gate) = gate {
-                    gate.entered.notify_one();
-                    gate.release.notified().await;
-                }
-                tx.check_historical(state).await
+        // Failed reads remain charged after a failed call. Consensus delivery
+        // and receipt replay must observe exactly the same reads, so stateless
+        // rejection precedes all historical checks regardless of scheduling.
+        let artifact_result =
+            Self::build_tx_artifact_for_stage(self.registry.clone(), stage, tx.clone()).await;
+        if let Some(cache) = cache {
+            match &artifact_result {
+                Ok(artifact) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
+                Err(error) if error.is::<shieldd_sdk_storage::LocalProcessingFailure>() => {}
+                Err(_) => cache.insert_invalid(self.registry.id(), tx_bytes)?,
             }
-            .instrument(tracing::Span::current());
-            tokio::pin!(stateless, historical);
-            let mut historical_result = None;
-            let artifact_result = tokio::select! {
-                result = &mut stateless => result,
-                result = &mut historical => {
-                    historical_result = Some(result);
-                    stateless.await
-                }
-            };
-            // Stateless rejection wins; dropping the scoped historical future releases state.
-            if let Some(cache) = cache {
-                match &artifact_result {
-                    Ok(artifact) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
-                    Err(_) => cache.insert_invalid(self.registry.id(), tx_bytes)?,
-                }
-            }
-            let artifact = artifact_result.context("extract stateless failed")?;
-            match historical_result {
-                Some(result) => result?,
-                None => historical.await?,
-            }
-            artifact
-        };
+        }
+        let artifact = artifact_result.context("extract stateless failed")?;
+        #[cfg(test)]
+        if let Some(gate) = &self.historical_check_gate {
+            gate.entered.notify_one();
+            gate.release.notified().await;
+        }
+        tx.check_historical(self.state.clone()).await?;
         self.execute_tx_checked_historical(artifact).await
     }
 
@@ -151,10 +132,7 @@ impl App {
                     .await
                     .context("check_stateful failed")?
             }
-            None => tx
-                .check_historical(self.state.clone())
-                .await
-                .context("check_stateful failed")?,
+            None => tx.check_historical(self.state.clone()).await?,
         }
 
         let events = self.execute_tx_checked_historical(artifact).await?;
@@ -270,10 +248,18 @@ mod tests {
         tx.encode_to_vec()
     }
 
-    async fn initialized_app(snapshot: Snapshot, registry: Arc<Registry>) -> Result<App> {
-        let mut app = App::new(snapshot, registry).await?;
-        app.init_chain(&AppState::Content(Default::default())).await;
-        app.begin_block(&cnidarium_component::BlockContext {
+    async fn initialized_app(
+        storage: &shieldd_sdk_storage::Storage,
+        registry: Arc<Registry>,
+    ) -> Result<App> {
+        let reader = shieldd_sdk_sct::permanent_nullifiers::Reader(storage.clone());
+        let mut app = App::new(storage.latest_snapshot(), registry, reader).await?;
+        app.init_chain(&AppState::Content(
+            crate::genesis::Content::default().with_chain_id("bankd-local".into()),
+        ))
+        .await;
+        app.commit_for_testing(storage.clone()).await?;
+        app.begin_block(&shieldd_sdk_storage::BlockContext {
             height: 1,
             time: Time::from_unix_timestamp(1_700_000_000, 0)?,
         })
@@ -291,8 +277,8 @@ mod tests {
                 .max_blocking_threads(1)
                 .build()?;
             runtime.block_on(async {
-                let storage = cnidarium::TempStorage::new().await?;
-                let mut app = initialized_app(storage.latest_snapshot(), registry).await?;
+                let storage = shieldd_sdk_storage::TempStorage::new().await?;
+                let mut app = initialized_app(storage.storage(), registry).await?;
                 // Parsing, signatures and verification must finish even though this
                 // registrar is not authorized in the initialized pool.
                 assert!(app
@@ -328,9 +314,8 @@ mod tests {
 
     #[tokio::test]
     async fn cancelling_delivery_releases_stateful_check_immediately() -> Result<()> {
-        let storage = cnidarium::TempStorage::new().await?;
-        let mut app =
-            initialized_app(storage.latest_snapshot(), crate::app::tests::registry()).await?;
+        let storage = shieldd_sdk_storage::TempStorage::new().await?;
+        let mut app = initialized_app(storage.storage(), crate::app::tests::registry()).await?;
         let gate = Arc::new(HistoricalCheckGate::default());
         app.historical_check_gate = Some(gate.clone());
         let bytes = registration_bytes();

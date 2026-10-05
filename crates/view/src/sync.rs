@@ -5,7 +5,7 @@ use shieldd_sdk_compact_block::{CompactBlock, StatePayload};
 use shieldd_sdk_compliance::effective_nullifier_key;
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::FullViewingKey;
-use shieldd_sdk_sct::{nullifier_generation::NullifierWindow, Nullifier};
+use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::{discovery, VolumeAccumulatorPayload, VolumeAccumulatorState};
 use shieldd_sdk_tct::{self as tct, StateCommitment};
 
@@ -22,7 +22,6 @@ pub struct FilteredBlock {
     pub discovery_parameters: Option<discovery::Parameters>,
     pub app_parameters_updated: bool,
     pub gas_prices: Option<GasPrices>,
-    pub nullifier_window: Option<NullifierWindow>,
     pub volume_accumulators: Vec<RecoveredVolumeAccumulator>,
 }
 
@@ -105,7 +104,6 @@ async fn scan(
         discovery_parameters,
         app_parameters_updated,
         gas_prices,
-        nullifier_window,
         // TODO: do we need this, or is there a bug in scan_block?
         // proposal_started,
         ..
@@ -342,7 +340,6 @@ async fn scan(
         discovery_parameters,
         app_parameters_updated,
         gas_prices,
-        nullifier_window,
         volume_accumulators,
     };
 

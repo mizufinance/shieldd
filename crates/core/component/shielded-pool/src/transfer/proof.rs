@@ -18,7 +18,6 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct TransferSpendPublic {
     pub nullifier: Nullifier,
-    pub history_required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -60,7 +59,6 @@ pub struct TransferProofPublic {
     pub compliance: TransferCompliancePublic,
     pub routing: TransferRouting,
     pub routing_parameter_set_id: Fq,
-    pub recent_position_floor: u64,
     pub volume_accumulator: VolumeAccumulatorPublic,
     pub proof_context: TransferProofContext,
 }
@@ -485,7 +483,6 @@ mod tests {
                     &test_keys::FULL_VIEWING_KEY,
                     &[state_commitment_proof],
                     anchor,
-                    0,
                 )
                 .expect("derive registered base-asset transfer public/private inputs");
 

@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define SHIELDD_ABI_VERSION 3u
+#define SHIELDD_ABI_VERSION 6u
 
 typedef struct shieldd_handle shieldd_handle_t;
 
@@ -34,6 +34,7 @@ enum shieldd_status {
   SHIELDD_STATUS_OVERLOADED = 6,
   SHIELDD_STATUS_SNAPSHOT_EXPIRED = 7,
   SHIELDD_STATUS_UNAVAILABLE = 8,
+  SHIELDD_STATUS_PROTOCOL_LIMIT = 9,
 };
 
 /*
@@ -47,14 +48,19 @@ enum shieldd_method {
   SHIELDD_METHOD_CHECK_TX = 4,
   SHIELDD_METHOD_DELIVER_TX = 5,
   SHIELDD_METHOD_END_BLOCK = 6,
-  SHIELDD_METHOD_COMMIT = 7,
-  SHIELDD_METHOD_ROLLBACK = 8,
+  SHIELDD_METHOD_MATERIALIZE = 7,
+  SHIELDD_METHOD_DISCARD = 8,
   SHIELDD_METHOD_EXPORT_GENESIS = 9,
   SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
-  SHIELDD_METHOD_ARCHIVED_NULLIFIER_PROOF = 11,
   SHIELDD_METHOD_APPLY_COMPLIANCE_ACTION = 12,
-  /* GetCommittedStateResponse as input; empty output. Host recovery/publication only. */
-  SHIELDD_METHOD_PUBLISH_COMMITTED = 13,
+  SHIELDD_METHOD_FREEZE = 14,
+  SHIELDD_METHOD_RECOVER_DECIDED = 20,
+  SHIELDD_METHOD_START_VERIFICATION = 21,
+  SHIELDD_METHOD_RESERVE_QUEUED_DEPOSIT = 22,
+  SHIELDD_METHOD_SCHEDULE_CHECKPOINT = 23,
+  SHIELDD_METHOD_AWAIT_CHECKPOINT = 24,
+  SHIELDD_METHOD_RESTORE_CHECKPOINT = 25,
+  SHIELDD_METHOD_RELEASE_CHECKPOINT = 26,
 
   /* Read-only queries use IDs starting at 1000000. */
 
@@ -86,17 +92,21 @@ enum shieldd_method {
   SHIELDD_METHOD_QUERY_COMPLIANCE_USER_LEAF = 1000004,
 
   /*
-   * Accepts shieldd.cnidarium.v1.KeyValueRequest and returns
-   * shieldd.cnidarium.v1.KeyValueResponse. The frontend uses this existing
+   * Accepts shieldd.storage.v1.KeyValueRequest and returns
+   * shieldd.storage.v1.KeyValueResponse. The frontend uses this existing
    * query with SCT state keys.
    */
   SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,
+  SHIELDD_METHOD_QUERY_ARCHIVE_RANGE = 1000014,
+  /* Waits for the published matched boundary without taking the execution lock.
+   * GetCommittedStateRequest -> GetCommittedStateResponse. */
+  SHIELDD_METHOD_QUERY_PUBLISHED_BOUNDARY = 1000015,
 
   /*
    * shieldd.core.component.sct.v1.
-   * NullifierWindowRequest/Response
+   * NullifierRequest/Response
    */
-  SHIELDD_METHOD_QUERY_NULLIFIER_WINDOW = 1000007,
+  SHIELDD_METHOD_QUERY_NULLIFIER_STATUS = 1000013,
   /* CommittedTransactionRequest/Response (at most 96 KiB + 16 bytes). */
   SHIELDD_METHOD_QUERY_COMMITTED_TRANSACTION = 1000008,
   /* TransactionsByHeightRequest/Response: a bounded page and continuation cursor. */
@@ -118,12 +128,12 @@ uint32_t shieldd_abi_version(void);
  */
 shieldd_result_t shieldd_open(
     const uint8_t *db_path, size_t db_path_len,
-    const uint8_t *generation_pack_path, size_t generation_pack_path_len,
     shieldd_handle_t **out_handle);
 
 /*
  * Executes one protobuf request. Execution is ordered; queries use the last
  * published committed snapshot under bounded admission.
+ * Each domain mutation is atomic within native execution.
  *
  * request may be NULL only when request_len is zero. On success, response is
  * the protobuf encoding for method. On failure, error is a UTF-8 message.
@@ -132,7 +142,7 @@ shieldd_result_t shieldd_call(shieldd_handle_t *handle, uint32_t method,
                               const uint8_t *request, size_t request_len);
 
 /*
- * Releases Cnidarium/RocksDB and consumes handle. The caller must ensure all
+ * Releases NOMT/RocksDB and consumes handle. The caller must ensure all
  * calls have completed and no new calls can begin before calling this function.
  * The handle is invalid afterward regardless of the returned status.
  */

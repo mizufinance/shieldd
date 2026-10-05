@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
-use cnidarium::StateRead;
 use reddsa::{sapling::SpendAuth, VerificationKey};
 use shieldd_sdk_asset::{balance, Value};
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_compliance::WithdrawalComplianceCiphertext;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext as _;
+use shieldd_sdk_storage::StateRead;
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::{EffectHash, TransactionContext};
 
@@ -56,10 +56,8 @@ pub(crate) fn extract_public(
         target_timestamp: shieldd_sdk_crypto::Fq::from(data.target_timestamp),
         inputs: inputs
             .into_iter()
-            .zip(data.inputs.iter())
-            .map(|(input, body_input)| ShieldedWithdrawalInputPublic {
+            .map(|input| ShieldedWithdrawalInputPublic {
                 nullifier: input.nullifier,
-                history_required: body_input.history_required,
             })
             .collect(),
         change_output: ShieldedWithdrawalChangePublic {
@@ -80,7 +78,6 @@ pub(crate) fn extract_public(
         routing_tag: data.routing_tag,
         routing_parameter_set_id: data.routing_parameter_set_id,
         withdrawal_compliance_ciphertext: data.withdrawal_compliance_ciphertext.clone(),
-        recent_position_floor: context.recent_position_floor,
         volume_accumulator: crate::VolumeAccumulatorPublic {
             nullifier: data.volume_accumulator.nullifier,
             commitment: data.volume_accumulator.commitment,
@@ -120,7 +117,7 @@ pub(crate) async fn validate_volume<S: StateRead>(
         .await
 }
 
-pub(crate) async fn execute_volume<S: cnidarium::StateWrite>(
+pub(crate) async fn execute_volume<S: shieldd_sdk_storage::StateWrite>(
     state: &mut S,
     payload: &crate::VolumeAccumulatorPayload,
 ) -> Result<()> {

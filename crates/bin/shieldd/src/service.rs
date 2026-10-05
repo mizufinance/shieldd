@@ -2,11 +2,9 @@ use shieldd_sdk_proof_params::pari::Registry;
 use std::{fmt, path::Path, sync::Arc};
 
 use anyhow::{Context as _, Result};
-use cnidarium::Storage;
 use shieldd_sdk_app::{
     app::{App, HostBlock, HostExecution, HostTxResponse, HostWithdrawal},
     genesis::AppState,
-    SUBSTORE_PREFIXES,
 };
 use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
@@ -14,15 +12,17 @@ use shieldd_sdk_proto::{
     execution_client::v1::{
         host_withdrawal::Destination as ProtoDestination, ApplyComplianceActionRequest,
         ApplyComplianceActionResponse, BeginBlockRequest, BeginBlockResponse, CheckTxResponse,
-        CommitRequest, CommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest,
-        DepositResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
+        DeliverTxRequest, DeliverTxResponse, DepositRequest, DepositResponse, DiscardRequest,
+        DiscardResponse, EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
         EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
-        GetCommittedStateRequest, GetCommittedStateResponse, HostWithdrawal as ProtoHostWithdrawal,
-        InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
+        FreezeRequest, FreezeResponse, GetCommittedStateRequest, GetCommittedStateResponse,
+        HostWithdrawal as ProtoHostWithdrawal, InitGenesisRequest, InitGenesisResponse,
+        MaterializeRequest, MaterializeResponse, RecoverDecidedRequest, RecoverDecidedResponse,
         SeizeNoteRequest, SeizeNoteResponse,
     },
 };
-use shieldd_sdk_sct::generation_pack::GenerationPackRepository;
+use shieldd_sdk_storage::Storage;
+
 use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use tendermint::{abci, Time};
 
@@ -35,6 +35,7 @@ pub enum ErrorKind {
     SnapshotExpired,
     Unavailable,
     Internal,
+    ProtocolLimit,
 }
 
 #[derive(Debug)]
@@ -59,7 +60,20 @@ impl ServiceError {
     }
 
     pub fn kind(&self) -> ErrorKind {
-        self.kind
+        if self
+            .source
+            .is::<shieldd_sdk_storage::LocalProcessingFailure>()
+        {
+            return ErrorKind::Unavailable;
+        }
+        if self
+            .source
+            .is::<shieldd_sdk_storage::ProtocolLimitExceeded>()
+        {
+            ErrorKind::ProtocolLimit
+        } else {
+            self.kind
+        }
     }
 
     pub(crate) fn invalid_argument(source: anyhow::Error) -> Self {
@@ -95,11 +109,11 @@ impl ServiceError {
         Self::failed_precondition(anyhow::anyhow!("Shieldd execution service is closed"))
     }
 
-    pub(crate) fn state_query(error: cnidarium_component::QueryError) -> Self {
+    pub(crate) fn state_query(error: shieldd_sdk_storage::QueryError) -> Self {
         let source = anyhow::anyhow!(error.to_string());
         match error.kind {
-            cnidarium_component::QueryErrorKind::InvalidArgument => Self::invalid_argument(source),
-            cnidarium_component::QueryErrorKind::Internal => Self::internal(source),
+            shieldd_sdk_storage::QueryErrorKind::InvalidArgument => Self::invalid_argument(source),
+            shieldd_sdk_storage::QueryErrorKind::Internal => Self::internal(source),
         }
     }
 }
@@ -120,19 +134,23 @@ pub struct ExecutionService {
     execution: Option<HostExecution>,
     queries: Arc<crate::query::QueryService>,
     storage: Option<Storage>,
-    generation_pack_worker: Option<shieldd_sdk_app::nullifier_generation_packs::MaintenanceWorker>,
+    materializer_failure: Option<String>,
+    registry: Arc<Registry>,
 }
 
 impl Drop for ExecutionService {
     fn drop(&mut self) {
         self.queries.close();
-        if let Some(worker) = &self.generation_pack_worker {
-            worker.abort();
-        }
     }
 }
 
 impl ExecutionService {
+    fn execution_mut(&mut self) -> std::result::Result<&mut HostExecution, ServiceError> {
+        self.execution.as_mut().ok_or_else(|| {
+            ServiceError::failed_precondition(anyhow::anyhow!("execution service is closed"))
+        })
+    }
+
     pub fn queries(&self) -> &Arc<crate::query::QueryService> {
         &self.queries
     }
@@ -141,35 +159,24 @@ impl ExecutionService {
         db: impl AsRef<Path>,
         registry: Arc<Registry>,
     ) -> std::result::Result<Self, ServiceError> {
-        Self::open_inner(db.as_ref(), None, registry).await
-    }
-
-    pub async fn open_with_generation_packs(
-        db: impl AsRef<Path>,
-        generation_pack_directory: impl AsRef<Path>,
-        registry: Arc<Registry>,
-    ) -> std::result::Result<Self, ServiceError> {
-        let repository = GenerationPackRepository::new(
-            generation_pack_directory.as_ref().to_path_buf(),
-            64 * 1024 * 1024,
-        )
-        .map_err(ServiceError::internal)?;
-        Self::open_inner(db.as_ref(), Some(repository), registry).await
+        Self::open_inner(db.as_ref(), registry).await
     }
 
     async fn open_inner(
         db: &Path,
-        generation_packs: Option<GenerationPackRepository>,
         registry: Arc<Registry>,
     ) -> std::result::Result<Self, ServiceError> {
         let db = db.to_path_buf();
-        let storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
-            .await
-            .with_context(|| format!("failed to open Shieldd RocksDB at {}", db.display()))
-            .map_err(ServiceError::internal)?;
+        let storage = Storage::open(
+            &db,
+            shieldd_sdk_storage::ForestConfig::from_env()
+                .map_err(ServiceError::invalid_argument)?,
+        )
+        .with_context(|| format!("failed to open Shieldd RocksDB at {}", db.display()))
+        .map_err(ServiceError::internal)?;
 
         if let Err(error) = shieldd_sdk_app::app_version::check_app_version(&storage).await {
-            storage.release().await;
+            drop(storage);
             return Err(ServiceError::failed_precondition(error));
         }
 
@@ -177,7 +184,7 @@ impl ExecutionService {
             shieldd_sdk_app::registry_binding::check(&storage.latest_snapshot(), registry.id())
                 .await
         {
-            storage.release().await;
+            drop(storage);
             return Err(ServiceError::failed_precondition(error));
         }
         if storage.latest_version() == u64::MAX {
@@ -185,63 +192,39 @@ impl ExecutionService {
         } else if App::is_ready(storage.latest_snapshot()).await {
             tracing::info!("Shieldd app state is ready");
         } else {
-            storage.release().await;
+            drop(storage);
             return Err(ServiceError::failed_precondition(anyhow::anyhow!(
                 "Shieldd app state is not ready"
             )));
         }
 
-        Self::new_with_generation_packs(storage, generation_packs, registry).await
+        Self::new(storage, registry).await
     }
 
     pub async fn new(
         storage: Storage,
         registry: Arc<Registry>,
     ) -> std::result::Result<Self, ServiceError> {
-        Self::new_with_generation_packs(storage, None, registry).await
-    }
-
-    async fn new_with_generation_packs(
-        storage: Storage,
-        generation_packs: Option<GenerationPackRepository>,
-        registry: Arc<Registry>,
-    ) -> std::result::Result<Self, ServiceError> {
         shieldd_sdk_app::app_version::check_app_version(&storage)
             .await
             .map_err(ServiceError::failed_precondition)?;
         let cache = Arc::new(shieldd_sdk_app::stateless_cache::StatelessCache::new());
-        let queries = Arc::new(crate::query::QueryService::new(
-            storage.clone(),
-            generation_packs.clone(),
-            registry.clone(),
-            cache.clone(),
-            crate::ServiceLimits::from_env().map_err(ServiceError::invalid_argument)?,
-        ));
-        let mut execution = HostExecution::with_cache(storage.clone(), cache, registry)
+        let execution = HostExecution::with_cache(storage.clone(), cache.clone(), registry.clone())
             .await
             .map_err(ServiceError::failed_precondition)?;
-        if let Some(repository) = generation_packs.as_ref() {
-            execution.set_generation_packs(repository.clone());
-        }
-        let generation_pack_worker = if let Some(repository) = generation_packs.as_ref() {
-            let prepared_generation_count =
-                shieldd_sdk_app::nullifier_generation_packs::prepare(&storage, repository)
-                    .await
-                    .context("prepare retired nullifier generation packs")
-                    .map_err(ServiceError::internal)?;
-            Some(shieldd_sdk_app::nullifier_generation_packs::spawn_worker(
-                storage.clone(),
-                repository.clone(),
-                prepared_generation_count,
-            ))
-        } else {
-            None
-        };
+        let queries = Arc::new(crate::query::QueryService::new(
+            storage.clone(),
+            execution.nullifier_reader(),
+            registry.clone(),
+            cache,
+            crate::ServiceLimits::from_env().map_err(ServiceError::invalid_argument)?,
+        ));
         Ok(Self {
             execution: Some(execution),
             queries,
             storage: Some(storage),
-            generation_pack_worker,
+            materializer_failure: None,
+            registry,
         })
     }
 
@@ -267,6 +250,7 @@ impl ExecutionService {
         &mut self,
         request: BeginBlockRequest,
     ) -> std::result::Result<BeginBlockResponse, ServiceError> {
+        self.check_persistence()?;
         let block = decode_host_block(request).map_err(ServiceError::invalid_argument)?;
 
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
@@ -280,6 +264,23 @@ impl ExecutionService {
         })
     }
 
+    pub async fn reserve_queued_deposit(
+        &mut self,
+        request: shieldd_sdk_proto::execution_client::v1::ReserveQueuedDepositRequest,
+    ) -> std::result::Result<
+        shieldd_sdk_proto::execution_client::v1::ReserveQueuedDepositResponse,
+        ServiceError,
+    > {
+        let request = request
+            .deposit
+            .context("queued deposit input is missing")
+            .map_err(ServiceError::invalid_argument)?;
+        self.execution_mut()?
+            .reserve_queued_deposit(request)
+            .await
+            .map_err(ServiceError::invalid_argument)?;
+        Ok(Default::default())
+    }
     pub async fn deposit(
         &mut self,
         request: DepositRequest,
@@ -330,10 +331,26 @@ impl ExecutionService {
         request: DeliverTxRequest,
     ) -> std::result::Result<DeliverTxResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
-        let response = execution
-            .deliver_tx(&request.tx)
-            .await
-            .map_err(ServiceError::failed_precondition)?;
+        let height = execution
+            .preceding_height()
+            .map_err(ServiceError::failed_precondition)?
+            .checked_add(1)
+            .context("native execution height overflow")
+            .map_err(ServiceError::internal)?;
+        let verified = self
+            .queries
+            .verification
+            .take(height, request.position.as_ref(), &request.tx)
+            .await?;
+        let response = match &verified {
+            Some(artifact) => {
+                execution
+                    .deliver_owned(&request.tx, artifact.result.clone())
+                    .await
+            }
+            None => execution.deliver_tx(&request.tx).await,
+        }
+        .map_err(ServiceError::failed_precondition)?;
 
         deliver_tx_response(response).map_err(ServiceError::internal)
     }
@@ -350,27 +367,260 @@ impl ExecutionService {
 
         Ok(EndBlockResponse {
             events: encode_events(response.events).map_err(ServiceError::internal)?,
+            prepared: Some(commit_boundary(response.prepared).map_err(ServiceError::internal)?),
         })
     }
 
-    pub async fn commit(
+    pub async fn recover_decided(
         &mut self,
-        _request: CommitRequest,
-    ) -> std::result::Result<CommitResponse, ServiceError> {
-        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
-        let response = execution
-            .commit()
+        request: RecoverDecidedRequest,
+    ) -> std::result::Result<RecoverDecidedResponse, ServiceError> {
+        self.queries
+            .verification
+            .stop()
             .await
-            .map_err(ServiceError::failed_precondition)?;
-        Ok(CommitResponse {
-            root_hash: response.root_hash,
+            .map_err(ServiceError::unavailable)?;
+        let decided = request
+            .decided
+            .context("SDK decision is missing")
+            .map_err(ServiceError::invalid_argument)?;
+        if decided.root_hash.len() != 32
+            || decided.block_id.len() != 32
+            || (decided.height > 0 && request.receipt_digest.len() != 32)
+        {
+            return Err(ServiceError::invalid_argument(anyhow::anyhow!(
+                "invalid SDK decision header"
+            )));
+        }
+        let storage = self
+            .storage
+            .as_ref()
+            .ok_or_else(ServiceError::closed)?
+            .clone();
+        let actual = storage
+            .manifest()
+            .context("native state is missing; restore a matched checkpoint")
+            .map_err(ServiceError::unavailable)?;
+        if actual.height > decided.height {
+            return Err(ServiceError::unavailable(anyhow::anyhow!(
+                "raw native state is ahead of SDK; unilateral rollback is unsupported"
+            )));
+        }
+        if actual.height == decided.height {
+            if actual.digest().map_err(ServiceError::internal)?.as_slice() != decided.root_hash
+                || actual.block_id.as_slice() != decided.block_id
+            {
+                return Err(ServiceError::unavailable(anyhow::anyhow!(
+                    "same-height native boundary differs from SDK"
+                )));
+            }
+            storage
+                .check_materialized()
+                .map_err(ServiceError::unavailable)?;
+            let view = storage.latest_snapshot();
+            if !App::is_ready(view.clone()).await {
+                return Err(ServiceError::unavailable(anyhow::anyhow!(
+                    "matched native commitments are inconsistent"
+                )));
+            }
+            storage
+                .forest()
+                .read()
+                .authenticate_result(&actual, view.observations())
+                .map_err(ServiceError::unavailable)?;
+        } else {
+            if actual.height.checked_add(1) != Some(decided.height) || request.receipt.is_empty() {
+                return Err(ServiceError::unavailable(anyhow::anyhow!(
+                    "missing native replay inputs; restore a matched checkpoint"
+                )));
+            }
+            let digest = shieldd_sdk_storage::Receipt::encoded_digest(&request.receipt);
+            if digest.as_slice() != request.receipt_digest {
+                return Err(ServiceError::unavailable(anyhow::anyhow!(
+                    "SDK replay receipt digest mismatch"
+                )));
+            }
+            let receipt = shieldd_sdk_storage::Receipt::decode(&request.receipt)
+                .map_err(ServiceError::unavailable)?;
+            if receipt.previous != actual
+                || receipt.next.height != decided.height
+                || receipt
+                    .next
+                    .digest()
+                    .map_err(ServiceError::internal)?
+                    .as_slice()
+                    != decided.root_hash
+                || receipt.next.block_id.as_slice() != decided.block_id
+            {
+                return Err(ServiceError::unavailable(anyhow::anyhow!(
+                    "receipt boundaries differ from the SDK decision"
+                )));
+            }
+            self.execution_mut()?
+                .start_replay(&receipt)
+                .await
+                .map_err(ServiceError::unavailable)?;
+            crate::ffi::replay(self, &receipt)
+                .await
+                .map_err(|error| ServiceError::unavailable(anyhow::anyhow!(error.to_string())))?;
+            let replayed = self
+                .execution_mut()?
+                .freeze()
+                .map_err(ServiceError::unavailable)?;
+            if replayed.1 != digest || replayed.0 != request.receipt {
+                return Err(ServiceError::unavailable(anyhow::anyhow!(
+                    "native replay outputs, deltas, or roots differ from the decided receipt"
+                )));
+            }
+            self.materialize(MaterializeRequest {
+                height: decided.height,
+                receipt_digest: digest.to_vec(),
+            })
+            .await?;
+            self.check_persistence()?;
+        }
+        self.queries.publish_committed(decided.clone()).await?;
+        Ok(RecoverDecidedResponse {
+            materialized: Some(decided),
         })
     }
 
+    pub fn reserve_call(
+        &mut self,
+        method: u32,
+        input: &[u8],
+    ) -> std::result::Result<bool, ServiceError> {
+        self.execution_mut()?
+            .reserve_call(method, input)
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn begin_native_call(&mut self) -> std::result::Result<(), ServiceError> {
+        self.execution_mut()?
+            .begin_native_call()
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn finish_native_call(&mut self, success: bool) -> std::result::Result<(), ServiceError> {
+        self.execution_mut()?
+            .finish_native_call(success)
+            .map_err(ServiceError::failed_precondition)
+    }
+    pub fn finish_call(
+        &mut self,
+        outcome: u32,
+        output: &[u8],
+    ) -> std::result::Result<(), ServiceError> {
+        self.execution_mut()?
+            .finish_call(outcome, output)
+            .map_err(ServiceError::internal)
+    }
+    pub async fn freeze(
+        &mut self,
+        _request: FreezeRequest,
+    ) -> std::result::Result<FreezeResponse, ServiceError> {
+        // An abandoned producer can still hold decoded artifacts or report a
+        // local processing failure. Join it before publishing the SDK decision.
+        self.queries
+            .verification
+            .stop()
+            .await
+            .map_err(ServiceError::unavailable)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
+        let previous = commit_boundary(
+            execution
+                .previous_commit()
+                .map_err(ServiceError::failed_precondition)?,
+        )
+        .map_err(ServiceError::internal)?;
+        let next = commit_boundary(
+            execution
+                .prepared_commit()
+                .map_err(ServiceError::failed_precondition)?
+                .clone(),
+        )
+        .map_err(ServiceError::internal)?;
+        let (receipt, digest) = execution
+            .freeze()
+            .map_err(ServiceError::failed_precondition)?;
+        Ok(FreezeResponse {
+            receipt,
+            receipt_digest: digest.to_vec(),
+            previous: Some(previous),
+            next: Some(next),
+        })
+    }
+    pub fn check_persistence(&self) -> std::result::Result<(), ServiceError> {
+        if let Some(failure) = &self.materializer_failure {
+            return Err(ServiceError::unavailable(anyhow::anyhow!(failure.clone())));
+        }
+        Ok(())
+    }
+    pub async fn materialize(
+        &mut self,
+        request: MaterializeRequest,
+    ) -> std::result::Result<MaterializeResponse, ServiceError> {
+        self.check_persistence()?;
+        let queries = self.queries.clone();
+        if request.height == 0 && request.receipt_digest.is_empty() {
+            let _boundary = queries.mutation_boundary().await;
+            self.execution_mut()?
+                .materialize_genesis()
+                .await
+                .map_err(ServiceError::failed_precondition)?;
+            let state = self
+                .get_committed_state(GetCommittedStateRequest {})
+                .await?;
+            queries.publish_committed(state.clone()).await?;
+            return Ok(MaterializeResponse {
+                decided: Some(state),
+            });
+        }
+        let digest = request.receipt_digest.try_into().map_err(|_| {
+            ServiceError::invalid_argument(anyhow::anyhow!("receipt digest must be 32 bytes"))
+        })?;
+        let prepared = self
+            .execution_mut()?
+            .take_decided(request.height, digest)
+            .map_err(ServiceError::failed_precondition)?;
+        let decided = commit_boundary(prepared.next().clone()).map_err(ServiceError::internal)?;
+        let expected = decided.clone();
+        let manifest = prepared.next().clone();
+        let storage = self
+            .storage
+            .as_ref()
+            .ok_or_else(ServiceError::closed)?
+            .clone();
+        queries.decide_boundary();
+        // Return only after native durability and publication match the SDK decision.
+        let _boundary = queries.mutation_boundary().await;
+        let result: Result<()> = async {
+            let copy = storage.clone();
+            tokio::task::spawn_blocking(move || storage.materialize(prepared))
+                .await
+                .context("native persistence worker panicked")??;
+            self.execution_mut()?.finish_materialization()?;
+            queries.checkpoints.capture(copy, &manifest).await;
+            queries.publish_committed(expected).await?;
+            Ok(())
+        }
+        .await;
+        if let Err(error) = result {
+            let failure =
+                format!("decided native persistence failed; restart through recovery: {error:#}");
+            self.materializer_failure = Some(failure.clone());
+            queries.checkpoints.fail(&failure);
+            queries.fail_materialization(failure.clone());
+            let _ = queries.verification.stop().await;
+            return Err(ServiceError::unavailable(anyhow::anyhow!(failure)));
+        }
+        Ok(MaterializeResponse {
+            decided: Some(decided),
+        })
+    }
     pub async fn get_committed_state(
-        &self,
+        &mut self,
         _request: GetCommittedStateRequest,
     ) -> std::result::Result<GetCommittedStateResponse, ServiceError> {
+        self.check_persistence()?;
         let execution = self.execution.as_ref().ok_or_else(ServiceError::closed)?;
         let committed = execution
             .committed_state()
@@ -379,19 +629,20 @@ impl ExecutionService {
         Ok(GetCommittedStateResponse {
             height: committed.height,
             root_hash: committed.root_hash,
+            block_id: committed.block_id.to_vec(),
         })
     }
 
-    pub async fn rollback(
+    pub async fn discard(
         &mut self,
-        _request: RollbackRequest,
-    ) -> std::result::Result<RollbackResponse, ServiceError> {
+        _request: DiscardRequest,
+    ) -> std::result::Result<DiscardResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         execution
-            .rollback()
+            .discard()
             .await
             .map_err(ServiceError::failed_precondition)?;
-        Ok(RollbackResponse {})
+        Ok(DiscardResponse {})
     }
 
     pub async fn export_genesis(
@@ -409,18 +660,196 @@ impl ExecutionService {
         })
     }
 
-    pub async fn close(&mut self) -> std::result::Result<(), ServiceError> {
-        if let Some(worker) = self.generation_pack_worker.as_mut() {
-            worker.shutdown().await;
+    pub async fn schedule_checkpoint(
+        &mut self,
+        request: shieldd_sdk_proto::execution_client::v1::ScheduleCheckpointRequest,
+    ) -> std::result::Result<
+        shieldd_sdk_proto::execution_client::v1::ScheduleCheckpointResponse,
+        ServiceError,
+    > {
+        let boundary = request
+            .boundary
+            .context("checkpoint boundary is missing")
+            .map_err(ServiceError::invalid_argument)?;
+        let storage = self
+            .storage
+            .as_ref()
+            .ok_or_else(ServiceError::closed)?
+            .clone();
+        let manifest = if storage
+            .manifest()
+            .as_ref()
+            .is_some_and(|m| m.height == boundary.height)
+        {
+            storage.manifest().ok_or_else(ServiceError::closed)?
+        } else {
+            self.execution_mut()?
+                .prepared_commit()
+                .map_err(ServiceError::failed_precondition)?
+                .clone()
+        };
+        if boundary.root_hash != manifest.digest().map_err(ServiceError::internal)?
+            || boundary.block_id != manifest.block_id
+            || boundary.height != manifest.height
+        {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "checkpoint differs from the SDK-selected native boundary"
+            )));
         }
-        self.generation_pack_worker = None;
+        self.queries
+            .checkpoints
+            .schedule(manifest.clone(), request.path.into())
+            .map_err(ServiceError::failed_precondition)?;
+        if storage.manifest().as_ref() == Some(&manifest) {
+            let _boundary = self.queries.mutation_boundary().await;
+            self.queries.checkpoints.capture(storage, &manifest).await;
+        }
+        Ok(Default::default())
+    }
+    pub async fn restore_checkpoint(
+        &mut self,
+        request: shieldd_sdk_proto::execution_client::v1::RestoreCheckpointRequest,
+    ) -> std::result::Result<
+        shieldd_sdk_proto::execution_client::v1::RestoreCheckpointResponse,
+        ServiceError,
+    > {
+        self.check_persistence()?;
+        self.queries
+            .verification
+            .stop()
+            .await
+            .map_err(ServiceError::unavailable)?;
+        self.queries
+            .checkpoints
+            .join()
+            .await
+            .map_err(ServiceError::unavailable)?;
+        let boundary = request
+            .boundary
+            .context("restore SDK boundary is missing")
+            .map_err(ServiceError::invalid_argument)?;
+        let source = std::path::PathBuf::from(request.path);
+        let manifest = shieldd_sdk_storage::Manifest::decode(
+            &std::fs::read(source.join("manifest.pb"))
+                .map_err(|e| ServiceError::invalid_argument(e.into()))?,
+        )
+        .map_err(ServiceError::invalid_argument)?;
+        if boundary.height != manifest.height
+            || boundary.root_hash != manifest.digest().map_err(ServiceError::internal)?
+            || boundary.block_id != manifest.block_id
+        {
+            return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                "restore checkpoint differs from SDK snapshot"
+            )));
+        }
+        crate::checkpoint::validate(&source, &manifest)
+            .await
+            .map_err(ServiceError::unavailable)?;
+        let queries = self.queries.clone();
+        let _boundary = queries.mutation_boundary().await;
+        let path = self
+            .storage
+            .as_ref()
+            .ok_or_else(ServiceError::closed)?
+            .path()
+            .to_path_buf();
+        let parent = path
+            .parent()
+            .context("native storage parent is missing")
+            .map_err(ServiceError::internal)?;
+        let staging = parent.join(format!(".shieldd-import-{}", std::process::id()));
+        if staging.exists() {
+            return Err(ServiceError::unavailable(anyhow::anyhow!(
+                "unfinished checkpoint replacement requires repair"
+            )));
+        }
+        let config = shieldd_sdk_storage::ForestConfig::from_env()
+            .map_err(ServiceError::invalid_argument)?;
+        let restored = Storage::restore(
+            &source,
+            &staging,
+            config.clone(),
+            manifest.digest().map_err(ServiceError::internal)?,
+        )
+        .map_err(ServiceError::unavailable)?;
+        let validation = async {
+            shieldd_sdk_app::app_version::check_app_version(&restored)
+                .await
+                .map_err(ServiceError::unavailable)?;
+            let view = restored.latest_snapshot();
+            if !shieldd_sdk_app::app::App::is_ready(view.clone()).await {
+                return Err(ServiceError::failed_precondition(anyhow::anyhow!(
+                    "restored native commitments are inconsistent"
+                )));
+            }
+            shieldd_sdk_app::registry_binding::check(&view, self.registry.id())
+                .await
+                .map_err(ServiceError::unavailable)?;
+            restored
+                .forest()
+                .read()
+                .authenticate_reads(&manifest, view.observations())
+                .map_err(ServiceError::unavailable)?;
+            Ok(())
+        }
+        .await;
+        drop(restored);
+        if let Err(error) = validation {
+            if let Err(cleanup) = std::fs::remove_dir_all(&staging) {
+                tracing::warn!(%cleanup, "rejected checkpoint files require local cleanup");
+            }
+            return Err(error);
+        }
+        // Prepare and validate before dropping the live handles. Exchange is
+        // atomic, and old files remain under staging until local cleanup.
+        queries.detach_storage();
+        drop(self.execution.take());
+        drop(self.storage.take());
+        Storage::activate_checkpoint(&staging, &path).map_err(ServiceError::unavailable)?;
+        let storage = Storage::open(&path, config).map_err(ServiceError::unavailable)?;
+        let execution =
+            HostExecution::with_cache(storage.clone(), queries.cache(), self.registry.clone())
+                .await
+                .map_err(ServiceError::unavailable)?;
+        queries.attach_storage(storage.clone(), execution.nullifier_reader());
+        queries.publish_committed(boundary).await?;
+        self.storage = Some(storage);
+        self.execution = Some(execution);
+        self.materializer_failure = None;
+        if let Err(error) = std::fs::remove_dir_all(staging) {
+            tracing::warn!(?error, "old checkpoint files require local cleanup");
+        }
+        Ok(Default::default())
+    }
+
+    pub async fn close(&mut self) -> std::result::Result<(), ServiceError> {
+        let verification = self
+            .queries
+            .verification
+            .stop()
+            .await
+            .map_err(ServiceError::unavailable);
+        let completion = self.check_persistence();
+        self.queries
+            .checkpoints
+            .join()
+            .await
+            .map_err(ServiceError::unavailable)?;
         self.queries.close();
         drop(self.execution.take());
         if let Some(storage) = self.storage.take() {
-            storage.release().await;
+            drop(storage);
         }
-        Ok(())
+        completion.and(verification)
     }
+}
+
+fn commit_boundary(value: shieldd_sdk_storage::Manifest) -> Result<GetCommittedStateResponse> {
+    Ok(GetCommittedStateResponse {
+        height: value.height,
+        root_hash: value.digest()?.to_vec(),
+        block_id: value.block_id.to_vec(),
+    })
 }
 
 fn decode_host_block(request: BeginBlockRequest) -> Result<HostBlock> {
@@ -432,6 +861,10 @@ fn decode_host_block(request: BeginBlockRequest) -> Result<HostBlock> {
     Ok(HostBlock {
         height: request.height,
         time,
+        block_id: request
+            .block_id
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("canonical block ID must be 32 bytes"))?,
     })
 }
 
@@ -510,15 +943,10 @@ fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::StateDelta;
-    use cnidarium::StateWrite as _;
     use shieldd_sdk_app::genesis::{AppState, Content};
-    use shieldd_sdk_compact_block::CompactBlock;
-    use shieldd_sdk_crypto::Fq;
     use shieldd_sdk_keys::test_keys;
-    use shieldd_sdk_proto::core::component::sct::v1::ArchivedNullifierProofRequest;
-    use shieldd_sdk_sct::{nullifier_tree, Nullifier};
     use shieldd_sdk_shielded_pool::{EvmCall, HostExecution};
+    use shieldd_sdk_storage::StateDelta;
     use std::ops::Deref;
 
     fn init_genesis_request() -> InitGenesisRequest {
@@ -530,156 +958,10 @@ mod tests {
         }
     }
 
-    fn nullifier(value: u64) -> Nullifier {
-        Nullifier(Fq::from(value))
-    }
-
-    #[tokio::test]
-    async fn embedded_service_serves_a_pack_after_expanded_state_is_pruned() -> Result<()> {
-        let storage_directory = tempfile::tempdir()?;
-        let storage = Storage::load(
-            storage_directory.path().join("rocksdb"),
-            SUBSTORE_PREFIXES.to_vec(),
-        )
-        .await?;
-        let mut initializer =
-            ExecutionService::new(storage.clone(), crate::test_registry()).await?;
-        initializer.init_genesis(init_genesis_request()).await?;
-        initializer.commit(CommitRequest {}).await?;
-        drop(initializer);
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        nullifier_tree::insert_batch(&mut state, [nullifier(7), nullifier(1)]).await?;
-        let initial_window = nullifier_tree::generation_state(&state).await?.window();
-        shieldd_sdk_compact_block::component::CompactBlockManager::put_compact_block(
-            &mut state,
-            CompactBlock {
-                height: 0,
-                nullifiers: vec![nullifier(7), nullifier(1)],
-                nullifier_window: Some(initial_window),
-                ..Default::default()
-            },
-        )?;
-        nullifier_tree::rollover(&mut state, 30, 1 << 32).await?;
-        nullifier_tree::rollover(&mut state, 60, 2 << 32).await?;
-        let retired_window = nullifier_tree::generation_state(&state).await?.window();
-        shieldd_sdk_compact_block::component::CompactBlockManager::put_compact_block(
-            &mut state,
-            CompactBlock {
-                height: 1,
-                nullifier_window: Some(retired_window),
-                ..Default::default()
-            },
-        )?;
-        let archived = nullifier_tree::archived_generation(&state, 0).await?;
-        let directory = tempfile::tempdir()?;
-        let repository = GenerationPackRepository::new(directory.path().to_path_buf(), 1)?;
-        let receipt = nullifier_tree::build_generation_archive(
-            &state,
-            &repository,
-            0,
-            shieldd_sdk_sct::generation_pack::ArchiveMaintenanceLease::acquire().await,
-        )
-        .await?;
-        let pack_path = repository.path(0);
-        nullifier_tree::record_generation_pack_completion(&mut state, &receipt).await?;
-        state.nonverifiable_put_raw(
-            shieldd_sdk_sct::state_key::nullifier_generations::insertion(0, 0),
-            serde_json::to_vec(&nullifier_tree::InsertionInterval {
-                height: 0,
-                generation: 0,
-                first_position: 1,
-                count: 2,
-            })?,
-        );
-        state.nonverifiable_put_raw(
-            shieldd_sdk_sct::state_key::nullifier_generations::block_range(0),
-            serde_json::to_vec(&nullifier_tree::GenerationBlockRange {
-                start_height: 0,
-                end_height: 0,
-            })?,
-        );
-        storage.commit(state).await?;
-        let mut state = StateDelta::new(storage.latest_snapshot());
-        let maintenance = shieldd_sdk_app::nullifier_generation_packs::maintain_one_generation(
-            &mut state,
-            &repository,
-        )
-        .await?;
-        let batch = storage.prepare_commit(state).await?;
-        storage.commit_batch(maintenance.attach(&storage, batch)?)?;
-
-        let mut service = ExecutionService::new_with_generation_packs(
-            storage,
-            Some(repository),
-            crate::test_registry(),
-        )
-        .await?;
-        service
-            .queries()
-            .publish_committed(
-                service
-                    .get_committed_state(GetCommittedStateRequest {})
-                    .await?,
-            )
-            .await?;
-        let response = service
-            .queries()
-            .archived_nullifier_proof(ArchivedNullifierProofRequest {
-                generation_index: 0,
-                nullifier: Some(nullifier(8).into()),
-            })
-            .await?;
-        let proof: shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof =
-            response.try_into()?;
-        proof.verify_for(nullifier(8))?;
-        assert_eq!(proof.generation_root, archived.generation_root);
-        let spent = service
-            .queries()
-            .archived_nullifier_proof(ArchivedNullifierProofRequest {
-                generation_index: 0,
-                nullifier: Some(nullifier(7).into()),
-            })
-            .await
-            .expect_err("spent archived nullifier must not trigger pack repair");
-        assert_eq!(spent.kind(), ErrorKind::FailedPrecondition);
-        assert!(pack_path.is_file());
-        std::fs::remove_file(&pack_path)?;
-        let unavailable = service
-            .queries()
-            .archived_nullifier_proof(ArchivedNullifierProofRequest {
-                generation_index: 0,
-                nullifier: Some(nullifier(8).into()),
-            })
-            .await
-            .expect_err("missing archives fail closed while repair is queued");
-        assert_eq!(unavailable.kind(), ErrorKind::Unavailable);
-        tokio::time::timeout(std::time::Duration::from_secs(10), async {
-            loop {
-                if let Ok(response) = service
-                    .queries()
-                    .archived_nullifier_proof(ArchivedNullifierProofRequest {
-                        generation_index: 0,
-                        nullifier: Some(nullifier(8).into()),
-                    })
-                    .await
-                {
-                    let proof: shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof =
-                        response.try_into()?;
-                    proof.verify_for(nullifier(8))?;
-                    break Ok::<_, anyhow::Error>(());
-                }
-                tokio::task::yield_now().await;
-            }
-        })
-        .await??;
-        assert!(pack_path.is_file());
-        service.close().await?;
-        Ok(())
-    }
-
     #[test]
     fn decode_host_block_converts_valid_time() {
         let mut request = BeginBlockRequest {
+            block_id: vec![7 as u8; 32],
             height: 7,
             time: Some(Default::default()),
         };
@@ -700,6 +982,7 @@ mod tests {
     #[test]
     fn decode_host_block_requires_time() {
         let err = decode_host_block(BeginBlockRequest {
+            block_id: vec![7 as u8; 32],
             height: 7,
             time: None,
         })
@@ -778,13 +1061,13 @@ mod tests {
             .expect("open execution service");
 
         service
-            .rollback(RollbackRequest {})
+            .discard(DiscardRequest {})
             .await
             .expect("rollback completed");
         service.close().await.expect("close execution service");
 
         let error = service
-            .rollback(RollbackRequest {})
+            .discard(DiscardRequest {})
             .await
             .expect_err("closed service rejects calls");
         assert_eq!(error.kind(), ErrorKind::FailedPrecondition);
@@ -795,63 +1078,10 @@ mod tests {
         reopened.close().await.expect("close reopened service");
     }
 
-    #[tokio::test(flavor = "current_thread")]
-    async fn cancelled_close_can_be_retried_before_worker_abort_is_polled() -> Result<()> {
-        let directory = tempfile::tempdir()?;
-        let db = directory.path().join("rocksdb");
-        let packs = directory.path().join("packs");
-        let mut service =
-            ExecutionService::open_with_generation_packs(&db, &packs, crate::test_registry())
-                .await?;
-        tokio::task::yield_now().await;
-
-        let mut closing = Box::pin(service.close());
-        assert!(futures::poll!(closing.as_mut()).is_pending());
-        drop(closing);
-        // Retry before the aborted worker can run and release its storage clone.
-        service.close().await?;
-
-        let mut reopened =
-            ExecutionService::open_with_generation_packs(&db, &packs, crate::test_registry())
-                .await?;
-        reopened.close().await?;
-        Ok(())
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn dropping_service_stops_generation_pack_worker() -> Result<()> {
-        let directory = tempfile::tempdir()?;
-        let service = ExecutionService::open_with_generation_packs(
-            directory.path().join("rocksdb"),
-            directory.path().join("packs"),
-            crate::test_registry(),
-        )
-        .await?;
-        let worker = service
-            .generation_pack_worker
-            .as_ref()
-            .unwrap()
-            .abort_handle();
-        tokio::task::yield_now().await;
-        drop(service);
-        let stopped = tokio::time::timeout(std::time::Duration::from_secs(1), async {
-            while !worker.is_finished() {
-                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-            }
-        })
-        .await;
-        worker.abort();
-        anyhow::ensure!(
-            stopped.is_ok(),
-            "dropped service left its pack worker running"
-        );
-        Ok(())
-    }
-
     #[tokio::test]
     async fn reopening_rejects_incompatible_application_state() -> Result<()> {
-        use cnidarium::StateWrite;
         use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+        use shieldd_sdk_storage::StateWrite;
         for (version, verifiable_change) in [
             (None, false),
             (None, true),
@@ -861,7 +1091,12 @@ mod tests {
             let mut service =
                 ExecutionService::open(directory.path(), crate::test_registry()).await?;
             service.init_genesis(init_genesis_request()).await?;
-            service.commit(CommitRequest {}).await?;
+            service
+                .materialize(MaterializeRequest {
+                    height: 0,
+                    receipt_digest: vec![],
+                })
+                .await?;
             let storage = service.storage.as_ref().expect("open storage");
             let mut state = StateDelta::new(storage.latest_snapshot());
             if verifiable_change {
@@ -872,7 +1107,19 @@ mod tests {
                 Some(version) => state.nonverifiable_put_proto(key.to_vec(), version),
                 None => state.nonverifiable_delete(key.to_vec()),
             }
-            storage.commit(state).await?;
+            let previous = storage.manifest().unwrap();
+            let update = storage.prepare(
+                state,
+                shieldd_sdk_storage::BlockBoundary {
+                    chain_id: previous.chain_id,
+                    protocol: previous.protocol,
+                    height: previous.height + 1,
+                    block_id: [1; 32],
+                    time: 1,
+                },
+                Default::default(),
+            )?;
+            storage.materialize(update)?;
             let stored_version = storage.latest_version();
             assert_eq!(
                 storage
@@ -889,16 +1136,11 @@ mod tests {
                     panic!("incompatible application state must not reopen");
                 }
             }
-            let storage =
-                Storage::load(directory.path().to_path_buf(), SUBSTORE_PREFIXES.to_vec()).await?;
-            assert_eq!(
-                storage.latest_version(),
-                if verifiable_change {
-                    stored_version
-                } else {
-                    u64::MAX
-                }
-            );
+            let storage = Storage::open(
+                directory.path(),
+                shieldd_sdk_storage::ForestConfig::from_env()?,
+            )?;
+            assert_eq!(storage.latest_version(), stored_version);
             assert_eq!(
                 storage
                     .latest_snapshot()
@@ -906,7 +1148,7 @@ mod tests {
                     .await?,
                 version
             );
-            storage.release().await;
+            drop(storage);
         }
         Ok(())
     }
@@ -929,7 +1171,10 @@ mod tests {
             .await
             .expect("initialize genesis");
         let commit = service
-            .commit(CommitRequest {})
+            .materialize(MaterializeRequest {
+                height: 0,
+                receipt_digest: vec![],
+            })
             .await
             .expect("commit genesis");
         let committed = service
@@ -937,8 +1182,46 @@ mod tests {
             .await
             .expect("get committed genesis");
         assert_eq!(committed.height, 0);
-        assert_eq!(committed.root_hash, commit.root_hash);
+        assert_eq!(committed.root_hash, commit.decided.unwrap().root_hash);
 
+        let capture_parent = tempfile::tempdir().expect("checkpoint parent");
+        let path = capture_parent.path().join("capture");
+        service
+            .schedule_checkpoint(
+                shieldd_sdk_proto::execution_client::v1::ScheduleCheckpointRequest {
+                    boundary: Some(committed.clone()),
+                    path: path.to_str().unwrap().to_owned(),
+                },
+            )
+            .await
+            .expect("capture matched native checkpoint");
+        service
+            .queries
+            .checkpoints
+            .wait(0)
+            .await
+            .expect("validate captured checkpoint");
+        service
+            .restore_checkpoint(
+                shieldd_sdk_proto::execution_client::v1::RestoreCheckpointRequest {
+                    boundary: Some(committed.clone()),
+                    path: path.to_str().unwrap().to_owned(),
+                },
+            )
+            .await
+            .expect("validate private native copy and activate checkpoint");
+        assert_eq!(
+            service
+                .get_committed_state(GetCommittedStateRequest {})
+                .await
+                .unwrap(),
+            committed
+        );
+        service
+            .queries
+            .checkpoints
+            .release(0)
+            .expect("release consumed source capture");
         service.close().await.expect("close execution service");
 
         let mut reopened = ExecutionService::open(directory.path(), crate::test_registry())

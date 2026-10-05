@@ -10,13 +10,13 @@ use shieldd_sdk_circuits::{
 use shieldd_sdk_crypto::{audit::point_fields, domains, encoding, poseidon, Fq, SubgroupPoint};
 
 pub const fn note_reshape_statement_field_count(inputs: usize, outputs: usize) -> usize {
-    10 + 2 * inputs + 2 * outputs
+    9 + inputs + 2 * outputs
 }
 pub const fn transfer_statement_field_count(inputs: usize, outputs: usize) -> usize {
-    59 + 2 * inputs + 2 * outputs
+    58 + inputs + 2 * outputs
 }
 pub const fn shielded_withdrawal_statement_field_count(inputs: usize) -> usize {
-    30 + 2 * inputs
+    29 + inputs
 }
 
 pub(crate) fn point(point: &SubgroupPoint) -> Point<Fq> {
@@ -29,13 +29,9 @@ pub(crate) fn address(address: &shieldd_sdk_keys::Address) -> encryption::Addres
         transmission: point(address.transmission_point()),
     }
 }
-fn spend(
-    nullifier: shieldd_sdk_sct::Nullifier,
-    history_required: bool,
-) -> Result<transfer::SpendStatement<Fq>> {
+fn spend(nullifier: shieldd_sdk_sct::Nullifier) -> Result<transfer::SpendStatement<Fq>> {
     Ok(transfer::SpendStatement {
         nullifier: nullifier.0,
-        history_required: Fq::from(u64::from(history_required)),
     })
 }
 pub(crate) fn capsule(c: &crate::RecoveryCapsule) -> recovery::Capsule<Fq> {
@@ -128,12 +124,11 @@ pub(crate) fn transfer_statement(p: &TransferProofPublic) -> Result<transfer::St
         balance: point(&p.balance_commitment.0),
         routing_tags: p.routing.tags.map(|tag| Fq::from(u64::from(tag.value))),
         routing_parameter: p.routing_parameter_set_id,
-        recent_floor: Fq::from(p.recent_position_floor),
         volume: volume(&p.volume_accumulator, p.proof_context.as_field()),
         spends: p
             .inputs
             .iter()
-            .map(|i| spend(i.nullifier, i.history_required))
+            .map(|i| spend(i.nullifier))
             .collect::<Result<Vec<_>>>()?
             .try_into()
             .map_err(|_| anyhow::anyhow!("transfer input shape"))?,
@@ -161,11 +156,10 @@ pub(crate) fn reshape_statement(p: &NoteReshapeProofPublic) -> Result<reshape::S
         compliance_anchor: p.compliance_anchor.0,
         routing_tag: Fq::from(u64::from(p.routing_tag.value)),
         routing_parameter: p.routing_parameter_set_id,
-        recent_floor: Fq::from(p.recent_position_floor),
         spends: p
             .inputs
             .iter()
-            .map(|i| spend(i.nullifier, i.history_required))
+            .map(|i| spend(i.nullifier))
             .collect::<Result<_>>()?,
     })
 }
@@ -187,11 +181,10 @@ pub(crate) fn withdrawal_statement(
             recovery: p.change_output.recovery_commitment.0,
         },
         balance: point(&p.balance_commitment.0),
-        recent_floor: Fq::from(p.recent_position_floor),
         spends: p
             .inputs
             .iter()
-            .map(|i| spend(i.nullifier, i.history_required))
+            .map(|i| spend(i.nullifier))
             .collect::<Result<Vec<_>>>()?
             .try_into()
             .map_err(|_| anyhow::anyhow!("withdrawal input shape"))?,
@@ -220,8 +213,6 @@ pub(crate) fn seizure_statement(p: &NoteSeizureProofPublic) -> Result<seizure::S
         anchor: p.anchor.into(),
         commitment: a.note_commitment.0,
         nullifier: a.nullifier.0,
-        history_required: Fq::from(u64::from(p.history_required)),
-        recent_floor: Fq::from(p.recent_position_floor),
         address: address(&a.address),
         asset: a.asset_id.0,
         amount: a.amount.into(),
@@ -282,7 +273,11 @@ pub fn shielded_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq> {
     )
 }
 pub fn note_seizure_statement_hash(fields: &[Fq]) -> Result<Fq> {
-    hash(domains::SEIZURE_STATEMENT, fields, 22)
+    hash(
+        domains::SEIZURE_STATEMENT,
+        fields,
+        seizure::STATEMENT_FIELDS,
+    )
 }
 pub fn transfer_statement_hash_from_public(p: &TransferProofPublic) -> Result<Fq> {
     transfer_statement_hash(&transfer_statement_fields(p)?)

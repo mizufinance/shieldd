@@ -40,7 +40,6 @@ impl FeeFundingPlan {
         fvk: &FullViewingKey,
         witness_data: &WitnessData,
         memo_key: &shieldd_sdk_keys::symmetric::PayloadKey,
-        recent_position_floor: u64,
         registry: &shieldd_sdk_proof_params::pari::Registry,
     ) -> Result<FeeFunding> {
         self.validate()?;
@@ -66,7 +65,6 @@ impl FeeFundingPlan {
                 auth_paths,
                 witness_data.anchor,
                 memo_key,
-                recent_position_floor,
                 registry,
             )
             .map_err(|e| anyhow!("fee funding proof generation failed: {e}"))?;
@@ -86,17 +84,11 @@ impl FeeFundingPlan {
         &self,
         fvk: &FullViewingKey,
         memo_key: &shieldd_sdk_keys::symmetric::PayloadKey,
-        recent_position_floor: u64,
     ) -> Result<EffectHash> {
         self.validate()?;
         let transfer = &self.transfer;
         transfer
-            .transfer_body(
-                fvk,
-                memo_key,
-                shieldd_sdk_tct::Tree::default().root(),
-                recent_position_floor,
-            )
+            .transfer_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
             .map(|body| body.effect_hash())
     }
 }
@@ -132,12 +124,10 @@ impl FeeFunding {
         &self,
         anchor: shieldd_sdk_tct::Root,
         effect_hash: EffectHash,
-        recent_position_floor: u64,
     ) -> TransactionContext {
         TransactionContext {
             anchor,
             effect_hash,
-            recent_position_floor,
         }
     }
 }

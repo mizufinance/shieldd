@@ -9,9 +9,8 @@ edition = {workspace = true}
 
 [features]
 component = [
-    "cnidarium-component",
-    "cnidarium",
-    "shieldd-sdk-proto/cnidarium",
+    "shieldd-sdk-storage/persistent",
+    "shieldd-sdk-proto/state",
     "tokio-stream",
     "tokio",
     "shieldd-sdk-compliance/component",
@@ -23,13 +22,12 @@ component = [
 default = ["component"]
 
 [dependencies]
+shieldd-sdk-storage = { workspace = true, default-features = false }
 sha2.workspace = true
 anyhow = {workspace = true}
 async-trait = {workspace = true}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true}
-cnidarium = {workspace = true, optional = true, default-features = true}
-cnidarium-component = {workspace = true, optional = true, default-features = true}
 futures = {workspace = true}
 imbl = {workspace = true}
 metrics = {workspace = true}
@@ -48,3 +46,6 @@ tendermint = {workspace = true}
 tokio = {workspace = true, optional = true}
 tokio-stream = {workspace = true, optional = true}
 tracing = {workspace = true}
+
+[dev-dependencies]
+shieldd-sdk-storage = { workspace = true, features = ["test-support"] }

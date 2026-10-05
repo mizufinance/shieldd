@@ -9,15 +9,15 @@ edition = {workspace = true}
 
 [features]
 component = [
-    "cnidarium",
-    "cnidarium-component",
-    "shieldd-sdk-proto/cnidarium",
+    "shieldd-sdk-storage/persistent",
+    "shieldd-sdk-proto/state",
     "tokio",
 ]
 default = ["component"]
 parallel = ["shieldd-sdk-tct/parallel", "dep:rayon"]
 
 [dependencies]
+shieldd-sdk-storage = { workspace = true, default-features = false }
 shieldd-sdk-circuits.workspace = true
 shieldd-sdk-crypto.workspace = true
 anyhow = {workspace = true}
@@ -25,8 +25,6 @@ async-trait = {workspace = true}
 bincode = {workspace = true}
 blake2b_simd = {workspace = true}
 bytes = {workspace = true}
-cnidarium = {workspace = true, optional = true, default-features = true}
-cnidarium-component = {workspace = true, optional = true, default-features = true}
 hex = {workspace = true}
 futures = {workspace = true}
 imbl = {workspace = true}
@@ -49,6 +47,8 @@ tokio = {workspace = true, optional = true, features = ["rt"]}
 tracing = {workspace = true}
 chrono = { workspace = true, default-features = false, features = ["serde", "now"] }
 
+
 [dev-dependencies]
+shieldd-sdk-storage = { workspace = true, features = ["test-support"] }
 getrandom = {workspace = true}
 tokio = {workspace = true, features = ["full"]}

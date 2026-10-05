@@ -1,8 +1,8 @@
 //! Closed circuit catalogue; templates supply shape only and contain no setup randomness.
 use crate::{
     audit, authorization, compliance, disclosure, encryption, group::Point, hash::Parameters,
-    history, map::Generators, note, proof::Family, recovery, registry, reshape, routing, scalar,
-    seizure, self_action, transfer, tree::Path, volume, withdrawal,
+    map::Generators, note, proof::Family, recovery, registry, reshape, routing, scalar, seizure,
+    self_action, transfer, tree::Path, volume, withdrawal,
 };
 use anyhow::Result;
 use commonware_cryptography::{
@@ -21,8 +21,6 @@ pub enum Witness {
     Seizure(Box<seizure::Witness>),
     Disclosure(Box<disclosure::Witness>),
     DisclosureOne(Box<disclosure::Witness<1>>),
-    HistoryGeneration(Box<history::GenerationWitness>),
-    HistoryChunk(Box<history::ChunkWitness>),
 }
 impl Witness {
     pub fn family(&self) -> Family {
@@ -36,8 +34,6 @@ impl Witness {
             Self::Seizure(_) => Family::Seizure,
             Self::Disclosure(_) => Family::Disclosure,
             Self::DisclosureOne(_) => Family::DisclosureOne,
-            Self::HistoryGeneration(_) => Family::HistoryGeneration,
-            Self::HistoryChunk(_) => Family::HistoryChunk,
         }
     }
     pub fn digest(&self, p: &Parameters, g: &Generators) -> Result<Scalar> {
@@ -51,8 +47,6 @@ impl Witness {
             Self::Seizure(w) => w.statement.digest(p),
             Self::Disclosure(w) => w.statement.digest(p),
             Self::DisclosureOne(w) => w.statement.digest(p),
-            Self::HistoryGeneration(w) => w.statement.digest(p),
-            Self::HistoryChunk(w) => w.statement.digest(p),
         })
     }
     pub fn constrain<'a>(
@@ -69,8 +63,6 @@ impl Witness {
             Self::Seizure(w) => seizure::constrain(ctx, p, w, digest),
             Self::Disclosure(w) => disclosure::constrain(ctx, p, w, digest),
             Self::DisclosureOne(w) => disclosure::constrain(ctx, p, w, digest),
-            Self::HistoryGeneration(w) => history::constrain_generation(ctx, p, w, digest),
-            Self::HistoryChunk(w) => history::constrain_chunk(ctx, p, w, digest),
         }
     }
 }
@@ -151,7 +143,6 @@ fn spend() -> note::SpendWitness {
         note: note(),
         path: path(),
         nullifier: zero(),
-        history_required: false,
     }
 }
 fn optional() -> note::OptionalWitness {
@@ -238,7 +229,6 @@ fn self_action() -> self_action::Witness {
         compliance_anchor: zero(),
         asset: zero(),
         regulated: false,
-        recent_floor: zero(),
         balance_blinding: zero(),
         routing_nonce: zero(),
         routing: routing::SingleWitness {
@@ -251,28 +241,6 @@ fn self_action() -> self_action::Witness {
         auth: auth(),
         registry: registry(),
         sender: owner(),
-    }
-}
-fn generation() -> history::GenerationWitness {
-    history::GenerationWitness {
-        statement: history::GenerationStatement {
-            version: history::VERSION,
-            nullifier: zero(),
-            index: 0,
-            root: zero(),
-            start_position: 0,
-            end_position: 0,
-            start_head: zero(),
-            end_head: zero(),
-        },
-        leaf: history::Leaf {
-            value: zero(),
-            next_index: 0,
-            next_value: zero(),
-            lower_sentinel: false,
-            terminal: false,
-        },
-        path: path(),
     }
 }
 fn predicate() -> disclosure::Predicate<Scalar> {
@@ -338,7 +306,6 @@ fn template(family: Family) -> Witness {
                 asset: zero(),
                 regulated: false,
                 timestamp: zero(),
-                recent_floor: zero(),
                 nonce_root: zero(),
                 balance_blinding: zero(),
                 auth: auth(),
@@ -427,8 +394,6 @@ fn template(family: Family) -> Witness {
                 anchor: zero(),
                 commitment: zero(),
                 nullifier: zero(),
-                history_required: zero(),
-                recent_floor: zero(),
                 address: address(),
                 asset: zero(),
                 amount: zero(),
@@ -443,17 +408,6 @@ fn template(family: Family) -> Witness {
         })),
         Family::Disclosure => Witness::Disclosure(Box::new(disclosure_template::<32>())),
         Family::DisclosureOne => Witness::DisclosureOne(Box::new(disclosure_template::<1>())),
-        Family::HistoryGeneration => Witness::HistoryGeneration(Box::new(generation())),
-        Family::HistoryChunk => Witness::HistoryChunk(Box::new(history::ChunkWitness {
-            statement: history::ChunkStatement {
-                version: history::VERSION,
-                nullifier: zero(),
-                index: 0,
-                start_head: zero(),
-                end_head: zero(),
-            },
-            generations: std::array::from_fn(|_| generation()),
-        })),
     }
 }
 
@@ -463,7 +417,7 @@ mod tests {
     use crate::fixtures;
     use commonware_math::algebra::Ring;
     #[test]
-    fn catalogue_relations_match_all_nine_real_witness_shapes() {
+    fn catalogue_relations_match_all_seven_real_witness_shapes() {
         let p = Parameters::load().unwrap();
         let g = Generators::derive(&p);
         let witnesses = [
@@ -480,10 +434,6 @@ mod tests {
                 1,
                 Scalar::one(),
             ))),
-            Witness::HistoryGeneration(Box::new(
-                history::tests::chunk(&p, 0).generations[0].clone(),
-            )),
-            Witness::HistoryChunk(Box::new(history::tests::chunk(&p, 0))),
         ];
         let mut digests = std::collections::BTreeSet::new();
         for w in witnesses {

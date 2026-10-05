@@ -9,7 +9,7 @@ use {
     shieldd_sdk_mock_client::MockClient,
     shieldd_sdk_num::Amount,
     shieldd_sdk_proto::DomainType,
-    shieldd_sdk_sct::component::tree::SctRead as _,
+    shieldd_sdk_sct::permanent_nullifiers::manifest,
     shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan},
     shieldd_sdk_transaction::{memo::MemoPlaintext, plan::MemoPlan, TransactionParameters},
 };
@@ -24,7 +24,7 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
         let app_state =
             AppState::Content(genesis::Content::default().with_chain_id(TEST_CHAIN_ID.to_string()));
         TestHost::new(
-            storage.as_ref().clone(),
+            storage.storage().clone(),
             app_state,
             tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
             shieldd_sdk_app_tests::registry(),
@@ -82,7 +82,6 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
     };
 
     let intent = shieldd_sdk_mock_client::TransactionIntent {
-        nullifier_window: None,
         actions: vec![transfer.into()],
         memo: Some(MemoPlan::new(
             &mut OsRng,
@@ -103,12 +102,26 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
         .await?;
 
     let pre_tx_snapshot = storage.latest_snapshot();
+    let before_boundary = manifest(&pre_tx_snapshot)?;
+    for nf in tx.spent_nullifiers() {
+        let status = test_node
+            .execution
+            .nullifier_reader()
+            .status(nf, &before_boundary)?;
+        status.verify(before_boundary.digest()?)?;
+        assert!(!status.spent);
+    }
     test_node.execute(vec![tx.encode_to_vec()]).await?;
     let post_tx_snapshot = storage.latest_snapshot();
 
+    let after_boundary = manifest(&post_tx_snapshot)?;
     for nf in tx.spent_nullifiers() {
-        assert!(!pre_tx_snapshot.is_nullifier_spent(nf).await?);
-        assert!(post_tx_snapshot.is_nullifier_spent(nf).await?);
+        let status = test_node
+            .execution
+            .nullifier_reader()
+            .status(nf, &after_boundary)?;
+        status.verify(after_boundary.digest()?)?;
+        assert!(status.spent);
     }
 
     client.sync_to_latest(post_tx_snapshot).await?;

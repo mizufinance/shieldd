@@ -36,7 +36,7 @@ impl App {
     /// Runs per-block hooks for execution components only.
     pub async fn begin_block(
         &mut self,
-        begin_block: &cnidarium_component::BlockContext,
+        begin_block: &shieldd_sdk_storage::BlockContext,
     ) -> anyhow::Result<Vec<abci::Event>> {
         shieldd_sdk_compliance::admission::state::validate_time(&*self.state, begin_block.time)
             .await?;
@@ -139,90 +139,166 @@ impl App {
         }
     }
 
-    /// Persists host execution state and resets snapshots for the next host call.
-    pub async fn commit(
+    /// Transfer the finalized disposable state to the persistence owner.
+    pub(super) async fn take_commit_state(
         &mut self,
-        storage: Storage,
-        generation_packs: Option<&shieldd_sdk_sct::generation_pack::GenerationPackRepository>,
-    ) -> Result<RootHash> {
+        storage: &Storage,
+    ) -> Result<StateDelta<Snapshot>> {
         self.state
-            .ensure_nullifier_block_materialized()
+            .ensure_nullifier_block_sealed()
             .context("cannot commit an open nullifier block")?;
-        let commit_start = Instant::now();
-        let flush_start = Instant::now();
-        self.flush_deferred_block_transactions()
-            .await
-            .context("flushing deferred block transactions before commit")?;
-        let flush_ms = flush_start.elapsed().as_secs_f64() * 1000.0;
-        let dummy_state = StateDelta::new(storage.latest_snapshot());
-        let previous = std::mem::replace(&mut self.state, Arc::new(dummy_state));
-        let mut state = match Arc::try_unwrap(previous) {
-            Ok(state) => state,
+        self.flush_deferred_block_transactions().await?;
+        let mut replacement = StateDelta::new(storage.latest_snapshot());
+        replacement.object_put(
+            shieldd_sdk_sct::state_key::nullifiers::reader(),
+            self.nullifier_reader(),
+        );
+        if let Some(tree) = self.state.object_get::<shieldd_sdk_tct::Tree>(
+            shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+        ) {
+            replacement.object_put(
+                shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+                tree,
+            );
+        }
+        let previous = std::mem::replace(&mut self.state, Arc::new(replacement));
+        match Arc::try_unwrap(previous) {
+            Ok(state) => Ok(state),
             Err(previous) => {
                 self.state = previous;
-                anyhow::bail!("commit requires exclusive ownership of application state");
-            }
-        };
-
-        #[cfg(test)]
-        if let Some(extracted) = self.commit_extracted.take() {
-            extracted.notify_one();
-            std::future::pending::<()>().await;
-        }
-
-        let maintenance = if let Some(repository) = generation_packs {
-            match crate::nullifier_generation_packs::maintain_one_generation(&mut state, repository)
-                .await
-            {
-                Ok(maintenance) => maintenance,
-                Err(error) => {
-                    self.state = Arc::new(state);
-                    return Err(error).context("maintaining retired nullifier generation");
-                }
-            }
-        } else {
-            Default::default()
-        };
-
-        let storage_commit_start = Instant::now();
-        let batch = storage
-            .prepare_commit(state)
-            .await
-            .context("freezing application commit")?;
-        let batch = maintenance.attach(&storage, batch)?;
-        // Keep the validated file handle alive until the atomic batch is durable.
-        let jmt_root = storage
-            .commit_batch(batch)
-            .context("committing application state to storage")?;
-        if let (Some(repository), Some(generation)) =
-            (generation_packs, maintenance.completed_generation)
-        {
-            if let Err(error) = repository.forget_ready_receipt(generation) {
-                tracing::warn!(%error, generation, "could not clear committed pack readiness cache");
+                anyhow::bail!("commit requires exclusive ownership of application state")
             }
         }
-        if maintenance.completed_generation.is_some() {
-            ::metrics::counter!(crate::nullifier_generation_packs::PACK_PRUNED_GENERATIONS_TOTAL)
-                .increment(1);
+    }
+
+    pub(super) fn reset_committed(
+        &mut self,
+        storage: &Storage,
+        reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+    ) {
+        let snapshot = storage.latest_snapshot();
+        self.snapshot_version = snapshot.version();
+        self.committed_snapshot = snapshot.clone();
+        let mut state = StateDelta::new(snapshot);
+        if let Some(tree) = self.state.object_get::<shieldd_sdk_tct::Tree>(
+            shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+        ) {
+            state.object_put(
+                shieldd_sdk_sct::state_key::cache::cached_state_commitment_tree(),
+                tree,
+            );
         }
-        let storage_commit_ms = storage_commit_start.elapsed().as_secs_f64() * 1000.0;
+        state.object_put(shieldd_sdk_sct::state_key::nullifiers::reader(), reader);
+        self.state = Arc::new(state);
+    }
 
-        tracing::debug!(?jmt_root, "finished committing host state");
-
-        let snapshot_reset_start = Instant::now();
-        let latest_snapshot = storage.latest_snapshot();
-        self.snapshot_version = latest_snapshot.version();
-        self.committed_snapshot = latest_snapshot.clone();
-        self.state = Arc::new(StateDelta::new(latest_snapshot));
-        let snapshot_reset_ms = snapshot_reset_start.elapsed().as_secs_f64() * 1000.0;
-        let total_ms = commit_start.elapsed().as_secs_f64() * 1000.0;
-        tracing::info!(
-            commit_total_ms = total_ms,
-            commit_flush_deferred_ms = flush_ms,
-            commit_storage_commit_ms = storage_commit_ms,
-            commit_snapshot_reset_ms = snapshot_reset_ms,
-            "host_commit_phase_profile"
+    pub(super) async fn prepare_native(
+        storage: &Storage,
+        state: StateDelta<Snapshot>,
+        height: u64,
+        block_id: [u8; 32],
+    ) -> Result<shieldd_sdk_storage::Prepared> {
+        let (boundary, changes) = Self::native_inputs(&state, height, block_id).await?;
+        storage.prepare(state, boundary, changes)
+    }
+    pub(super) async fn native_inputs(
+        state: &StateDelta<Snapshot>,
+        height: u64,
+        block_id: [u8; 32],
+    ) -> Result<(
+        shieldd_sdk_storage::BlockBoundary,
+        std::collections::BTreeMap<
+            shieldd_sdk_storage::ParticipantId,
+            Vec<shieldd_sdk_storage::ParticipantChange>,
+        >,
+    )> {
+        use shieldd_sdk_storage::{BlockBoundary, ParticipantChange, ParticipantId, SPENT};
+        use std::collections::BTreeMap;
+        anyhow::ensure!(
+            state.get_block_height().await? == height,
+            "native state height differs from host decision"
         );
-        Ok(jmt_root)
+        let chain_id = state.get_chain_id().await?;
+        let registry = state
+            .get_raw(crate::registry_binding::KEY)
+            .await?
+            .context("native protocol binding is missing")?;
+        let mut protocol = sha2::Sha256::new();
+        protocol.update(b"shieldd.protocol.nomt-forest.v1.abi5\0");
+        protocol.update(&registry);
+        let protocol = protocol.finalize().into();
+        // InitChain has no block-time input and cannot consume nullifiers.
+        // The height-zero manifest uses the protocol epoch; all later days
+        // derive exclusively from canonical BeginBlock time.
+        let time = if height == 0 {
+            0
+        } else {
+            state.get_current_block_timestamp().await?.unix_timestamp()
+        };
+        let mut changes: BTreeMap<ParticipantId, Vec<ParticipantChange>> = BTreeMap::new();
+        let permanent = state.pending_nullifiers();
+        for nullifier in &permanent {
+            let key = shieldd_sdk_storage::nullifier_key(&nullifier.to_bytes());
+            let id = ParticipantId::permanent(shieldd_sdk_storage::nullifier_shard(&key))?;
+            changes.entry(id).or_default().push(ParticipantChange {
+                key,
+                value: Some(SPENT.to_vec()),
+            });
+        }
+        use shieldd_sdk_shielded_pool::component::{PendingVolume, PENDING_VOLUME};
+        let volumes = state
+            .object_get::<PendingVolume>(PENDING_VOLUME)
+            .unwrap_or_default();
+        let count = permanent.len() + volumes.values().map(|set| set.len()).sum::<usize>();
+        anyhow::ensure!(
+            count <= shieldd_sdk_storage::MAX_NULLIFIERS_PER_BLOCK,
+            "combined native nullifier limit exceeded"
+        );
+        for (day, values) in &volumes {
+            let id = ParticipantId::volume(*day)?;
+            for nullifier in values {
+                changes.entry(id).or_default().push(ParticipantChange {
+                    key: shieldd_sdk_storage::volume_key(*day, nullifier)?,
+                    value: Some(SPENT.to_vec()),
+                });
+            }
+        }
+        for delta in changes.values_mut() {
+            delta.sort_by_key(|change| change.key);
+        }
+        Ok((
+            BlockBoundary {
+                chain_id,
+                protocol,
+                height,
+                block_id,
+                time,
+            },
+            changes,
+        ))
+    }
+
+    /// Direct owning-suite persistence has no SDK side effects to replay.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub async fn commit_for_testing(&mut self, storage: Storage) -> Result<Commitment> {
+        let state = self.take_commit_state(&storage).await?;
+        let height = state.get_block_height().await?;
+        let update = Self::prepare_native(
+            &storage,
+            state,
+            height,
+            if height == 0 {
+                [0; 32]
+            } else {
+                [height as u8; 32]
+            },
+        )
+        .await?;
+        let committed = storage.materialize(update)?;
+        self.reset_committed(
+            &storage,
+            shieldd_sdk_sct::permanent_nullifiers::Reader(storage.clone()),
+        );
+        Ok(Commitment(committed.digest()?))
     }
 }

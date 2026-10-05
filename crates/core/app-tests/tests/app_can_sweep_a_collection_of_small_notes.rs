@@ -1,5 +1,4 @@
 use anyhow::Context;
-use cnidarium::TempStorage;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
     test_support::{TestHost, TEST_CHAIN_ID},
@@ -9,6 +8,7 @@ use shieldd_sdk_keys::test_keys;
 use shieldd_sdk_mock_client::MockClient;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::genesis::Allocation;
+use shieldd_sdk_storage::TempStorage;
 use shieldd_sdk_view::{Storage, StoragePlanningIo};
 use std::ops::Deref;
 mod common;
@@ -41,7 +41,7 @@ async fn app_can_sweep_a_collection_of_small_notes() -> anyhow::Result<()> {
         .fixed_gas_prices
         .execution_price = 1_000;
     let mut host = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         AppState::Content(genesis),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         shieldd_sdk_app_tests::registry(),

@@ -140,11 +140,7 @@ impl PlanningIo for StoragePlanningIo {
     async fn chain_id(&mut self) -> Result<String> {
         Ok(self.read(self.storage.app_params()).await?.chain_id)
     }
-    async fn nullifier_window(
-        &mut self,
-    ) -> Result<shieldd_sdk_sct::nullifier_generation::NullifierWindow> {
-        self.read(self.storage.nullifier_window()).await
-    }
+
     async fn discovery_parameters(
         &mut self,
     ) -> Result<shieldd_sdk_shielded_pool::discovery::Parameters> {

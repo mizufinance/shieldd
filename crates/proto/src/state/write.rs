@@ -2,7 +2,7 @@ use crate::{event::ProtoEvent, DomainType, Message};
 
 use std::fmt::Debug;
 
-use cnidarium::StateWrite;
+use shieldd_sdk_storage::StateWrite;
 
 pub trait StateWriteProto: StateWrite + Send + Sync {
     /// Puts a domain type into the verifiable key-value store with the given key.

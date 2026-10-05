@@ -21,6 +21,7 @@ mod auth_data;
 mod error;
 mod fee_funding;
 mod is_action;
+mod memory;
 mod parameters;
 mod transaction;
 mod witness_data;

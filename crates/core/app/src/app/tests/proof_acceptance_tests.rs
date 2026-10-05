@@ -2,10 +2,10 @@ use super::*;
 
 use std::time::Duration;
 
-use cnidarium::ArcStateDeltaExt as _;
 use shieldd_sdk_compact_block::component::StateReadExt as _;
 use shieldd_sdk_sct::component::tree::SctRead as _;
 use shieldd_sdk_shielded_pool::{HostWithdrawal, Note, NoteReshapeFamilyId};
+use shieldd_sdk_storage::ArcStateDeltaExt as _;
 use tokio::sync::OnceCell;
 
 use crate::app::{HostBlock, HostExecution, MAX_BLOCK_TXS_PAYLOAD_BYTES};
@@ -78,7 +78,7 @@ impl FamilyFixture {
 }
 
 struct FamilyFixtureSet {
-    _storage_guard: TempStorage,
+    _storage_guard: FixtureStorage,
     fixtures: Vec<FamilyFixture>,
     fee_funding_fixture: FamilyFixture,
 }
@@ -205,7 +205,6 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
                 chain_id: TEST_CHAIN_ID.to_string(),
                 ..Default::default()
             },
-            nullifier_window: Some(test_nullifier_window()),
         };
         let tx = client
             .witness_auth_build(
@@ -227,7 +226,6 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
             chain_id: TEST_CHAIN_ID.to_string(),
             ..Default::default()
         },
-        nullifier_window: Some(test_nullifier_window()),
     };
     let fee_funding_tx = client
         .witness_auth_build(
@@ -255,8 +253,8 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
 const FIXTURE_ALLOCATION_AMOUNT: u64 = 1_000_000;
 const FIXTURE_REQUIRED_NOTES: usize = 6;
 
-async fn build_fixture_storage() -> Result<TempStorage> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+async fn build_fixture_storage() -> Result<FixtureStorage> {
+    let storage = TempStorage::new().await?;
     let allocations = std::iter::repeat(Allocation {
         raw_amount: u128::from(FIXTURE_ALLOCATION_AMOUNT).into(),
         raw_denom: BASE_ASSET_DENOM.deref().base_denom().denom,
@@ -275,14 +273,28 @@ async fn build_fixture_storage() -> Result<TempStorage> {
 
     let initial_time = Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?;
     let mut node = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         initial_time,
         registry(),
     )
     .await?;
     node.execute(Vec::new()).await?;
-    Ok(storage)
+    Ok(FixtureStorage {
+        reader: node.execution.nullifier_reader(),
+        storage,
+    })
+}
+
+struct FixtureStorage {
+    storage: TempStorage,
+    reader: shieldd_sdk_sct::permanent_nullifiers::Reader,
+}
+impl std::ops::Deref for FixtureStorage {
+    type Target = TempStorage;
+    fn deref(&self) -> &TempStorage {
+        &self.storage
+    }
 }
 
 fn spend_plan(client: &MockClient, note: Note) -> Result<ShieldedInputPlan> {
@@ -567,7 +579,12 @@ async fn process_proposal_rejects_decodable_invalid_pari() -> Result<()> {
         let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
-        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+        let mut app = App::new(
+            family_set._storage_guard.latest_snapshot(),
+            registry(),
+            family_set._storage_guard.reader.clone(),
+        )
+        .await?;
         let proposal = process_request(&app, &invalid_bytes).await?;
 
         let verdict = app.validate_batch(proposal, Some(&cache), false).await;
@@ -590,7 +607,12 @@ async fn fee_funding_process_proposal_rejects_invalid_pari() -> Result<()> {
     let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
     let hash = tx_hash(&invalid_bytes);
     let cache = StatelessCache::new();
-    let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        family_set._storage_guard.latest_snapshot(),
+        registry(),
+        family_set._storage_guard.reader.clone(),
+    )
+    .await?;
     let proposal = process_request(&app, &invalid_bytes).await?;
 
     let verdict = app.validate_batch(proposal, Some(&cache), false).await;
@@ -638,10 +660,15 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     );
 
     let storage_guard = build_fixture_storage().await?;
-    let storage = storage_guard.as_ref().clone();
-    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let storage = storage_guard.storage().clone();
+    let mut app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        storage_guard.reader.clone(),
+    )
+    .await?;
     let context = app.benchmark_block_context().await?;
-    let begin_block = cnidarium_component::BlockContext {
+    let begin_block = shieldd_sdk_storage::BlockContext {
         height: context.height,
         time: context.time,
     };
@@ -672,7 +699,7 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     }
 
     app.end_block(context.height).await;
-    app.commit(storage.clone(), None).await?;
+    app.commit_for_testing(storage.clone()).await?;
 
     let committed = storage.latest_snapshot();
     let compact_block: shieldd_sdk_compact_block::CompactBlock = committed
@@ -691,7 +718,9 @@ async fn fee_funding_valid_proof_executes_and_persists() -> Result<()> {
     );
     for nullifier in fee_nullifiers {
         assert!(
-            committed.is_nullifier_spent(nullifier).await?,
+            app.nullifier_reader()
+                .contains(&committed, &[nullifier])
+                .await?[0],
             "fee-funding nullifier {nullifier:?} was not durably committed"
         );
         assert!(
@@ -724,7 +753,12 @@ async fn prepare_proposal_excludes_decodable_invalid_pari() -> Result<()> {
         let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
-        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+        let mut app = App::new(
+            family_set._storage_guard.latest_snapshot(),
+            registry(),
+            family_set._storage_guard.reader.clone(),
+        )
+        .await?;
         let proposal = prepare_request(&app, invalid_bytes.clone()).await?;
 
         let prepared = app.prepare_batch(proposal, Some(&cache), false).await;
@@ -751,7 +785,12 @@ async fn cold_deliver_rejects_invalid_pari_without_state_mutation() -> Result<()
         let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
-        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+        let mut app = App::new(
+            family_set._storage_guard.latest_snapshot(),
+            registry(),
+            family_set._storage_guard.reader.clone(),
+        )
+        .await?;
 
         let error = app
             .deliver_tx_bytes(&invalid_bytes, Some(&cache))
@@ -782,7 +821,12 @@ async fn deferred_index_records_only_transactions_that_commit() -> Result<()> {
         BlockTxIndexingMode::PerTx,
         BlockTxIndexingMode::DeferredBatch,
     ] {
-        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+        let mut app = App::new(
+            family_set._storage_guard.latest_snapshot(),
+            registry(),
+            family_set._storage_guard.reader.clone(),
+        )
+        .await?;
         app.set_block_tx_indexing_mode(mode);
         use shieldd_sdk_shielded_pool::component::StateWriteExt as _;
         let mut state_tx = app
@@ -835,7 +879,7 @@ async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<(
 
         let checked_cache = Arc::new(StatelessCache::new());
         let mut checked_host = HostExecution::with_cache(
-            family_set._storage_guard.as_ref().clone(),
+            family_set._storage_guard.storage().clone(),
             checked_cache.clone(),
             registry(),
         )
@@ -850,6 +894,7 @@ async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<(
         assert_cache_invalid(&checked_cache, &hash, &invalid_bytes, fixture.label());
         checked_host
             .begin_block(HostBlock {
+                block_id: [next_height as u8; 32],
                 height: next_height,
                 time: next_time,
             })
@@ -865,13 +910,14 @@ async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<(
 
         let cold_cache = Arc::new(StatelessCache::new());
         let mut cold_host = HostExecution::with_cache(
-            family_set._storage_guard.as_ref().clone(),
+            family_set._storage_guard.storage().clone(),
             cold_cache.clone(),
             registry(),
         )
         .await?;
         cold_host
             .begin_block(HostBlock {
+                block_id: [next_height as u8; 32],
                 height: next_height,
                 time: next_time,
             })
@@ -883,7 +929,12 @@ async fn host_delivery_rejects_invalid_pari_cold_and_after_checktx() -> Result<(
             "{}: cold HostExecution delivery accepted an invalid proof",
             fixture.label()
         );
-        assert_cache_invalid(&cold_cache, &hash, &invalid_bytes, fixture.label());
+        assert!(
+            cold_cache
+                .get(registry().id(), &hash, &invalid_bytes)
+                .is_none(),
+            "canonical delivery does not populate the CheckTx LRU"
+        );
     }
 
     assert_eq!(
@@ -910,7 +961,12 @@ async fn cache_promotion_never_exceeds_exact_pari_attestation() -> Result<()> {
     let valid_hash = tx_hash(&transfer.tx_bytes);
 
     let process_cache = StatelessCache::new();
-    let mut process_app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut process_app = App::new(
+        family_set._storage_guard.latest_snapshot(),
+        registry(),
+        family_set._storage_guard.reader.clone(),
+    )
+    .await?;
     stage_spent_nullifier(&mut process_app, &valid_tx).await?;
     let proposal = process_request(&process_app, &transfer.tx_bytes).await?;
     let verdict = process_app
@@ -927,7 +983,12 @@ async fn cache_promotion_never_exceeds_exact_pari_attestation() -> Result<()> {
     assert!(process_app.state.pending_note_payloads().is_empty());
 
     let deliver_cache = StatelessCache::new();
-    let mut deliver_app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut deliver_app = App::new(
+        family_set._storage_guard.latest_snapshot(),
+        registry(),
+        family_set._storage_guard.reader.clone(),
+    )
+    .await?;
     stage_spent_nullifier(&mut deliver_app, &valid_tx).await?;
     let pending_nullifiers_before = deliver_app.state.pending_nullifiers();
     let pending_note_commitments_before = deliver_app
@@ -966,7 +1027,12 @@ async fn cache_promotion_never_exceeds_exact_pari_attestation() -> Result<()> {
     let (_, invalid_bytes) = mutate_to_decodable_invalid_proof(transfer)?;
     let invalid_hash = tx_hash(&invalid_bytes);
     let proof_cache = StatelessCache::new();
-    let mut proof_app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut proof_app = App::new(
+        family_set._storage_guard.latest_snapshot(),
+        registry(),
+        family_set._storage_guard.reader.clone(),
+    )
+    .await?;
     proof_app
         .deliver_tx_bytes(&invalid_bytes, Some(&proof_cache))
         .await
@@ -982,7 +1048,12 @@ async fn prepare_proposal_keeps_valid_candidate_after_invalid_proof() -> Result<
     let fixture = &family_set.fixtures[0];
     let (_, invalid) = mutate_to_decodable_invalid_proof(fixture)?;
     for invalid_first in [true, false] {
-        let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+        let mut app = App::new(
+            family_set._storage_guard.latest_snapshot(),
+            registry(),
+            family_set._storage_guard.reader.clone(),
+        )
+        .await?;
         let mut request = prepare_request(&app, fixture.tx_bytes.clone()).await?;
         let invalid: Bytes = invalid.clone().into();
         if invalid_first {
@@ -1002,7 +1073,12 @@ async fn prepare_proposal_keeps_valid_candidate_after_invalid_proof() -> Result<
 async fn prepare_proposal_keeps_multiple_candidates_with_one_worker() -> Result<()> {
     let family_set = family_fixtures().await?;
     let fixtures = &family_set.fixtures[..2];
-    let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        family_set._storage_guard.latest_snapshot(),
+        registry(),
+        family_set._storage_guard.reader.clone(),
+    )
+    .await?;
     let mut request = prepare_request(&app, fixtures[0].tx_bytes.clone()).await?;
     request.txs.push(fixtures[1].tx_bytes.clone().into());
     let expected = request.txs.clone();
@@ -1021,7 +1097,12 @@ async fn prepare_proposal_skips_unfitting_candidate_and_accepts_exact_limit() ->
     let small = fixtures.first().context("small fixture")?;
     let large = fixtures.last().context("large fixture")?;
     assert!(large.tx_bytes.len() > small.tx_bytes.len());
-    let mut app = App::new(family_set._storage_guard.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        family_set._storage_guard.latest_snapshot(),
+        registry(),
+        family_set._storage_guard.reader.clone(),
+    )
+    .await?;
     let mut request = prepare_request(&app, small.tx_bytes.clone()).await?;
     request.txs.insert(0, large.tx_bytes.clone().into());
     request.max_tx_bytes = small.tx_bytes.len() as i64;
@@ -1034,7 +1115,12 @@ async fn prepare_proposal_skips_unfitting_candidate_and_accepts_exact_limit() ->
 async fn output_capacity_rejection_rolls_back_all_transaction_effects() -> Result<()> {
     let (storage, _node, transactions) = setup_test_txs(1).await?;
     let tx = Transaction::decode_canonical(&transactions[0])?;
-    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     let position = shieldd_sdk_tct::Position::from(
         (shieldd_sdk_sct::component::tree::SCT_BLOCK_COMMITMENT_CAPACITY - 1) as u64,
     );
@@ -1087,9 +1173,14 @@ async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result
         let target = test_keys::ADDRESS_0.deref().clone();
         for frozen in [false, true] {
             // Both executions start from the same unspent committed parent.
-            let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+            let mut app = App::new(
+                storage.latest_snapshot(),
+                registry(),
+                storage.reader.clone(),
+            )
+            .await?;
             let context = app.benchmark_block_context().await?;
-            app.begin_block(&cnidarium_component::BlockContext {
+            app.begin_block(&shieldd_sdk_storage::BlockContext {
                 height: context.height,
                 time: context.time,
             })
@@ -1159,7 +1250,7 @@ async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result
                 assert_eq!(app.state.get_user_tree_root().await?, before);
                 if fixture.label() == "transfer" {
                     app.end_block(context.height).await;
-                    app.commit(storage.as_ref().clone(), None).await?;
+                    app.commit_for_testing(storage.storage().clone()).await?;
                     let client = MockClient::new(test_keys::SPEND_KEY.clone())
                         .with_sync_to_storage(&storage)
                         .await?;
@@ -1186,14 +1277,13 @@ async fn cached_proofs_recheck_freeze_barrier_for_every_spend_family() -> Result
                         },
                         memo: None,
                         fee_funding: None,
-                        nullifier_window: Some(test_nullifier_window()),
                     };
                     let plan = client
                         .complete_intent(intent, storage.latest_snapshot())
                         .await?;
                     let refreshed = client.witness_auth_build(&plan, registry()).await?;
                     let context = app.benchmark_block_context().await?;
-                    app.begin_block(&cnidarium_component::BlockContext {
+                    app.begin_block(&shieldd_sdk_storage::BlockContext {
                         height: context.height,
                         time: context.time,
                     })

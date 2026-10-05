@@ -9,10 +9,8 @@ use sha2::Digest as _;
 use shieldd_sdk_circuits::proof::Family;
 use shieldd_sdk_proof_params::pari::{Registry, Verification, Verified};
 use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_transaction::Transaction;
-use shieldd_sdk_txhash::{AuthHash, AuthorizingData};
 
 const MAX_ENTRIES: usize = 4_096;
 const MAX_RETAINED_RAW_TX_BYTES: usize = 64 * 1024 * 1024;
@@ -176,28 +174,6 @@ pub struct VerifiedTxArtifact {
     registry_id: [u8; 32],
     extracted: Arc<TxArtifact>,
     verified_proofs: BTreeMap<ProofSlot, Verified>,
-    verified_historical_inputs: Vec<VerifiedHistoricalInput>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct VerifiedHistoricalInput {
-    nullifier: Nullifier,
-    window: NullifierWindow,
-    transaction_auth_hash: AuthHash,
-}
-
-impl VerifiedHistoricalInput {
-    pub(crate) fn new(
-        nullifier: Nullifier,
-        window: NullifierWindow,
-        transaction_auth_hash: AuthHash,
-    ) -> Self {
-        Self {
-            nullifier,
-            window,
-            transaction_auth_hash,
-        }
-    }
 }
 
 fn validate_proof_capability_rows<T>(
@@ -234,6 +210,39 @@ fn validate_proof_capability_rows<T>(
 }
 
 impl VerifiedTxArtifact {
+    /// Live capacities plus a conservative bound for std's private B-tree node
+    /// layout. Each root is uniquely owned by the handoff; Arc headers count.
+    pub fn allocated_bytes(&self) -> usize {
+        fn map_nodes<K, V>(map: &BTreeMap<K, V>) -> usize {
+            map.len()
+                * (11 * std::mem::size_of::<(K, V)>() + 12 * std::mem::size_of::<usize>() + 128)
+        }
+        let extracted = &self.extracted;
+        std::mem::size_of::<Self>()
+            + std::mem::size_of::<TxArtifact>()
+            + 6 * std::mem::size_of::<usize>()
+            + extracted.tx.allocated_bytes()
+            + extracted.spend_nullifiers.capacity() * std::mem::size_of::<Nullifier>()
+            + map_nodes(&extracted.proof_items)
+            + extracted
+                .proof_items
+                .values()
+                .map(|items| {
+                    items.capacity() * std::mem::size_of::<Verification>()
+                        + items
+                            .iter()
+                            .map(|item| item.envelope.allocated_bytes())
+                            .sum::<usize>()
+                })
+                .sum::<usize>()
+            + map_nodes(&self.verified_proofs)
+            + self
+                .verified_proofs
+                .values()
+                .map(Verified::allocated_bytes)
+                .sum::<usize>()
+    }
+
     pub(crate) fn ensure_registry(&self, registry: &Registry) -> Result<()> {
         ensure!(
             self.registry_id == registry.id(),
@@ -259,15 +268,11 @@ impl VerifiedTxArtifact {
         )?;
         #[cfg(test)]
         attachment_observer::record(&extracted.tx);
-        let verified_historical_inputs =
-            crate::action_handler::transaction::verify_historical_proofs(&extracted.tx, registry)?;
         let artifact = Self {
             registry_id: registry.id(),
             extracted,
             verified_proofs,
-            verified_historical_inputs,
         };
-        artifact.ensure_historical_coverage()?;
         Ok(artifact)
     }
 
@@ -303,25 +308,6 @@ impl VerifiedTxArtifact {
 
     pub(crate) fn tx(&self) -> &Arc<Transaction> {
         &self.extracted.tx
-    }
-
-    pub(crate) fn ensure_historical_coverage(&self) -> Result<()> {
-        let expected = self.extracted.tx.transaction_body.historical_nullifiers();
-        ensure!(
-            expected.len() == self.verified_historical_inputs.len(),
-            "verified historical input coverage mismatch"
-        );
-        let window = self.extracted.tx.transaction_body.nullifier_window;
-        let auth_hash = self.extracted.tx.auth_hash();
-        for (nullifier, capability) in expected.into_iter().zip(&self.verified_historical_inputs) {
-            ensure!(
-                capability.nullifier == nullifier
-                    && Some(capability.window) == window
-                    && capability.transaction_auth_hash == auth_hash,
-                "verified historical input capability binding mismatch"
-            );
-        }
-        Ok(())
     }
 
     pub(crate) fn extracted(&self) -> Arc<TxArtifact> {
@@ -730,7 +716,6 @@ mod tests {
             registry_id: [1; 32],
             extracted: other_artifact,
             verified_proofs: BTreeMap::new(),
-            verified_historical_inputs: Vec::new(),
         });
         cache
             .insert_fully_verified(&raw_bytes, verified)

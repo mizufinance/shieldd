@@ -1,6 +1,6 @@
 //! Verifiable identity of the proof keys configured for this privacy pool.
 use anyhow::{ensure, Context, Result};
-use cnidarium::{Snapshot, StateRead, StateWrite};
+use shieldd_sdk_storage::{Snapshot, StateRead, StateWrite};
 
 pub const KEY: &str = "application/crypto/pari_registry_id";
 
@@ -24,7 +24,7 @@ pub async fn check(snapshot: &Snapshot, registry_id: [u8; 32]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::{StateDelta, TempStorage};
+    use shieldd_sdk_storage::{StateDelta, TempStorage};
     #[tokio::test]
     async fn registry_binding_is_committed_and_never_repaired_on_open() -> Result<()> {
         let storage = TempStorage::new().await?;

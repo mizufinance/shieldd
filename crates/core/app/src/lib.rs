@@ -1,12 +1,18 @@
 #![deny(clippy::unwrap_used)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-use once_cell::sync::Lazy;
+// Exercise proof fixtures with the native daemon's allocator and purge policy.
+// The system allocator retains large freed proving allocations across test cases.
+#[cfg(all(test, not(target_env = "msvc")))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-pub static SUBSTORE_PREFIXES: Lazy<Vec<String>> =
-    Lazy::new(|| vec![COMETBFT_SUBSTORE_PREFIX.to_string()]);
+#[cfg(all(test, not(target_env = "msvc")))]
+#[allow(non_upper_case_globals)]
+#[export_name = "_rjem_malloc_conf"]
+pub static malloc_conf: &[u8] = b"dirty_decay_ms:0,muzzy_decay_ms:0\0";
 
-/// The substore prefix used for historical block transaction data.
+/// The original-key prefix used for historical block transaction data.
 pub static COMETBFT_SUBSTORE_PREFIX: &'static str = "cometbft-data";
 
 pub mod app_version;
@@ -22,7 +28,6 @@ cfg_if::cfg_if! {
         pub mod app;
         pub mod block_tx_indexing;
         pub mod metrics;
-        pub mod nullifier_generation_packs;
         pub mod stateless_cache;
         #[cfg(any(test, feature = "benchmark-helpers"))]
         pub mod test_support;

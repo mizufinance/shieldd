@@ -17,8 +17,14 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 #[export_name = "_rjem_malloc_conf"]
 pub static malloc_conf: &[u8] = b"dirty_decay_ms:0,muzzy_decay_ms:0\0";
 
+mod checkpoint;
 mod ffi;
 mod query;
+mod verification;
+pub use checkpoint::{
+    validate as validate_checkpoint_native,
+    validate_with_archive as validate_checkpoint_native_with_archive,
+};
 mod service;
 pub use query::QueryService;
 

@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_storage::{StateRead, StateWrite};
 
 use crate::{params::FeeParameters, state_key, GasPrices};
 
@@ -17,7 +17,7 @@ pub struct BlockFees {
 /// state store.
 #[async_trait]
 pub trait StateReadExt: StateRead {
-    /// Gets the fee parameters from the JMT.
+    /// Gets the fee parameters from authenticated state.
     async fn get_fee_params(&self) -> Result<FeeParameters> {
         self.get(state_key::fee_params())
             .await?
@@ -48,7 +48,7 @@ impl<T: StateRead + ?Sized> StateReadExt for T {}
 
 #[async_trait]
 pub trait StateWriteExt: StateWrite {
-    /// Writes the provided fee parameters to the JMT.
+    /// Writes the provided fee parameters to authenticated state.
     fn put_fee_params(&mut self, params: FeeParameters) {
         self.put(state_key::fee_params().into(), params);
         // This could have changed the gas prices, so mark them as changed.

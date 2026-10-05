@@ -44,6 +44,10 @@ impl Backref {
 }
 
 impl EncryptedBackref {
+    pub fn allocated_bytes(&self) -> usize {
+        self.bytes.capacity()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.bytes.is_empty()
     }

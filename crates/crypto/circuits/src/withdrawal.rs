@@ -101,7 +101,6 @@ pub struct Statement<F> {
     pub anchor: F,
     pub change: OutputStatement<F>,
     pub balance: Point<F>,
-    pub recent_floor: F,
     pub spends: [SpendStatement<F>; 2],
     pub asset_anchor: F,
     pub compliance_anchor: F,
@@ -124,10 +123,9 @@ impl<F: Clone> Statement<F> {
             self.change.recovery.clone(),
             self.balance.x.clone(),
             self.balance.y.clone(),
-            self.recent_floor.clone(),
         ];
         for s in &self.spends {
-            f.extend([s.nullifier.clone(), s.history_required.clone()]);
+            f.push(s.nullifier.clone());
         }
         f.extend([
             self.asset_anchor.clone(),
@@ -165,11 +163,8 @@ impl Witness {
                 recovery: self.change.capsule.capsule.commitment.clone(),
             },
             balance: g.blinding.multiply(&o.balance_blinding),
-            recent_floor: o.recent_floor.clone(),
             spends: self.spends.each_ref().map(|s| SpendStatement {
                 nullifier: s.nullifier.clone(),
-
-                history_required: Scalar::from(u64::from(s.history_required)),
             }),
             asset_anchor: o.asset_anchor.clone(),
             compliance_anchor: o.compliance_anchor.clone(),
@@ -311,11 +306,8 @@ pub fn constrain<'a>(
             recovery: change.capsule.commitment,
         },
         balance,
-        recent_floor: f.spend.recent_floor,
         spends: spends.each_ref().map(|s| SpendStatement {
             nullifier: s.nullifier.clone(),
-
-            history_required: s.history_required.var().clone(),
         }),
         asset_anchor: f.asset_anchor,
         compliance_anchor: f.compliance_anchor,

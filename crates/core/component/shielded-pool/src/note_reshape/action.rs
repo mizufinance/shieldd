@@ -21,7 +21,6 @@ use crate::{backref::ENCRYPTED_BACKREF_LEN, discovery::RoutingTag, EncryptedBack
 pub struct NoteReshapeInputBody {
     pub nullifier: Nullifier,
     pub encrypted_backref: EncryptedBackref,
-    pub history_required: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -148,7 +147,6 @@ impl From<NoteReshapeInputBody> for pb::NoteReshapeInputBody {
         Self {
             nullifier: Some(msg.nullifier.into()),
             encrypted_backref: msg.encrypted_backref.into(),
-            history_required: msg.history_required,
         }
     }
 }
@@ -171,7 +169,6 @@ impl TryFrom<pb::NoteReshapeInputBody> for NoteReshapeInputBody {
                 .try_into()
                 .context("malformed nullifier")?,
             encrypted_backref,
-            history_required: proto.history_required,
         })
     }
 }

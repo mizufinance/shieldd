@@ -9,9 +9,8 @@ edition = {workspace = true}
 
 [features]
 component = [
-    "cnidarium",
-    "cnidarium-component",
-    "shieldd-sdk-proto/cnidarium",
+    "shieldd-sdk-storage/persistent",
+    "shieldd-sdk-proto/state",
     "shieldd-sdk-sct/component",
     "dep:tokio",
 ]
@@ -25,6 +24,7 @@ name = "dev_orbis_registration"
 required-features = ["test-helpers"]
 
 [dependencies]
+shieldd-sdk-storage = { workspace = true, default-features = false }
 zeroize = "1.8"
 shieldd-sdk-crypto.workspace = true
 ff.workspace = true
@@ -34,8 +34,6 @@ anyhow = {workspace = true}
 base64 = {workspace = true}
 async-trait = {workspace = true}
 bincode = {workspace = true}
-cnidarium = {workspace = true, optional = true, default-features = true}
-cnidarium-component = {workspace = true, optional = true, default-features = true}
 once_cell = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = false}
@@ -58,6 +56,7 @@ tokio = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
+shieldd-sdk-storage = { workspace = true, features = ["test-support"] }
 commonware-cryptography.workspace = true
 shieldd-sdk-circuits.workspace = true
 shieldd-sdk-compliance = { path = ".", features = ["scanner"] }

@@ -2,23 +2,18 @@
 #[allow(unused_imports)]
 pub use shieldd_sdk_test_subscriber::set_tracing_subscriber;
 #[allow(dead_code)]
-pub async fn new_storage() -> anyhow::Result<cnidarium::TempStorage> {
-    cnidarium::TempStorage::new_with_prefixes(shieldd_sdk_app::SUBSTORE_PREFIXES.to_vec()).await
+pub async fn new_storage() -> anyhow::Result<shieldd_sdk_storage::TempStorage> {
+    shieldd_sdk_storage::TempStorage::new().await
 }
 
 #[allow(dead_code)]
 pub async fn scan_latest(
-    chain: &cnidarium::TempStorage,
+    chain: &shieldd_sdk_storage::TempStorage,
     wallet: &shieldd_sdk_view::Storage,
 ) -> anyhow::Result<()> {
     use shieldd_sdk_sct::component::clock::EpochRead as _;
     let snapshot = chain.latest_snapshot();
-    let mut worker = shieldd_sdk_view::SyncWorker::new(
-        wallet.clone(),
-        shieldd_sdk_app_tests::registry(),
-        std::sync::Arc::new(HistorySource(snapshot.clone())),
-    )
-    .await?;
+    let mut worker = shieldd_sdk_view::SyncWorker::new(wallet.clone()).await?;
     let first = wallet.last_sync_height().await?.map(|h| h + 1).unwrap_or(0);
     let last = snapshot.get_block_height().await?;
     for height in first..=last {
@@ -29,7 +24,7 @@ pub async fn scan_latest(
 
 #[allow(dead_code)]
 pub async fn wallet_block(
-    snapshot: &cnidarium::Snapshot,
+    snapshot: &shieldd_sdk_storage::Snapshot,
     height: u64,
 ) -> anyhow::Result<shieldd_sdk_view::WalletBlock> {
     use anyhow::Context;
@@ -71,21 +66,4 @@ pub async fn wallet_block(
         assets: vec![],
         updated_app_parameters,
     })
-}
-
-struct HistorySource(cnidarium::Snapshot);
-#[async_trait::async_trait]
-impl shieldd_sdk_view::HistoricalWitnessSource for HistorySource {
-    async fn nonmembership_proof(
-        &self,
-        nullifier: shieldd_sdk_sct::Nullifier,
-        generation_index: u64,
-    ) -> anyhow::Result<shieldd_sdk_sct::nullifier_generation::ArchivedNullifierProof> {
-        shieldd_sdk_sct::nullifier_tree::archived_nonmembership_proof(
-            &self.0,
-            generation_index,
-            nullifier,
-        )
-        .await
-    }
 }

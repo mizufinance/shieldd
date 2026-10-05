@@ -142,18 +142,6 @@ CREATE TABLE volume_accumulator_reservations (
     UNIQUE (day_start, nullifier)
 );
 
--- Reconstructible per-note retired-nullifier proof cache. This is deliberately
--- separate from note and spend state and may be deleted and rebuilt.
-CREATE TABLE historical_proof_cache (
-    nullifier                   BLOB PRIMARY KEY NOT NULL,
-    protocol_version            BIGINT NOT NULL,
-    proof_bundle                BLOB NOT NULL,
-    registry_id                 BLOB,
-    pending_witnesses           BLOB NOT NULL,
-    cache_state                 TINYINT NOT NULL,
-    last_error                  TEXT
-);
-
 -- general purpose note queries
 CREATE INDEX spendable_notes_idx ON spendable_notes (
     address_index,

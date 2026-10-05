@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use crate::{event::EventBlockFees, genesis, Fee};
 use async_trait::async_trait;
-use cnidarium::StateWrite;
-use cnidarium_component::Component;
 use shieldd_sdk_proto::state::StateWriteProto as _;
 use shieldd_sdk_proto::DomainType as _;
+use shieldd_sdk_storage::Component;
+use shieldd_sdk_storage::StateWrite;
 use tracing::instrument;
 
 pub use fee_pay::{clear_block_fee_price_cache, FeePay};
@@ -38,7 +38,7 @@ impl Component for FeeComponent {
     #[instrument(name = "fee", skip(_state, _begin_block))]
     async fn begin_block<S: StateWrite + 'static>(
         _state: &mut Arc<S>,
-        _begin_block: &cnidarium_component::BlockContext,
+        _begin_block: &shieldd_sdk_storage::BlockContext,
     ) {
     }
 

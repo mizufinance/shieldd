@@ -2,13 +2,13 @@
 use anyhow::{anyhow, Result};
 #[cfg(feature = "component")]
 use async_trait::async_trait;
-#[cfg(feature = "component")]
-use cnidarium::{StateRead, StateWrite};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
 use shieldd_sdk_proto::DomainType;
 #[cfg(feature = "component")]
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+#[cfg(feature = "component")]
+use shieldd_sdk_storage::{StateRead, StateWrite};
 
 #[cfg(feature = "component")]
 use crate::state_key;

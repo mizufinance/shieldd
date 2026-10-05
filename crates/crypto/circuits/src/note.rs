@@ -2,7 +2,7 @@ use crate::{
     encryption::Address,
     group::{self, Point},
     hash::Parameters,
-    range::{decompose, less_or_equal_bounded},
+    range::decompose,
     recovery, scalar,
     tree::{self, Path, STATE_DEPTH, Tree},
     volume::NOTE_NULLIFIER,
@@ -82,7 +82,6 @@ pub struct SpendWitness {
     pub note: Note<Scalar>,
     pub path: Path<Scalar, STATE_DEPTH>,
     pub nullifier: Scalar,
-    pub history_required: bool,
 }
 
 #[derive(Clone)]
@@ -97,14 +96,12 @@ pub struct SpendContext<'ctx> {
     pub nk: Var<'ctx, Scalar>,
     pub randomizer: Var<'ctx, Scalar>,
     pub anchor: Var<'ctx, Scalar>,
-    pub recent_floor: Var<'ctx, Scalar>,
 }
 
 pub struct Spend<'ctx> {
     pub is_dummy: BoolVar<'ctx, Scalar>,
     pub amount: Var<'ctx, Scalar>,
     pub nullifier: Var<'ctx, Scalar>,
-    pub history_required: BoolVar<'ctx, Scalar>,
 }
 
 #[derive(Clone, Copy)]
@@ -187,15 +184,10 @@ pub fn constrain_spend<'ctx>(
             dummy
         }
     };
-    let floor = decompose(ctx, &shared.recent_floor, 48);
-    let old = !less_or_equal_bounded(ctx, &floor, &positions);
-    let history_required = BoolVar::witness(ctx, |_| w.history_required);
-    ((!dummy.clone()) & old).assert_eq(&history_required);
     Spend {
         is_dummy: dummy,
         amount: note.amount,
         nullifier,
-        history_required,
     }
 }
 

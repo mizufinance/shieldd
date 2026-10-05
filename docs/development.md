@@ -11,6 +11,7 @@ Rust/Commonware. Run commands from the repository root.
 | `just docs-check` | Local Markdown links and exact filename casing, including repository skills |
 | `just ci-test` | Workspace tests with an explicitly selected registry |
 | `just commonware-test` | Pinned Commonware Pari and circuit compiler tests |
+| `just chunks-test` | Immutable collection safety regressions and `no_std` checks |
 | `just pari-proof-tests` | Serial ignored proof gates, including Disclosure app/CLI tests; workspace all features |
 | `just features-check` | Independent crate feature boundaries |
 | `just proto-lint` | Protobuf API naming, enum defaults and schema conventions |
@@ -50,7 +51,9 @@ run under `ci` does not establish a separate `--release` test run. Follow the sh
 PR CI runs ordinary workspace tests and `just pari-proof-tests`. Both use the same
 workspace/all-features build graph, including the pcli binary.
 The proof gate selects ignored tests and skips the transaction signing-vector
-generator, which writes fixtures rather than asserting behavior. Ordinary
+generator, which writes fixtures rather than asserting behavior.
+The denied-I/O fixture runs in the separate container storage gate and is also
+excluded from the proof selection. Ordinary
 `cargo test` skips ignored tests, and neither command proves
 live Bankd/Orbis compatibility. The locked Orbis image is currently unsupported;
 see the [external contract](jubjub-external-contract.md).

@@ -1,6 +1,5 @@
 use super::{Storage, TreeStore};
 use anyhow::{Context, Result};
-use shieldd_sdk_proto::{DomainType, Message};
 use shieldd_sdk_tct::Proof;
 use shieldd_sdk_transaction::{ActionPlan, TransactionPlan, WitnessData};
 
@@ -14,49 +13,10 @@ impl Storage {
         let plan = plan.clone();
         tokio::task::spawn_blocking(move || {
             let mut connection = pool.get()?;
-            let mut transaction = connection.transaction_with_behavior(r2d2_sqlite::rusqlite::TransactionBehavior::Immediate)?;
+            let mut transaction = connection
+                .transaction_with_behavior(r2d2_sqlite::rusqlite::TransactionBehavior::Immediate)?;
             super::registry::bind(&transaction, registry_id)?;
             let sct = shieldd_sdk_tct::Tree::from_reader(&mut TreeStore(&mut transaction))?;
-            let mut historical_nullifier_proofs = Vec::new();
-            if plan.spends().any(|p| p.spend.note.amount() != 0u64.into()) {
-                let window = plan
-                    .nullifier_window
-                    .context("spend-bearing plan is missing nullifier window")?;
-                let window_bytes: Vec<u8> = transaction.query_row(
-                    "SELECT v FROM kv WHERE k = 'nullifier_window'",
-                    [],
-                    |r| r.get(0),
-                )?;
-                let current_window: shieldd_sdk_sct::nullifier_generation::NullifierWindow =
-                    shieldd_sdk_proto::core::component::sct::v1::NullifierWindow::decode(
-                        window_bytes.as_slice(),
-                    )?
-                    .try_into()?;
-                anyhow::ensure!(
-                    window == current_window,
-                    "transaction plan nullifier window is stale"
-                );
-                let fvk_bytes: Vec<u8> =
-                    transaction.query_row("SELECT v FROM kv WHERE k = 'fvk'", [], |r| r.get(0))?;
-                let fvk = shieldd_sdk_keys::FullViewingKey::decode(fvk_bytes.as_slice())?;
-                for planned in plan.spends().filter(|p| {
-                    p.spend.note.amount() != 0u64.into()
-                        && u64::from(p.spend.position) < window.recent_position_floor
-                }) {
-                    let key = planned.witness.nullifier_key(&fvk)?;
-                    let nullifier = planned.spend.nullifier(&key);
-                    let mut statement = transaction.prepare_cached(
-                        "SELECT nullifier, protocol_version, proof_bundle, cache_state, last_error, registry_id, pending_witnesses
-                     FROM historical_proof_cache WHERE nullifier = ?1",
-                    )?;
-                    let mut rows = statement.query([nullifier.to_bytes().to_vec()])?;
-                    let row = rows.next()?.with_context(|| {
-                        format!("historical proof cache is missing for {nullifier}")
-                    })?;
-                    let cache = Storage::decode_historical_cache(row)?;
-                    historical_nullifier_proofs.push(cache.bundle_for(window, registry_id)?);
-                }
-            }
             let mut commitments = plan
                 .spends()
                 .filter(|p| p.spend.note.amount() != 0u64.into())
@@ -75,7 +35,6 @@ impl Storage {
             let mut witness = WitnessData {
                 anchor: sct.root(),
                 state_commitment_proofs: proofs.into_iter().map(|p| (p.commitment(), p)).collect(),
-                historical_nullifier_proofs,
             };
             for commitment in plan
                 .spends()

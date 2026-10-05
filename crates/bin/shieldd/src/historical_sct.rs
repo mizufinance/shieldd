@@ -1,10 +1,10 @@
 use crate::service::ServiceError;
 use anyhow::{Context, Result};
-use cnidarium::Snapshot;
 use shieldd_sdk_proto::{
     core::component::compact_block::v1::{StatePayload, StoredCompactBlock},
     Message,
 };
+use shieldd_sdk_storage::Snapshot;
 use shieldd_sdk_tct::builder::block::{ProofTree, Root};
 use std::{
     collections::{BTreeMap, VecDeque},
@@ -31,6 +31,12 @@ impl HistoricalSct {
             bytes,
             worker: Arc::new(tokio::sync::Semaphore::new(1)),
         }
+    }
+    pub(crate) fn clear(&self) {
+        *self
+            .entries
+            .lock()
+            .expect("historical SCT cache lock poisoned") = Entries::default();
     }
     pub async fn tree(
         &self,
@@ -153,16 +159,16 @@ impl HistoricalSct {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cnidarium::{StateDelta, StateRead, TempStorage};
     use shieldd_sdk_compact_block::{component::CompactBlockManager, CompactBlock};
+    use shieldd_sdk_storage::{StateDelta, StateRead, TempStorage};
     use shieldd_sdk_tct::{builder::block::finalized_forget_root, StateCommitment};
     #[tokio::test]
     async fn pinned_historical_proofs_apply_backpressure_and_resume_after_release() -> Result<()> {
         let storage = TempStorage::new().await?;
-        let mut state = StateDelta::new(storage.latest_snapshot());
         let mut headers = Vec::new();
         let mut budget = 0;
         for height in 0..3 {
+            let mut state = StateDelta::new(storage.latest_snapshot());
             let commitments = (1..=4)
                 .map(|i| StateCommitment(shieldd_sdk_crypto::Fq::from(height * 4 + i)))
                 .collect::<Vec<_>>();
@@ -191,8 +197,8 @@ mod tests {
                     .unwrap()
                     .as_slice(),
             )?);
+            storage.commit(state).await?;
         }
-        storage.commit(state).await?;
         let cache = HistoricalSct::new(budget * 2);
         let first = cache
             .tree(storage.latest_snapshot(), "test".into(), &headers[0])

@@ -1,6 +1,5 @@
 use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_fee::Gas;
-use shieldd_sdk_sct::nullifier_generation::NullifierWindow;
 use shieldd_sdk_shielded_pool::{
     HostWithdrawal, NoteReshapeFamilyId, ShieldedInputPlan, ShieldedOutputPlan,
 };
@@ -82,25 +81,14 @@ pub struct TransactionIntent {
     pub fee_funding: Option<TransferIntent>,
     pub transaction_parameters: TransactionParameters,
     pub memo: Option<MemoPlan>,
-    pub nullifier_window: Option<NullifierWindow>,
 }
 
-pub(crate) fn intent_gas(
-    actions: &[ActionIntent],
-    fee: Option<&TransferIntent>,
-    window: NullifierWindow,
-) -> Gas {
-    gas::planned_gas(
-        actions
-            .iter()
-            .map(GasCost::gas_cost)
-            .chain(fee.map(|_| gas::transfer_gas_cost())),
-        actions
-            .iter()
-            .flat_map(ActionIntent::spends)
-            .chain(fee.into_iter().flat_map(|fee| &fee.spends)),
-        Some(window),
-    )
+pub(crate) fn intent_gas(actions: &[ActionIntent], fee: Option<&TransferIntent>) -> Gas {
+    actions
+        .iter()
+        .map(GasCost::gas_cost)
+        .chain(fee.map(|_| gas::transfer_gas_cost()))
+        .sum()
 }
 
 impl TransactionIntent {

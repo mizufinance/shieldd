@@ -79,7 +79,7 @@ pub mod state_key;
 pub mod params;
 pub use params::ComplianceParameters;
 
-// Registry requires cnidarium for state access
+// Registry requires authenticated storage for state access
 #[cfg(feature = "component")]
 pub mod registry;
 #[cfg(feature = "component")]
@@ -225,7 +225,7 @@ pub mod test_helpers {
     }
 }
 
-// Integration tests require cnidarium, tokio, and scanner
+// Integration tests require authenticated storage, tokio, and scanner
 #[cfg(all(test, feature = "scanner"))]
 mod tests {
     use super::*;

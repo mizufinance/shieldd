@@ -44,7 +44,6 @@ pub struct Statement<F> {
     pub compliance_anchor: F,
     pub routing_tag: F,
     pub routing_parameter: F,
-    pub recent_floor: F,
     pub spends: Vec<SpendStatement<F>>,
 }
 impl<F: Clone> Statement<F> {
@@ -67,10 +66,9 @@ impl<F: Clone> Statement<F> {
             self.compliance_anchor.clone(),
             self.routing_tag.clone(),
             self.routing_parameter.clone(),
-            self.recent_floor.clone(),
         ]);
         for s in &self.spends {
-            f.extend([s.nullifier.clone(), s.history_required.clone()]);
+            f.push(s.nullifier.clone());
         }
         f
     }
@@ -104,13 +102,10 @@ impl Witness {
             compliance_anchor: w.compliance_anchor.clone(),
             routing_tag: w.routing.tag.clone(),
             routing_parameter: w.routing.parameter_set.clone(),
-            recent_floor: w.recent_floor.clone(),
             spends: inputs
                 .iter()
                 .map(|s| SpendStatement {
                     nullifier: s.nullifier.clone(),
-
-                    history_required: Scalar::from(u64::from(s.history_required)),
                 })
                 .collect(),
         }
@@ -205,13 +200,10 @@ pub fn constrain<'a>(
         compliance_anchor: f.compliance_anchor,
         routing_tag: f.routing.tag,
         routing_parameter: f.routing.parameter_set,
-        recent_floor: f.spend.recent_floor,
         spends: spends
             .iter()
             .map(|s| SpendStatement {
                 nullifier: s.nullifier.clone(),
-
-                history_required: s.history_required.var().clone(),
             })
             .collect(),
     };

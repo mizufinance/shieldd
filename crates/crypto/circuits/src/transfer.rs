@@ -17,7 +17,7 @@ use commonware_cryptography::{
 use commonware_math::algebra::{Additive, Ring};
 
 pub use shieldd_sdk_crypto::domains::TRANSFER_STATEMENT as STATEMENT_DOMAIN;
-pub const STATEMENT_FIELDS: usize = 67;
+pub const STATEMENT_FIELDS: usize = 64;
 
 #[derive(Clone)]
 pub struct Witness {
@@ -28,7 +28,6 @@ pub struct Witness {
     pub asset: Scalar,
     pub regulated: bool,
     pub timestamp: Scalar,
-    pub recent_floor: Scalar,
     pub nonce_root: Scalar,
     pub balance_blinding: Scalar,
     pub auth: authorization::Witness,
@@ -46,7 +45,6 @@ pub struct Witness {
 #[derive(Clone)]
 pub struct SpendStatement<F> {
     pub nullifier: F,
-    pub history_required: F,
 }
 #[derive(Clone)]
 pub struct OutputStatement<F> {
@@ -68,7 +66,6 @@ pub struct Statement<F> {
     pub balance: Point<F>,
     pub routing_tags: [F; 2],
     pub routing_parameter: F,
-    pub recent_floor: F,
     pub volume: VolumeStatement<F>,
     pub spends: [SpendStatement<F>; 2],
     pub asset_anchor: F,
@@ -87,14 +84,13 @@ impl<F: Clone> Statement<F> {
         f.extend(self.routing_tags.clone());
         f.extend([
             self.routing_parameter.clone(),
-            self.recent_floor.clone(),
             self.volume.nullifier.clone(),
             self.volume.commitment.clone(),
             self.volume.day_start.clone(),
             self.volume.context.clone(),
         ]);
         for s in &self.spends {
-            f.extend([s.nullifier.clone(), s.history_required.clone()]);
+            f.push(s.nullifier.clone());
         }
         f.extend([self.asset_anchor.clone(), self.compliance_anchor.clone()]);
         f.extend(self.audit.detection.clone());
@@ -131,7 +127,7 @@ impl<F: Clone> Statement<F> {
             f.extend(ciphertext.fields());
         }
         f.try_into().unwrap_or_else(|v: Vec<F>| {
-            panic!("native Transfer expected 67 fields, got {}", v.len())
+            panic!("native Transfer expected 64 fields, got {}", v.len())
         })
     }
 }
@@ -181,7 +177,6 @@ pub fn statement(
         )?,
         routing_tags: w.routing.tags.clone(),
         routing_parameter: w.routing.parameter_set.clone(),
-        recent_floor: w.recent_floor.clone(),
         volume: VolumeStatement {
             nullifier: w.volume.nullifier.clone(),
             commitment: w.volume.commitment.clone(),
@@ -190,8 +185,6 @@ pub fn statement(
         },
         spends: std::array::from_fn(|i| SpendStatement {
             nullifier: w.spends[i].nullifier.clone(),
-
-            history_required: Scalar::from(u64::from(w.spends[i].history_required)),
         }),
         asset_anchor: w.asset_anchor.clone(),
         compliance_anchor: w.compliance_anchor.clone(),
@@ -214,7 +207,6 @@ pub fn constrain<'ctx>(
     let compliance_anchor = var(&w.compliance_anchor);
     let asset = var(&w.asset);
     let timestamp = var(&w.timestamp);
-    let recent_floor = var(&w.recent_floor);
     let nonce = var(&w.nonce_root);
     let blinding = var(&w.balance_blinding);
     let regulated = BoolVar::witness(ctx, |_| w.regulated);
@@ -270,7 +262,6 @@ pub fn constrain<'ctx>(
         nk: auth.effective_nk,
         randomizer,
         anchor: anchor.clone(),
-        recent_floor: recent_floor.clone(),
     };
     let spends = [
         note::constrain_spend(ctx, params, &spend_context, &w.spends[0], None),
@@ -378,7 +369,6 @@ pub fn constrain<'ctx>(
         balance,
         routing_tags: routing.tags,
         routing_parameter: routing.parameter_set,
-        recent_floor,
         volume: VolumeStatement {
             nullifier: volume.nullifier,
             commitment: volume.commitment,
@@ -387,8 +377,6 @@ pub fn constrain<'ctx>(
         },
         spends: std::array::from_fn(|i| SpendStatement {
             nullifier: spends[i].nullifier.clone(),
-
-            history_required: spends[i].history_required.var().clone(),
         }),
         asset_anchor,
         compliance_anchor,

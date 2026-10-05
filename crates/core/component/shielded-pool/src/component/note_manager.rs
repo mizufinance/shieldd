@@ -1,11 +1,11 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use cnidarium::StateWrite;
 use shieldd_sdk_asset::Value;
 use shieldd_sdk_compliance::{ComplianceRegistryRead, UserAssetStatus};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::component::tree::SctManager;
 use shieldd_sdk_sct::CommitmentSource;
+use shieldd_sdk_storage::StateWrite;
 use shieldd_sdk_tct as tct;
 use tracing::instrument;
 
@@ -156,10 +156,10 @@ fn mint_rseed(position: tct::Position) -> Result<Rseed> {
 mod tests {
     use super::*;
     use crate::discovery;
-    use cnidarium::{StateDelta, TempStorage};
     use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_num::Amount;
+    use shieldd_sdk_storage::{StateDelta, TempStorage};
     use std::ops::Deref as _;
 
     #[tokio::test]
@@ -198,7 +198,7 @@ mod tests {
         use shieldd_sdk_crypto::{generators::SPEND_AUTH, Fq, Fr};
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
-        use cnidarium_component::Component;
+        use shieldd_sdk_storage::Component;
         shieldd_sdk_compliance::Compliance::init_chain(
             &mut state,
             Some(&shieldd_sdk_compliance::GenesisContent::default()),

@@ -26,7 +26,6 @@ pub struct ShieldedWithdrawalProof {
 #[derive(Clone, Debug)]
 pub struct ShieldedWithdrawalInputPublic {
     pub nullifier: Nullifier,
-    pub history_required: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -52,7 +51,6 @@ pub struct ShieldedWithdrawalProofPublic {
     pub routing_tag: RoutingTag,
     pub routing_parameter_set_id: Fq,
     pub withdrawal_compliance_ciphertext: WithdrawalComplianceCiphertext,
-    pub recent_position_floor: u64,
     pub volume_accumulator: VolumeAccumulatorPublic,
 }
 

@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use crate::test_support::{TestHost, TEST_CHAIN_ID};
 use anyhow::{anyhow, Context, Result};
-use cnidarium::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
 use futures::StreamExt as _;
 use group::GroupEncoding;
 use prost::bytes::Bytes;
@@ -30,14 +29,12 @@ use shieldd_sdk_sct::component::clock::{EpochManager as _, EpochRead as _};
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _, VerificationExt as _};
 use shieldd_sdk_sct::component::StateWriteExt as _;
 use shieldd_sdk_sct::epoch::Epoch;
-use shieldd_sdk_sct::nullifier_generation::{
-    empty_history_head, NullifierWindow, PROTOCOL_VERSION,
-};
 use shieldd_sdk_sct::params::SctParameters;
 use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::component::NoteManager as _;
 use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
 use shieldd_sdk_shielded_pool::{genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan};
+use shieldd_sdk_storage::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_transaction::{
     memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
@@ -52,7 +49,6 @@ use super::{BatchCandidate, BatchPreparation, BatchVerdict};
 use crate::app::CandidateEnvelope;
 use crate::genesis::{AppState, Content};
 use crate::stateless_cache::{CacheEntry, StatelessCache};
-use crate::SUBSTORE_PREFIXES;
 
 use super::{App, BlockTxIndexingMode, StateReadExt};
 
@@ -72,63 +68,11 @@ pub(super) fn registry() -> Arc<shieldd_sdk_proof_params::pari::Registry> {
         .clone()
 }
 
-fn test_nullifier_window() -> NullifierWindow {
-    NullifierWindow {
-        protocol_version: PROTOCOL_VERSION,
-        current_generation: 0,
-        recent_position_floor: 0,
-        archived_generation_count: 0,
-        archived_history_head: empty_history_head(),
-    }
-}
-
-#[tokio::test]
-async fn maintenance_error_keeps_pending_app_state_for_retry() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut app = App::from_snapshot(storage.latest_snapshot(), registry());
-    app.init_chain(&AppState::Content(
-        Content::default().with_chain_id(TEST_CHAIN_ID.to_owned()),
-    ))
-    .await;
-    let cursor = shieldd_sdk_sct::state_key::nullifier_generations::prune_cursor();
-    let state = Arc::get_mut(&mut app.state).context("app state is shared")?;
-    state.put_raw(
-        "test/pending_maintenance_retry".to_owned(),
-        b"kept".to_vec(),
-    );
-    state.nonverifiable_put_raw(cursor.to_vec(), b"invalid cursor".to_vec());
-    let directory = tempfile::tempdir()?;
-    let repository = shieldd_sdk_sct::generation_pack::GenerationPackRepository::new(
-        directory.path().to_path_buf(),
-        0,
-    )?;
-    assert!(app
-        .commit(storage.as_ref().clone(), Some(&repository))
-        .await
-        .is_err());
-    let state = Arc::get_mut(&mut app.state).context("pending state was lost")?;
-    assert_eq!(
-        state.get_raw("test/pending_maintenance_retry").await?,
-        Some(b"kept".to_vec())
-    );
-    state.nonverifiable_delete(cursor.to_vec());
-    app.commit(storage.as_ref().clone(), Some(&repository))
-        .await?;
-    assert_eq!(
-        storage
-            .latest_snapshot()
-            .get_raw("test/pending_maintenance_retry")
-            .await?,
-        Some(b"kept".to_vec())
-    );
-    Ok(())
-}
-
 #[tokio::test]
 async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let mut base_state = StateDelta::new(storage.latest_snapshot());
-    shieldd_sdk_sct::nullifier_tree::initialize(&mut base_state).await?;
+    initialize_nullifier_state(&mut base_state, storage.storage()).await?;
     let mut state = Arc::new(base_state);
     let nullifier = Nullifier(Fq::from(71u64));
     let source = CommitmentSource::Transaction {
@@ -172,7 +116,7 @@ async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
     assert!(execution_result.is_err());
     assert!(state.pending_nullifiers().is_empty());
     assert!(state.pending_note_payloads().is_empty());
-    assert!(!shieldd_sdk_sct::nullifier_tree::is_spent(Arc::as_ref(&state), nullifier).await?);
+    assert!(!state.is_nullifier_spent(nullifier).await?);
     assert_eq!(state.get_raw(unrelated_effect_key.as_str()).await?, None);
 
     Ok(())
@@ -234,8 +178,9 @@ fn proposal_transaction_size_policy_is_fixed_at_boundary() {
 
 #[tokio::test]
 async fn oversized_checktx_bytes_reject_before_decode_or_cache() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let storage = TempStorage::new().await?;
+    let reader = shieldd_sdk_sct::permanent_nullifiers::Reader(storage.storage().clone());
+    let mut app = App::new(storage.latest_snapshot(), registry(), reader).await?;
     let cache = StatelessCache::new();
     let maximum_transaction_size = super::MAX_TRANSACTION_SIZE_BYTES;
     let oversized = vec![
@@ -272,7 +217,6 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
                 [u8::try_from(index + 1).expect("small index"); 48],
             )
             .expect("fixed-size encrypted backref"),
-            history_required: false,
         })
         .collect();
     let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
@@ -302,7 +246,6 @@ async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<(
         transaction_body: shieldd_sdk_transaction::TransactionBody {
             actions: vec![Action::NoteReshape(note_reshape)],
             memo: Some(MemoCiphertext([0u8; MEMO_CIPHERTEXT_LEN_BYTES])),
-            nullifier_window: Some(test_nullifier_window()),
             ..Default::default()
         },
         anchor: action_anchor,
@@ -379,14 +322,42 @@ async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8]) -> Result<()>
 where
     S: StateRead + StateWrite + ?Sized,
 {
+    // Fault injection authenticates the original owner first, then deliberately
+    // corrupts its derived records. This helper is confined to owning tests.
+    let owner = if prefix.starts_with(b"compliance/tree/user/") {
+        shieldd_sdk_storage::NativeTree::ComplianceUser
+    } else {
+        shieldd_sdk_storage::NativeTree::Sct
+    };
+    let native = if owner == shieldd_sdk_storage::NativeTree::Sct {
+        vec![
+            shieldd_sdk_sct::state_key::tree::incremental_hash_prefix().as_bytes(),
+            shieldd_sdk_sct::state_key::tree::incremental_commitment_prefix().as_bytes(),
+        ]
+    } else {
+        vec![prefix]
+    };
+    let scope = shieldd_sdk_storage::NativeReadScope::new(state, owner)?;
     let mut keys = Vec::new();
-    {
-        let stream = state.nonverifiable_prefix_raw(prefix);
+    for prefix in native {
+        let stream = state.native_range_raw(&scope, prefix, Vec::new()..)?;
         futures::pin_mut!(stream);
         while let Some(item) = stream.next().await {
-            let (key, _) = item?;
-            keys.push(key);
+            keys.push(item?.0);
         }
+    }
+    scope.finish(Ok(()))?;
+    if owner == shieldd_sdk_storage::NativeTree::Sct {
+        keys.push(
+            shieldd_sdk_sct::state_key::tree::incremental_position()
+                .as_bytes()
+                .to_vec(),
+        );
+        keys.push(
+            shieldd_sdk_sct::state_key::tree::incremental_forgotten()
+                .as_bytes()
+                .to_vec(),
+        );
     }
     for key in keys {
         state.nonverifiable_delete(key);
@@ -395,7 +366,7 @@ where
 }
 
 async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<Vec<u8>>)> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
 
     let allocations: Vec<Allocation> = std::iter::repeat(Allocation {
         raw_amount: 1_000_000u128.into(),
@@ -416,7 +387,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
 
     let initial_time = tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?;
     let mut test_node = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         initial_time,
         registry(),
@@ -484,7 +455,6 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
                 chain_id: TEST_CHAIN_ID.to_string(),
                 ..Default::default()
             },
-            nullifier_window: Some(test_nullifier_window()),
         };
 
         let tx = client
@@ -503,7 +473,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
 
 #[tokio::test]
 async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let authority_vk = rdsa::VerificationKey::from(test_keys::SPEND_KEY.spend_auth_key());
     let regulated_denom = "wregulated_usd";
     let regulated_asset_id = asset::REGISTRY.parse_unit(regulated_denom).id();
@@ -568,7 +538,7 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     }))?;
 
     let mut test_node = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         serde_json::from_slice(&app_state_bytes)?,
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         registry(),
@@ -608,12 +578,27 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
             chain_id: TEST_CHAIN_ID.to_string(),
             ..Default::default()
         },
-        nullifier_window: None,
     };
     let registration_tx = client
         .witness_auth_build(&registration_plan, registry())
         .await?;
     let before_registration = storage.latest_snapshot();
+    let prior_nullifier_directory = tempfile::tempdir()?;
+    let prior_manifest = storage.manifest().context("committed fixture boundary")?;
+    let checkpoint = prior_nullifier_directory.path().join("checkpoint");
+    storage.checkpoint(&checkpoint, &prior_manifest)?;
+    let prior_storage = shieldd_sdk_storage::Storage::restore(
+        &checkpoint,
+        &prior_nullifier_directory.path().join("working"),
+        shieldd_sdk_storage::ForestConfig {
+            buckets: 1024,
+            cache_mib: 1,
+            preallocate: false,
+            materialization_workers: 2,
+        },
+        prior_manifest.digest()?,
+    )?;
+    let prior_reader = shieldd_sdk_sct::permanent_nullifiers::Reader(prior_storage);
     test_node
         .execute(vec![registration_tx.encode_to_vec()])
         .await?;
@@ -690,7 +675,6 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
             chain_id: TEST_CHAIN_ID.to_string(),
             ..Default::default()
         },
-        nullifier_window: Some(test_nullifier_window()),
     };
     let plan = client
         .complete_intent(intent, storage.latest_snapshot())
@@ -712,7 +696,12 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         Bytes::from(registration_tx.encode_to_vec()),
         Bytes::from(tx_bytes.clone()),
     ];
-    let mut ordered_prepare = App::new(before_registration.clone(), registry()).await?;
+    let mut ordered_prepare = App::new(
+        before_registration.clone(),
+        registry(),
+        prior_reader.clone(),
+    )
+    .await?;
     let prepared_ordered = ordered_prepare
         .prepare_batch(
             BatchPreparation {
@@ -728,7 +717,12 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         prepared_ordered.txs, ordered,
         "registration must admit a transfer under its new root"
     );
-    let mut ordered_validate = App::new(before_registration.clone(), registry()).await?;
+    let mut ordered_validate = App::new(
+        before_registration.clone(),
+        registry(),
+        prior_reader.clone(),
+    )
+    .await?;
     assert!(matches!(
         ordered_validate
             .validate_batch(
@@ -744,7 +738,8 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     ));
     let mut reversed = ordered.clone();
     reversed.reverse();
-    let mut reverse_validate = App::new(before_registration, registry()).await?;
+    let mut reverse_validate =
+        App::new(before_registration, registry(), prior_reader.clone()).await?;
     assert!(matches!(
         reverse_validate
             .validate_batch(
@@ -760,14 +755,24 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     ));
 
     let cache = StatelessCache::new();
-    let mut mempool_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut mempool_app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        test_node.execution.nullifier_reader(),
+    )
+    .await?;
     mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     mempool_app
         .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
         .await?;
 
     test_node.execute(Vec::new()).await?;
-    let mut recheck_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut recheck_app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        test_node.execution.nullifier_reader(),
+    )
+    .await?;
     recheck_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     recheck_app
         .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
@@ -779,14 +784,24 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         max_tx_bytes: 1024 * 1024,
         height: 4,
     };
-    let mut batch_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut batch_app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        test_node.execution.nullifier_reader(),
+    )
+    .await?;
     let prepared = batch_app.prepare_batch(proposal, Some(&cache), false).await;
     assert_eq!(
         prepared.txs.len(),
         1,
         "proposal must include the regulated transfer"
     );
-    let mut validator = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut validator = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        test_node.execution.nullifier_reader(),
+    )
+    .await?;
     let verdict = validator
         .validate_batch(
             BatchCandidate {
@@ -828,19 +843,22 @@ async fn candidate_envelope_from_fixture_txs(
 async fn process_candidate_envelope_accepts_valid_fixture() -> Result<()> {
     let (storage, _node, txs) = setup_test_txs(2).await?;
     let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
-    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     let starting_generation =
-        shieldd_sdk_sct::nullifier_tree::generation_state(Arc::as_ref(&app.state)).await?;
+        shieldd_sdk_sct::permanent_nullifiers::manifest(Arc::as_ref(&app.state))?;
 
     let verdict = app.process_candidate_envelope(&envelope, None).await?;
     assert!(matches!(verdict, BatchVerdict::Accept));
     assert_eq!(app.state.pending_nullifiers().len(), 4);
-    assert!(!app.state.nullifier_block_is_materialized());
+    assert!(!app.state.nullifier_block_is_sealed());
     assert_eq!(
-        shieldd_sdk_sct::nullifier_tree::generation_state(Arc::as_ref(&app.state))
-            .await?
-            .current_root,
-        starting_generation.current_root,
+        shieldd_sdk_sct::permanent_nullifiers::manifest(Arc::as_ref(&app.state))?.participants,
+        starting_generation.participants,
         "ProcessProposal should reuse delivery semantics without building a disposable tree",
     );
 
@@ -855,7 +873,12 @@ async fn execute_validated_candidate_envelope_rechecks_metadata() -> Result<()> 
         .collect::<Vec<_>>();
     let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
 
-    let mut preflight_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut preflight_app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     let verdict = preflight_app
         .process_candidate_envelope(&envelope, None)
         .await?;
@@ -865,16 +888,27 @@ async fn execute_validated_candidate_envelope_rechecks_metadata() -> Result<()> 
     execution_only.tx_hashes.clear();
     execution_only.candidate_digest = [0; 32];
 
-    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     assert!(app
-        .execute_validated_candidate_envelope_profiled(&execution_only, storage.as_ref().clone())
+        .execute_validated_candidate_envelope_profiled(&execution_only, storage.storage().clone())
         .await
         .is_err());
     let committed = storage.latest_snapshot();
     for nullifier in spent_nullifiers {
-        assert!(!shieldd_sdk_sct::nullifier_tree::is_spent(&committed, nullifier).await?);
+        assert!(
+            !_node
+                .execution
+                .nullifier_reader()
+                .contains(&committed, &[nullifier])
+                .await?[0]
+        );
     }
-    shieldd_sdk_sct::nullifier_tree::verify_committed_roots(&committed).await?;
+    storage.check_materialized()?;
 
     Ok(())
 }
@@ -885,7 +919,12 @@ async fn checktx_cache_hit_and_miss_match_for_supported_tx() -> Result<()> {
     let tx_bytes = txs.first().expect("fixture transaction").clone();
     let cache = StatelessCache::new();
 
-    let mut miss_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut miss_app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     let miss_events = miss_app.deliver_tx_bytes(&tx_bytes, Some(&cache)).await?;
     let hash: [u8; 32] = sha2::Sha256::digest(&tx_bytes).into();
     assert!(matches!(
@@ -893,7 +932,12 @@ async fn checktx_cache_hit_and_miss_match_for_supported_tx() -> Result<()> {
         Some(CacheEntry::FullyVerified(_))
     ));
 
-    let mut hit_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut hit_app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     let hit_events = hit_app.deliver_tx_bytes(&tx_bytes, Some(&cache)).await?;
     assert!(matches!(
         cache.get(registry().id(), &hash, &tx_bytes),
@@ -909,7 +953,12 @@ async fn canonical_execution_rejects_same_block_nullifier_conflicts() -> Result<
     let (storage, _node, txs) = setup_test_txs(1).await?;
     let bytes = txs.first().context("fixture transaction")?;
     let cache = StatelessCache::new();
-    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     app.deliver_tx_bytes(bytes, Some(&cache)).await?;
     let notes_before = pending_note_records(&app);
     let err = app
@@ -923,7 +972,7 @@ async fn canonical_execution_rejects_same_block_nullifier_conflicts() -> Result<
 
 #[tokio::test]
 async fn batched_nullify_matches_repeated_nullify_and_preserves_pending_order() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let snapshot = storage.latest_snapshot();
 
     let nullifiers = vec![
@@ -937,14 +986,14 @@ async fn batched_nullify_matches_repeated_nullify_and_preserves_pending_order() 
 
     let mut repeated = StateDelta::new(snapshot.clone());
     repeated.put_block_height(42);
-    shieldd_sdk_sct::nullifier_tree::initialize(&mut repeated).await?;
+    initialize_nullifier_state(&mut repeated, storage.storage()).await?;
     for nullifier in &nullifiers {
         repeated.nullify(*nullifier, source.clone()).await?;
     }
 
     let mut batched = StateDelta::new(snapshot);
     batched.put_block_height(42);
-    shieldd_sdk_sct::nullifier_tree::initialize(&mut batched).await?;
+    initialize_nullifier_state(&mut batched, storage.storage()).await?;
     batched.nullify_all(&nullifiers, source).await?;
 
     assert_eq!(repeated.pending_nullifiers(), batched.pending_nullifiers());
@@ -956,73 +1005,45 @@ async fn batched_nullify_matches_repeated_nullify_and_preserves_pending_order() 
         );
     }
 
-    repeated.materialize_nullifier_block().await?;
-    batched.materialize_nullifier_block().await?;
-    assert_eq!(
-        shieldd_sdk_sct::nullifier_tree::generation_state(&repeated)
-            .await?
-            .current_root,
-        shieldd_sdk_sct::nullifier_tree::generation_state(&batched)
-            .await?
-            .current_root,
-    );
+    repeated.seal_nullifier_block().await?;
+    batched.seal_nullifier_block().await?;
+    assert_eq!(repeated.pending_nullifiers(), batched.pending_nullifiers());
+    assert!(repeated.nullifier_block_is_sealed());
+    assert!(batched.nullifier_block_is_sealed());
 
     Ok(())
 }
 
 #[tokio::test]
 async fn app_readiness_requires_initialized_state() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     assert!(!App::is_ready(storage.latest_snapshot()).await);
     Ok(())
 }
 
-async fn readiness_state(storage: &TempStorage) -> StateDelta<cnidarium::Snapshot> {
+async fn readiness_state(storage: &TempStorage) -> StateDelta<shieldd_sdk_storage::Snapshot> {
     let mut state = StateDelta::new(storage.latest_snapshot());
-    <shieldd_sdk_compliance::Compliance as cnidarium_component::Component>::init_chain(
+    <shieldd_sdk_compliance::Compliance as shieldd_sdk_storage::Component>::init_chain(
         &mut state,
         Some(&Default::default()),
     )
     .await;
+    state.put_sct_params(SctParameters {
+        epoch_duration: 10,
+        sct_anchor_retention_blocks: 100,
+    });
+    state.put_block_height(0);
+    let mut tree = tct::Tree::new();
+    let block_root = tree.end_block().expect("empty block root");
+    state.write_sct(0, tree, block_root, None).await;
     state
 }
 
 #[tokio::test]
-async fn app_readiness_fails_on_corrupted_nullifier_tree_nv() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
-    let mut state = readiness_state(&storage).await;
-    shieldd_sdk_sct::nullifier_tree::insert_batch(&mut state, [Nullifier(Fq::from(91u64))]).await?;
-    storage.commit(state).await?;
-    assert!(App::is_ready(storage.latest_snapshot()).await);
-
-    let mut corrupt = StateDelta::new(storage.latest_snapshot());
-    let tree = shieldd_sdk_sct::nullifier_tree::generation_state(&corrupt)
-        .await?
-        .current_tree;
-    let mut stream = corrupt.nonverifiable_prefix_raw(
-        &shieldd_sdk_sct::state_key::nullifier_generations::tree_node_prefix(tree),
-    );
-    let mut keys = Vec::new();
-    while let Some(item) = stream.next().await {
-        let (key, _) = item?;
-        keys.push(key);
-    }
-    drop(stream);
-    for key in keys {
-        corrupt.nonverifiable_delete(key);
-    }
-    storage.commit(corrupt).await?;
-
-    assert!(!App::is_ready(storage.latest_snapshot()).await);
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn app_readiness_fails_on_corrupted_sct_nv() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let mut state = readiness_state(&storage).await;
-    shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
+    initialize_nullifier_state(&mut state, storage.storage()).await?;
     state.put_sct_params(SctParameters {
         epoch_duration: 10,
         sct_anchor_retention_blocks: 100,
@@ -1062,9 +1083,9 @@ async fn app_readiness_fails_on_corrupted_sct_nv() -> Result<()> {
 
 #[tokio::test]
 async fn app_readiness_fails_on_corrupted_compliance_nv() -> Result<()> {
-    let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+    let storage = TempStorage::new().await?;
     let mut state = readiness_state(&storage).await;
-    shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
+    initialize_nullifier_state(&mut state, storage.storage()).await?;
     state
         .test_only_add_compliance_leaf(ComplianceLeaf::registered_for_test(
             Address::dummy(&mut rand::thread_rng()),
@@ -1106,7 +1127,12 @@ async fn checktx_no_index_does_not_record_tx_log_entries_on_app_fork() -> Result
         .next()
         .expect("fixture should return one tx");
 
-    let mut app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     let cache = StatelessCache::new();
     app.deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
@@ -1165,7 +1191,12 @@ async fn prepare_proposal_reuses_fully_verified_checktx_cache_entries() -> Resul
     let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_slice()).into();
     let cache = StatelessCache::new();
 
-    let mut mempool_app = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut mempool_app = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     mempool_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     mempool_app
         .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
@@ -1176,7 +1207,12 @@ async fn prepare_proposal_reuses_fully_verified_checktx_cache_entries() -> Resul
         _ => anyhow::bail!("expected fully verified cache entry after CheckTx"),
     };
     assert!(!extracted.proof_items.is_empty());
-    let mut proposer = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut proposer = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        _node.execution.nullifier_reader(),
+    )
+    .await?;
     proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
     let proposal = BatchPreparation {
         txs: vec![tx_bytes.clone().into()],
@@ -1204,11 +1240,21 @@ async fn prepare_proposal_rechecks_spends_after_snapshot_changes() -> Result<()>
     let (storage, mut node, txs) = setup_test_txs(1).await?;
     let tx_bytes = txs[0].clone();
     let cache = StatelessCache::new();
-    let mut mempool = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut mempool = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        node.execution.nullifier_reader(),
+    )
+    .await?;
     mempool.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
     mempool.deliver_tx_bytes(&tx_bytes, Some(&cache)).await?;
     node.execute(txs).await?;
-    let mut proposer = App::new(storage.latest_snapshot(), registry()).await?;
+    let mut proposer = App::new(
+        storage.latest_snapshot(),
+        registry(),
+        node.execution.nullifier_reader(),
+    )
+    .await?;
     let prepared = proposer
         .prepare_batch(
             BatchPreparation {
@@ -1270,4 +1316,15 @@ fn pending_note_records(app: &App) -> Vec<(tct::Position, Vec<u8>, CommitmentSou
         .iter()
         .map(|(position, note, source)| (*position, note.encode_to_vec(), source.clone()))
         .collect()
+}
+
+async fn initialize_nullifier_state(
+    state: &mut StateDelta<shieldd_sdk_storage::Snapshot>,
+    storage: &shieldd_sdk_storage::Storage,
+) -> Result<()> {
+    state.object_put(
+        shieldd_sdk_sct::state_key::nullifiers::reader(),
+        shieldd_sdk_sct::permanent_nullifiers::Reader(storage.clone()),
+    );
+    Ok(())
 }

@@ -788,35 +788,6 @@ impl ::prost::Name for AppParametersResponse {
         "/shieldd.view.v1.AppParametersResponse".into()
     }
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct NullifierWindowRequest {}
-impl ::prost::Name for NullifierWindowRequest {
-    const NAME: &'static str = "NullifierWindowRequest";
-    const PACKAGE: &'static str = "shieldd.view.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.view.v1.NullifierWindowRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.view.v1.NullifierWindowRequest".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullifierWindowResponse {
-    #[prost(message, optional, tag = "1")]
-    pub window: ::core::option::Option<
-        super::super::core::component::sct::v1::NullifierWindow,
-    >,
-}
-impl ::prost::Name for NullifierWindowResponse {
-    const NAME: &'static str = "NullifierWindowResponse";
-    const PACKAGE: &'static str = "shieldd.view.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.view.v1.NullifierWindowResponse".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.view.v1.NullifierWindowResponse".into()
-    }
-}
 /// Requests the current gas prices from the view service.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct GasPricesRequest {}

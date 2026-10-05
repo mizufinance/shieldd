@@ -308,7 +308,6 @@ mod tests {
                 &test_keys::FULL_VIEWING_KEY,
                 &memo_key,
                 Tree::default().root(),
-                0,
             )
             .expect("build withdrawal body");
         use commonware_cryptography::{

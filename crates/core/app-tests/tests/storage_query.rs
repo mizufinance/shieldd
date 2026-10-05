@@ -1,17 +1,15 @@
 use anyhow::Context;
-use cnidarium::proto::v1::{query_service_server::QueryService, KeyValueRequest};
-use cnidarium::{StateRead as _, TempStorage};
-use ibc_types::core::commitment::{MerklePath, MerkleProof, MerkleRoot};
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
     test_support::{TestHost, TEST_CHAIN_ID},
 };
+use shieldd_sdk_storage::{StateRead as _, TempStorage};
 
 #[tokio::test]
 async fn host_storage_query_proves_committed_value_at_exact_root() -> anyhow::Result<()> {
     let storage = TempStorage::new().await?;
     let mut host = TestHost::new(
-        storage.as_ref().clone(),
+        storage.storage().clone(),
         AppState::Content(Content::default().with_chain_id(TEST_CHAIN_ID.into())),
         tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
         shieldd_sdk_app_tests::registry(),
@@ -25,29 +23,39 @@ async fn host_storage_query_proves_committed_value_at_exact_root() -> anyhow::Re
         .get_raw(key)
         .await?
         .context("chain ID must be stored")?;
-    let (direct_value, direct_proof) = snapshot.get_with_proof(key.as_bytes().to_vec()).await?;
-    assert_eq!(direct_value.as_ref(), Some(&value));
-    let response = cnidarium::rpc::Server::new(storage.as_ref().clone())
-        .key_value(tonic::Request::new(KeyValueRequest {
-            key: key.into(),
-            proof: true,
-        }))
-        .await?
-        .into_inner();
-    assert_eq!(response.value.context("query value")?.value, value);
-    let proof: MerkleProof = response.proof.context("query proof")?.try_into()?;
-    assert_eq!(proof, direct_proof);
-    assert_eq!(committed.root_hash, snapshot.root_hash().await?.0.to_vec());
-    proof.verify_membership(
-        &[cnidarium::ics23_spec()],
-        MerkleRoot {
-            hash: committed.root_hash,
-        },
-        MerklePath {
-            key_path: vec![key.into()],
-        },
-        value,
-        0,
+    let manifest = storage.manifest().context("materialized manifest")?;
+    let native_key = shieldd_sdk_storage::application_key(
+        shieldd_sdk_storage::Space::Application,
+        key.as_bytes(),
+    );
+    let (commitment, path) = storage
+        .forest()
+        .read()
+        .authenticated_read(&manifest.participants[0], native_key)?;
+    let proof = shieldd_sdk_storage::StateProof {
+        manifest,
+        participant: 0,
+        key: native_key,
+        value: commitment,
+        path,
+    };
+    let detached = shieldd_sdk_storage::StateProof::decode(&proof.encode()?)?;
+    let anchor: [u8; 32] = committed.root_hash.try_into().unwrap();
+    detached.verify_application(
+        anchor,
+        shieldd_sdk_storage::Space::Application,
+        key.as_bytes(),
+        Some(&value),
     )?;
+    let mut corrupt = value;
+    corrupt.push(0);
+    assert!(detached
+        .verify_application(
+            anchor,
+            shieldd_sdk_storage::Space::Application,
+            key.as_bytes(),
+            Some(&corrupt)
+        )
+        .is_err());
     Ok(())
 }

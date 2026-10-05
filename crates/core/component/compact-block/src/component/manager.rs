@@ -1,12 +1,12 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use cnidarium::StateWrite;
 use shieldd_sdk_compliance::{ComplianceRegistryRead, ComplianceRegistryWrite};
 use shieldd_sdk_fee::component::StateReadExt as _;
 use shieldd_sdk_proto::{DomainType, Message};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead};
 use shieldd_sdk_shielded_pool::component::NoteManager as _;
+use shieldd_sdk_storage::StateWrite;
 use tracing::instrument;
 
 use crate::{state_key, CompactBlock, PendingRoutingAction, RoutingAction, RoutingRecord};
@@ -217,17 +217,6 @@ trait Inner: StateWrite {
         let compliance_user_status_changes = self.pending_user_status_changes();
         let compliance_asset_registrations = self.pending_asset_registrations();
 
-        let nullifier_window = if height == 0 || end_epoch {
-            Some(
-                shieldd_sdk_sct::nullifier_tree::generation_state(self)
-                    .await
-                    .context("could not read nullifier generation state")?
-                    .window(),
-            )
-        } else {
-            None
-        };
-
         let pending_routing_actions = self.pending_routing_actions();
         let mut routing_records = Vec::new();
         let mut routing_actions = Vec::with_capacity(pending_routing_actions.len());
@@ -270,7 +259,6 @@ trait Inner: StateWrite {
             compliance_user_registrations,
             compliance_user_status_changes,
             compliance_asset_registrations,
-            nullifier_window,
         };
 
         self.put_compact_block(compact_block)?;
@@ -285,9 +273,9 @@ impl<T: StateWrite + ?Sized> Inner for T {}
 mod tests {
     use super::*;
     use crate::component::StateReadExt as _;
-    use cnidarium::{StateDelta, StateRead as _, TempStorage};
     use shieldd_sdk_sct::CommitmentSource;
     use shieldd_sdk_shielded_pool::{discovery::RoutingTag, NotePayload};
+    use shieldd_sdk_storage::{StateDelta, StateRead as _, TempStorage};
     use shieldd_sdk_txhash::TransactionId;
 
     #[tokio::test]
@@ -296,8 +284,9 @@ mod tests {
         let mut state = StateDelta::new(storage.latest_snapshot());
         // Equal commitments still occupy two different canonical positions.
         let note = NotePayload::dummy();
+        // TempStorage's first commit is the genesis archive boundary.
         let block = CompactBlock {
-            height: 7,
+            height: 0,
             state_payload_start_position: 100,
             state_payloads: vec![
                 (note.clone(), CommitmentSource::Genesis).into(),
@@ -315,11 +304,11 @@ mod tests {
         storage.commit(state).await?;
         let snapshot = storage.latest_snapshot();
         assert_eq!(
-            snapshot.compact_block(7).await?.unwrap().encode_to_vec(),
+            snapshot.compact_block(0).await?.unwrap().encode_to_vec(),
             expected
         );
         let bytes = snapshot
-            .nonverifiable_get_raw(state_key::compact_block(7).as_bytes())
+            .nonverifiable_get_raw(state_key::compact_block(0).as_bytes())
             .await?
             .unwrap();
         let stored =
@@ -330,14 +319,14 @@ mod tests {
         assert!(stored.metadata.unwrap().state_payloads.is_empty());
         for pos in [100, 101] {
             assert!(snapshot
-                .nonverifiable_get_raw(&state_key::payload(7, pos))
+                .nonverifiable_get_raw(&state_key::payload(0, pos))
                 .await?
                 .is_some());
         }
         let mut state = StateDelta::new(snapshot);
-        state.nonverifiable_delete(state_key::payload(7, 100));
+        state.nonverifiable_delete(state_key::payload(0, 100));
         assert!(state
-            .compact_block(7)
+            .compact_block(0)
             .await
             .unwrap_err()
             .to_string()

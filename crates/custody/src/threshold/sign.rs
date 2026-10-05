@@ -579,13 +579,6 @@ mod tests {
             memo: None,
             fee_funding: None,
             transaction_parameters: Default::default(),
-            nullifier_window: Some(shieldd_sdk_sct::nullifier_generation::NullifierWindow {
-                protocol_version: shieldd_sdk_sct::nullifier_generation::PROTOCOL_VERSION,
-                current_generation: 0,
-                recent_position_floor: 0,
-                archived_generation_count: 0,
-                archived_history_head: shieldd_sdk_sct::nullifier_generation::empty_history_head(),
-            }),
         })
     }
     #[test]

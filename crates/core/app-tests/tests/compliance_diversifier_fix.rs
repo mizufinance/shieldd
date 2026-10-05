@@ -1,6 +1,5 @@
 use {
     anyhow::anyhow,
-    cnidarium::StateDelta,
     rand_core::OsRng,
     shieldd_sdk_app::genesis::{self, AppState},
     shieldd_sdk_app::test_support::{TestHost, TEST_CHAIN_ID},
@@ -13,6 +12,7 @@ use {
     shieldd_sdk_keys::{keys::AddressIndex, symmetric::PayloadKey, test_keys},
     shieldd_sdk_mock_client::MockClient,
     shieldd_sdk_shielded_pool::{genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan},
+    shieldd_sdk_storage::StateDelta,
     shieldd_sdk_transaction::{
         memo::MemoPlaintext,
         plan::{ActionPlan, MemoPlan},
@@ -50,7 +50,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
 
         let app_state = AppState::Content(content);
         TestHost::new(
-            storage.as_ref().clone(),
+            storage.storage().clone(),
             app_state,
             tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
             shieldd_sdk_app_tests::registry(),
@@ -114,11 +114,6 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     };
 
     let intent = shieldd_sdk_mock_client::TransactionIntent {
-        nullifier_window: Some(
-            shieldd_sdk_sct::nullifier_tree::generation_state(&build_state)
-                .await?
-                .window(),
-        ),
         actions: vec![transfer.into()],
         memo: Some(MemoPlan::new(
             &mut OsRng,
@@ -154,12 +149,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
     let Some(ActionPlan::Transfer(transfer_plan)) = plan.actions.first() else {
         panic!("expected a single transfer plan");
     };
-    let body = transfer_plan.transfer_body(
-        &client.fvk,
-        &dummy_payload_key,
-        witness_data.anchor,
-        plan.recent_position_floor()?,
-    )?;
+    let body = transfer_plan.transfer_body(&client.fvk, &dummy_payload_key, witness_data.anchor)?;
     let receiver_output = body
         .outputs
         .first()

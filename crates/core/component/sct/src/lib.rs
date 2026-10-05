@@ -6,16 +6,9 @@ pub mod component;
 
 pub mod epoch;
 pub mod event;
-#[cfg(feature = "component")]
-pub mod generation_pack;
 pub mod genesis;
-#[cfg(feature = "component")]
-mod indexed_archive;
-pub mod indexed_nullifier_tree;
-pub mod nullifier_generation;
-#[cfg(feature = "component")]
-pub mod nullifier_tree;
 pub mod params;
+pub mod permanent_nullifiers;
 pub mod state_key;
 
 mod nullifier;

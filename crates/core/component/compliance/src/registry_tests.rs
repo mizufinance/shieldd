@@ -1,19 +1,19 @@
 use super::*;
 use crate::params::{ComplianceParameters, StateWriteExt as _};
 use crate::tree::QuadTree;
-use cnidarium::TempStorage;
 use futures::StreamExt;
 use group::Group;
 use reddsa::{sapling::SpendAuth, SigningKey, VerificationKey};
 use shieldd_sdk_crypto::{Fq, Fr};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_sct::component::clock::EpochManager;
+use shieldd_sdk_storage::TempStorage;
 use std::collections::BTreeMap;
 
 #[tokio::test]
 async fn missing_committed_roots_are_not_reconstructed() {
     let storage = TempStorage::new().await.unwrap();
-    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
     state.initialize_trees().await.unwrap();
     let leaf = ComplianceLeaf::registered_for_test(
         Address::dummy(&mut rand::thread_rng()),
@@ -22,37 +22,119 @@ async fn missing_committed_roots_are_not_reconstructed() {
     state.add_compliance_leaf(leaf).await.unwrap();
     state.ensure_asset_tree_initialized().await.unwrap();
     for key in [state_key::user_tree_root(), state_key::asset_imt_root()] {
-        let mut corrupted = cnidarium::StateDelta::new(&state);
+        let mut corrupted = shieldd_sdk_storage::StateDelta::new(&state);
         corrupted.delete(key.to_string());
         assert!(corrupted.verify_committed_tree_roots().await.is_err());
     }
 }
 
+#[tokio::test]
+async fn unchanged_user_root_does_not_hide_missing_corrupt_or_orphan_native_nodes() {
+    for mode in 0..3 {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
+        state.initialize_trees().await.unwrap();
+        let leaf = ComplianceLeaf::registered_for_test(
+            Address::dummy(&mut rand::thread_rng()),
+            asset::Id(Fq::from(1u64)),
+        );
+        state.add_compliance_leaf(leaf).await.unwrap();
+        let root = state.get_user_tree_root().await.unwrap();
+        let mut corrupt = shieldd_sdk_storage::StateDelta::new(&state);
+        let key = state_key::tree_storage::user_node(0, 0).into_bytes();
+        match mode {
+            0 => corrupt.nonverifiable_delete(key),
+            1 => corrupt.nonverifiable_put_raw(key, Fq::from(99u64).to_bytes().to_vec()),
+            _ => corrupt.nonverifiable_put_raw(
+                state_key::tree_storage::user_node(3, 42).into_bytes(),
+                Fq::from(99u64).to_bytes().to_vec(),
+            ),
+        }
+        assert_eq!(corrupt.get_user_tree_root().await.unwrap(), root);
+        assert!(corrupt.load_user_tree_nodes().await.is_err());
+        // Failure survives discard of the corrupt overlay.
+        drop(corrupt);
+        assert!(state
+            .read_view()
+            .unwrap()
+            .observations
+            .authenticate(|_, _| unreachable!())
+            .is_err());
+    }
+}
+
 async fn nv_count(
-    state: &cnidarium::StateDelta<cnidarium::Snapshot>,
+    state: &shieldd_sdk_storage::StateDelta<shieldd_sdk_storage::Snapshot>,
     prefix: &'static str,
 ) -> usize {
-    let stream = state
-        .nonverifiable_range_raw(Some(prefix.as_bytes()), Vec::new()..)
-        .unwrap();
+    let scope = match prefix {
+        prefix if prefix.starts_with(state_key::tree_storage::user_node_prefix()) => Some(
+            shieldd_sdk_storage::NativeReadScope::new(
+                state,
+                shieldd_sdk_storage::NativeTree::ComplianceUser,
+            )
+            .unwrap(),
+        ),
+        prefix if prefix.starts_with(state_key::tree_storage::asset_node_prefix()) => Some(
+            shieldd_sdk_storage::NativeReadScope::new(
+                state,
+                shieldd_sdk_storage::NativeTree::ComplianceAsset,
+            )
+            .unwrap(),
+        ),
+        _ => None,
+    };
+    let stream = match &scope {
+        Some(scope) => state
+            .native_range_raw(scope, prefix.as_bytes(), Vec::new()..)
+            .unwrap(),
+        None => state
+            .nonverifiable_range_raw(Some(prefix.as_bytes()), Vec::new()..)
+            .unwrap(),
+    };
     futures::pin_mut!(stream);
     let mut count = 0usize;
     while let Some(entry) = stream.next().await {
         entry.unwrap();
         count += 1;
     }
+    if let Some(scope) = scope {
+        scope.finish(Ok(())).unwrap();
+    }
     count
 }
 
 async fn delete_nv_prefix(
-    state: &mut cnidarium::StateDelta<cnidarium::Snapshot>,
+    state: &mut shieldd_sdk_storage::StateDelta<shieldd_sdk_storage::Snapshot>,
     prefix: &'static str,
 ) {
+    let scope = match prefix {
+        prefix if prefix.starts_with(state_key::tree_storage::user_node_prefix()) => Some(
+            shieldd_sdk_storage::NativeReadScope::new(
+                state,
+                shieldd_sdk_storage::NativeTree::ComplianceUser,
+            )
+            .unwrap(),
+        ),
+        prefix if prefix.starts_with(state_key::tree_storage::asset_node_prefix()) => Some(
+            shieldd_sdk_storage::NativeReadScope::new(
+                state,
+                shieldd_sdk_storage::NativeTree::ComplianceAsset,
+            )
+            .unwrap(),
+        ),
+        _ => None,
+    };
     let mut keys = Vec::new();
     {
-        let stream = state
-            .nonverifiable_range_raw(Some(prefix.as_bytes()), Vec::new()..)
-            .unwrap();
+        let stream = match &scope {
+            Some(scope) => state
+                .native_range_raw(scope, prefix.as_bytes(), Vec::new()..)
+                .unwrap(),
+            None => state
+                .nonverifiable_range_raw(Some(prefix.as_bytes()), Vec::new()..)
+                .unwrap(),
+        };
         futures::pin_mut!(stream);
         while let Some(entry) = stream.next().await {
             let (key, _) = entry.unwrap();
@@ -62,11 +144,14 @@ async fn delete_nv_prefix(
     for key in keys {
         state.nonverifiable_delete(key);
     }
+    if let Some(scope) = scope {
+        scope.finish(Ok(())).unwrap();
+    }
 }
 
 const TEST_ANCHOR_MAX_AGE_SECONDS: u64 = 100;
 
-fn put_test_compliance_params<S: cnidarium::StateWrite>(state: &mut S) {
+fn put_test_compliance_params<S: shieldd_sdk_storage::StateWrite>(state: &mut S) {
     state.put_compliance_params(ComplianceParameters {
         compliance_anchor_max_age_seconds: TEST_ANCHOR_MAX_AGE_SECONDS,
     });
@@ -82,7 +167,7 @@ fn base_fee_asset_cannot_be_admitted_as_regulated() {
 #[tokio::test]
 async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
     let storage = TempStorage::new().await.unwrap();
-    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
     state.initialize_trees().await.unwrap();
     let address = Address::dummy(&mut rand::thread_rng());
     let asset_id = asset::Id(Fq::from(91u64));
@@ -201,7 +286,7 @@ async fn freeze_and_unfreeze_replace_the_leaf_at_its_existing_position() {
 #[tokio::test]
 async fn note_seizure_is_terminal_but_allows_more_notes_from_the_same_freeze() {
     let storage = TempStorage::new().await.unwrap();
-    let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+    let mut state = shieldd_sdk_storage::StateDelta::new(storage.latest_snapshot());
     state.initialize_trees().await.unwrap();
     let address = Address::dummy(&mut rand::thread_rng());
     let asset_id = asset::Id(Fq::from(92u64));
@@ -265,7 +350,7 @@ async fn note_seizure_is_terminal_but_allows_more_notes_from_the_same_freeze() {
 async fn add_compliance_leaf_rejects_identity_capability_before_mutation() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let mut leaf = ComplianceLeaf::registered_for_test(
         Address::dummy(&mut rand::thread_rng()),
@@ -293,7 +378,7 @@ async fn add_compliance_leaf_rejects_identity_capability_before_mutation() {
 async fn add_compliance_leaf_rejects_zero_asset_before_mutation() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let leaf = ComplianceLeaf::registered_for_test(
         Address::dummy(&mut rand::thread_rng()),
@@ -320,7 +405,7 @@ async fn add_compliance_leaf_rejects_zero_asset_before_mutation() {
 async fn test_user_tree_full_returns_domain_error_without_mutation() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let capacity = QuadTree::max_leaves_for_depth(crate::tree::DEFAULT_DEPTH);
     state.put_proto(state_key::user_count().to_string(), capacity);
@@ -349,7 +434,7 @@ async fn test_user_tree_full_returns_domain_error_without_mutation() {
 async fn test_user_tree_uses_nv_nodes_not_full_blob() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     let leaf = ComplianceLeaf::registered_for_test(
@@ -372,7 +457,7 @@ async fn test_user_tree_uses_nv_nodes_not_full_blob() {
 async fn test_user_tree_root_check_fails_on_missing_nv_nodes() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     let leaf = ComplianceLeaf::registered_for_test(
@@ -395,7 +480,7 @@ async fn test_user_tree_root_check_fails_on_missing_nv_nodes() {
 async fn test_register_regulated_asset() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     let asset_id = asset::Id(Fq::from(123u64));
@@ -438,7 +523,7 @@ async fn test_register_regulated_asset() {
 async fn test_asset_imt_uses_nv_nodes_and_leaves_not_full_blob() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     let asset_id = asset::Id(Fq::from(777u64));
@@ -483,7 +568,7 @@ async fn test_asset_imt_uses_nv_nodes_and_leaves_not_full_blob() {
 async fn test_asset_imt_root_check_fails_on_missing_nv_leaves() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     state
@@ -512,7 +597,7 @@ async fn test_asset_imt_root_check_fails_on_missing_nv_leaves() {
 async fn full_asset_structure_validation_is_confined_to_readiness() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
         *shieldd_sdk_crypto::generators::SPEND_AUTH,
@@ -531,27 +616,41 @@ async fn full_asset_structure_validation_is_confined_to_readiness() {
         bincode::serialize(&sentinel).unwrap(),
     );
 
-    let readiness_error = state
-        .verify_committed_tree_roots()
-        .await
-        .expect_err("a malformed successor chain must fail readiness");
-    assert!(
-        readiness_error.to_string().contains("successor value"),
-        "unexpected error: {readiness_error:#}"
-    );
-
     let next_asset = asset::Id(Fq::from(888u64));
     state
         .register_regulated_asset(next_asset, policy)
         .await
         .expect("an unrelated authenticated mutation should not reconstruct the full tree");
+    let readiness_error = state
+        .verify_committed_tree_roots()
+        .await
+        .expect_err("a malformed successor chain must fail readiness");
+    assert!(
+        format!("{readiness_error:#}").contains("successor value"),
+        "unexpected error: {readiness_error:#}"
+    );
+
+    assert!(
+        state
+            .register_regulated_asset(
+                asset::Id(Fq::from(999u64)),
+                AssetPolicy::for_test(
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                    u128::MAX,
+                    *shieldd_sdk_crypto::generators::SPEND_AUTH,
+                )
+            )
+            .await
+            .is_err(),
+        "an observed integrity failure must invalidate the execution view"
+    );
 }
 
 #[tokio::test]
 async fn asset_mutation_rejects_a_corrupted_touched_path() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
         *shieldd_sdk_crypto::generators::SPEND_AUTH,
@@ -584,7 +683,7 @@ async fn test_direct_read_proofs_match_reconstructed_trees_random_trace() {
 
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let mut rng = rand::rngs::StdRng::seed_from_u64(0x5eed);
     let policy = AssetPolicy::for_test(
@@ -676,7 +775,7 @@ async fn test_direct_read_proofs_match_reconstructed_trees_random_trace() {
 async fn test_asset_proof_direct_read_membership_and_gap_parity() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let policy = AssetPolicy::for_test(
         *shieldd_sdk_crypto::generators::SPEND_AUTH,
@@ -742,7 +841,7 @@ async fn test_asset_proof_direct_read_membership_and_gap_parity() {
 async fn test_asset_duplicate_prevention() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     let asset_id = asset::Id(Fq::from(789u64));
@@ -802,7 +901,7 @@ async fn test_asset_duplicate_prevention() {
 async fn test_user_leaf_position_lookup() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     put_test_compliance_params(&mut state);
     let mut rng = rand::thread_rng();
@@ -879,7 +978,7 @@ async fn test_user_leaf_position_lookup() {
 async fn test_user_leaf_roundtrip() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let mut rng = rand::thread_rng();
     put_test_compliance_params(&mut state);
@@ -910,7 +1009,7 @@ async fn test_user_leaf_roundtrip() {
 async fn user_leaf_record_matches_its_committed_tree_position() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     let mut rng = rand::thread_rng();
     put_test_compliance_params(&mut state);
@@ -987,7 +1086,7 @@ async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
     for (index, (key_role, policy)) in cases.into_iter().enumerate() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
-        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
         state.initialize_trees().await.unwrap();
         let root_before = state.get_asset_imt_root().await.unwrap();
         let asset_id = asset::Id(Fq::from(12345u64 + index as u64));
@@ -1029,7 +1128,7 @@ async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
 async fn test_get_asset_policy_cached_matches_uncached() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     let present_asset = asset::Id(Fq::from(77u64));
@@ -1074,7 +1173,7 @@ async fn test_get_asset_policy_cached_matches_uncached() {
 async fn test_ibc_origin_lookup_rejects_duplicate_base_denom() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
     put_test_compliance_params(&mut state);
 
@@ -1114,7 +1213,7 @@ async fn test_ibc_origin_lookup_rejects_duplicate_base_denom() {
 async fn test_replace_asset_ibc_policy_requires_expected_hash() {
     let storage = TempStorage::new().await.unwrap();
     let snapshot = storage.latest_snapshot();
-    let mut state = cnidarium::StateDelta::new(snapshot);
+    let mut state = shieldd_sdk_storage::StateDelta::new(snapshot);
     state.initialize_trees().await.unwrap();
 
     let old_route = crate::IbcRoute::transfer("channel-0", "connection-0", "channel-7");

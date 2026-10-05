@@ -3,18 +3,14 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::{Context as _, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
 use futures::{stream::FuturesUnordered, TryStreamExt as _};
 use shieldd_sdk_compact_block::{component::RoutingManager as _, PendingRoutingAction};
 use shieldd_sdk_compliance::{
     AuditEffect, AuditEffectRecord, AuditLogWrite as _, AuditSource, WithdrawalKind,
 };
 use shieldd_sdk_fee::component::FeePay as _;
-use shieldd_sdk_proof_params::historical::BatchVerifier;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
-use shieldd_sdk_sct::nullifier_generation::{empty_history_head, PROTOCOL_VERSION};
-use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::component::{
     note_reshape_execute_verified, shielded_host_withdrawal_execute_verified,
     transfer_execute_validated, transfer_execute_verified, transfer_validate_verified,
@@ -22,8 +18,9 @@ use shieldd_sdk_shielded_pool::component::{
 };
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_shielded_pool::TransferProofContext;
+use shieldd_sdk_storage::{StateRead, StateWrite};
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
-use shieldd_sdk_txhash::{AuthorizingData, EffectingData as _};
+use shieldd_sdk_txhash::EffectingData as _;
 use tokio::sync::OnceCell;
 use tracing::{instrument, Instrument};
 
@@ -35,8 +32,6 @@ use crate::{
 
 #[cfg(test)]
 mod cancellation_tests;
-#[cfg(test)]
-mod history_tests;
 mod stateful;
 pub(crate) mod stateless;
 
@@ -44,7 +39,6 @@ use self::stateful::{
     claimed_anchor_is_valid, discovery_parameters_valid_with_context,
     tx_parameters_historical_check_with_context,
 };
-use crate::stateless_cache::VerifiedHistoricalInput;
 use stateless::{
     check_memo_exists_if_outputs_absent_if_not, check_non_empty_transaction,
     valid_binding_signature,
@@ -279,7 +273,6 @@ pub(crate) struct HistoricalCheckContext {
     pub previous_discovery_parameters: discovery::Parameters,
     pub current_discovery_parameters: discovery::Parameters,
     pub claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
-    pub nullifier_window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
 }
 
 impl HistoricalCheckContext {
@@ -288,9 +281,6 @@ impl HistoricalCheckContext {
             .get_shielded_pool_params()
             .await
             .context("loading shielded pool parameters")?;
-        let nullifier_window = shieldd_sdk_sct::nullifier_tree::generation_state(state)
-            .await?
-            .window();
 
         Ok(Self {
             chain_id: state.get_chain_id().await?,
@@ -305,7 +295,6 @@ impl HistoricalCheckContext {
                 .await
                 .context("loading current discovery parameters")?,
             claimed_anchor_cache: Arc::new(ClaimedAnchorValidationCache::default()),
-            nullifier_window,
         })
     }
 }
@@ -347,102 +336,10 @@ pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()>
 
 pub(crate) fn validate_transaction_envelope(tx: &Transaction) -> Result<()> {
     ensure_transaction_resource_bounds(tx)?;
-    tx.transaction_body.validate_nullifier_history()?;
     stateless::distinct_spend_keys(tx)?;
     valid_binding_signature(tx)?;
     check_memo_exists_if_outputs_absent_if_not(tx)?;
     check_non_empty_transaction(tx)
-}
-
-pub(crate) fn verify_historical_proofs(
-    tx: &Transaction,
-    registry: &shieldd_sdk_proof_params::pari::Registry,
-) -> Result<Vec<VerifiedHistoricalInput>> {
-    tx.transaction_body.validate_nullifier_history()?;
-    let old_nullifiers = tx.transaction_body.historical_nullifiers();
-    if old_nullifiers.is_empty() {
-        return Ok(Vec::new());
-    }
-    let window = tx
-        .transaction_body
-        .nullifier_window
-        .context("old inputs require a nullifier window")?;
-    let mut verifier = BatchVerifier::new(registry);
-    for (nullifier, bundle) in old_nullifiers
-        .iter()
-        .zip(&tx.transaction_body.historical_nullifier_proofs)
-    {
-        queue_historical_nullifier_proof(*nullifier, window, bundle, &mut verifier)?;
-    }
-    verifier.finish()?;
-    let auth_hash = tx.auth_hash();
-    Ok(old_nullifiers
-        .into_iter()
-        .map(|nullifier| VerifiedHistoricalInput::new(nullifier, window, auth_hash))
-        .collect())
-}
-
-pub(crate) fn verify_historical_nullifier_proof(
-    nullifier: Nullifier,
-    window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
-    bundle: &shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof,
-    registry: &shieldd_sdk_proof_params::pari::Registry,
-) -> Result<()> {
-    let mut verifier = BatchVerifier::new(registry);
-    queue_historical_nullifier_proof(nullifier, window, bundle, &mut verifier)?;
-    verifier.finish()
-}
-
-fn queue_historical_nullifier_proof(
-    nullifier: Nullifier,
-    window: shieldd_sdk_sct::nullifier_generation::NullifierWindow,
-    bundle: &shieldd_sdk_sct::nullifier_generation::HistoricalNullifierProof,
-    verifier: &mut BatchVerifier<'_>,
-) -> Result<()> {
-    bundle.validate_structure(window)?;
-    let nullifier_bytes: [u8; 32] = nullifier.into();
-    let mut expected_head = empty_history_head();
-    for chunk in &bundle.completed_chunks {
-        verifier.push(
-            shieldd_sdk_proof_params::historical::ChunkClaim {
-                protocol_version: PROTOCOL_VERSION,
-                nullifier: nullifier_bytes,
-                chunk_index: chunk.chunk_index,
-                start_history_head: expected_head,
-                end_history_head: chunk.end_history_head,
-            }
-            .verification(&chunk.proof)?,
-        )?;
-        expected_head = chunk.end_history_head;
-    }
-    for generation in &bundle.tail {
-        let end_history_head = shieldd_sdk_sct::nullifier_generation::append_history(
-            expected_head,
-            generation.generation_index,
-            generation.generation_root,
-            generation.generation_start_position,
-            generation.generation_end_position,
-        )?;
-        verifier.push(
-            shieldd_sdk_proof_params::historical::GenerationClaim {
-                protocol_version: PROTOCOL_VERSION,
-                nullifier: nullifier_bytes,
-                generation_index: generation.generation_index,
-                generation_root: generation.generation_root,
-                generation_start_position: generation.generation_start_position,
-                generation_end_position: generation.generation_end_position,
-                start_history_head: expected_head,
-                end_history_head,
-            }
-            .verification(&generation.proof)?,
-        )?;
-        expected_head = end_history_head;
-    }
-    anyhow::ensure!(
-        expected_head == window.archived_history_head,
-        "verified historical proof has the wrong terminal history head"
-    );
-    Ok(())
 }
 
 async fn validate_claimed_anchor_read_only<S: StateRead>(
@@ -480,7 +377,6 @@ pub(crate) async fn check_historical_with_context<S: StateRead + 'static>(
 
     ensure_transaction_resource_bounds(tx)?;
     tx_parameters_historical_check_with_context(tx, context)?;
-    stateful::nullifier_window_valid_with_context(tx, context)?;
     discovery_parameters_valid_with_context(tx, context)?;
 
     validate_claimed_anchor_read_only(state.clone(), tx, context.claimed_anchor_cache.clone())
@@ -506,7 +402,6 @@ where
     S: StateWrite,
 {
     let tx = artifact.tx().as_ref();
-    artifact.ensure_historical_coverage()?;
 
     ensure_transaction_resource_bounds(tx)?;
     let tx_context = tx.context();
