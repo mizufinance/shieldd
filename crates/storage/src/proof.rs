@@ -37,7 +37,7 @@ pub fn authenticate(
 }
 
 /// Detached participant proof. The verifier receives the native commitment from
-/// its existing SDK/IBC trust boundary, rather than trusting this manifest.
+/// its existing host trust boundary, rather than trusting this manifest.
 #[derive(Clone, Debug)]
 pub struct StateProof {
     pub manifest: crate::Manifest,
@@ -70,7 +70,7 @@ struct ProofRecord {
 impl StateProof {
     pub fn verify_application(
         &self,
-        sdk_anchor: [u8; 32],
+        shieldd_commitment: [u8; 32],
         space: crate::Space,
         original_key: &[u8],
         full_value: Option<&[u8]>,
@@ -79,7 +79,11 @@ impl StateProof {
             space != crate::Space::Order && !original_key.is_empty(),
             "invalid application proof key"
         );
-        self.verify(sdk_anchor, 0, crate::application_key(space, original_key))?;
+        self.verify(
+            shieldd_commitment,
+            0,
+            crate::application_key(space, original_key),
+        )?;
         let expected = full_value.map(|value| crate::ValueCommitment::new(value).encode().to_vec());
         ensure!(
             self.value == expected,
@@ -88,10 +92,15 @@ impl StateProof {
         Ok(())
     }
 
-    pub fn verify(&self, sdk_anchor: [u8; 32], participant: u32, key: [u8; 32]) -> Result<()> {
+    pub fn verify(
+        &self,
+        shieldd_commitment: [u8; 32],
+        participant: u32,
+        key: [u8; 32],
+    ) -> Result<()> {
         ensure!(
-            self.manifest.digest()? == sdk_anchor,
-            "native proof is not anchored in SDK state"
+            self.manifest.digest()? == shieldd_commitment,
+            "native proof differs from the trusted Shieldd commitment"
         );
         ensure!(
             self.participant == participant && self.key == key,

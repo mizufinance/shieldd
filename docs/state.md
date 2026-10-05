@@ -41,8 +41,11 @@ Tag indexes store reversed bits, permitting range scans for low-bit selectors.
 
 NOMT authenticates application values and ordering/completeness; RocksDB keeps
 full values and native nodes. Native SCT and compliance reads are bound to their
-existing commitments. Retained records use raw values with NOMT commitments
-and authenticated ordering. Checkpoints validate complete canonical records. [Storage lifecycle](nullifier-history.md) defines coordinated durability,
+existing commitments. Retained archive records authenticate through per-block
+Merkle trees and an MMR. Checkpoints rebuild indexes from validated canonical
+records and an authenticated accumulator frontier. Native receivers explicitly
+select current-state or full-history coverage; normal host snapshots require full
+history. [Storage lifecycle](nullifier-history.md) defines coordinated durability,
 recovery, publication and capacity. Local query budgets and buffer ownership are
 defined in [Embedded artifacts](embedded-artifacts.md).
 

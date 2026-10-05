@@ -1,6 +1,6 @@
 use crate::{
-    ordered_effects, Effects, Forest, ForestConfig, ForestUpdate, Manifest, Participant,
-    ParticipantChange, ParticipantId, ParticipantKind, Snapshot, StateDelta,
+    ordered_effects, ArchiveCompleteness, Effects, Forest, ForestConfig, ForestUpdate, Manifest,
+    Participant, ParticipantChange, ParticipantId, ParticipantKind, Snapshot, StateDelta,
 };
 use anyhow::{ensure, Context, Result};
 use parking_lot::RwLock;
@@ -50,7 +50,7 @@ impl Storage {
         if path.exists() {
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
-                ensure!(matches!(entry.file_name().to_str(),Some("values"|"forest"|"manifest.pb")),"unrecognized storage layout; recreate prototype state or restore a matched checkpoint");
+                ensure!(matches!(entry.file_name().to_str(),Some("values"|"forest"|"manifest.pb"|"archive-checkpoint.v1")),"unrecognized storage layout; recreate prototype state or restore a matched checkpoint");
             }
         }
         #[cfg(target_os = "linux")]
@@ -76,6 +76,20 @@ impl Storage {
             );
         }
         let forest = Forest::open(&path.join("forest"), config, latest.manifest())?;
+        if let Some(manifest) = latest.manifest() {
+            let bytes = latest.archive_state()?.context("unsupported pre-archive prototype state; recreate or restore a compatible checkpoint")?;
+            let mmr = crate::archive::Mmr::decode(&bytes)?;
+            ensure!(
+                manifest.height.checked_add(1) == Some(mmr.count),
+                "archive boundary mismatch"
+            );
+            ensure!(
+                latest.archive_first_height()? <= mmr.count,
+                "archive coverage exceeds boundary"
+            );
+            forest.authenticate_reads(manifest, latest.observations())?;
+        }
+
         Ok(Self(Arc::new(Shared {
             path: path.into(),
             raw,
@@ -117,7 +131,8 @@ impl Storage {
             view.manifest().is_none() && boundary.height == 0 && boundary.block_id == [0; 32],
             "invalid genesis recomputation input"
         );
-        let effects = Effects::from_cache(&cache);
+        let mut effects = Effects::from_cache(&cache);
+        crate::archive::stage(&view, boundary.height, &mut effects)?;
         let effects = ordered_effects(&view, effects)?;
         let changes = effects.application_changes()?;
         let values = changes
@@ -174,7 +189,8 @@ impl Storage {
                     == Some(height)),
             "nonconsecutive storage decision"
         );
-        let effects = Effects::from_cache(&cache);
+        let mut effects = Effects::from_cache(&cache);
+        crate::archive::stage(&view, height, &mut effects)?;
         let effects = ordered_effects(&view, effects)?;
         let application = effects.application_changes()?;
         ensure!(
@@ -333,11 +349,21 @@ impl Storage {
         forest.validate_participants(&manifest.participants)?;
         forest
             .validate_application_values(&manifest.participants[0], snapshot.canonical_entries())?;
-        Ok(())
+        snapshot.validate_archive()
     }
     /// Matched checkpoint callers hold the publication boundary and join their
     /// materializer before entering this method.
     pub fn checkpoint(&self, destination: &Path, expected: &Manifest) -> Result<()> {
+        self.checkpoint_with_archive(destination, expected, ArchiveCompleteness::FullHistory)
+    }
+    /// Capture the available archive without removing any records. The caller
+    /// selects its minimum coverage; a full-history export never downgrades.
+    pub fn checkpoint_with_archive(
+        &self,
+        destination: &Path,
+        expected: &Manifest,
+        required: ArchiveCompleteness,
+    ) -> Result<()> {
         ensure!(
             self.manifest().as_ref() == Some(expected),
             "checkpoint boundary mismatch"
@@ -345,6 +371,12 @@ impl Storage {
         ensure!(
             !destination.exists(),
             "checkpoint destination already exists"
+        );
+        self.validate()?;
+        let first_height = self.latest_snapshot().archive_first_height()?;
+        ensure!(
+            required == ArchiveCompleteness::CurrentState || first_height == 0,
+            "full-history export requires complete archive coverage"
         );
         let forest = self.0.forest.write();
         forest.check_roots(&expected.participants)?;
@@ -359,20 +391,42 @@ impl Storage {
             .open(path)?;
         file.write_all(&expected.encode()?)?;
         file.sync_all()?;
+        let mut descriptor = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(destination.join(crate::checkpoint::DESCRIPTOR))?;
+        descriptor.write_all(&crate::checkpoint::encode(first_height))?;
+        descriptor.sync_all()?;
         std::fs::File::open(destination)?.sync_all()?;
         Ok(())
     }
     /// Complete validation of an immutable capture. Run outside the live
-    /// publication guard; roots/counts come from the SDK-anchored manifest.
+    /// publication guard; roots/counts come from the host-authenticated manifest.
     pub fn validate_checkpoint(
         source: &Path,
         config: ForestConfig,
         anchor: [u8; 32],
     ) -> Result<Manifest> {
+        Self::validate_checkpoint_with_archive(
+            source,
+            config,
+            anchor,
+            ArchiveCompleteness::FullHistory,
+        )
+    }
+    /// Native receivers may explicitly allow missing optional history. Native
+    /// SCT/compliance commitment validation remains the application owner's duty.
+    pub fn validate_checkpoint_with_archive(
+        source: &Path,
+        config: ForestConfig,
+        anchor: [u8; 32],
+        required: ArchiveCompleteness,
+    ) -> Result<Manifest> {
+        let first_height = crate::checkpoint::read(source, required)?;
         let descriptor = Manifest::decode(&std::fs::read(source.join("manifest.pb"))?)?;
         ensure!(
             descriptor.digest()? == anchor,
-            "checkpoint differs from the trusted SDK anchor"
+            "checkpoint differs from the trusted Shieldd commitment"
         );
         let expected: std::collections::BTreeSet<_> = descriptor
             .participants
@@ -400,7 +454,7 @@ impl Storage {
             .collect::<Result<_>>()?;
         ensure!(
             actual == expected,
-            "checkpoint forest participant inventory differs from the SDK-anchored manifest"
+            "checkpoint forest participant inventory differs from the host-authenticated manifest"
         );
         ensure!(
             source.join("values/CURRENT").is_file(),
@@ -424,6 +478,10 @@ impl Storage {
             storage.manifest().as_ref() == Some(&descriptor),
             "checkpoint raw boundary differs from its descriptor"
         );
+        ensure!(
+            storage.latest_snapshot().archive_first_height()? == first_height,
+            "checkpoint coverage claim differs from retained data"
+        );
         storage.validate()?;
         Ok(descriptor)
     }
@@ -433,10 +491,28 @@ impl Storage {
         config: ForestConfig,
         anchor: [u8; 32],
     ) -> Result<Self> {
+        Self::restore_with_archive(
+            source,
+            destination,
+            config,
+            anchor,
+            ArchiveCompleteness::FullHistory,
+        )
+    }
+    /// Restore at a receiver-selected completeness class, with no automatic
+    /// fallback from full history to current state.
+    pub fn restore_with_archive(
+        source: &Path,
+        destination: &Path,
+        config: ForestConfig,
+        anchor: [u8; 32],
+        required: ArchiveCompleteness,
+    ) -> Result<Self> {
+        crate::checkpoint::read(source, required)?;
         let descriptor = Manifest::decode(&std::fs::read(source.join("manifest.pb"))?)?;
         ensure!(
             descriptor.digest()? == anchor,
-            "restore source differs from the trusted SDK anchor"
+            "restore source differs from the trusted Shieldd commitment"
         );
         ensure!(
             destination
@@ -465,10 +541,12 @@ impl Storage {
             crate::forest::copy_files(source, &temporary)?;
             // Validate the installed bytes and exact inventory, rather than
             // relying on a source that could change while it is being copied.
-            Self::validate_checkpoint(&temporary, config.clone(), anchor)?;
+            Self::validate_checkpoint_with_archive(&temporary, config.clone(), anchor, required)?;
             std::fs::remove_file(temporary.join("manifest.pb"))?;
+            std::fs::remove_file(temporary.join(crate::checkpoint::DESCRIPTOR))?;
             std::fs::File::open(&temporary)?.sync_all()?;
             let storage = Self::open(&temporary, config.clone())?;
+            storage.0.raw.rebuild_archive_indexes()?;
             *storage.0.latest.write() = storage.0.raw.latest_snapshot()?;
             ensure!(
                 storage
@@ -602,6 +680,109 @@ mod tests {
         state.put_raw("key".into(), value.to_vec());
         state
     }
+    #[test]
+    fn current_state_restore_preserves_frontier_and_provable_suffix_without_downgrading_full_history(
+    ) -> Result<()> {
+        use crate::{ArchiveQuery, Space, StateProof};
+        use futures::FutureExt;
+        let temporary = tempfile::tempdir()?;
+        let storage = Storage::open(&temporary.path().join("state"), config())?;
+        let mut frontier = Vec::new();
+        for height in 0..4 {
+            let mut delta = state(&storage, b"current-state");
+            delta.nonverifiable_put_raw(
+                format!("compactblock/payload/{height:020}/0").into_bytes(),
+                vec![height as u8],
+            );
+            let prepared =
+                storage.prepare(delta, boundary(height, height as i64), BTreeMap::new())?;
+            storage.materialize(prepared)?;
+            if height == 1 {
+                frontier = storage.latest_snapshot().archive_state()?.unwrap();
+            }
+        }
+        storage.0.raw.omit_archive_prefix_for_test(2, &frontier)?;
+        *storage.0.latest.write() = storage.0.raw.latest_snapshot()?;
+        storage.validate()?;
+        let manifest = storage.manifest().unwrap();
+        let source = temporary.path().join("partial");
+        assert!(storage.checkpoint(&source, &manifest).is_err());
+        assert!(!source.exists());
+        storage.checkpoint_with_archive(&source, &manifest, ArchiveCompleteness::CurrentState)?;
+        assert!(Storage::validate_checkpoint(&source, config(), manifest.digest()?).is_err());
+        let restored = Storage::restore_with_archive(
+            &source,
+            &temporary.path().join("restored"),
+            config(),
+            manifest.digest()?,
+            ArchiveCompleteness::CurrentState,
+        )?;
+        assert!(restored
+            .latest_snapshot()
+            .nonverifiable_get_raw(b"compactblock/payload/00000000000000000001/0")
+            .now_or_never()
+            .unwrap()
+            .unwrap_err()
+            .is::<crate::ArchiveUnavailable>());
+        let mut delta = state(&restored, b"next-state");
+        delta.nonverifiable_put_raw(
+            b"compactblock/payload/00000000000000000004/0".to_vec(),
+            b"new".to_vec(),
+        );
+        let prepared = restored.prepare(delta, boundary(4, 4), BTreeMap::new())?;
+        let next = restored.materialize(prepared)?;
+        restored.validate()?;
+        let key = crate::application_key(Space::Application, crate::archive::STATE_KEY);
+        let (value, path) = restored
+            .forest()
+            .read()
+            .authenticated_read(&next.participants[0], key)?;
+        let anchor = StateProof {
+            manifest: next.clone(),
+            participant: 0,
+            key,
+            value,
+            path,
+        };
+        for height in 2..5 {
+            let prefix = format!("compactblock/payload/{height:020}/").into_bytes();
+            let query = ArchiveQuery {
+                height,
+                start: prefix.clone(),
+                prefix,
+                end: None,
+                limit: 1,
+            };
+            let proof =
+                restored
+                    .latest_snapshot()
+                    .archive_range_proof(anchor.clone(), &query, 1 << 20)?;
+            assert_eq!(proof.verify(next.digest()?, &query)?.records.len(), 1);
+        }
+        assert!(restored
+            .checkpoint(&temporary.path().join("false-full"), &next)
+            .is_err());
+        std::fs::write(
+            source.join(crate::checkpoint::DESCRIPTOR),
+            crate::checkpoint::encode(0),
+        )?;
+        assert!(
+            Storage::validate_checkpoint(&source, config(), manifest.digest()?).is_err(),
+            "supplier relabeling cannot manufacture full history"
+        );
+        let bad_frontier = crate::archive::Mmr::decode(&frontier)?;
+        let mut forged = bad_frontier.encode()?;
+        forged[8] ^= 1;
+        assert!(
+            restored
+                .0
+                .raw
+                .omit_archive_prefix_for_test(2, &forged)
+                .is_err(),
+            "frontier must reconstruct the authenticated MMR"
+        );
+        Ok(())
+    }
     #[cfg(target_os = "linux")]
     #[test]
     #[ignore = "requires denied io_uring; run by the Linux container storage gate"]
@@ -632,10 +813,11 @@ mod tests {
         Ok(())
     }
     #[tokio::test]
-    async fn retained_records_authenticate_ranges_missing_values_and_extras() {
+    async fn retained_blocks_use_one_mmr_and_detect_aborted_reads_missing_values_and_extras() {
         use futures::StreamExt;
         let temporary = tempfile::tempdir().unwrap();
         let storage = Storage::open(&temporary.path().join("state"), config()).unwrap();
+        let mut stable_count = None;
         for height in 0..6 {
             let mut delta = state(&storage, b"ordinary-state");
             for index in 0..19 {
@@ -647,7 +829,12 @@ mod tests {
             let prepared = storage
                 .prepare(delta, boundary(height, height as i64), BTreeMap::new())
                 .unwrap();
-            storage.materialize(prepared).unwrap();
+            let manifest = storage.materialize(prepared).unwrap();
+            assert_eq!(
+                *stable_count.get_or_insert(manifest.participants[0].count),
+                manifest.participants[0].count,
+                "archive records must not each grow the application NOMT"
+            );
         }
         storage.validate().unwrap();
         let view = storage.latest_snapshot();
@@ -685,30 +872,30 @@ mod tests {
         storage
             .0
             .raw
-            .corrupt_for_test(crate::Space::Raw, &key, None);
+            .corrupt_for_test(crate::Space::Archive, &key, None);
         let raw = storage.0.raw.latest_snapshot().unwrap();
-        assert!(raw.nonverifiable_get_raw(&key).await.unwrap().is_none());
+        assert!(raw.nonverifiable_get_raw(&key).await.is_err());
         assert!(
             storage
                 .forest()
                 .read()
                 .authenticate_reads(&manifest, raw.observations())
                 .is_err(),
-            "discarding failed call writes must not erase retained-record integrity failure"
+            "discarding failed call writes must not erase archive integrity failure"
         );
         let extra = format!("compactblock/payload/{:020}/{:020}", 2, 99).into_bytes();
         storage
             .0
             .raw
-            .corrupt_for_test(crate::Space::Raw, &extra, Some(b"extra"));
+            .corrupt_for_test(crate::Space::Archive, &extra, Some(b"extra"));
         storage
             .0
             .raw
-            .corrupt_for_test(crate::Space::Raw, &key, Some(&[2, 7]));
+            .corrupt_for_test(crate::Space::Archive, &key, Some(&[2, 7]));
         *storage.0.latest.write() = storage.0.raw.latest_snapshot().unwrap();
         assert!(
             storage.validate().is_err(),
-            "complete validation must reject uncommitted raw retained records"
+            "complete validation must reject uncommitted raw archive entries"
         );
     }
     #[test]

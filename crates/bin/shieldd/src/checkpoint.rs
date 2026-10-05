@@ -226,12 +226,26 @@ fn finish(capture: &Capture, result: Result<()>) {
     }
 }
 pub async fn validate(path: &Path, expected: &Manifest) -> Result<()> {
+    validate_with_archive(
+        path,
+        expected,
+        shieldd_sdk_storage::ArchiveCompleteness::FullHistory,
+    )
+    .await
+}
+/// Explicit native checkpoint contract. Hosts still choose and authenticate the
+/// boundary; this verifies current native trees as well as selected coverage.
+pub async fn validate_with_archive(
+    path: &Path,
+    expected: &Manifest,
+    required: shieldd_sdk_storage::ArchiveCompleteness,
+) -> Result<()> {
     let anchor = expected.digest()?;
     let config = ForestConfig::from_env()?;
     let source = path.to_owned();
     let config_copy = config.clone();
     let actual = tokio::task::spawn_blocking(move || {
-        Storage::validate_checkpoint(&source, config_copy, anchor)
+        Storage::validate_checkpoint_with_archive(&source, config_copy, anchor, required)
     })
     .await
     .context("checkpoint validation worker panicked")??;

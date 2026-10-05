@@ -52,12 +52,22 @@ at one matched boundary, then use ordinary full Comet/SDK replay.
 
 State and nullifier proofs carry participant identity and the manifest. Consumers
 verify through shared Rust/native/WASM code against a separately authenticated
-SDK Shieldd commitment. A proof's own manifest is not a trust anchor.
+Shieldd commitment supplied through the host's independently authenticated state.
+The verifier implements neither Cosmos nor Commonware authentication. A proof's
+own manifest is not a trust anchor; the authenticated manifest binds chain,
+protocol, boundary height and block identity.
 
-Retained compact/ciphertext/routing/transaction records remain full raw values
-with NOMT value commitments and authenticated ordering. Filtered pages remain
-opt-in trusted-provider discovery; spend-height metadata retains its provider-trust
-contract. This prototype retains wallet and transaction history from genesis.
+Retained compact/ciphertext/routing/transaction records have sorted per-block
+Merkle commitments accumulated in an MMR. Only its count and peaks enter
+application state. Local proof nodes and indexes are derived. `ArchiveRange`
+returns canonical proofs of records, rank neighbors, block identity, an MMR path
+and the NOMT proof of MMR state. The verifier binds exact prefix, inclusive start,
+exclusive end and page limit, and returns the proven continuation key. This
+supports mid-history membership and range completeness. Existing filtered pages
+remain opt-in trusted-provider discovery; spend-height metadata also retains its
+provider-trust contract. Normal prototype operation retains archive history from genesis. Each range
+request covers one block; its continuation stays within that block. Proofs do not
+assert current-tip freshness, full wallet discovery or archive availability.
 
 ## Checkpoints and offline maintenance
 
@@ -73,11 +83,42 @@ shieldd-store grow DB permanent-00 BUCKETS ROOTHEX
 
 Export captures a RocksDB checkpoint and quiesced active NOMT files at one
 published boundary. Validation checks complete sorted NOMT export, roots/counts,
-raw-value completeness and native SCT/compliance
-commitments. Restore validates a private destination before
+raw-value commitments, retained archive completeness and native SCT/compliance
+commitments. Restore rebuilds derived indexes in a private destination before
 publication. Live replacement uses atomic same-filesystem directory exchange.
 SDK state-sync requires the Shieldd extension exactly once; its boundary must
 match the restored SDK state.
+
+Native checkpoint receivers select `ArchiveCompleteness`: `FullHistory` is the
+normal export/restore contract and the Bankd state-sync requirement; the native
+`CurrentState` contract explicitly permits an absent optional historical prefix
+followed by complete retained blocks. Every export derives its claim from checked
+coverage. A node with gaps cannot export full history, and a supplier cannot
+weaken the receiver's requirement by relabeling a checkpoint.
+
+Canonical application values and ordering, permanent/volume participants, native
+SCT/compliance tree material and controlling metadata remain mandatory. They
+provide current execution and matched recovery without historical compact records.
+Compact-block records and per-height transaction logs serve historical queries,
+wallet scans, disclosures and historical witnesses; they are optional history,
+not substitutes for current native tree material or the host's recovery receipt.
+
+The local missing-prefix frontier contains the MMR count and peaks. Validation
+recomputes all retained block roots and appends them to this frontier, requiring
+exact equality with the NOMT-authenticated MMR at the checkpoint boundary. This
+supplies inclusion evidence for the complete retained suffix; arbitrary sparse
+history is unsupported. Derived indexes are rebuilt from these validated records
+and frontier nodes, preserving proofs for blocks appended after restore. Queries
+for missing history return archive-unavailable, never a successful empty page.
+Present corrupted records/frontiers fail validation. Native application owners
+also validate SCT/compliance roots with `validate_checkpoint_native_with_archive`.
+The ordinary host ABI and maintenance commands require full history.
+
+The archive checkpoint descriptor is a prototype format guard. Pre-archive data
+and checkpoints without this descriptor are rejected; use fresh prototype state
+or a compatible matched checkpoint. There is no pruning, history-removal export,
+remote storage, compression or host archive policy in this mechanism.
+
 
 `SHIELDD_STORAGE` supplies local bucket, cache, preallocation and worker options.
 Linux requires usable `io_uring`; containers use the

@@ -15,6 +15,7 @@ use std::{
 };
 
 const MANIFEST_KEY: &[u8] = b"\xffmanifest.v1";
+const ARCHIVE_COVERAGE_KEY: &[u8] = b"\xffarchive-coverage.v1";
 const RETIRED_PREFIX: &[u8] = b"\xffretired-volume.v1/";
 
 /// The RocksDB snapshot is dropped before its owning Arc. Its borrow is kept
@@ -117,10 +118,7 @@ impl Snapshot {
             .filter_map(|entry| match entry {
                 Err(error) => Some(Err(error.into())),
                 Ok((key, value)) => {
-                    if key.as_ref() == MANIFEST_KEY
-                        || key.starts_with(RETIRED_PREFIX)
-                        || matches!(key.first().copied(),Some(n) if n == Space::Native as u8)
-                    {
+                    if key.as_ref() == MANIFEST_KEY || key.as_ref() == ARCHIVE_COVERAGE_KEY || key.starts_with(RETIRED_PREFIX) || key.first().copied() == Some(crate::archive::LOCAL_SPACE) || matches!(key.first().copied(),Some(n) if n == Space::Archive as u8 || n == Space::Native as u8) {
                         return None;
                     }
                     Some((|| {
@@ -162,7 +160,277 @@ impl Snapshot {
             space != Space::Raw || crate::native::tree(key).is_none(),
             "native tree nodes require their owner's authentication scope"
         );
+        if space == Space::Raw && crate::archive::height(key).is_some() {
+            return self.archive_value(key);
+        }
         self.observed(space, key)
+    }
+    pub(crate) fn archive_state(&self) -> Result<Option<Vec<u8>>> {
+        self.observed(Space::Application, crate::archive::STATE_KEY)
+    }
+    /// Optional history is a missing prefix; the retained suffix is complete.
+    /// This local frontier is checked against authenticated MMR state on restore.
+    fn archive_frontier(&self) -> Result<crate::archive::Mmr> {
+        if self.virgin {
+            return Ok(crate::archive::Mmr::default());
+        }
+        self.raw
+            .snapshot
+            .get(ARCHIVE_COVERAGE_KEY)?
+            .as_deref()
+            .map(crate::archive::Mmr::decode)
+            .transpose()
+            .map(|m| m.unwrap_or_default())
+    }
+    pub(crate) fn archive_first_height(&self) -> Result<u64> {
+        Ok(self.archive_frontier()?.count)
+    }
+    fn require_archive(&self, height: u64) -> Result<()> {
+        if height < self.archive_first_height()? {
+            return Err(crate::ArchiveUnavailable(height).into());
+        }
+        Ok(())
+    }
+    fn archive_mmr(&self) -> Result<crate::archive::Mmr> {
+        self.archive_state()?
+            .as_deref()
+            .map(crate::archive::Mmr::decode)
+            .transpose()
+            .map(|s| s.unwrap_or_default())
+    }
+    fn local_archive(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        if self.virgin {
+            return Ok(None);
+        }
+        Ok(self.raw.snapshot.get(key)?)
+    }
+    fn archived_bytes(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        if self.virgin {
+            return Ok(None);
+        }
+        self.raw.get(Space::Archive, key)
+    }
+    pub fn archive_range_proof(
+        &self,
+        anchor: crate::StateProof,
+        query: &crate::ArchiveQuery,
+        budget: usize,
+    ) -> Result<crate::ArchiveRangeProof> {
+        ensure!(
+            self.manifest() == Some(&anchor.manifest),
+            "archive proof snapshot differs from NOMT boundary"
+        );
+        self.require_archive(query.height)?;
+        let bytes = self
+            .archive_state()?
+            .context("archive MMR state is missing")?;
+        crate::archive::proof::build_proof(
+            anchor,
+            query,
+            budget,
+            |key| self.local_archive(key),
+            |key| self.archived_bytes(key),
+            bytes,
+        )
+    }
+    fn archive_value(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let result = (|| {
+            let height = crate::archive::height(key).context("invalid archive key")?;
+            let mmr = self.archive_mmr()?;
+            if height >= mmr.count {
+                return Ok(None);
+            }
+            self.require_archive(height)?;
+            let block = crate::archive::descriptor(&mmr, height, |key| self.local_archive(key))?;
+            crate::archive::lookup(
+                &block,
+                key,
+                |key| self.local_archive(key),
+                |key| self.archived_bytes(key),
+            )
+        })();
+        if result.is_err() {
+            self.observations.poison();
+        }
+        result
+    }
+    fn archive_entries(
+        &self,
+        prefix: Vec<u8>,
+        lower: Vec<u8>,
+        end: Bound<Vec<u8>>,
+    ) -> BoxStream<'static, Result<(Vec<u8>, Vec<u8>)>> {
+        let view = self.clone();
+        futures::stream::unfold(
+            (
+                view,
+                prefix,
+                lower,
+                end,
+                None::<(crate::archive::Block, u64)>,
+                false,
+            ),
+            |(view, prefix, lower, end, position, done)| async move {
+                if done {
+                    return None;
+                }
+                let result =
+                    (|| -> Result<Option<((Vec<u8>, Vec<u8>), (crate::archive::Block, u64))>> {
+                        let (block, rank) = match position {
+                            Some(position) => position,
+                            None => {
+                                let height = crate::archive::height(&prefix)
+                                    .context("archive range requires a block prefix")?;
+                                let mmr = view.archive_mmr()?;
+                                if height >= mmr.count {
+                                    return Ok(None);
+                                }
+                                view.require_archive(height)?;
+                                let block = crate::archive::descriptor(&mmr, height, |key| {
+                                    view.local_archive(key)
+                                })?;
+                                let rank = crate::archive::lower_bound(
+                                    &block,
+                                    &lower,
+                                    |key| view.local_archive(key),
+                                    |key| view.archived_bytes(key),
+                                )?;
+                                (block, rank)
+                            }
+                        };
+                        if rank == block.count {
+                            return Ok(None);
+                        }
+                        let (key, bytes) = crate::archive::at(
+                            &block,
+                            rank,
+                            |key| view.local_archive(key),
+                            |key| view.archived_bytes(key),
+                        )?;
+                        if !key.starts_with(&prefix)
+                            || match &end {
+                                Bound::Included(end) => key > *end,
+                                Bound::Excluded(end) => key >= *end,
+                                Bound::Unbounded => false,
+                            }
+                        {
+                            return Ok(None);
+                        }
+                        Ok(Some(((key, bytes), (block, rank + 1))))
+                    })();
+                match result {
+                    Ok(Some((entry, position))) => {
+                        Some((Ok(entry), (view, prefix, lower, end, Some(position), false)))
+                    }
+                    Ok(None) => None,
+                    Err(error) => {
+                        view.observations.poison();
+                        Some((Err(error), (view, prefix, lower, end, None, true)))
+                    }
+                }
+            },
+        )
+        .boxed()
+    }
+    /// Scan original retained records, recompute every block root and MMR,
+    /// and optionally emit rebuilt proof nodes. Local indexes are never trusted
+    /// for export completeness. Memory is bounded by a single block.
+    fn walk_archive(
+        &self,
+        mut rebuilt: impl FnMut(Vec<(Vec<u8>, Vec<u8>)>) -> Result<()>,
+    ) -> Result<()> {
+        let bytes = self
+            .raw
+            .get(Space::Application, crate::archive::STATE_KEY)?
+            .context("committed archive MMR is missing")?;
+        let expected = crate::archive::Mmr::decode(&bytes)?;
+        ensure!(
+            self.manifest()
+                .is_some_and(|m| m.height.checked_add(1) == Some(expected.count)),
+            "archive MMR count differs from the materialized height"
+        );
+        let mut mmr = self.archive_frontier()?;
+        let first_height = mmr.count;
+        ensure!(
+            first_height <= expected.count,
+            "archive coverage exceeds boundary"
+        );
+        rebuilt(mmr.frontier_nodes())?;
+        let mut total = 0u64;
+        for height in first_height..expected.count {
+            let prefixes = [
+                "compactblock/metadata/",
+                "compactblock/payload/",
+                "compactblock/record/",
+                "compactblock/routing/",
+                "compactblock/actions/",
+                "compactblock/unrouted/",
+                "cometbft-data/transactions/",
+            ];
+            let mut records = Vec::new();
+            for prefix in prefixes {
+                let prefix =
+                    storage_key(Space::Archive, format!("{prefix}{height:020}").as_bytes());
+                for entry in self
+                    .raw
+                    .snapshot
+                    .iterator(IteratorMode::From(&prefix, Direction::Forward))
+                {
+                    let (key, value) = entry?;
+                    if !key.starts_with(&prefix) {
+                        break;
+                    }
+                    ensure!(
+                        crate::archive::height(&key[1..]) == Some(height),
+                        "malformed retained archive key"
+                    );
+                    records.push((key[1..].to_vec(), value.to_vec()));
+                }
+            }
+            records.sort_by(|a, b| a.0.cmp(&b.0));
+            let borrowed: Vec<_> = records
+                .iter()
+                .map(|(key, value)| (key.as_slice(), value.as_slice()))
+                .collect();
+            let (block, mut nodes) = crate::archive::build(height, &borrowed)?;
+            total = total
+                .checked_add(block.count)
+                .context("archive retained count overflow")?;
+            mmr.append(&block, |level, end, node| {
+                nodes.push((crate::archive::mmr_node_key(level, end), node.to_vec()))
+            })?;
+            rebuilt(nodes)?;
+        }
+        ensure!(
+            mmr == expected,
+            "retained archive roots/counts differ from the authenticated MMR"
+        );
+        let mut actual = 0u64;
+        for entry in self.raw.snapshot.iterator(IteratorMode::From(
+            &[Space::Archive as u8],
+            Direction::Forward,
+        )) {
+            let (key, _) = entry?;
+            if key.first().copied() != Some(Space::Archive as u8) {
+                break;
+            }
+            ensure!(
+                crate::archive::height(&key[1..])
+                    .is_some_and(|h| h >= first_height && h < expected.count),
+                "unknown archive key or record outside declared coverage"
+            );
+            actual = actual
+                .checked_add(1)
+                .context("archive raw count overflow")?;
+        }
+        ensure!(
+            actual == total,
+            "archive raw records are missing or contain extras"
+        );
+        Ok(())
+    }
+    pub(crate) fn validate_archive(&self) -> Result<()> {
+        self.walk_archive(|_| Ok(()))
     }
     pub(crate) fn reserve_ordering(&self, space: Space, key: &[u8]) -> Result<()> {
         let result = (|| {
@@ -241,6 +509,9 @@ impl Snapshot {
                 ))
             })
             .boxed();
+        }
+        if space == Space::Raw && crate::archive::height(&prefix).is_some() {
+            return self.archive_entries(prefix, lower, end);
         }
         let view = self.clone();
         futures::stream::unfold(
@@ -335,6 +606,50 @@ impl RawStore {
             virgin: false,
         })
     }
+    #[cfg(test)]
+    pub(crate) fn omit_archive_prefix_for_test(
+        &self,
+        first_height: u64,
+        frontier: &[u8],
+    ) -> Result<()> {
+        let mmr = crate::archive::Mmr::decode(frontier)?;
+        ensure!(mmr.count == first_height, "fixture frontier mismatch");
+        let mut batch = WriteBatch::default();
+        for entry in self.database.iterator(IteratorMode::Start) {
+            let (key, _) = entry?;
+            if key.first().copied() == Some(crate::archive::LOCAL_SPACE)
+                || (key.first().copied() == Some(Space::Archive as u8)
+                    && crate::archive::height(&key[1..]).is_some_and(|h| h < first_height))
+            {
+                batch.delete(key);
+            }
+        }
+        batch.put(ARCHIVE_COVERAGE_KEY, frontier);
+        self.database.write(batch)?;
+        self.rebuild_archive_indexes()
+    }
+    pub(crate) fn rebuild_archive_indexes(&self) -> Result<()> {
+        let snapshot = self.latest_snapshot()?;
+        snapshot.validate_archive()?;
+        // Recovery never trusts partially rebuilt indexes; restore publishes
+        // its private destination only after the final synced batch.
+        let mut clear = WriteBatch::default();
+        clear.delete_range(
+            &[crate::archive::LOCAL_SPACE],
+            &[crate::archive::LOCAL_SPACE + 1],
+        );
+        self.database.write(clear)?;
+        snapshot.walk_archive(|nodes| {
+            let mut batch = WriteBatch::default();
+            for (key, value) in nodes {
+                batch.put(key, value);
+            }
+            self.database.write(batch)?;
+            Ok(())
+        })?;
+        self.database.flush_wal(true)?;
+        Ok(())
+    }
     pub fn materialize(
         &self,
         effects: &Effects,
@@ -343,7 +658,15 @@ impl RawStore {
     ) -> Result<()> {
         effects.validate()?;
         manifest.validate()?;
+        let previous_archive = self
+            .database
+            .get(storage_key(Space::Application, crate::archive::STATE_KEY))?;
+        let archive_nodes =
+            crate::archive::materialize(manifest.height, effects, previous_archive.as_deref())?;
         let mut batch = WriteBatch::default();
+        for (key, value) in archive_nodes {
+            batch.put(key, value);
+        }
         for effect in &effects.0 {
             let key = storage_key(effect.space, &effect.key);
             match &effect.value {
@@ -446,7 +769,7 @@ pub fn ordered_effects(view: &Snapshot, mut effects: Effects) -> Result<Effects>
     let mut last_processed = Vec::new();
     let mut surviving = Vec::new();
     for effect in &effects.0 {
-        if matches!(effect.space, Space::Native) {
+        if matches!(effect.space, Space::Archive | Space::Native) {
             continue;
         }
         if previous_space != Some(effect.space) {
@@ -532,7 +855,7 @@ impl Effects {
         let mut changes = self
             .0
             .iter()
-            .filter(|e| !matches!(e.space, Space::Native))
+            .filter(|e| !matches!(e.space, Space::Archive | Space::Native))
             .map(|e| ParticipantChange {
                 key: application_key(e.space, &e.key),
                 value: committed_value(e.value.as_deref()),
@@ -713,6 +1036,8 @@ mod tests {
         height: u64,
     ) -> Manifest {
         let view = store.latest_snapshot().unwrap();
+        let mut effects = effects;
+        crate::archive::stage(&view, height, &mut effects).unwrap();
         let effects = ordered_effects(&view, effects).unwrap();
         forest
             .authenticate_reads(previous, view.observations())
@@ -783,7 +1108,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             rows.iter().map(|r| r.0.as_str()).collect::<Vec<_>>(),
-            vec!["a", "b", "c"]
+            vec!["a", "b", "c", "storage/archive/mmr.v1"]
         );
         assert!(view.get_raw("absent").await.unwrap().is_none());
         forest
@@ -807,7 +1132,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             rows.iter().map(|row| row.0.as_str()).collect::<Vec<_>>(),
-            vec!["a", "c"]
+            vec!["a", "c", "storage/archive/mmr.v1"]
         );
         assert!(forest
             .authenticate_reads(&manifest, forged.observations())

@@ -97,6 +97,7 @@ enum shieldd_method {
    * query with SCT state keys.
    */
   SHIELDD_METHOD_QUERY_KEY_VALUE = 1000005,
+  SHIELDD_METHOD_QUERY_ARCHIVE_RANGE = 1000014,
   /* Waits for the published matched boundary without taking the execution lock.
    * GetCommittedStateRequest -> GetCommittedStateResponse. */
   SHIELDD_METHOD_QUERY_PUBLISHED_BOUNDARY = 1000015,

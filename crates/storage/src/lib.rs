@@ -1,7 +1,10 @@
 //! Authenticated state contracts and owned execution overlays.
 mod action_handler;
+mod archive;
 #[cfg(feature = "persistent")]
 mod capacity;
+#[cfg(feature = "persistent")]
+mod checkpoint;
 mod commitment;
 mod component;
 mod delta;
@@ -24,8 +27,14 @@ mod test_support;
 mod write;
 
 pub use action_handler::ActionHandler;
+pub use archive::proof::{
+    ArchiveQuery, ArchiveRangeProof, VerifiedArchivePage, VerifiedArchiveRecord,
+};
+pub use archive::ArchiveUnavailable;
 #[cfg(feature = "persistent")]
 pub use capacity::{qualification_required, FileCapacity, ParticipantCapacity};
+#[cfg(feature = "persistent")]
+pub use checkpoint::ArchiveCompleteness;
 pub use commitment::{nullifier_key, nullifier_shard, volume_key, ValueCommitment, SPENT};
 pub use component::{BlockContext, Component};
 pub use delta::{ArcStateDeltaExt, Cache, StateDelta};
@@ -63,7 +72,7 @@ impl std::fmt::Display for ProtocolLimitExceeded {
 }
 impl std::error::Error for ProtocolLimitExceeded {}
 
-/// The digest of the complete native boundary, anchored in the SDK store.
+/// The digest of the complete native boundary, authenticated by its host.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Commitment(pub [u8; 32]);
 

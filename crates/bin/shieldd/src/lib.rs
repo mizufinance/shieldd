@@ -21,7 +21,10 @@ mod checkpoint;
 mod ffi;
 mod query;
 mod verification;
-pub use checkpoint::validate as validate_checkpoint_native;
+pub use checkpoint::{
+    validate as validate_checkpoint_native,
+    validate_with_archive as validate_checkpoint_native_with_archive,
+};
 mod service;
 pub use query::QueryService;
 
