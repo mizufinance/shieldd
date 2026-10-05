@@ -67,7 +67,7 @@ pub trait StateRead: Send + Sync {
     /// If there *is* a value at `key` but it is not of the type requested.
     fn object_get<T: Any + Send + Sync + Clone>(&self, key: &'static str) -> Option<T>;
 
-    /// Gets the [`TypeId`] of the object stored at `key` in the ephemeral key-object store, if any
+    /// Gets the [`TypeId`](std::any::TypeId) of the object stored at `key` in the ephemeral key-object store, if any
     /// is present.
     fn object_type(&self, key: &'static str) -> Option<std::any::TypeId>;
 

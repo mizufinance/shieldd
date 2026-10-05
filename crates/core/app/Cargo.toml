@@ -82,3 +82,6 @@ tempfile                         = { workspace = true }
 
 [dev-dependencies.shieldd-sdk-proof-params]
 workspace = true
+
+[target.'cfg(not(target_env = "msvc"))'.dev-dependencies]
+tikv-jemallocator = "0.6"

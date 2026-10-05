@@ -11,7 +11,8 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE = ROOT / "deployments/seccomp/nomt.json"
-TEST = "permanent_nullifiers::store::tests::unavailable_io_uring_creates_no_store"
+TEST = "store::tests::unavailable_io_uring_creates_no_store"
+REOPEN_TEST = "store::tests::decided_materialization_replays_after_forest_advanced_without_raw_batch"
 PHASE = "Docker availability"
 
 
@@ -26,7 +27,7 @@ def main():
     subprocess.run(["docker", "version", "--format", "{{.Server.Version}}"], check=True, timeout=15)
     if sys.argv[1:] == ["--check-runtime"]:
         return
-    phase("Select current SCT test binary")
+    phase("Select current storage test binary")
     command = ["cargo", "test", "--locked", "--profile", "ci", "--workspace",
                "--all-features", "--no-run", "--message-format=json"]
     binaries = []
@@ -34,13 +35,13 @@ def main():
         for line in build.stdout:
             event = json.loads(line)
             if (event.get("reason") == "compiler-artifact"
-                    and event["target"]["name"] == "shieldd_sdk_sct"
+                    and event["target"]["name"] == "shieldd_sdk_storage"
                     and event["profile"]["test"] and event.get("executable")):
                 binaries.append(Path(event["executable"]).resolve())
         if build.wait():
             raise SystemExit("container storage test compilation failed")
     if len(binaries) != 1:
-        raise SystemExit("expected exactly one current SCT test binary")
+        raise SystemExit("expected exactly one current storage test binary")
     binary = "/workspace/" + str(binaries[0].relative_to(ROOT))
     phase("Pull container runtime")
     subprocess.run(["docker", "pull", "ubuntu:24.04"], check=True, timeout=180)
@@ -62,18 +63,21 @@ def main():
         if list_only:
             cmd += ["--list"]
         try:
-            result = subprocess.run(cmd, check=True, timeout=180, text=True, stdout=subprocess.PIPE)
+            result = subprocess.run(cmd, timeout=180, text=True, stdout=subprocess.PIPE)
+            print(result.stdout, flush=True)
+            result.check_returncode()
         finally:
             subprocess.run(["docker", "rm", "--force", name], timeout=15,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if list_only:
-            if result.stdout.count(f"{TEST}: test") != 1:
-                raise SystemExit("container must discover exactly one selected refusal test")
+            if result.stdout.count(f"{test}: test") != 1:
+                raise SystemExit(f"container must discover exactly one selected test: {test}")
         elif "1 passed; 0 failed" not in result.stdout:
             raise SystemExit("container storage gate must execute its selected test")
         phase(f"Passed {label}")
 
     run(PROFILE, TEST, list_only=True)
+    run(PROFILE, REOPEN_TEST, list_only=True)
     with tempfile.TemporaryDirectory(prefix="shieldd-seccomp-") as directory:
         setup_only = json.loads(PROFILE.read_text())
         rule = setup_only["syscalls"][-1]
@@ -87,7 +91,7 @@ def main():
         path = Path(directory) / "setup-only.json"
         path.write_text(json.dumps(setup_only))
         run(path, TEST, denied="io_uring_enter")
-    run(PROFILE, "permanent_nullifiers::store::tests::permanent_set_matches_reference_and_reopens")
+    run(PROFILE, REOPEN_TEST)
 
 
 if __name__ == "__main__":

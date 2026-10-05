@@ -6614,6 +6614,7 @@ dependencies = [
  "shieldd-sdk-txhash",
  "tempfile",
  "tendermint",
+ "tikv-jemallocator",
  "tokio",
  "tracing",
 ]
