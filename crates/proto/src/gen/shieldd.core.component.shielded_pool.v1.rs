@@ -302,31 +302,49 @@ impl ::prost::Name for ZkNoteSeizureProof {
         "/shieldd.core.component.shielded_pool.v1.ZKNoteSeizureProof".into()
     }
 }
-/// Immutable facts signed by the asset's seizure authority.
+/// One canonical nullifier and its freshly blinded complete note value.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SeizureEntry {
+    #[prost(message, optional, tag = "1")]
+    pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
+    #[prost(message, optional, tag = "2")]
+    pub value_commitment: ::core::option::Option<
+        super::super::super::asset::v1::BalanceCommitment,
+    >,
+}
+impl ::prost::Name for SeizureEntry {
+    const NAME: &'static str = "SeizureEntry";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.SeizureEntry".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.SeizureEntry".into()
+    }
+}
+/// Immutable total-valued batch signed by the asset's seizure authority.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteSeizureAuthorizationBody {
     #[prost(string, tag = "1")]
     pub chain_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
-    pub note_commitment: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    #[prost(message, optional, tag = "3")]
-    pub nullifier: ::core::option::Option<super::super::sct::v1::Nullifier>,
-    #[prost(message, optional, tag = "4")]
     pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
-    #[prost(message, optional, tag = "5")]
+    #[prost(message, optional, tag = "3")]
     pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-    #[prost(message, optional, tag = "6")]
-    pub amount: ::core::option::Option<super::super::super::num::v1::Amount>,
-    #[prost(uint64, tag = "7")]
+    #[prost(uint64, tag = "4")]
     pub freeze_generation: u64,
-    #[prost(uint64, tag = "8")]
+    #[prost(uint64, tag = "5")]
     pub frozen_since_height: u64,
-    #[prost(message, optional, tag = "9")]
+    #[prost(message, optional, tag = "6")]
     pub withdrawal: ::core::option::Option<HostWithdrawal>,
-    #[prost(uint64, tag = "11")]
+    #[prost(uint64, tag = "7")]
     pub expiry_height: u64,
+    #[prost(bytes = "vec", tag = "8")]
+    pub registry_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, repeated, tag = "9")]
+    pub entries: ::prost::alloc::vec::Vec<SeizureEntry>,
+    #[prost(bytes = "vec", tag = "10")]
+    pub aggregate_blinding: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for NoteSeizureAuthorizationBody {
     const NAME: &'static str = "NoteSeizureAuthorizationBody";
@@ -338,76 +356,9 @@ impl ::prost::Name for NoteSeizureAuthorizationBody {
         "/shieldd.core.component.shielded_pool.v1.NoteSeizureAuthorizationBody".into()
     }
 }
-/// Canonical metadata for a future ACP-gated release of one recovery capsule.
+/// Ordinary individual proofs share the batch's admitted anchor.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CapsuleReleaseRequest {
-    #[prost(string, tag = "1")]
-    pub chain_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub ring_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub policy_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub permission: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub resource: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "6")]
-    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "7")]
-    pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-    #[prost(message, optional, tag = "8")]
-    pub address: ::core::option::Option<super::super::super::keys::v1::Address>,
-    #[prost(bytes = "vec", tag = "15")]
-    pub payload_key: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "16")]
-    pub audit_epoch: u64,
-    #[prost(message, optional, tag = "10")]
-    pub note_commitment: ::core::option::Option<
-        super::super::super::super::crypto::tct::v1::StateCommitment,
-    >,
-    #[prost(bytes = "vec", tag = "11")]
-    pub recovery_commitment: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "12")]
-    pub capsule_epk: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "13")]
-    pub authority_instruction_commitment: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "14")]
-    pub expiry_height: u64,
-}
-impl ::prost::Name for CapsuleReleaseRequest {
-    const NAME: &'static str = "CapsuleReleaseRequest";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.CapsuleReleaseRequest".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.CapsuleReleaseRequest".into()
-    }
-}
-/// A capsule-specific point and proof returned by a future Orbis release API.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CapsuleReleaseEvidence {
-    #[prost(bytes = "vec", tag = "1")]
-    pub release_id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "2")]
-    pub recovered_point: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "3")]
-    pub proof: ::core::option::Option<super::super::compliance::v1::DleqProof>,
-}
-impl ::prost::Name for CapsuleReleaseEvidence {
-    const NAME: &'static str = "CapsuleReleaseEvidence";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.CapsuleReleaseEvidence".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.CapsuleReleaseEvidence".into()
-    }
-}
-/// Complete evidence needed to seize one note. It is submitted through the
-/// privileged host execution boundary rather than as a user transaction.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoteSeizure {
+pub struct NoteSeizureBatch {
     #[prost(message, optional, tag = "1")]
     pub authorization: ::core::option::Option<NoteSeizureAuthorizationBody>,
     #[prost(message, optional, tag = "2")]
@@ -418,23 +369,17 @@ pub struct NoteSeizure {
     pub anchor: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::MerkleRoot,
     >,
-    #[prost(message, optional, tag = "6")]
-    pub recovery_capsule: ::core::option::Option<RecoveryCapsule>,
-    #[prost(bytes = "vec", tag = "8")]
-    pub rnk_commitment: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "12")]
-    pub proof: ::core::option::Option<ZkNoteSeizureProof>,
-    #[prost(message, optional, tag = "15")]
-    pub capsule_release: ::core::option::Option<CapsuleReleaseEvidence>,
+    #[prost(message, repeated, tag = "4")]
+    pub proofs: ::prost::alloc::vec::Vec<ZkNoteSeizureProof>,
 }
-impl ::prost::Name for NoteSeizure {
-    const NAME: &'static str = "NoteSeizure";
+impl ::prost::Name for NoteSeizureBatch {
+    const NAME: &'static str = "NoteSeizureBatch";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.NoteSeizure".into()
+        "shieldd.core.component.shielded_pool.v1.NoteSeizureBatch".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.NoteSeizure".into()
+        "/shieldd.core.component.shielded_pool.v1.NoteSeizureBatch".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

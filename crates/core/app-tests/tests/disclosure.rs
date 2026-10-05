@@ -207,7 +207,8 @@ async fn accepted_payment_supports_opening_and_private_disclosure() -> Result<()
         &mut OsRng,
         note.clone(),
         client
-            .position(note.commit())
+            .positions(note.commit())
+            .next()
             .context("missing input position")?,
     );
     let output = ShieldedOutputPlan::new(

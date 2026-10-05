@@ -1,7 +1,6 @@
 use std::fmt::Display;
 use std::sync::Arc;
 
-use hash_hasher::HashedMap;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_crypto::Fq;
 use shieldd_sdk_proto::{shieldd::crypto::tct::v1 as pb, DomainType};
@@ -18,14 +17,14 @@ pub(crate) mod block;
 /// This is one epoch in a [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
 pub struct Builder {
-    index: HashedMap<StateCommitment, index::within::Epoch>,
+    index: std::collections::BTreeMap<u32, StateCommitment>,
     inner: Arc<frontier::Top<frontier::Tier<frontier::Item>>>,
 }
 
 impl Default for Builder {
     fn default() -> Self {
         Self {
-            index: HashedMap::default(),
+            index: Default::default(),
             inner: Arc::new(frontier::Top::new(frontier::TrackForgotten::No)),
         }
     }
@@ -34,7 +33,7 @@ impl Default for Builder {
 /// A finalized epoch builder, ready to be inserted into a [`Tree`].
 #[derive(Derivative, Debug, Clone, Serialize, Deserialize)]
 pub struct Finalized {
-    pub(super) index: HashedMap<StateCommitment, index::within::Epoch>,
+    pub(super) index: std::collections::BTreeMap<u32, StateCommitment>,
     pub(super) inner: Insert<complete::Top<complete::Tier<complete::Item>>>,
 }
 
@@ -61,7 +60,7 @@ impl Finalized {
 impl From<Root> for Finalized {
     fn from(root: Root) -> Self {
         Self {
-            index: HashedMap::default(),
+            index: Default::default(),
             inner: Insert::Hash(root.0),
         }
     }
@@ -157,8 +156,7 @@ impl Builder {
 
         // Get the position of the insertion, if it would succeed
         let position = u32::try_from(self.inner.position().ok_or(InsertError::Full)?)
-            .expect("position of epoch is never greater than `u32::MAX`")
-            .into();
+            .expect("position of epoch is never greater than `u32::MAX`");
 
         // Try to insert the commitment into the latest block
         Arc::make_mut(&mut self.inner)
@@ -181,15 +179,8 @@ impl Builder {
                 Ok(())
             })?;
 
-        // Keep track of the position of this just-inserted commitment in the index, if it was
-        // slated to be kept
         if let Witness::Keep = witness {
-            if let Some(replaced) = self.index.insert(commitment, position) {
-                // This case is handled for completeness, but should not happen in
-                // practice because commitments should be unique
-                let forgotten = Arc::make_mut(&mut self.inner).forget(replaced);
-                debug_assert!(forgotten);
-            }
+            self.index.insert(u32::from(position), commitment);
         }
 
         Ok(())
@@ -237,19 +228,12 @@ impl Builder {
             .insert(inner)
             .expect("inserting a block must succeed because epoch is not full");
 
-        // Add the index of all commitments in the block to the epoch index
-        for (c, index::within::Block { commitment }) in index {
-            // If any commitment is repeated, forget the previous one within the tree, since it is
-            // now inaccessible
-            if let Some(replaced) = self
-                .index
-                .insert(c, index::within::Epoch { block, commitment })
-            {
-                // This case is handled for completeness, but should not happen in practice because
-                // commitments should be unique
-                let forgotten = Arc::make_mut(&mut self.inner).forget(replaced);
-                debug_assert!(forgotten);
-            }
+        for (offset, c) in index {
+            let position = index::within::Epoch {
+                block,
+                commitment: offset.into(),
+            };
+            self.index.insert(u32::from(position), c);
         }
 
         Ok(block_root)

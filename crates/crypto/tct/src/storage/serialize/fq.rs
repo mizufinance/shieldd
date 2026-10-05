@@ -23,6 +23,22 @@ impl<'de> Visitor<'de> for FqVisitor {
         formatter.write_str("a 32-byte array representing a field element")
     }
 
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut bytes = [0u8; 32];
+        for (index, byte) in bytes.iter_mut().enumerate() {
+            *byte = seq
+                .next_element()?
+                .ok_or_else(|| serde::de::Error::invalid_length(index, &self))?;
+        }
+        if seq.next_element::<u8>()?.is_some() {
+            return Err(serde::de::Error::invalid_length(33, &self));
+        }
+        self.visit_bytes(&bytes)
+    }
+
     fn visit_bytes<E>(self, bytes: &[u8]) -> Result<Self::Value, E>
     where
         E: serde::de::Error,

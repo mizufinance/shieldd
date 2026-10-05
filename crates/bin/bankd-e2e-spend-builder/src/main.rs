@@ -256,12 +256,12 @@ async fn build_spend_tx(
     send_amount: Amount,
     recipient: Address,
 ) -> Result<BuiltTx> {
-    let input_note = client
+    let (position, input_note) = client
         .notes
-        .values()
-        .filter(|note| !client.spent_note(&note.commit()))
-        .filter(|note| note.amount() >= send_amount)
-        .cloned()
+        .iter()
+        .filter(|(position, _)| !client.spent_note(position))
+        .filter(|(_, note)| note.amount() >= send_amount)
+        .map(|(position, note)| (*position, note.clone()))
         .next()
         .ok_or_else(|| {
             anyhow!(
@@ -270,9 +270,6 @@ async fn build_spend_tx(
             )
         })?;
 
-    let position = client
-        .position(input_note.commit())
-        .ok_or_else(|| anyhow!("input note commitment was unknown to mock client"))?;
     let spend = ShieldedInputPlan::new(&mut OsRng, input_note.clone(), position);
     let change_amount = input_note
         .amount()

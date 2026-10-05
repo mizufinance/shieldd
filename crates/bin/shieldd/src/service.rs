@@ -18,7 +18,7 @@ use shieldd_sdk_proto::{
         FreezeRequest, FreezeResponse, GetCommittedStateRequest, GetCommittedStateResponse,
         HostWithdrawal as ProtoHostWithdrawal, InitGenesisRequest, InitGenesisResponse,
         MaterializeRequest, MaterializeResponse, RecoverDecidedRequest, RecoverDecidedResponse,
-        SeizeNoteRequest, SeizeNoteResponse,
+        SeizeNotesRequest, SeizeNotesResponse,
     },
 };
 use shieldd_sdk_storage::Storage;
@@ -305,16 +305,16 @@ impl ExecutionService {
         Ok(response.response)
     }
 
-    pub async fn seize_note(
+    pub async fn seize_notes(
         &mut self,
-        request: SeizeNoteRequest,
-    ) -> std::result::Result<SeizeNoteResponse, ServiceError> {
+        request: SeizeNotesRequest,
+    ) -> std::result::Result<SeizeNotesResponse, ServiceError> {
         let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let result = execution
-            .seize_note(request)
+            .seize_notes(request)
             .await
             .map_err(ServiceError::invalid_argument)?;
-        Ok(SeizeNoteResponse {
+        Ok(SeizeNotesResponse {
             source: Some(result.source),
             replayed: result.replayed,
             withdrawal: Some(encode_withdrawal(result.withdrawal)),

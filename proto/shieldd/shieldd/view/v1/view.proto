@@ -71,7 +71,6 @@ service ViewService {
   rpc Balances(BalancesRequest) returns (stream BalancesResponse);
 
   // Query for a note by its note commitment, optionally waiting until the note is detected.
-  rpc NoteByCommitment(NoteByCommitmentRequest) returns (NoteByCommitmentResponse);
 
   // Query for whether a nullifier has been spent, optionally waiting until it is spent.
   rpc NullifierStatus(NullifierStatusRequest) returns (NullifierStatusResponse);
@@ -430,16 +429,6 @@ message DiscoveryParametersRequest {}
 
 message DiscoveryParametersResponse {
   core.component.shielded_pool.v1.DiscoveryParameters parameters = 1;
-}
-
-message NoteByCommitmentRequest {
-  crypto.tct.v1.StateCommitment note_commitment = 2;
-  // If set to true, waits to return until the requested note is detected.
-  bool await_detection = 3;
-}
-
-message NoteByCommitmentResponse {
-  SpendableNoteRecord spendable_note = 1;
 }
 
 message NullifierStatusRequest {

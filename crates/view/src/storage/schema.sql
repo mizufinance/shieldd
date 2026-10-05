@@ -53,7 +53,7 @@ CREATE TABLE sct_hashes (
 
 -- all the commitments stored in the sct
 CREATE TABLE sct_commitments (
-    position BIGINT NOT NULL,
+    position BIGINT PRIMARY KEY NOT NULL,
     commitment BLOB NOT NULL
 );
 
@@ -94,11 +94,11 @@ CREATE INDEX notes_idx ON notes (
 -- Minimal data required for balance tracking
 -- Meant to represent notes which have been accepted into the note set
 CREATE TABLE spendable_notes (
-    note_commitment         BLOB PRIMARY KEY NOT NULL,
+    note_commitment         BLOB NOT NULL,
     -- derived with the asset's effective wallet or compliance nullifier key
-    nullifier               BLOB NOT NULL,
+    nullifier               BLOB UNIQUE NOT NULL,
     -- the position of the note in the state commitment tree
-    position                BIGINT NOT NULL,
+    position                BIGINT PRIMARY KEY NOT NULL,
     -- the height at which the note was created
     height_created          BIGINT NOT NULL,
     -- precomputed decryption of the diversifier
@@ -111,8 +111,8 @@ CREATE TABLE spendable_notes (
     tx_hash                 BLOB
 );
 
-CREATE INDEX spendable_notes_by_nullifier_idx ON spendable_notes (
-    nullifier
+CREATE INDEX spendable_notes_by_commitment_idx ON spendable_notes (
+    note_commitment
 );
 
 CREATE INDEX spendable_notes_by_source_idx ON spendable_notes (

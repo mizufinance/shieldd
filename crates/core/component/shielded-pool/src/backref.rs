@@ -191,7 +191,7 @@ mod tests {
             let mut sct = tct::Tree::new();
 
             sct.insert(tct::Witness::Keep, note_commitment).unwrap();
-            let state_commitment_proof = sct.witness(note_commitment).unwrap();
+            let state_commitment_proof = sct.witness(0u64.into()).unwrap();
             let nullifier = Nullifier::derive(&nk, state_commitment_proof.position(), &note_commitment);
 
             let backref = Backref::new(note_commitment);

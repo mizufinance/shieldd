@@ -18,14 +18,14 @@ pub(crate) use epoch::block;
 /// [`crate::StateCommitment`]s.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tree {
-    index: HashedMap<StateCommitment, index::within::Tree>,
+    index: imbl::OrdMap<u64, StateCommitment>,
     inner: Arc<frontier::Top<frontier::Tier<frontier::Tier<frontier::Item>>>>,
 }
 
 impl Default for Tree {
     fn default() -> Self {
         Self {
-            index: HashedMap::default(),
+            index: Default::default(),
             inner: Arc::new(frontier::Top::new(frontier::TrackForgotten::Yes)),
         }
     }
@@ -153,7 +153,7 @@ impl Tree {
 
     // Assemble a tree from its two parts without checking any invariants.
     pub(crate) fn unchecked_from_parts(
-        index: HashedMap<StateCommitment, index::within::Tree>,
+        index: imbl::OrdMap<u64, StateCommitment>,
         inner: frontier::Top<frontier::Tier<frontier::Tier<frontier::Item>>>,
     ) -> Self {
         Self {
@@ -245,15 +245,8 @@ impl Tree {
                 error!(%error); error
             })?;
 
-        // Keep track of the position of this just-inserted commitment in the index, if it was
-        // slated to be kept
         if let Witness::Keep = witness {
-            if let Some(replaced) = self.index.insert(commitment, position) {
-                // This case is handled for completeness, but should not happen in
-                // practice because commitments should be unique
-                let forgotten = Arc::make_mut(&mut self.inner).forget(replaced);
-                debug_assert!(forgotten);
-            }
+            self.index.insert(u64::from(position), commitment);
         }
 
         let position = Position(position);
@@ -261,65 +254,39 @@ impl Tree {
         Ok(position)
     }
 
-    /// Get a [`Proof`] of inclusion for the commitment at this index in the tree.
-    ///
-    /// If the index is not witnessed in this tree, return `None`.
+    /// Get an inclusion proof for one retained occurrence at its accepted position.
     #[instrument(level = "trace", skip(self))]
-    pub fn witness(&self, commitment: StateCommitment) -> Option<Proof> {
-        let &index = if let Some(index) = self.index.get(&commitment) {
-            index
-        } else {
-            trace!("not witnessed");
-            return None;
-        };
-
-        let (auth_path, leaf) = match self.inner.witness(index) {
-            Some(witness) => witness,
-            None => panic!(
-                "commitment `{commitment:?}` at position `{index:?}` must be witnessed because it is indexed"
-            ),
-        };
-
+    pub fn witness(&self, position: Position) -> Option<Proof> {
+        let commitment = *self.index.get(&u64::from(position))?;
+        let index = position.0;
+        let (auth_path, leaf) = self
+            .inner
+            .witness(index)
+            .expect("indexed position must have a retained witness");
         debug_assert_eq!(leaf, Hash::of(commitment));
-
-        let proof = Proof(crate::internal::proof::Proof {
+        Some(Proof(crate::internal::proof::Proof {
             position: index.into(),
             auth_path,
             leaf: commitment,
-        });
-
-        trace!(?index, ?proof);
-        Some(proof)
+        }))
     }
 
-    /// Forget about the witness for the given [`crate::StateCommitment`].
-    ///
-    /// Returns `true` if the commitment was previously witnessed (and now is forgotten), and `false` if
-    /// it was not witnessed.
+    /// Forget exactly one retained occurrence without affecting equal commitments.
     #[instrument(level = "trace", skip(self))]
-    pub fn forget(&mut self, commitment: StateCommitment) -> bool {
-        let mut forgotten = false;
-
-        if let Some(&within_epoch) = self.index.get(&commitment) {
-            // We forgot something
-            forgotten = true;
-            // Forget the index for this element in the tree
-            let forgotten = Arc::make_mut(&mut self.inner).forget(within_epoch);
-            debug_assert!(forgotten);
-            // Remove this entry from the index
-            self.index.remove(&commitment);
+    pub fn forget(&mut self, position: Position) -> bool {
+        if self.index.remove(&u64::from(position)).is_none() {
+            return false;
         }
-
-        trace!(?forgotten);
-        forgotten
+        let forgotten = Arc::make_mut(&mut self.inner).forget(position.0);
+        debug_assert!(forgotten);
+        true
     }
 
-    /// Get the position in this [`Tree`] of the given [`crate::StateCommitment`], if it is currently witnessed.
-    #[instrument(level = "trace", skip(self))]
-    pub fn position_of(&self, commitment: StateCommitment) -> Option<Position> {
-        let position = self.index.get(&commitment).map(|index| Position(*index));
-        trace!(?position);
-        position
+    /// Enumerate all retained occurrences of shared commitment contents.
+    pub fn positions(&self, commitment: StateCommitment) -> impl Iterator<Item = Position> + '_ {
+        self.index.iter().filter_map(move |(position, cm)| {
+            (*cm == commitment).then_some(Position::from(*position))
+        })
     }
 
     /// Add a new block all at once to the most recently inserted epoch of this [`Tree`], returning
@@ -451,25 +418,13 @@ impl Tree {
             .expect("insertion succeeded so position must exist")
             .into();
 
-        // Add the index of all commitments in the block to the global index
-        for (c, index::within::Block { commitment }) in
-            index.take().expect("index option should be Some")
-        {
-            // If any commitment is repeated, forget the previous one within the tree, since it is
-            // now inaccessible
-            if let Some(replaced) = self.index.insert(
-                c,
-                index::within::Tree {
-                    epoch,
-                    block,
-                    commitment,
-                },
-            ) {
-                // This case is handled for completeness, but should not happen in practice because
-                // commitments should be unique
-                let forgotten = Arc::make_mut(&mut self.inner).forget(replaced);
-                debug_assert!(forgotten);
-            }
+        for (offset, c) in index.take().expect("index option should be Some") {
+            let position = index::within::Tree {
+                epoch,
+                block,
+                commitment: offset.into(),
+            };
+            self.index.insert(u64::from(position), c);
         }
 
         Ok(block_root)
@@ -604,23 +559,16 @@ impl Tree {
             .insert(inner)
             .expect("inserting an epoch must succeed when tree is not full");
 
-        // Add the index of all commitments in the epoch to the global tree index
-        for (c, index::within::Epoch { block, commitment }) in index {
-            // If any commitment is repeated, forget the previous one within the tree, since it is
-            // now inaccessible
-            if let Some(replaced) = self.index.insert(
-                c,
-                index::within::Tree {
+        for (offset, c) in index {
+            let index::within::Epoch { block, commitment } = offset.into();
+            self.index.insert(
+                u64::from(index::within::Tree {
                     epoch,
                     block,
                     commitment,
-                },
-            ) {
-                // This case is handled for completeness, but should not happen in practice because
-                // commitments should be unique
-                let forgotten = Arc::make_mut(&mut self.inner).forget(replaced);
-                debug_assert!(forgotten);
-            }
+                }),
+                c,
+            );
         }
 
         Ok(epoch_root)
@@ -691,8 +639,7 @@ impl Tree {
     }
 
     /// The count of how many commitments have been forgotten explicitly using
-    /// [`forget`](Tree::forget), or implicitly by being overwritten by a subsequent insertion of
-    /// the _same_ commitment (this case is rare in practice).
+    /// [`forget`](Tree::forget). Equal commitments retain independent occurrences.
     ///
     /// This does not include commitments that were inserted using [`Witness::Forget`], only those
     /// forgotten subsequent to their insertion.
@@ -745,7 +692,7 @@ impl Tree {
     pub fn commitments_unordered(
         &self,
     ) -> impl Iterator<Item = (StateCommitment, Position)> + Send + Sync + '_ {
-        self.index.iter().map(|(c, p)| (*c, Position(*p)))
+        self.index.iter().map(|(p, c)| (*c, Position::from(*p)))
     }
 
     /// Get a dynamic representation of the internal structure of the tree, which can be traversed
@@ -861,7 +808,7 @@ impl Tree {
 
 impl From<frontier::Top<frontier::Tier<frontier::Tier<frontier::Item>>>> for Tree {
     fn from(inner: frontier::Top<frontier::Tier<frontier::Tier<frontier::Item>>>) -> Self {
-        let mut index = HashedMap::default();
+        let mut index = imbl::OrdMap::new();
 
         // Traverse the tree to reconstruct the index
         let mut stack = vec![Node::root(&inner)];
@@ -872,7 +819,7 @@ impl From<frontier::Top<frontier::Tier<frontier::Tier<frontier::Item>>>> for Tre
                 commitment: Some(commitment),
             } = node.kind()
             {
-                index.insert(commitment, node.position().0);
+                index.insert(u64::from(node.position()), commitment);
             }
         }
 

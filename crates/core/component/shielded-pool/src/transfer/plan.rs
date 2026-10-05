@@ -146,6 +146,11 @@ impl TransferPlan {
         .then(|| self.volume_accumulator.prior_commitment())
     }
 
+    pub fn accumulator_prior_position(&self) -> Option<tct::Position> {
+        self.accumulator_prior_commitment()
+            .map(|_| self.volume_accumulator.prior_position().into())
+    }
+
     fn is_disclosed_to_issuer(&self) -> bool {
         self.proof_context == TransferProofContext::Ordinary
             && self.compliance.witness.asset.is_regulated
@@ -758,7 +763,7 @@ mod tests {
         let mut sct = tct::Tree::new();
         sct.insert(tct::Witness::Keep, note.commit())
             .expect("insert transfer input note");
-        let state_commitment_proof = sct.witness(note.commit()).expect("input note witness");
+        let state_commitment_proof = sct.witness(0u64.into()).expect("input note witness");
         let spend = ShieldedInputPlan::new(&mut rng, note, state_commitment_proof.position());
 
         let output = ShieldedOutputPlan::new(

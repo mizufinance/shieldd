@@ -14,7 +14,7 @@ The [catalogue](../crates/crypto/circuits/src/catalogue.rs) fixes seven relation
 | Transfer | Two-input/two-output ownership, balance, policy, volume, encryption and routing | [transfer.rs](../crates/crypto/circuits/src/transfer.rs) |
 | Reshape 1-to-8 and 8-to-1 | Owner-preserving split/merge, conservation and regulated Active status | [reshape.rs](../crates/crypto/circuits/src/reshape.rs) |
 | Withdrawal | Spend validity, destination/value binding, change, sender encryption and volume policy | [withdrawal.rs](../crates/crypto/circuits/src/withdrawal.rs) |
-| Seizure | Accepted note membership, recovered opening, owner/RNK and canonical nullifier | [seizure.rs](../crates/crypto/circuits/src/seizure.rs) |
+| Seizure | Private whole-note membership/opening, positional RNK nullifier and blinded value | [seizure.rs](../crates/crypto/circuits/src/seizure.rs) |
 | Disclosure, one-note and 32-slot | Selected commitment openings, revealed fields, exact predicate results and selected-output totals | [disclosure.rs](../crates/crypto/circuits/src/disclosure.rs) |
 
 Each relation exposes one public digest and constrains its statement opening.
@@ -85,9 +85,12 @@ identifier; [routing](routing.md) defines selector semantics and privacy limits.
 [recovery capsules](../crates/crypto/circuits/src/recovery.rs) in Transfer,
 NoteReshape and withdrawal change. The relation constrains EPK/DH, encrypted
 amount and blinding, confirmation and capsule commitment under the selected
-asset payload key or unregulated sink. A seizure proof checks the recovered
-plaintext against the note and its owner/RNK opening. Release authorization and
-DLEQ validation are enforced outside that circuit by the [seizure host path](compliance/enforcement-and-seizure.md).
+asset payload key or unregulated sink. A seizure proof privately reconstructs the
+complete nonzero note, derives its positional RNK nullifier and binds the same
+amount to a fresh value commitment through the existing balance relation.
+The [seizure host path](compliance/enforcement-and-seizure.md) checks the exact
+signed batch and total opening. Recovery authorization and confidential matching
+remain external to consensus verification.
 
 ## Acceptance and tests
 

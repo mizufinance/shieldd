@@ -1,90 +1,127 @@
+use crate::{
+    public_input_hash::note_seizure_statement_hash_from_public, HostWithdrawal, RecoveryCommitment,
+};
 use anyhow::{ensure, Context, Result};
-use group::{Group, GroupEncoding};
 use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
-use shieldd_sdk_asset::{asset, Value};
-use shieldd_sdk_compliance::structs::MAX_CERTIFICATE_TEXT_BYTES;
-use shieldd_sdk_compliance::{verify_dleq, DleqProof};
-use shieldd_sdk_crypto::{Fq, Fr, SubgroupPoint};
+use shieldd_sdk_asset::{asset, balance::Commitment, Value};
+use shieldd_sdk_crypto::{encoding, Fq, Fr};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 
-use crate::{
-    public_input_hash::note_seizure_statement_hash_from_public, HostWithdrawal, RecoveryCapsule,
-    RecoveryCommitment,
-};
-
 pub const NOTE_SEIZURE_PROOF_LABEL: &str = "note_seizure";
 pub const NOTE_SEIZURE_STATEMENT_FIELD_COUNT: usize =
     shieldd_sdk_circuits::seizure::STATEMENT_FIELDS;
 pub const MAX_NOTE_SEIZURE_CHAIN_ID_BYTES: usize = 128;
-const NOTE_SEIZURE_AUTHORIZATION_DOMAIN: &[u8] = b"shieldd.note_seizure.authorization";
-const NOTE_SEIZURE_AUTHORIZATION_COMMITMENT_DOMAIN: &[u8] =
-    b"shieldd.note_seizure.authorization_commitment";
-const CAPSULE_RELEASE_ID_DOMAIN: &[u8] = b"shieldd.capsule_release.request.v2";
+pub const MAX_SEIZURE_ENTRIES: usize = shieldd_sdk_compliance::MAX_SEIZED_NULLIFIERS;
+pub const MAX_SEIZURE_REQUEST_BYTES: usize = 16 * 1024 * 1024;
+const AUTHORIZATION_DOMAIN: &[u8] = b"shieldd.seizure_batch.authorization.v1";
+const AUTHORIZATION_COMMITMENT_DOMAIN: &[u8] = b"shieldd.seizure_batch.commitment.v1";
 
-/// Immutable facts approved by the asset's seizure authority.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SeizureEntry {
+    pub nullifier: Nullifier,
+    pub value_commitment: Commitment,
+}
+impl DomainType for SeizureEntry {
+    type Proto = pb::SeizureEntry;
+}
+impl From<SeizureEntry> for pb::SeizureEntry {
+    fn from(v: SeizureEntry) -> Self {
+        Self {
+            nullifier: Some(v.nullifier.into()),
+            value_commitment: Some(v.value_commitment.into()),
+        }
+    }
+}
+impl TryFrom<pb::SeizureEntry> for SeizureEntry {
+    type Error = anyhow::Error;
+    fn try_from(v: pb::SeizureEntry) -> Result<Self> {
+        Ok(Self {
+            nullifier: v
+                .nullifier
+                .context("missing seizure nullifier")?
+                .try_into()?,
+            value_commitment: v
+                .value_commitment
+                .context("missing seizure value commitment")?
+                .try_into()?,
+        })
+    }
+}
+
+/// Only the aggregate value is public. Entries are ordered by canonical nullifier bytes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NoteSeizureAuthorizationBody {
     pub chain_id: String,
-    pub note_commitment: tct::StateCommitment,
-    pub nullifier: Nullifier,
     pub address: Address,
     pub asset_id: asset::Id,
-    pub amount: Amount,
     pub freeze_generation: u64,
     pub frozen_since_height: u64,
     pub withdrawal: HostWithdrawal,
     pub expiry_height: u64,
+    pub registry_id: [u8; 32],
+    pub entries: Vec<SeizureEntry>,
+    pub aggregate_blinding: Fr,
 }
-
 impl NoteSeizureAuthorizationBody {
     pub fn validate(&self) -> Result<()> {
         ensure!(
             !self.chain_id.is_empty() && self.chain_id.len() <= MAX_NOTE_SEIZURE_CHAIN_ID_BYTES,
-            "invalid note seizure chain_id length"
+            "invalid seizure chain_id length"
         );
         ensure!(
-            self.amount != Amount::zero(),
-            "note seizure amount must be nonzero"
+            (1..=MAX_SEIZURE_ENTRIES).contains(&self.entries.len()),
+            "seizure entry count must be 1..={MAX_SEIZURE_ENTRIES}"
         );
         ensure!(
-            self.freeze_generation > 0,
-            "note seizure freeze generation must be nonzero"
+            self.entries
+                .windows(2)
+                .all(|p| p[0].nullifier.to_bytes() < p[1].nullifier.to_bytes()),
+            "seizure nullifiers must be unique and canonically ordered"
         );
         ensure!(
-            self.frozen_since_height > 0,
-            "note seizure frozen-since height must be nonzero"
+            self.freeze_generation > 0 && self.frozen_since_height > 0,
+            "seizure requires a freeze generation and height"
         );
         ensure!(
             self.expiry_height >= self.frozen_since_height,
-            "note seizure authorization expires before the freeze"
+            "seizure expires before freeze"
         );
         self.withdrawal.validate()?;
         ensure!(
-            self.withdrawal.value
-                == Value {
-                    amount: self.amount,
-                    asset_id: self.asset_id,
-                },
-            "note seizure withdrawal must exactly match the seized note value"
+            self.withdrawal.value.asset_id == self.asset_id,
+            "seizure withdrawal asset mismatch"
+        );
+        ensure!(
+            self.encode_to_vec().len() <= MAX_SEIZURE_REQUEST_BYTES,
+            "seizure authorization exceeds size limit"
         );
         Ok(())
     }
-
+    pub fn verify_balance(&self) -> Result<()> {
+        self.validate()?;
+        let sum = self
+            .entries
+            .iter()
+            .fold(Commitment::default(), |sum, entry| {
+                sum + entry.value_commitment
+            });
+        ensure!(
+            sum == self.withdrawal.value.commit(self.aggregate_blinding),
+            "seizure aggregate value commitment mismatch"
+        );
+        Ok(())
+    }
     pub fn signing_bytes(&self) -> Result<Vec<u8>> {
         self.validate()?;
-        let body = self.encode_to_vec();
-        let mut bytes =
-            Vec::with_capacity(NOTE_SEIZURE_AUTHORIZATION_DOMAIN.len() + 1 + body.len());
-        bytes.extend_from_slice(NOTE_SEIZURE_AUTHORIZATION_DOMAIN);
+        let mut bytes = AUTHORIZATION_DOMAIN.to_vec();
         bytes.push(shieldd_sdk_crypto::SUITE);
-        bytes.extend_from_slice(&body);
+        bytes.extend(self.encode_to_vec());
         Ok(bytes)
     }
-
     pub fn verify_signature(
         &self,
         authority: &VerificationKey<SpendAuth>,
@@ -92,421 +129,143 @@ impl NoteSeizureAuthorizationBody {
     ) -> Result<()> {
         authority
             .verify(&self.signing_bytes()?, signature)
-            .context("invalid note seizure authority signature")
+            .context("invalid seizure authority signature")
     }
-
     pub fn commitment(&self) -> Result<Fq> {
         self.validate()?;
-        let mut state = blake2b_simd::Params::new().hash_length(64).to_state();
-        state.update(NOTE_SEIZURE_AUTHORIZATION_COMMITMENT_DOMAIN);
-        state.update(&[shieldd_sdk_crypto::SUITE]);
-        state.update(&self.encode_to_vec());
+        let mut hash = blake2b_simd::Params::new().hash_length(64).to_state();
+        hash.update(AUTHORIZATION_COMMITMENT_DOMAIN);
+        hash.update(&[shieldd_sdk_crypto::SUITE]);
+        hash.update(&self.encode_to_vec());
         Ok(Fq::from_bytes_wide(
-            state
-                .finalize()
-                .as_bytes()
-                .try_into()
-                .expect("Blake2b-512 output"),
+            hash.finalize().as_bytes().try_into().expect("Blake2b-512"),
         ))
     }
 }
-
 impl DomainType for NoteSeizureAuthorizationBody {
     type Proto = pb::NoteSeizureAuthorizationBody;
 }
-
 impl TryFrom<pb::NoteSeizureAuthorizationBody> for NoteSeizureAuthorizationBody {
     type Error = anyhow::Error;
-
-    fn try_from(value: pb::NoteSeizureAuthorizationBody) -> Result<Self> {
+    fn try_from(v: pb::NoteSeizureAuthorizationBody) -> Result<Self> {
+        ensure!(
+            v.entries.len() <= MAX_SEIZURE_ENTRIES,
+            "too many seizure entries"
+        );
         let body = Self {
-            chain_id: value.chain_id,
-            note_commitment: value
-                .note_commitment
-                .context("note seizure authorization is missing note commitment")?
-                .try_into()
-                .context("invalid note seizure note commitment")?,
-            nullifier: value
-                .nullifier
-                .context("note seizure authorization is missing nullifier")?
-                .try_into()
-                .context("invalid note seizure nullifier")?,
-            address: value
-                .address
-                .context("note seizure authorization is missing address")?
-                .try_into()
-                .context("invalid note seizure address")?,
-            asset_id: value
-                .asset_id
-                .context("note seizure authorization is missing asset ID")?
-                .try_into()
-                .context("invalid note seizure asset ID")?,
-            amount: value
-                .amount
-                .context("note seizure authorization is missing amount")?
-                .try_into()
-                .context("invalid note seizure amount")?,
-            freeze_generation: value.freeze_generation,
-            frozen_since_height: value.frozen_since_height,
-            withdrawal: value
+            chain_id: v.chain_id,
+            address: v.address.context("missing seizure address")?.try_into()?,
+            asset_id: v.asset_id.context("missing seizure asset")?.try_into()?,
+            freeze_generation: v.freeze_generation,
+            frozen_since_height: v.frozen_since_height,
+            withdrawal: v
                 .withdrawal
-                .context("note seizure authorization is missing withdrawal")?
-                .try_into()
-                .context("invalid note seizure withdrawal")?,
-            expiry_height: value.expiry_height,
+                .context("missing seizure withdrawal")?
+                .try_into()?,
+            expiry_height: v.expiry_height,
+            registry_id: bytes32(v.registry_id, "registry ID")?,
+            entries: v
+                .entries
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_>>()?,
+            aggregate_blinding: encoding::scalar(&bytes32(
+                v.aggregate_blinding,
+                "aggregate blinding",
+            )?)?,
         };
         body.validate()?;
         Ok(body)
     }
 }
-
 impl From<NoteSeizureAuthorizationBody> for pb::NoteSeizureAuthorizationBody {
-    fn from(value: NoteSeizureAuthorizationBody) -> Self {
+    fn from(v: NoteSeizureAuthorizationBody) -> Self {
         Self {
-            chain_id: value.chain_id,
-            note_commitment: Some(value.note_commitment.into()),
-            nullifier: Some(value.nullifier.into()),
-            address: Some(value.address.into()),
-            asset_id: Some(value.asset_id.into()),
-            amount: Some(value.amount.into()),
-            freeze_generation: value.freeze_generation,
-            frozen_since_height: value.frozen_since_height,
-            withdrawal: Some(value.withdrawal.into()),
-            expiry_height: value.expiry_height,
+            chain_id: v.chain_id,
+            address: Some(v.address.into()),
+            asset_id: Some(v.asset_id.into()),
+            freeze_generation: v.freeze_generation,
+            frozen_since_height: v.frozen_since_height,
+            withdrawal: Some(v.withdrawal.into()),
+            expiry_height: v.expiry_height,
+            registry_id: v.registry_id.to_vec(),
+            entries: v.entries.into_iter().map(Into::into).collect(),
+            aggregate_blinding: v.aggregate_blinding.to_bytes().to_vec(),
         }
     }
 }
 
-/// Exact accepted-note opening requested for authority-approved public disclosure.
-/// DLEQ evidence authenticates the key and request, not ownership or authorization.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CapsuleReleaseRequest {
-    pub chain_id: String,
-    pub ring_id: String,
-    pub policy_id: String,
-    pub permission: String,
-    pub resource: String,
-    pub ring_pk: SubgroupPoint,
-    pub asset_id: asset::Id,
-    pub address: Address,
-    pub payload_key: SubgroupPoint,
-    pub audit_epoch: u64,
-    pub note_commitment: tct::StateCommitment,
-    pub recovery_commitment: RecoveryCommitment,
-    pub capsule_epk: SubgroupPoint,
-    pub authority_instruction_commitment: Fq,
-    pub expiry_height: u64,
-}
-
-impl CapsuleReleaseRequest {
-    pub fn validate(&self) -> Result<()> {
-        ensure!(
-            self.audit_epoch > 0,
-            "capsule release audit epoch must be nonzero"
-        );
-        ensure!(
-            self.payload_key != self.ring_pk,
-            "capsule payload and RNK keys must differ"
-        );
-        ensure!(
-            !self.chain_id.is_empty() && self.chain_id.len() <= MAX_NOTE_SEIZURE_CHAIN_ID_BYTES,
-            "invalid capsule release chain_id length"
-        );
-        for (label, value) in [
-            ("ring_id", self.ring_id.as_str()),
-            ("policy_id", self.policy_id.as_str()),
-            ("permission", self.permission.as_str()),
-            ("resource", self.resource.as_str()),
-        ] {
-            ensure!(
-                !value.is_empty() && value.len() <= MAX_CERTIFICATE_TEXT_BYTES,
-                "invalid capsule release {label} length"
-            );
-        }
-        ensure!(
-            !bool::from(self.ring_pk.is_identity()),
-            "capsule release ring_pk must not be identity"
-        );
-        ensure!(
-            !bool::from(self.payload_key.is_identity()),
-            "capsule release payload_key must not be identity"
-        );
-        ensure!(
-            !bool::from(self.capsule_epk.is_identity()),
-            "capsule release EPK must not be identity"
-        );
-        ensure!(
-            self.authority_instruction_commitment != Fq::from(0u64),
-            "capsule release authority commitment must be nonzero"
-        );
-        ensure!(
-            self.expiry_height > 0,
-            "capsule release expiry must be nonzero"
-        );
-        Ok(())
-    }
-
-    pub fn release_id(&self) -> Result<[u8; 32]> {
-        self.validate()?;
-        let mut state = blake2b_simd::Params::new().hash_length(64).to_state();
-        state.update(CAPSULE_RELEASE_ID_DOMAIN);
-        state.update(&[shieldd_sdk_crypto::SUITE]);
-        state.update(&self.encode_to_vec());
-        Ok(Fq::from_bytes_wide(
-            state
-                .finalize()
-                .as_bytes()
-                .try_into()
-                .expect("Blake2b-512 output"),
-        )
-        .to_bytes())
-    }
-}
-
-impl DomainType for CapsuleReleaseRequest {
-    type Proto = pb::CapsuleReleaseRequest;
-}
-
-impl TryFrom<pb::CapsuleReleaseRequest> for CapsuleReleaseRequest {
-    type Error = anyhow::Error;
-
-    fn try_from(value: pb::CapsuleReleaseRequest) -> Result<Self> {
-        let request = Self {
-            chain_id: value.chain_id,
-            ring_id: value.ring_id,
-            policy_id: value.policy_id,
-            permission: value.permission,
-            resource: value.resource,
-            ring_pk: decode_element(value.ring_pk, "capsule release ring_pk")?,
-            asset_id: value
-                .asset_id
-                .context("capsule release is missing asset ID")?
-                .try_into()?,
-            address: value
-                .address
-                .context("capsule release is missing address")?
-                .try_into()?,
-            payload_key: decode_element(value.payload_key, "capsule release payload_key")?,
-            audit_epoch: value.audit_epoch,
-            note_commitment: value
-                .note_commitment
-                .context("capsule release is missing note commitment")?
-                .try_into()?,
-            recovery_commitment: RecoveryCommitment(decode_fq(
-                value.recovery_commitment,
-                "capsule release recovery commitment",
-            )?),
-            capsule_epk: decode_element(value.capsule_epk, "capsule release EPK")?,
-            authority_instruction_commitment: decode_fq(
-                value.authority_instruction_commitment,
-                "capsule release authority commitment",
-            )?,
-            expiry_height: value.expiry_height,
-        };
-        request.validate()?;
-        Ok(request)
-    }
-}
-
-impl From<CapsuleReleaseRequest> for pb::CapsuleReleaseRequest {
-    fn from(value: CapsuleReleaseRequest) -> Self {
-        Self {
-            chain_id: value.chain_id,
-            ring_id: value.ring_id,
-            policy_id: value.policy_id,
-            permission: value.permission,
-            resource: value.resource,
-            ring_pk: value.ring_pk.to_bytes().to_vec(),
-            asset_id: Some(value.asset_id.into()),
-            address: Some(value.address.into()),
-            payload_key: value.payload_key.to_bytes().to_vec(),
-            audit_epoch: value.audit_epoch,
-            note_commitment: Some(value.note_commitment.into()),
-            recovery_commitment: value.recovery_commitment.0.to_bytes().to_vec(),
-            capsule_epk: value.capsule_epk.to_bytes().to_vec(),
-            authority_instruction_commitment: value
-                .authority_instruction_commitment
-                .to_bytes()
-                .to_vec(),
-            expiry_height: value.expiry_height,
-        }
-    }
-}
-
-/// Verifiable opening of one capsule, not evidence of an ACP grant.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CapsuleReleaseEvidence {
-    pub release_id: [u8; 32],
-    pub recovered_point: SubgroupPoint,
-    pub proof: DleqProof,
-}
-
-impl CapsuleReleaseEvidence {
-    pub fn verify(&self, request: &CapsuleReleaseRequest) -> Result<SubgroupPoint> {
-        ensure!(
-            self.release_id == request.release_id()?,
-            "capsule release ID mismatch"
-        );
-        ensure!(
-            !bool::from(self.recovered_point.is_identity()),
-            "capsule recovered point must not be identity"
-        );
-        ensure!(
-            !bool::from(self.proof.commitment_g.is_identity()),
-            "capsule DLEQ G commitment must not be identity"
-        );
-        ensure!(
-            !bool::from(self.proof.commitment_h.is_identity()),
-            "capsule DLEQ EPK commitment must not be identity"
-        );
-        let challenge = capsule_release_challenge(request, self);
-        verify_dleq(
-            *shieldd_sdk_crypto::generators::SPEND_AUTH,
-            request.capsule_epk,
-            request.payload_key,
-            self.recovered_point,
-            &self.proof,
-            challenge,
-        )?;
-        Ok(self.recovered_point)
-    }
-
-    #[cfg(any(test, feature = "benchmark-helpers"))]
-    /// Insecure local fixture: never use its fixed nonce with real payload keys.
-    pub fn from_payload_secret_for_test(
-        request: &CapsuleReleaseRequest,
-        payload_secret: Fr,
-    ) -> Self {
-        assert_eq!(
-            request.payload_key,
-            (*shieldd_sdk_crypto::generators::SPEND_AUTH) * payload_secret
-        );
-        let nonce = Fr::from(29u64);
-        let mut evidence = Self {
-            release_id: request
-                .release_id()
-                .expect("test release request must be valid"),
-            recovered_point: request.capsule_epk * payload_secret,
-            proof: DleqProof {
-                commitment_g: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * nonce,
-                commitment_h: request.capsule_epk * nonce,
-                response: Fr::from(0u64),
-            },
-        };
-        evidence.proof.response =
-            nonce + capsule_release_challenge(request, &evidence) * payload_secret;
-        evidence
-    }
-}
-
-fn capsule_release_challenge(
-    request: &CapsuleReleaseRequest,
-    evidence: &CapsuleReleaseEvidence,
-) -> Fr {
-    let mut state = blake2b_simd::Params::new()
-        .hash_length(64)
-        .personal(b"ShielddCapDLEQ")
-        .to_state();
-    state.update(&[shieldd_sdk_crypto::SUITE]);
-    state.update(&evidence.release_id);
-    for point in [
-        *shieldd_sdk_crypto::generators::SPEND_AUTH,
-        request.payload_key,
-        request.capsule_epk,
-        evidence.recovered_point,
-        evidence.proof.commitment_g,
-        evidence.proof.commitment_h,
-    ] {
-        state.update(&point.to_bytes());
-    }
-    Fr::from_bytes_wide(
-        state
-            .finalize()
-            .as_bytes()
-            .try_into()
-            .expect("Blake2b-512 output"),
-    )
-}
-
-/// Public statement opened by one note-seizure proof.
 #[derive(Clone, Debug)]
 pub struct NoteSeizureProofPublic {
-    pub authorization: NoteSeizureAuthorizationBody,
     pub anchor: tct::Root,
-    pub recovery_capsule: RecoveryCapsule,
-    pub recovery_seed: Fq,
+    pub address: Address,
+    pub asset_id: asset::Id,
     pub rnk_commitment: Fq,
+    pub entry: SeizureEntry,
 }
-
 impl NoteSeizureProofPublic {
     pub fn statement_hash(&self) -> Result<Fq> {
         note_seizure_statement_hash_from_public(self)
     }
 }
-
-/// Private opening proving that the authorization consumes the real SCT note.
-#[derive(Clone, Debug)]
+/// Kept in the private prover process; never serialized into consensus or checkpoints.
+#[derive(Clone)]
 pub struct NoteSeizureProofPrivate {
+    pub amount: Amount,
     pub note_blinding: Fq,
+    pub recovery_commitment: RecoveryCommitment,
     pub state_commitment_proof: tct::Proof,
     pub rnk: Fq,
+    pub value_blinding: Fr,
 }
-
 impl NoteSeizureProofPrivate {
     pub fn validate_against(&self, public: &NoteSeizureProofPublic) -> Result<()> {
-        let note_commitment = crate::note::commitment_from_address(
-            public.authorization.address.clone(),
-            Value {
-                amount: public.authorization.amount,
-                asset_id: public.authorization.asset_id,
-            },
+        ensure!(
+            self.amount != Amount::zero(),
+            "seizure must consume a nonzero whole note"
+        );
+        let value = Value {
+            amount: self.amount,
+            asset_id: public.asset_id,
+        };
+        let commitment = crate::note::commitment_from_address(
+            public.address.clone(),
+            value,
             self.note_blinding,
-            public.recovery_capsule.commitment(),
+            self.recovery_commitment,
         );
         ensure!(
-            note_commitment == public.authorization.note_commitment,
-            "note seizure witness note commitment mismatch"
+            self.state_commitment_proof.commitment() == commitment,
+            "seizure private opening mismatch"
         );
-        ensure!(
-            self.state_commitment_proof.commitment() == note_commitment,
-            "note seizure SCT proof commitment mismatch"
-        );
-        ensure!(
-            self.state_commitment_proof.root() == public.anchor,
-            "note seizure SCT proof anchor mismatch"
-        );
+        self.state_commitment_proof.verify(public.anchor)?;
         ensure!(
             shieldd_sdk_compliance::compliance_nullifier_key_commitment(self.rnk)
                 == public.rnk_commitment,
-            "note seizure RNK commitment mismatch"
+            "seizure RNK commitment mismatch"
         );
         ensure!(
             Nullifier::derive(
                 &shieldd_sdk_keys::keys::NullifierKey(self.rnk),
                 self.state_commitment_proof.position(),
-                &note_commitment,
-            ) == public.authorization.nullifier,
-            "note seizure canonical nullifier mismatch"
+                &commitment
+            ) == public.entry.nullifier,
+            "seizure positional nullifier mismatch"
         );
-        let plaintext = public
-            .recovery_capsule
-            .decrypt_with_seed(public.recovery_seed)?;
         ensure!(
-            plaintext.amount == public.authorization.amount
-                && plaintext.note_blinding == self.note_blinding,
-            "note seizure recovery plaintext mismatch"
+            value.commit(self.value_blinding) == public.entry.value_commitment,
+            "seizure complete value commitment mismatch"
         );
         Ok(())
     }
 }
-
 #[derive(Clone, Debug, Default)]
 pub struct NoteSeizureProof {
     pub inner: Vec<u8>,
 }
 
 impl NoteSeizureProof {
-    pub(crate) fn to_batch_item(
+    pub fn to_batch_item(
         &self,
         public: &NoteSeizureProofPublic,
     ) -> Result<shieldd_sdk_proof_params::pari::Verification> {
@@ -584,394 +343,298 @@ impl TryFrom<pb::ZkNoteSeizureProof> for NoteSeizureProof {
     }
 }
 
-/// Complete native and zero-knowledge evidence for consuming one frozen note.
 #[derive(Clone, Debug)]
-pub struct NoteSeizure {
+pub struct NoteSeizureBatch {
     pub authorization: NoteSeizureAuthorizationBody,
     pub authority_signature: Signature<SpendAuth>,
     pub anchor: tct::Root,
-    pub recovery_capsule: RecoveryCapsule,
-    pub rnk_commitment: Fq,
-    pub capsule_release: CapsuleReleaseEvidence,
-    pub proof: NoteSeizureProof,
+    pub proofs: Vec<NoteSeizureProof>,
 }
-
-impl NoteSeizure {
+impl NoteSeizureBatch {
     pub fn validate(&self) -> Result<()> {
         self.authorization.validate()?;
-        self.recovery_capsule.validate()?;
+        ensure!(
+            self.proofs.len() == self.authorization.entries.len(),
+            "seizure proof count mismatch"
+        );
+        ensure!(
+            self.encode_to_vec().len() <= MAX_SEIZURE_REQUEST_BYTES,
+            "seizure request exceeds size limit"
+        );
         Ok(())
     }
-
-    pub fn proof_public(&self, recovery_seed: Fq) -> NoteSeizureProofPublic {
-        NoteSeizureProofPublic {
-            authorization: self.authorization.clone(),
-            anchor: self.anchor,
-            recovery_capsule: self.recovery_capsule.clone(),
-            recovery_seed,
-            rnk_commitment: self.rnk_commitment,
-        }
+    pub fn verify_proofs(
+        &self,
+        rnk_commitment: Fq,
+        registry: &shieldd_sdk_proof_params::pari::Registry,
+    ) -> Result<()> {
+        self.validate()?;
+        ensure!(
+            self.authorization.registry_id == registry.id(),
+            "seizure registry mismatch"
+        );
+        let items = self
+            .authorization
+            .entries
+            .iter()
+            .zip(&self.proofs)
+            .map(|(entry, proof)| {
+                proof.to_batch_item(&NoteSeizureProofPublic {
+                    anchor: self.anchor,
+                    address: self.authorization.address.clone(),
+                    asset_id: self.authorization.asset_id,
+                    rnk_commitment,
+                    entry: entry.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        registry.verify_items(&items, shieldd_sdk_proof_params::pari::proving_strategy()?)?;
+        Ok(())
     }
 }
-
-impl DomainType for NoteSeizure {
-    type Proto = pb::NoteSeizure;
+impl DomainType for NoteSeizureBatch {
+    type Proto = pb::NoteSeizureBatch;
 }
-
-impl TryFrom<pb::NoteSeizure> for NoteSeizure {
+impl TryFrom<pb::NoteSeizureBatch> for NoteSeizureBatch {
     type Error = anyhow::Error;
-
-    fn try_from(value: pb::NoteSeizure) -> Result<Self> {
-        let seizure = Self {
-            authorization: value
+    fn try_from(v: pb::NoteSeizureBatch) -> Result<Self> {
+        ensure!(
+            v.proofs.len() <= MAX_SEIZURE_ENTRIES,
+            "too many seizure proofs"
+        );
+        let batch = Self {
+            authorization: v
                 .authorization
-                .context("note seizure is missing authorization")?
+                .context("missing seizure authorization")?
                 .try_into()?,
-            authority_signature: value
+            authority_signature: v
                 .authority_signature
-                .context("note seizure is missing authority signature")?
-                .try_into()
-                .context("invalid note seizure authority signature encoding")?,
-            anchor: value
-                .anchor
-                .context("note seizure is missing anchor")?
-                .try_into()
-                .context("invalid note seizure anchor")?,
-            recovery_capsule: value
-                .recovery_capsule
-                .context("note seizure is missing recovery capsule")?
+                .context("missing seizure signature")?
                 .try_into()?,
-            rnk_commitment: decode_fq(value.rnk_commitment, "note seizure RNK commitment")?,
-            capsule_release: value
-                .capsule_release
-                .context("note seizure is missing capsule release evidence")?
-                .try_into()?,
-            proof: value
-                .proof
-                .context("note seizure is missing ZK proof")?
-                .try_into()?,
+            anchor: v.anchor.context("missing seizure anchor")?.try_into()?,
+            proofs: v
+                .proofs
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_>>()?,
         };
-        seizure.validate()?;
-        Ok(seizure)
+        batch.validate()?;
+        Ok(batch)
     }
 }
-
-impl From<NoteSeizure> for pb::NoteSeizure {
-    fn from(value: NoteSeizure) -> Self {
+impl From<NoteSeizureBatch> for pb::NoteSeizureBatch {
+    fn from(v: NoteSeizureBatch) -> Self {
         Self {
-            authorization: Some(value.authorization.into()),
-            authority_signature: Some(value.authority_signature.into()),
-            anchor: Some(value.anchor.into()),
-            recovery_capsule: Some(value.recovery_capsule.into()),
-            rnk_commitment: value.rnk_commitment.to_bytes().to_vec(),
-            proof: Some(value.proof.into()),
-            capsule_release: Some(value.capsule_release.into()),
+            authorization: Some(v.authorization.into()),
+            authority_signature: Some(v.authority_signature.into()),
+            anchor: Some(v.anchor.into()),
+            proofs: v.proofs.into_iter().map(Into::into).collect(),
         }
     }
 }
-
-impl TryFrom<pb::CapsuleReleaseEvidence> for CapsuleReleaseEvidence {
-    type Error = anyhow::Error;
-
-    fn try_from(value: pb::CapsuleReleaseEvidence) -> Result<Self> {
-        let proof = value
-            .proof
-            .context("capsule release is missing DLEQ proof")?;
-        Ok(Self {
-            release_id: decode32(value.release_id, "capsule release ID")?,
-            recovered_point: decode_element(value.recovered_point, "capsule recovered point")?,
-            proof: DleqProof {
-                commitment_g: decode_element(proof.commitment_g, "capsule DLEQ G commitment")?,
-                commitment_h: decode_element(proof.commitment_h, "capsule DLEQ EPK commitment")?,
-                response: decode_fr(proof.response, "capsule DLEQ response")?,
-            },
-        })
-    }
-}
-
-impl From<CapsuleReleaseEvidence> for pb::CapsuleReleaseEvidence {
-    fn from(value: CapsuleReleaseEvidence) -> Self {
-        Self {
-            release_id: value.release_id.to_vec(),
-            recovered_point: value.recovered_point.to_bytes().to_vec(),
-            proof: Some(
-                shieldd_sdk_proto::core::component::compliance::v1::DleqProof {
-                    commitment_g: value.proof.commitment_g.to_bytes().to_vec(),
-                    commitment_h: value.proof.commitment_h.to_bytes().to_vec(),
-                    response: value.proof.response.to_bytes().to_vec(),
-                },
-            ),
-        }
-    }
-}
-
-fn decode32(bytes: Vec<u8>, label: &str) -> Result<[u8; 32]> {
+fn bytes32(bytes: Vec<u8>, name: &str) -> Result<[u8; 32]> {
     bytes
         .try_into()
-        .map_err(|bytes: Vec<u8>| anyhow::anyhow!("{label} must be 32 bytes, got {}", bytes.len()))
-}
-
-fn decode_fq(bytes: Vec<u8>, label: &str) -> Result<Fq> {
-    shieldd_sdk_crypto::encoding::field(&decode32(bytes, label)?)
-        .map_err(|_| anyhow::anyhow!("{label} is not a canonical field element"))
-}
-
-fn decode_fr(bytes: Vec<u8>, label: &str) -> Result<Fr> {
-    shieldd_sdk_crypto::encoding::scalar(&decode32(bytes, label)?)
-        .map_err(|_| anyhow::anyhow!("{label} is not a canonical scalar"))
-}
-
-fn decode_element(bytes: Vec<u8>, label: &str) -> Result<SubgroupPoint> {
-    let bytes = decode32(bytes, label)?;
-    shieldd_sdk_crypto::encoding::point(&bytes)
-        .map_err(|_| anyhow::anyhow!("invalid {label} point encoding"))
+        .map_err(|v: Vec<u8>| anyhow::anyhow!("{name} must have 32 bytes, got {}", v.len()))
 }
 
 #[cfg(test)]
 mod tests {
-
-    use reddsa::SigningKey;
-    use shieldd_sdk_keys::test_keys;
-
     use super::*;
     use crate::{HostTransfer, HostWithdrawalDestination};
-
-    fn authorization() -> NoteSeizureAuthorizationBody {
-        let asset_id = asset::Id(Fq::from(11u64));
-        let amount = Amount::from(42u64);
+    use rand_core::OsRng;
+    use reddsa::SigningKey;
+    use shieldd_sdk_keys::test_keys;
+    fn body() -> NoteSeizureAuthorizationBody {
+        let asset_id = asset::Id(Fq::from(7u64));
+        let entries = [(10u64, 11u64), (20, 13)]
+            .into_iter()
+            .enumerate()
+            .map(|(i, (amount, r))| SeizureEntry {
+                nullifier: Nullifier(Fq::from(i as u64 + 1)),
+                value_commitment: Value {
+                    asset_id,
+                    amount: amount.into(),
+                }
+                .commit(Fr::from(r)),
+            })
+            .collect();
         NoteSeizureAuthorizationBody {
-            chain_id: "shieldd-test".to_owned(),
-            note_commitment: tct::StateCommitment(Fq::from(7u64)),
-            nullifier: Nullifier(Fq::from(8u64)),
+            chain_id: "test".into(),
             address: test_keys::ADDRESS_0.clone(),
             asset_id,
-            amount,
-            freeze_generation: 2,
-            frozen_since_height: 10,
+            freeze_generation: 1,
+            frozen_since_height: 2,
+            expiry_height: 20,
+            registry_id: [1; 32],
+            entries,
+            aggregate_blinding: Fr::from(24u64),
             withdrawal: HostWithdrawal {
-                value: Value { amount, asset_id },
+                value: Value {
+                    asset_id,
+                    amount: 30u64.into(),
+                },
                 destination: HostWithdrawalDestination::Transfer(HostTransfer {
-                    recipient: "bank1seizureauthority".to_owned(),
+                    recipient: "bank1authority".into(),
                 }),
             },
-            expiry_height: 20,
         }
     }
-
-    fn release_request(
-        authorization: &NoteSeizureAuthorizationBody,
-        capsule: &RecoveryCapsule,
-        payload_key: SubgroupPoint,
-    ) -> CapsuleReleaseRequest {
-        CapsuleReleaseRequest {
-            chain_id: authorization.chain_id.clone(),
-            ring_id: "ring-11".to_owned(),
-            policy_id: "policy-11".to_owned(),
-            permission: "release".to_owned(),
-            resource: "recovery-capsule".to_owned(),
-            ring_pk: (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(3u64),
-            asset_id: authorization.asset_id,
-            address: authorization.address.clone(),
-            payload_key,
-            audit_epoch: 1,
-            note_commitment: authorization.note_commitment,
-            recovery_commitment: capsule.commitment(),
-            capsule_epk: capsule.epk,
-            authority_instruction_commitment: authorization.commitment().unwrap(),
-            expiry_height: authorization.expiry_height,
+    #[test]
+    fn total_opening_and_authority_bind_every_economic_fact() {
+        let body = body();
+        body.verify_balance().unwrap();
+        let sk = SigningKey::<SpendAuth>::try_from(Fr::from(3u64).to_bytes()).unwrap();
+        let vk = VerificationKey::from(&sk);
+        let signature = sk.sign(OsRng, &body.signing_bytes().unwrap());
+        body.verify_signature(&vk, &signature).unwrap();
+        for i in 0..8 {
+            let mut bad = body.clone();
+            match i {
+                0 => bad.withdrawal.value.amount = 29u64.into(),
+                1 => bad.aggregate_blinding += Fr::from(1u64),
+                2 => bad.entries[1].value_commitment = bad.entries[0].value_commitment,
+                3 => bad.entries[1].nullifier = Nullifier(Fq::from(3u64)),
+                4 => bad.registry_id[0] ^= 1,
+                5 => bad.freeze_generation += 1,
+                6 => bad.chain_id.push('x'),
+                _ => bad.expiry_height += 1,
+            }
+            assert!(bad.verify_signature(&vk, &signature).is_err());
+            if i < 3 {
+                let signed_wrong = sk.sign(OsRng, &bad.signing_bytes().unwrap());
+                bad.verify_signature(&vk, &signed_wrong).unwrap();
+                assert!(bad
+                    .verify_balance()
+                    .unwrap_err()
+                    .to_string()
+                    .contains("aggregate value commitment"));
+            }
+            assert_ne!(bad.commitment().unwrap(), body.commitment().unwrap());
         }
+        let mut bad = body.clone();
+        bad.entries.reverse();
+        assert!(bad.validate().is_err());
+        bad.entries = vec![body.entries[0].clone(); 2];
+        assert!(bad.validate().is_err());
+        bad.entries.clear();
+        assert!(bad.validate().is_err());
     }
-
-    fn release_evidence(
-        request: &CapsuleReleaseRequest,
-        payload_secret: Fr,
-    ) -> CapsuleReleaseEvidence {
-        CapsuleReleaseEvidence::from_payload_secret_for_test(request, payload_secret)
-    }
-
     #[test]
-    fn authority_signature_binds_the_complete_seizure_instruction() {
-        let authority = SigningKey::<SpendAuth>::try_from(Fr::from(3u64).to_bytes()).unwrap();
-        let authority_vk = VerificationKey::from(&authority);
-        let body = authorization();
-        let signature = authority.sign(rand_core::OsRng, &body.signing_bytes().unwrap());
-
-        body.verify_signature(&authority_vk, &signature).unwrap();
-
-        let mut redirected = body.clone();
-        redirected.withdrawal.destination = HostWithdrawalDestination::Transfer(HostTransfer {
-            recipient: "bank1attacker".to_owned(),
-        });
-        redirected
-            .verify_signature(&authority_vk, &signature)
-            .expect_err("authority signature must bind the destination");
-
-        let wrong_authority = SigningKey::<SpendAuth>::try_from(Fr::from(4u64).to_bytes()).unwrap();
-        body.verify_signature(&VerificationKey::from(&wrong_authority), &signature)
-            .expect_err("a different seizure authority must not authorize the note");
-    }
-
-    #[test]
-    fn authorization_proto_round_trip_preserves_signing_bytes() {
-        let body = authorization();
-        let encoded = body.clone().encode_to_vec();
-        let decoded = NoteSeizureAuthorizationBody::decode(encoded.as_slice()).unwrap();
-
-        assert_eq!(decoded, body);
+    fn bounded_integer_total_zero_blinding_and_canonical_codecs() {
+        let mut body = body();
+        body.aggregate_blinding = Fr::from(0u64);
+        body.entries = (1..=MAX_SEIZURE_ENTRIES)
+            .map(|n| SeizureEntry {
+                nullifier: Nullifier(Fq::from(n as u64)),
+                value_commitment: Value {
+                    asset_id: body.asset_id,
+                    amount: 1u64.into(),
+                }
+                .commit(Fr::from(0u64)),
+            })
+            .collect();
+        body.entries.sort_by_key(|entry| entry.nullifier.to_bytes());
+        body.withdrawal.value.amount = Amount::from(MAX_SEIZURE_ENTRIES as u64);
+        body.verify_balance().unwrap();
+        let wire: pb::NoteSeizureAuthorizationBody = body.clone().into();
         assert_eq!(
-            decoded.signing_bytes().unwrap(),
-            body.signing_bytes().unwrap()
+            NoteSeizureAuthorizationBody::try_from(wire.clone()).unwrap(),
+            body
         );
-        assert_eq!(decoded.commitment().unwrap(), body.commitment().unwrap());
+        let mut bad = wire.clone();
+        bad.aggregate_blinding = vec![255; 32];
+        assert!(NoteSeizureAuthorizationBody::try_from(bad).is_err());
+        let mut bad = wire;
+        bad.entries[0].value_commitment.as_mut().unwrap().inner = vec![255; 32];
+        assert!(NoteSeizureAuthorizationBody::try_from(bad).is_err());
+        body.withdrawal.value.amount = 1u64.into();
+        assert!(body.verify_balance().is_err());
+        let q = shieldd_sdk_crypto::encoding::embed_scalar(&(-Fr::from(1u64))) + Fq::from(1u64);
+        let max_sum = Fq::from(Amount::from(u128::MAX)) * Fq::from(MAX_SEIZURE_ENTRIES as u64);
+        assert!(
+            max_sum
+                .to_bytes()
+                .iter()
+                .rev()
+                .cmp(q.to_bytes().iter().rev())
+                .is_lt(),
+            "bounded integer sums must be below the subgroup order"
+        );
     }
-
     #[test]
-    fn capsule_release_dleq_binds_the_capsule_and_metadata() {
-        let authorization = authorization();
-        let payload_secret = Fr::from(19u64);
-        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * payload_secret;
-        let (capsule, _) = RecoveryCapsule::encrypt(
-            authorization.amount,
-            Fq::from(7u64),
-            payload_key,
-            crate::Rseed([17; 32]),
-        )
-        .unwrap();
-        let request = release_request(&authorization, &capsule, payload_key);
-        let evidence = release_evidence(&request, payload_secret);
-
-        assert_eq!(evidence.verify(&request).unwrap(), evidence.recovered_point);
-
-        let mutations: &[(&str, fn(&mut CapsuleReleaseRequest))] = &[
-            ("chain", |r| r.chain_id.push('x')),
-            ("ring", |r| r.ring_id.push('x')),
-            ("policy", |r| r.policy_id.push('x')),
-            ("permission", |r| r.permission.push('x')),
-            ("resource", |r| r.resource.push('x')),
-            ("ring key", |r| {
-                r.ring_pk += *shieldd_sdk_crypto::generators::SPEND_AUTH
-            }),
-            ("asset", |r| r.asset_id.0 += Fq::from(1u64)),
-            ("address", |r| r.address = test_keys::ADDRESS_1.clone()),
-            ("payload key", |r| {
-                r.payload_key += *shieldd_sdk_crypto::generators::SPEND_AUTH
-            }),
-            ("epoch", |r| r.audit_epoch += 1),
-            ("note", |r| r.note_commitment.0 += Fq::from(1u64)),
-            ("capsule", |r| r.recovery_commitment.0 += Fq::from(1u64)),
-            ("EPK", |r| {
-                r.capsule_epk += *shieldd_sdk_crypto::generators::SPEND_AUTH
-            }),
-            ("authority instruction", |r| {
-                r.authority_instruction_commitment += Fq::from(1u64)
-            }),
-            ("expiry", |r| r.expiry_height += 1),
-        ];
-        for (label, mutate) in mutations {
-            let mut changed = request.clone();
-            mutate(&mut changed);
-            assert!(evidence.verify(&changed).is_err(), "unbound {label}");
-            let mut rebound = evidence.clone();
-            rebound.release_id = changed.release_id().unwrap();
-            assert!(
-                rebound.verify(&changed).is_err(),
-                "rewriting the release ID must not rebind {label}"
-            );
-        }
-
-        // A fresh valid DLEQ for another claimed owner still opens the same capsule.
-        // Ownership is enforced by the note proof, never by this release verifier.
-        let mut other_owner = request.clone();
-        other_owner.address = test_keys::ADDRESS_1.clone();
-        let other_owner_evidence = release_evidence(&other_owner, payload_secret);
-        assert_eq!(
-            other_owner_evidence.verify(&other_owner).unwrap(),
-            evidence.recovered_point
-        );
-        let mut stale: pb::CapsuleReleaseRequest = request.clone().into();
-        stale.audit_epoch = 0;
-        assert!(CapsuleReleaseRequest::try_from(stale).is_err());
-        let mut missing: pb::CapsuleReleaseRequest = request.clone().into();
-        missing.payload_key.clear();
-        assert!(CapsuleReleaseRequest::try_from(missing).is_err());
-
-        let mut other_point = evidence.clone();
-        other_point.recovered_point += *shieldd_sdk_crypto::generators::SPEND_AUTH;
-        assert!(other_point.verify(&request).is_err());
-
-        let mut maximal = request;
-        maximal.chain_id = "c".repeat(MAX_NOTE_SEIZURE_CHAIN_ID_BYTES);
-        maximal.ring_id = "r".repeat(MAX_CERTIFICATE_TEXT_BYTES);
-        maximal.policy_id = "p".repeat(MAX_CERTIFICATE_TEXT_BYTES);
-        maximal.permission = "a".repeat(MAX_CERTIFICATE_TEXT_BYTES);
-        maximal.resource = "o".repeat(MAX_CERTIFICATE_TEXT_BYTES);
-        maximal.validate().unwrap();
-        let encoded = maximal.encode_to_vec();
-        assert_eq!(
-            CapsuleReleaseRequest::decode(encoded.as_slice()).unwrap(),
-            maximal
-        );
-        maximal.permission.push('x');
-        assert!(maximal.validate().is_err());
-    }
-
-    #[test]
-    fn seizure_witness_needs_recovered_blinding_not_note_rseed() {
-        let mut body = authorization();
-        let payload_key = (*shieldd_sdk_crypto::generators::SPEND_AUTH) * Fr::from(19u64);
-        let rseed = crate::Rseed([17; 32]);
-        let note_blinding = rseed.derive_note_blinding();
-        let (capsule, opening) =
-            RecoveryCapsule::encrypt(body.amount, note_blinding, payload_key, rseed).unwrap();
-        body.note_commitment = crate::note::commitment_from_address(
-            body.address.clone(),
-            Value {
-                amount: body.amount,
-                asset_id: body.asset_id,
-            },
-            note_blinding,
-            capsule.commitment(),
-        );
-
-        let mut tree = tct::Tree::new();
-        tree.insert(tct::Witness::Keep, body.note_commitment)
-            .unwrap();
-        let state_commitment_proof = tree.witness(body.note_commitment).unwrap();
+    fn private_opening_consumes_whole_note_and_positional_nullifier() {
+        let body = body();
+        let amount = Amount::from(42u64);
+        let note_blinding = Fq::from(17u64);
+        let recovery_commitment = RecoveryCommitment(Fq::from(19u64));
         let rnk = Fq::from(23u64);
-        body.nullifier = Nullifier::derive(
-            &shieldd_sdk_keys::keys::NullifierKey(rnk),
-            state_commitment_proof.position(),
-            &body.note_commitment,
-        );
-        let public = NoteSeizureProofPublic {
-            authorization: body,
-            anchor: state_commitment_proof.root(),
-            recovery_capsule: capsule,
-            recovery_seed: opening.seed,
-            rnk_commitment: shieldd_sdk_compliance::compliance_nullifier_key_commitment(rnk),
+        let value = Value {
+            amount,
+            asset_id: body.asset_id,
         };
-        let private = NoteSeizureProofPrivate {
+        let cm = crate::note::commitment_from_address(
+            body.address.clone(),
+            value,
             note_blinding,
-            state_commitment_proof,
-            rnk,
-        };
-
-        private.validate_against(&public).unwrap();
-        let witness = crate::pari::seizure(&public, &private).unwrap();
-        let parameters = shieldd_sdk_circuits::hash::Parameters::load().unwrap();
-        let generators = shieldd_sdk_circuits::map::Generators::derive(&parameters);
-        assert_eq!(
-            witness.digest(&parameters, &generators).unwrap(),
-            shieldd_sdk_circuits::encoding::field(&public.statement_hash().unwrap())
+            recovery_commitment,
         );
-        assert!(shieldd_sdk_circuits::catalogue::evaluate(&witness)
-            .unwrap()
-            .is_satisfied());
-
-        let mut wrong = private;
-        wrong.note_blinding += Fq::from(1u64);
-        wrong
-            .validate_against(&public)
-            .expect_err("a different recovered blinding must not open the note");
+        let mut tree = tct::Tree::new();
+        let positions = [
+            tree.insert(tct::Witness::Keep, cm).unwrap(),
+            tree.insert(tct::Witness::Keep, cm).unwrap(),
+        ];
+        let mut nullifiers = Vec::new();
+        for position in positions {
+            let r = Fr::from(29u64);
+            let public = NoteSeizureProofPublic {
+                anchor: tree.root(),
+                address: body.address.clone(),
+                asset_id: body.asset_id,
+                rnk_commitment: shieldd_sdk_compliance::compliance_nullifier_key_commitment(rnk),
+                entry: SeizureEntry {
+                    nullifier: Nullifier::derive(
+                        &shieldd_sdk_keys::keys::NullifierKey(rnk),
+                        position,
+                        &cm,
+                    ),
+                    value_commitment: value.commit(r),
+                },
+            };
+            let private = NoteSeizureProofPrivate {
+                amount,
+                note_blinding,
+                recovery_commitment,
+                rnk,
+                value_blinding: r,
+                state_commitment_proof: tree.witness(position).unwrap(),
+            };
+            private.validate_against(&public).unwrap();
+            let witness = crate::pari::seizure(&public, &private).unwrap();
+            assert!(shieldd_sdk_circuits::catalogue::evaluate(&witness)
+                .unwrap()
+                .is_satisfied());
+            assert_eq!(
+                crate::public_input_hash::note_seizure_statement_fields(&public)
+                    .unwrap()
+                    .len(),
+                NOTE_SEIZURE_STATEMENT_FIELD_COUNT
+            );
+            let mut partial = private.clone();
+            partial.amount = 41u64.into();
+            let mut partial_public = public.clone();
+            partial_public.entry.value_commitment = Value {
+                amount: partial.amount,
+                asset_id: body.asset_id,
+            }
+            .commit(r);
+            assert!(partial
+                .validate_against(&partial_public)
+                .unwrap_err()
+                .to_string()
+                .contains("private opening"));
+            nullifiers.push(public.entry.nullifier);
+        }
+        assert_ne!(nullifiers[0], nullifiers[1]);
     }
 }

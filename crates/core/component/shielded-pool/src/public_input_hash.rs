@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::{ensure, Result};
 use shieldd_sdk_circuits::{
-    audit, encryption, group::Point, recovery, reshape, seizure, transfer, withdrawal,
+    audit, encryption, group::Point, reshape, seizure, transfer, withdrawal,
 };
 use shieldd_sdk_crypto::{audit::point_fields, domains, encoding, poseidon, Fq, SubgroupPoint};
 
@@ -34,17 +34,7 @@ fn spend(nullifier: shieldd_sdk_sct::Nullifier) -> Result<transfer::SpendStateme
         nullifier: nullifier.0,
     })
 }
-pub(crate) fn capsule(c: &crate::RecoveryCapsule) -> recovery::Capsule<Fq> {
-    recovery::Capsule {
-        commitment: c.commitment().0,
-        epk: point(&c.epk),
-        c2: c.c2,
-        salt: c.salt,
-        confirmation: c.key_confirmation,
-        encrypted_amount: c.encrypted_amount,
-        encrypted_blinding: c.encrypted_note_blinding,
-    }
-}
+
 fn volume(v: &crate::VolumeAccumulatorPublic, context: Fq) -> transfer::VolumeStatement<Fq> {
     transfer::VolumeStatement {
         nullifier: v.nullifier.0,
@@ -208,18 +198,13 @@ pub(crate) fn withdrawal_statement(
     })
 }
 pub(crate) fn seizure_statement(p: &NoteSeizureProofPublic) -> Result<seizure::Statement<Fq>> {
-    let a = &p.authorization;
     Ok(seizure::Statement {
         anchor: p.anchor.into(),
-        commitment: a.note_commitment.0,
-        nullifier: a.nullifier.0,
-        address: address(&a.address),
-        asset: a.asset_id.0,
-        amount: a.amount.into(),
-        recovery: capsule(&p.recovery_capsule),
-        seed: p.recovery_seed,
+        nullifier: p.entry.nullifier.0,
+        address: address(&p.address),
+        asset: p.asset_id.0,
         rnk_commitment: p.rnk_commitment,
-        authorization: a.commitment()?,
+        value_commitment: point(&p.entry.value_commitment.0),
     })
 }
 

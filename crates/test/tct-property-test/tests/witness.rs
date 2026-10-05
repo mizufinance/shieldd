@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate proptest_derive;
 
-use std::collections::HashSet;
+use std::collections::BTreeMap;
 
 use proptest::{arbitrary::*, prelude::*};
 
@@ -15,7 +15,7 @@ const MAX_TIER_ACTIONS: usize = 10;
 enum Action {
     EndBlock,
     EndEpoch,
-    Forget(StateCommitment),
+    Forget(u8),
     Insert(Witness, StateCommitment),
 }
 
@@ -36,11 +36,8 @@ impl Action {
                 // commitment when retrieved, and the proof must validate and contain the correct
                 // commitment
                 if matches!(witness, Witness::Keep) {
-                    let commitment_position = tree.position_of(*commitment);
-                    assert!(commitment_position.is_some());
-                    assert_eq!(predicted_position, commitment_position);
-
-                    let proof = tree.witness(*commitment).unwrap();
+                    let proof = tree.witness(predicted_position.unwrap()).unwrap();
+                    assert_eq!(proof.position(), predicted_position.unwrap());
                     assert_eq!(*commitment, proof.commitment());
 
                     assert!(proof.verify(tree.root()).is_ok());
@@ -74,9 +71,14 @@ impl Action {
                 assert_eq!(new_position.block(), 0);
                 assert_eq!(new_position.commitment(), 0);
             }
-            Action::Forget(commitment) => {
-                let exists = tree.witness(*commitment).is_some();
-                let result = tree.forget(*commitment);
+            Action::Forget(choice) => {
+                let position = tree
+                    .commitments()
+                    .nth(usize::from(*choice) % tree.witnessed_count().max(1))
+                    .map(|(position, _)| position)
+                    .unwrap_or(0u64.into());
+                let exists = tree.witness(position).is_some();
+                let result = tree.forget(position);
                 assert_eq!(exists, result);
             }
         };
@@ -96,15 +98,16 @@ proptest! {
     ) {
         let mut tree = Tree::new();
 
-        let mut commitments_added = HashSet::new();
+        let mut commitments_added = BTreeMap::new();
 
         for action in &actions {
             match action {
                 Action::Insert (Witness::Keep, commitment) => {
-                    commitments_added.insert(commitment);
+                    commitments_added.insert(tree.position().unwrap(), *commitment);
                 },
-                Action::Forget (commitment) => {
-                    commitments_added.remove(&commitment);
+                Action::Forget (choice) => {
+                    let position = commitments_added.keys().nth(usize::from(*choice) % commitments_added.len().max(1)).copied();
+                    if let Some(position) = position { commitments_added.remove(&position); }
                 },
                 _ => {}
             }
@@ -112,12 +115,10 @@ proptest! {
         }
 
         // Check generated commitments
-        for commitment in commitments_added {
-            let commitment_position = tree.position_of(*commitment);
-            assert!(commitment_position.is_some());
-
-            let proof = tree.witness(*commitment).unwrap();
-            assert_eq!(*commitment, proof.commitment());
+        assert_eq!(tree.witnessed_count(), commitments_added.len());
+        for (position, commitment) in commitments_added {
+            let proof = tree.witness(position).unwrap();
+            assert_eq!(commitment, proof.commitment());
 
             assert!(proof.verify(tree.root()).is_ok());
         }
@@ -158,15 +159,7 @@ proptest! {
             // Number of commitments forgotten already
             let pre = tree.forgotten();
 
-            // The number of forgotten commitments should increase if the commitment is contained
-            // and the action is about to forget it: the common case in practice is `forget`, but if
-            // the same commitment is inserted twice, both times with `Witness::Keep`, this will
-            // also increment the count
-            let should_increase = if let Action::Forget(commitment) | Action::Insert(Witness::Keep, commitment) = action {
-                tree.position_of(commitment).is_some()
-            } else {
-                false
-            };
+            let should_increase = matches!(action, Action::Forget(_)) && tree.witnessed_count() > 0;
 
             // Apply the action
             action.apply(&mut tree).unwrap();

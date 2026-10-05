@@ -11,13 +11,15 @@ use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::execution_client::v1::{
     apply_compliance_action_request, ApplyComplianceActionRequest, ApplyComplianceActionResponse,
-    DepositRequest, DepositResponse, HostSource as ProtoHostSource, SeizeNoteRequest,
+    DepositRequest, DepositResponse, HostSource as ProtoHostSource, SeizeNotesRequest,
 };
 use shieldd_sdk_sct::component::tree::VerificationExt as _;
 use shieldd_sdk_shielded_pool::component::{
     AssetRegistry as _, AssetRegistryRead as _, NoteManager as _,
 };
-use shieldd_sdk_shielded_pool::{CapsuleReleaseRequest, HostWithdrawalDestination, NoteSeizure};
+use shieldd_sdk_shielded_pool::{
+    HostWithdrawalDestination, NoteSeizureBatch, MAX_SEIZURE_REQUEST_BYTES,
+};
 use std::str::FromStr as _;
 
 const HOST_ACTION_SOURCE_PREFIX: &str = "application/host_action/source";
@@ -542,13 +544,16 @@ impl HostExecution {
         self.app.apply_compliance_action(request).await
     }
 
-    pub async fn seize_note(&mut self, request: SeizeNoteRequest) -> Result<HostNoteSeizureResult> {
+    pub async fn seize_notes(
+        &mut self,
+        request: SeizeNotesRequest,
+    ) -> Result<HostNoteSeizureResult> {
         ensure!(
             self.phase == HostExecutionPhase::InBlock,
             "note seizure called while host execution phase is {:?}",
             self.phase
         );
-        self.app.seize_note(request).await
+        self.app.seize_notes(request).await
     }
 
     pub async fn check_tx(&self, tx_bytes: &[u8]) -> Result<HostTxResponse> {
@@ -1100,7 +1105,10 @@ impl App {
         Ok(HostComplianceActionResult { response, events })
     }
 
-    pub async fn seize_note(&mut self, request: SeizeNoteRequest) -> Result<HostNoteSeizureResult> {
+    pub async fn seize_notes(
+        &mut self,
+        request: SeizeNotesRequest,
+    ) -> Result<HostNoteSeizureResult> {
         let mut state_tx = StateDelta::new(self.state.clone());
         let chain_id = state_tx.get_chain_id().await?;
         let parsed = ParsedNoteSeizure::parse(chain_id, request)?;
@@ -1168,41 +1176,17 @@ impl App {
                 && leaf.frozen_since_height == authorization.frozen_since_height,
             "note seizure authorization does not match the current freeze generation"
         );
-        ensure!(
-            leaf.rnk_commitment == seizure.rnk_commitment,
-            "note seizure RNK commitment differs from the current compliance leaf"
-        );
-
         state_tx.check_claimed_anchor(seizure.anchor).await?;
-
+        ensure!(
+            authorization.registry_id == self.registry.id(),
+            "seizure registry mismatch"
+        );
+        authorization.verify_balance()?;
+        seizure.verify_proofs(leaf.rnk_commitment, &self.registry)?;
+        for entry in &authorization.entries {
+            state_tx.check_nullifier_unspent(entry.nullifier).await?;
+        }
         let authorization_commitment = authorization.commitment()?;
-        let release = CapsuleReleaseRequest {
-            chain_id: authorization.chain_id.clone(),
-            ring_id: policy.ring.ring_id.clone(),
-            policy_id: policy.ring.policy_id.clone(),
-            permission: policy.ring.permission.clone(),
-            resource: policy.ring.resource.clone(),
-            ring_pk: policy.ring.ring_pk,
-            asset_id: authorization.asset_id,
-            address: authorization.address.clone(),
-            payload_key: policy.ring.audit_keys.payload,
-            audit_epoch: policy.ring.audit_keys.epoch,
-            note_commitment: authorization.note_commitment,
-            recovery_commitment: seizure.recovery_capsule.commitment(),
-            capsule_epk: seizure.recovery_capsule.epk,
-            authority_instruction_commitment: authorization_commitment,
-            expiry_height: authorization.expiry_height,
-        };
-        let recovered_shared = seizure.capsule_release.verify(&release)?;
-        let recovery_seed = seizure.recovery_capsule.c2
-            - shieldd_sdk_compliance::crypto::shared_secret(&recovered_shared);
-
-        seizure
-            .proof
-            .verify(&seizure.proof_public(recovery_seed), &self.registry)?;
-        state_tx
-            .check_nullifier_unspent(authorization.nullifier)
-            .await?;
 
         let metadata = state_tx
             .denom_metadata_by_asset(&authorization.asset_id)
@@ -1210,7 +1194,7 @@ impl App {
             .ok_or_else(|| anyhow::anyhow!("note seizure asset has no host denomination"))?;
         let withdrawal = HostWithdrawal {
             denom: metadata.base_denom().denom,
-            amount: authorization.amount,
+            amount: authorization.withdrawal.value.amount,
             destination: authorization.withdrawal.destination.clone(),
         };
         let lifecycle = state_tx
@@ -1221,9 +1205,14 @@ impl App {
                 authorization.frozen_since_height,
             )
             .await?;
+        let nullifiers = authorization
+            .entries
+            .iter()
+            .map(|entry| entry.nullifier)
+            .collect::<Vec<_>>();
         state_tx
-            .nullify(
-                authorization.nullifier,
+            .nullify_all(
+                &nullifiers,
                 CommitmentSource::Transaction {
                     id: Some(parsed.request_digest),
                 },
@@ -1232,11 +1221,15 @@ impl App {
         state_tx
             .append_audit_effect(AuditEffectRecord {
                 source: parsed.source.audit_source(parsed.chain_id.clone(), 0),
-                effect: AuditEffect::NoteSeized {
+                effect: AuditEffect::NotesSeized {
                     asset_id: authorization.asset_id,
                     address: authorization.address.clone(),
-                    nullifier: authorization.nullifier.into(),
-                    amount: authorization.amount.value(),
+                    nullifiers: authorization
+                        .entries
+                        .iter()
+                        .map(|entry| entry.nullifier.to_bytes())
+                        .collect(),
+                    amount: authorization.withdrawal.value.amount.value(),
                     freeze_generation: authorization.freeze_generation,
                     authorization_commitment,
                 },
@@ -1403,12 +1396,12 @@ impl ParsedHostComplianceAction {
 struct ParsedNoteSeizure {
     chain_id: String,
     source: HostSource,
-    seizure: NoteSeizure,
+    seizure: NoteSeizureBatch,
     request_digest: [u8; 32],
 }
 
 impl ParsedNoteSeizure {
-    fn parse(chain_id: String, request: SeizeNoteRequest) -> Result<Self> {
+    fn parse(chain_id: String, request: SeizeNotesRequest) -> Result<Self> {
         let source = request
             .source
             .context("host note seizure source is required")?
@@ -1417,6 +1410,10 @@ impl ParsedNoteSeizure {
         let seizure_proto = request
             .seizure
             .context("host note seizure evidence is required")?;
+        ensure!(
+            seizure_proto.encoded_len() <= MAX_SEIZURE_REQUEST_BYTES,
+            "seizure request exceeds size limit"
+        );
         let request_digest =
             derive_note_seizure_digest(&chain_id, &source, &seizure_proto.encode_to_vec());
         let seizure = seizure_proto
@@ -1547,12 +1544,11 @@ mod tests {
     use shieldd_sdk_proto::execution_client::v1::{FreezeUserAsset, UnfreezeUserAsset};
     use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _};
     use shieldd_sdk_shielded_pool::{
-        CapsuleReleaseEvidence, CapsuleReleaseRequest, EvmCall,
-        HostExecution as DomainHostExecution, HostTransfer, HostWithdrawal as DomainHostWithdrawal,
-        NotePayload, NoteSeizure, NoteSeizureAuthorizationBody, NoteSeizureProofPrivate,
-        NoteSeizureProofPublic, RecoveryCapsule, Rseed, ShieldedHostWithdrawal,
-        ShieldedHostWithdrawalBody, ShieldedWithdrawalChangeBody, ShieldedWithdrawalFamilyId,
-        ShieldedWithdrawalProof,
+        EvmCall, HostExecution as DomainHostExecution, HostTransfer,
+        HostWithdrawal as DomainHostWithdrawal, NotePayload, NoteSeizureAuthorizationBody,
+        NoteSeizureProofPrivate, NoteSeizureProofPublic, RecoveryCapsule, Rseed, SeizureEntry,
+        ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedWithdrawalChangeBody,
+        ShieldedWithdrawalFamilyId, ShieldedWithdrawalProof,
     };
     use shieldd_sdk_storage::ActionHandler as _;
     use shieldd_sdk_storage::TempStorage;
@@ -2064,56 +2060,49 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires local Pari keys and actual proof generation"]
-    async fn note_seizure_verifies_capsule_release_and_commits_once() -> Result<()> {
+    async fn seizure_batches_consume_duplicate_occurrences_atomically_and_remain_terminal(
+    ) -> Result<()> {
         let storage = temp_storage().await;
-        let mut host =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
+        let registry = crate::app::tests::registry();
+        let mut host = HostExecution::new(storage.deref().clone(), registry.clone()).await?;
         host.init_genesis(host_genesis()).await?;
         host.commit_for_testing().await?;
         host.begin_block_for_testing(host_block(1)).await?;
-
         let address = test_keys::ADDRESS_0.deref().clone();
         let denom = regulated_test_denom();
         let asset_id = denom.id();
         let amount = Amount::from(42u64);
-        let payload_secret = shieldd_sdk_crypto::Fr::from(201u64);
-        let payload_key = *shieldd_sdk_crypto::generators::SPEND_AUTH * payload_secret;
         let rnk = shieldd_sdk_crypto::Fq::from(1u64);
         let authority_sk = SigningKey::<SpendAuth>::try_from(Fr::from(1u64).to_bytes()).unwrap();
         let policy = AssetPolicy::for_test(Element::generator(), u128::MAX, Element::generator());
         let leaf = ComplianceLeaf::registered_for_test(address.clone(), asset_id);
-
-        let rseed = Rseed([17u8; 32]);
+        let rseed = Rseed([17; 32]);
         let note_blinding = rseed.derive_note_blinding();
-        let (recovery_capsule, opening) =
-            RecoveryCapsule::encrypt(amount, note_blinding, payload_key, rseed)?;
-        let note_commitment = shieldd_sdk_shielded_pool::note::commitment_from_address(
+        let (capsule, _) =
+            RecoveryCapsule::encrypt(amount, note_blinding, Element::generator(), rseed)?;
+        let recovery_commitment = capsule.commitment();
+        let commitment = shieldd_sdk_shielded_pool::note::commitment_from_address(
             address.clone(),
             Value { amount, asset_id },
             note_blinding,
-            recovery_capsule.commitment(),
+            recovery_commitment,
         );
-
         let mut state_tx = StateDelta::new(host.app.state.clone());
         state_tx.register_denom(&denom).await;
         state_tx
-            .test_only_register_asset(asset_id, policy.clone(), true)
+            .test_only_register_asset(asset_id, policy, true)
             .await?;
         state_tx.test_only_add_compliance_leaf(leaf).await?;
-        let mut witness_tree = state_tx.get_sct().await;
-        witness_tree.insert(tct::Witness::Keep, note_commitment)?;
-        state_tx.write_sct_cache(witness_tree);
+        let mut tree = state_tx.get_sct().await;
+        let positions = (0..3)
+            .map(|_| tree.insert(tct::Witness::Keep, commitment))
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        state_tx.write_sct_cache(tree);
         host.app.apply(state_tx);
         host.end_block(1).await?;
-
         host.commit_for_testing().await?;
-        let state_commitment_proof = host
-            .app
-            .state
-            .get_sct()
-            .await
-            .witness(note_commitment)
-            .context("witnessing the seized note")?;
+        let tree = host.app.state.get_sct().await;
+        let anchor = tree.root();
         host.begin_block_for_testing(host_block(2)).await?;
         let mut state_tx = StateDelta::new(host.app.state.clone());
         let leaf = state_tx
@@ -2121,145 +2110,194 @@ mod tests {
             .await?
             .leaf;
         host.app.apply(state_tx);
-
-        let nullifier = shieldd_sdk_sct::Nullifier::derive(
-            &NullifierKey(rnk),
-            state_commitment_proof.position(),
-            &note_commitment,
-        );
-        let authorization = NoteSeizureAuthorizationBody {
+        let mut proved = Vec::new();
+        for (i, position) in positions.into_iter().enumerate() {
+            let value_blinding = Fr::from(41 + i as u64);
+            let entry = SeizureEntry {
+                nullifier: shieldd_sdk_sct::Nullifier::derive(
+                    &NullifierKey(rnk),
+                    position,
+                    &commitment,
+                ),
+                value_commitment: Value { amount, asset_id }.commit(value_blinding),
+            };
+            let public = NoteSeizureProofPublic {
+                anchor,
+                address: address.clone(),
+                asset_id,
+                rnk_commitment: compliance_nullifier_key_commitment(rnk),
+                entry: entry.clone(),
+            };
+            let private = NoteSeizureProofPrivate {
+                amount,
+                note_blinding,
+                recovery_commitment,
+                state_commitment_proof: tree.witness(position).context("retained occurrence")?,
+                rnk,
+                value_blinding,
+            };
+            let proof =
+                shieldd_sdk_shielded_pool::NoteSeizureProof::prove(public, private, &registry)?;
+            proved.push((entry, proof, value_blinding));
+        }
+        proved.sort_by_key(|(entry, _, _)| entry.nullifier.to_bytes());
+        let body_for = |selected: &[(
+            SeizureEntry,
+            shieldd_sdk_shielded_pool::NoteSeizureProof,
+            Fr,
+        )]| NoteSeizureAuthorizationBody {
             chain_id: "bankd-local".to_owned(),
-            note_commitment,
-            nullifier,
             address: address.clone(),
             asset_id,
-            amount,
             freeze_generation: leaf.freeze_generation,
             frozen_since_height: leaf.frozen_since_height,
             withdrawal: DomainHostWithdrawal {
-                value: Value { amount, asset_id },
+                value: Value {
+                    amount: Amount::from(42 * selected.len() as u64),
+                    asset_id,
+                },
                 destination: HostWithdrawalDestination::Transfer(HostTransfer {
                     recipient: "bank1seizureauthority".to_owned(),
                 }),
             },
             expiry_height: 20,
+            registry_id: registry.id(),
+            entries: selected.iter().map(|(entry, _, _)| entry.clone()).collect(),
+            aggregate_blinding: selected
+                .iter()
+                .fold(Fr::from(0u64), |sum, (_, _, r)| sum + r),
         };
-        let authority_instruction_commitment = authorization.commitment()?;
-        let release_request = CapsuleReleaseRequest {
-            chain_id: authorization.chain_id.clone(),
-            ring_id: policy.ring.ring_id.clone(),
-            policy_id: policy.ring.policy_id.clone(),
-            permission: policy.ring.permission.clone(),
-            resource: policy.ring.resource.clone(),
-            ring_pk: policy.ring.ring_pk,
-            asset_id,
-            address: address.clone(),
-            payload_key,
-            audit_epoch: policy.ring.audit_keys.epoch,
-            note_commitment,
-            recovery_commitment: recovery_capsule.commitment(),
-            capsule_epk: recovery_capsule.epk,
-            authority_instruction_commitment,
-            expiry_height: authorization.expiry_height,
+        let signed = |body: NoteSeizureAuthorizationBody,
+                      selected: &[(
+            SeizureEntry,
+            shieldd_sdk_shielded_pool::NoteSeizureProof,
+            Fr,
+        )]|
+         -> Result<NoteSeizureBatch> {
+            Ok(NoteSeizureBatch {
+                authority_signature: authority_sk.sign(rand_core::OsRng, &body.signing_bytes()?),
+                authorization: body,
+                anchor,
+                proofs: selected.iter().map(|(_, proof, _)| proof.clone()).collect(),
+            })
         };
-        let capsule_release =
-            CapsuleReleaseEvidence::from_payload_secret_for_test(&release_request, payload_secret);
-        let proof_public = NoteSeizureProofPublic {
-            authorization: authorization.clone(),
-            anchor: state_commitment_proof.root(),
-            recovery_capsule: recovery_capsule.clone(),
-            recovery_seed: opening.seed,
-            rnk_commitment: compliance_nullifier_key_commitment(rnk),
-        };
-        let proof_private = NoteSeizureProofPrivate {
-            note_blinding,
-            state_commitment_proof,
-            rnk,
-        };
-        let proof = shieldd_sdk_shielded_pool::NoteSeizureProof::prove(
-            proof_public.clone(),
-            proof_private,
-            &crate::app::tests::registry(),
-        )?;
-        let seizure = NoteSeizure {
-            authorization: authorization.clone(),
-            authority_signature: authority_sk
-                .sign(rand_core::OsRng, &authorization.signing_bytes()?),
-            anchor: proof_public.anchor,
-            recovery_capsule,
-            rnk_commitment: proof_public.rnk_commitment,
-            capsule_release,
-            proof,
-        };
+        let batch = signed(body_for(&proved[..2]), &proved[..2])?;
         let before_audit = host.app.state.get_audit_log_state().await?;
-        let mut invalid_seizure = seizure.clone();
-        invalid_seizure.capsule_release.recovered_point += Element::generator();
-        let invalid = SeizeNoteRequest {
+        for kind in 0..3 {
+            let mut bad = batch.clone();
+            match kind {
+                0 => bad.authorization.withdrawal.value.amount = Amount::from(83u64),
+                1 => bad.authorization.aggregate_blinding += Fr::from(1u64),
+                _ => bad.proofs[1] = bad.proofs[0].clone(),
+            }
+            bad.authority_signature =
+                authority_sk.sign(rand_core::OsRng, &bad.authorization.signing_bytes()?);
+            let error = host
+                .seize_notes(SeizeNotesRequest {
+                    source: Some(host_source_at(2, 0)),
+                    seizure: Some(bad.into()),
+                })
+                .await
+                .expect_err("invalid batch must be atomic");
+            if kind < 2 {
+                assert!(
+                    error.to_string().contains("aggregate value commitment"),
+                    "{error:#}"
+                );
+            }
+            for (entry, _, _) in &proved {
+                host.app
+                    .state
+                    .check_nullifier_unspent(entry.nullifier)
+                    .await?;
+            }
+            assert_eq!(host.app.state.get_audit_log_state().await?, before_audit);
+            assert_eq!(
+                host.app
+                    .state
+                    .get_user_leaf(&address, asset_id)
+                    .await?
+                    .unwrap()
+                    .status,
+                UserAssetStatus::Frozen
+            );
+        }
+        let request = SeizeNotesRequest {
             source: Some(host_source_at(2, 0)),
-            seizure: Some(invalid_seizure.into()),
+            seizure: Some(batch.into()),
         };
-        let error = host
-            .seize_note(invalid)
-            .await
-            .expect_err("an invalid capsule release must not consume the note");
-        assert!(error.to_string().contains("DLEQ"));
-        host.app.state.check_nullifier_unspent(nullifier).await?;
-        assert_eq!(host.app.state.get_audit_log_state().await?, before_audit);
-        assert_eq!(
-            host.app
-                .state
-                .get_user_leaf(&address, asset_id)
-                .await?
-                .context("registered seizure target")?
-                .status,
-            UserAssetStatus::Frozen
-        );
-
-        let request = SeizeNoteRequest {
-            source: Some(host_source_at(2, 0)),
-            seizure: Some(seizure.into()),
-        };
-
-        let first = host.seize_note(request.clone()).await?;
+        let first = host.seize_notes(request.clone()).await?;
         assert!(!first.replayed);
-        assert_eq!(first.withdrawal.amount, amount);
+        assert_eq!(first.withdrawal.amount, Amount::from(84u64));
         assert_eq!(first.current_status, UserAssetStatus::Seized);
         assert_eq!(
             host.app.state.verify_audit_log().await?.length,
             before_audit.length + 2
         );
-
         let mut duplicate = request.clone();
         duplicate.source = Some(host_source_at(2, 1));
         assert!(host
-            .seize_note(duplicate)
+            .seize_notes(duplicate)
             .await
-            .expect_err("a new source cannot spend the same note again")
+            .expect_err("spent batch must fail")
             .to_string()
             .contains("already spent"));
-
-        let replay = host.seize_note(request).await?;
-        assert!(replay.replayed);
-        assert!(replay.events.is_empty());
+        let replay = host.seize_notes(request.clone()).await?;
+        assert!(replay.replayed && replay.events.is_empty());
+        let mut changed_source_request = request;
+        changed_source_request
+            .seizure
+            .as_mut()
+            .unwrap()
+            .authority_signature
+            .as_mut()
+            .unwrap()
+            .inner[0] ^= 1;
+        assert!(host
+            .seize_notes(changed_source_request)
+            .await
+            .expect_err("changed same-source request")
+            .to_string()
+            .contains("different request"));
+        let later = signed(body_for(&proved[2..]), &proved[2..])?;
+        let result = host
+            .seize_notes(SeizeNotesRequest {
+                source: Some(host_source_at(2, 1)),
+                seizure: Some(later.into()),
+            })
+            .await?;
+        assert_eq!(result.withdrawal.amount, amount);
+        assert_eq!(result.current_status, UserAssetStatus::Seized);
         assert_eq!(
             host.app.state.verify_audit_log().await?.length,
-            before_audit.length + 2
+            before_audit.length + 3
         );
-
+        let mut state_tx = StateDelta::new(host.app.state.clone());
+        assert!(state_tx
+            .apply_user_status_action(&address, asset_id, UserAssetStatusAction::Unfreeze, 2)
+            .await
+            .expect_err("a seized address/asset pair must remain terminal")
+            .to_string()
+            .contains("only a frozen user asset can be unfrozen"));
+        drop(state_tx);
         host.end_block(2).await?;
-
         host.commit_for_testing().await?;
         let boundary = storage.manifest().context("committed fixture manifest")?;
-        let status = host.nullifier_reader().status(nullifier, &boundary)?;
-        status.verify(boundary.digest()?)?;
-        assert!(status.spent);
+        for (entry, _, _) in &proved {
+            let status = host.nullifier_reader().status(entry.nullifier, &boundary)?;
+            status.verify(boundary.digest()?)?;
+            assert!(status.spent);
+        }
         drop(host);
-        let reopened =
-            HostExecution::new(storage.deref().clone(), crate::app::tests::registry()).await?;
-        let status = reopened.nullifier_reader().status(nullifier, &boundary)?;
-        status.verify(boundary.digest()?)?;
-        assert!(status.spent);
-
+        let reopened = HostExecution::new(storage.deref().clone(), registry).await?;
+        for (entry, _, _) in &proved {
+            assert!(
+                reopened
+                    .nullifier_reader()
+                    .status(entry.nullifier, &boundary)?
+                    .spent
+            );
+        }
         Ok(())
     }
 

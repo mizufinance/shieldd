@@ -417,7 +417,8 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
             &mut OsRng,
             note.clone(),
             client
-                .position(note.commit())
+                .positions(note.commit())
+                .next()
                 .ok_or_else(|| anyhow!("note position was unknown to mock client"))?,
         );
         let send_amount = Amount::from(1u64);
@@ -613,7 +614,8 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         .context("regulated genesis note must be recoverable")?;
     let spent_commitment = note.commit();
     let position = client
-        .position(note.commit())
+        .positions(note.commit())
+        .next()
         .context("regulated genesis note position must be known")?;
     let spend = ShieldedInputPlan::new(&mut OsRng, note.clone(), position);
     let fee_note = client
@@ -626,7 +628,8 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         .cloned()
         .context("base genesis note must be recoverable for fee funding")?;
     let fee_position = client
-        .position(fee_note.commit())
+        .positions(fee_note.commit())
+        .next()
         .context("base genesis note position must be known")?;
     let fee_spend = ShieldedInputPlan::new(&mut OsRng, fee_note.clone(), fee_position);
     let fee_change = ShieldedOutputPlan::new(
@@ -825,7 +828,9 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
         .await?;
     client.sync_to_latest(storage.latest_snapshot()).await?;
     assert!(
-        client.spent_note(&spent_commitment),
+        client
+            .positions(spent_commitment)
+            .any(|position| client.spent_note(&position)),
         "committed regulated transfer nullifier must be visible in the compact block"
     );
 

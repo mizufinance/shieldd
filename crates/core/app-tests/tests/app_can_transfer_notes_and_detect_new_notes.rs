@@ -51,7 +51,8 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
         &mut OsRng,
         input_note.clone(),
         client
-            .position(input_note.commit())
+            .positions(input_note.commit())
+            .next()
             .ok_or_else(|| anyhow!("input note commitment was unknown to mock client"))?,
     );
     let send_amount = Amount::from(1u64);
@@ -133,7 +134,7 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
             .iter()
             .map(|output| output.note_payload.note_commitment)
     }) {
-        assert!(client.notes.contains_key(&output_nc));
+        assert!(client.notes.values().any(|note| note.commit() == output_nc));
     }
 
     drop(storage);

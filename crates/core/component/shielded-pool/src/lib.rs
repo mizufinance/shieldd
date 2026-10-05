@@ -48,6 +48,7 @@ pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 pub mod note_reshape;
 mod note_seizure;
 pub mod public_input_hash;
+pub mod seizure_recovery;
 pub mod shielded_host_withdrawal;
 pub mod shielded_withdrawal;
 pub mod transfer;
@@ -67,9 +68,9 @@ pub use note_reshape::{
     NoteReshapeProofPrivate, NoteReshapeProofPublic, NoteReshapeView, NOTE_RESHAPE_FAMILY_SPECS,
 };
 pub use note_seizure::{
-    CapsuleReleaseEvidence, CapsuleReleaseRequest, NoteSeizure, NoteSeizureAuthorizationBody,
-    NoteSeizureProof, NoteSeizureProofPrivate, NoteSeizureProofPublic,
-    MAX_NOTE_SEIZURE_CHAIN_ID_BYTES, NOTE_SEIZURE_PROOF_LABEL, NOTE_SEIZURE_STATEMENT_FIELD_COUNT,
+    NoteSeizureAuthorizationBody, NoteSeizureBatch, NoteSeizureProof, NoteSeizureProofPrivate,
+    NoteSeizureProofPublic, SeizureEntry, MAX_NOTE_SEIZURE_CHAIN_ID_BYTES, MAX_SEIZURE_ENTRIES,
+    MAX_SEIZURE_REQUEST_BYTES, NOTE_SEIZURE_PROOF_LABEL, NOTE_SEIZURE_STATEMENT_FIELD_COUNT,
 };
 pub use shielded_host_withdrawal::{
     ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalPlan,

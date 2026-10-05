@@ -125,7 +125,7 @@ pub fn all_proofs(tree: &Tree) -> Result<(), InvalidWitnesses> {
     let mut errors = vec![];
 
     for (commitment, position) in tree.commitments_unordered() {
-        if let Some(proof) = tree.witness(commitment) {
+        if let Some(proof) = tree.witness(position) {
             if proof.verify(root).is_err() {
                 errors.push(WitnessError::InvalidProof {
                     proof: Box::new(proof),

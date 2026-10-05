@@ -51,6 +51,17 @@ self-transfers. Reshape and withdrawal actions conserve their asset value and us
 separate base-asset fee funding. Withdrawal maintenance can first create an exact
 principal note and a fee note; resume planning after those outputs are confirmed.
 
+Accepted note occurrences are keyed by canonical SCT position. Equal commitments
+share note contents but retain separate balance rows, nullifiers, creation sources
+and witnesses, including advice-only repeats after another occurrence is spent.
+Full and sparse scanning attribute transactions by actual payload position and
+validate their declared start against the tree frontier. Witness requests use the
+planned position and check commitment and anchor; every explicit input, including
+zero-valued inputs, receives its real path. Spending or fee exclusion affects only
+the selected occurrence. Old wallet schemas reject and require authenticated
+history replay with any imported advice; a schema change cannot recover previously
+dropped records without that history.
+
 The wallet retains witnesses for owned notes. Compliance projection uses separate
 user and indexed asset trees; their pair is validated against advertised anchors.
 On an explicit retry after a [stale compliance snapshot](compliance/flow.md#snapshot-admission-and-freezes),

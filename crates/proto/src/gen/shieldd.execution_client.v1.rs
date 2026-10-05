@@ -235,26 +235,26 @@ impl ::prost::Name for ApplyComplianceActionResponse {
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SeizeNoteRequest {
+pub struct SeizeNotesRequest {
     #[prost(message, optional, tag = "1")]
     pub source: ::core::option::Option<HostSource>,
     #[prost(message, optional, tag = "2")]
     pub seizure: ::core::option::Option<
-        super::super::core::component::shielded_pool::v1::NoteSeizure,
+        super::super::core::component::shielded_pool::v1::NoteSeizureBatch,
     >,
 }
-impl ::prost::Name for SeizeNoteRequest {
-    const NAME: &'static str = "SeizeNoteRequest";
+impl ::prost::Name for SeizeNotesRequest {
+    const NAME: &'static str = "SeizeNotesRequest";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.SeizeNoteRequest".into()
+        "shieldd.execution_client.v1.SeizeNotesRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.SeizeNoteRequest".into()
+        "/shieldd.execution_client.v1.SeizeNotesRequest".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SeizeNoteResponse {
+pub struct SeizeNotesResponse {
     #[prost(message, optional, tag = "1")]
     pub source: ::core::option::Option<HostSource>,
     #[prost(bool, tag = "2")]
@@ -269,14 +269,14 @@ pub struct SeizeNoteResponse {
     #[prost(uint64, tag = "5")]
     pub freeze_generation: u64,
 }
-impl ::prost::Name for SeizeNoteResponse {
-    const NAME: &'static str = "SeizeNoteResponse";
+impl ::prost::Name for SeizeNotesResponse {
+    const NAME: &'static str = "SeizeNotesResponse";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.SeizeNoteResponse".into()
+        "shieldd.execution_client.v1.SeizeNotesResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.SeizeNoteResponse".into()
+        "/shieldd.execution_client.v1.SeizeNotesResponse".into()
     }
 }
 /// CheckTxRequest carries a Shieldd transaction to validate without applying

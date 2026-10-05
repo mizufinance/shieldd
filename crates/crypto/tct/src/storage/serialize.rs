@@ -228,7 +228,13 @@ impl Serializer {
                         }
                     };
 
-                    if before_last_stored_position && node.forgotten() > self.last_forgotten {
+                    // Frontier leaves have no local forgetting version. Reaching one
+                    // through a changed ancestor must still remove its stored commitment.
+                    let forgotten_frontier_leaf = node.place() == Place::Frontier
+                        && matches!(node.kind(), Kind::Leaf { commitment: None });
+                    if before_last_stored_position
+                        && (node.forgotten() > self.last_forgotten || forgotten_frontier_leaf)
+                    {
                         let mut children = node.children();
                         if children.is_empty() {
                             // If there are no children, report the point

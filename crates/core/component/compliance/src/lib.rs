@@ -8,7 +8,7 @@ pub mod event;
 pub mod audit_log;
 pub use audit_log::{
     audit_bytes_commitment, AuditEffect, AuditEffectRecord, AuditLogState, AuditSource,
-    WithdrawalKind, AUDIT_LOG_VERSION, MAX_AUDIT_RECORD_BYTES,
+    WithdrawalKind, AUDIT_LOG_VERSION, MAX_AUDIT_RECORD_BYTES, MAX_SEIZED_NULLIFIERS,
 };
 #[cfg(feature = "component")]
 pub use audit_log::{AuditLogRead, AuditLogWrite};

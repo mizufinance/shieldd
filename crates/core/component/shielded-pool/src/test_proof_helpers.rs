@@ -389,8 +389,9 @@ pub mod proof_test_helpers {
         let anchor = sct.root();
         let state_commitment_proofs = notes
             .iter()
-            .map(|note| {
-                sct.witness(note.commit())
+            .enumerate()
+            .map(|(position, _note)| {
+                sct.witness((position as u64).into())
                     .expect("state commitment witness")
             })
             .collect::<Vec<_>>();
@@ -645,10 +646,10 @@ pub mod proof_test_helpers {
                 .expect("insert prior volume accumulator state");
         }
         let state_commitment_proof = sct
-            .witness(note.commit())
+            .witness(0u64.into())
             .expect("witness hidden-arity transfer input note");
-        let accumulator_prior_proof = accumulator_prior_state.as_ref().map(|prior| {
-            sct.witness(prior.commitment())
+        let accumulator_prior_proof = accumulator_prior_state.as_ref().map(|_prior| {
+            sct.witness(1u64.into())
                 .expect("witness prior volume accumulator state")
         });
         let anchor = sct.root();
@@ -838,8 +839,9 @@ pub mod proof_test_helpers {
         let anchor = sct.root();
         let state_commitment_proofs = notes
             .iter()
-            .map(|note| {
-                sct.witness(note.commit())
+            .enumerate()
+            .map(|(position, _note)| {
+                sct.witness((position as u64).into())
                     .expect("state commitment witness")
             })
             .collect::<Vec<_>>();
@@ -962,8 +964,9 @@ pub mod proof_test_helpers {
         let anchor = sct.root();
         let state_commitment_proofs = notes
             .iter()
-            .map(|note| {
-                sct.witness(note.commit())
+            .enumerate()
+            .map(|(position, _note)| {
+                sct.witness((position as u64).into())
                     .expect("state commitment witness")
             })
             .collect::<Vec<_>>();
@@ -1095,11 +1098,11 @@ pub mod proof_test_helpers {
                 .expect("insert prior withdrawal accumulator commitment");
         }
         let anchor = sct.root();
-        let required_proof = sct.witness(note_a.commit()).expect("witness note a");
+        let required_proof = sct.witness(0u64.into()).expect("witness note a");
         let optional_proof =
-            (real_spends == 2).then(|| sct.witness(note_b.commit()).expect("witness note b"));
-        let accumulator_prior_proof = accumulator_prior_state.as_ref().map(|prior| {
-            sct.witness(prior.commitment())
+            (real_spends == 2).then(|| sct.witness(1u64.into()).expect("witness note b"));
+        let accumulator_prior_proof = accumulator_prior_state.as_ref().map(|_prior| {
+            sct.witness((real_spends as u64).into())
                 .expect("witness prior withdrawal accumulator")
         });
         let (change_note, _) = crate::Note::from_parts_with_recovery(
