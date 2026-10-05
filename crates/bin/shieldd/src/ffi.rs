@@ -690,7 +690,16 @@ async fn recorded_dispatch(
     method: Method,
     request: &[u8],
 ) -> Result<Vec<u8>, FfiError> {
-    service.check_persistence().map_err(FfiError::service)?;
+    if matches!(
+        method,
+        Method::ScheduleCheckpoint | Method::RestoreCheckpoint
+    ) {
+        return dispatch(service, method, request).await;
+    }
+    service
+        .await_materializer()
+        .await
+        .map_err(FfiError::service)?;
     let recording = service
         .reserve_call(method as u32, request)
         .map_err(FfiError::service)?;
