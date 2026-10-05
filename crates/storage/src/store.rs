@@ -87,7 +87,11 @@ impl Storage {
                 latest.archive_first_height()? <= mmr.count,
                 "archive coverage exceeds boundary"
             );
-            forest.authenticate_reads(manifest, latest.observations())?;
+            // NOMT may have advanced before the raw batch. The SDK-authorized
+            // rewind authenticates that replay base once its roots are restored.
+            if forest.check_roots(&manifest.participants).is_ok() {
+                forest.authenticate_reads(manifest, latest.observations())?;
+            }
         }
 
         Ok(Self(Arc::new(Shared {
@@ -115,7 +119,10 @@ impl Storage {
     pub fn check_materialized(&self) -> Result<()> {
         let view = self.latest_snapshot();
         if let Some(manifest) = view.manifest() {
-            self.0.forest.read().check_roots(&manifest.participants)?;
+            let forest = self.0.forest.read();
+            forest.check_roots(&manifest.participants)?;
+            view.archive_state()?.context("archive state is missing")?;
+            forest.authenticate_reads(manifest, view.observations())?;
         }
         Ok(())
     }
@@ -338,7 +345,8 @@ impl Storage {
         self.0
             .forest
             .write()
-            .reconcile_decided(&previous.participants, &next.participants)
+            .reconcile_decided(&previous.participants, &next.participants)?;
+        self.check_materialized()
     }
     pub fn validate(&self) -> Result<()> {
         let snapshot = self.latest_snapshot();
@@ -1001,6 +1009,7 @@ mod tests {
         drop(storage);
         let storage = Storage::open(&path, config()).unwrap();
         assert_eq!(storage.manifest(), Some(previous.clone()));
+        assert!(storage.check_materialized().is_err());
         assert_eq!(
             storage
                 .latest_snapshot()
@@ -1012,6 +1021,7 @@ mod tests {
         );
         storage.rewind_decided(&previous, &next).unwrap();
         storage.rewind_decided(&previous, &next).unwrap();
+        storage.check_materialized().unwrap();
         let replay = storage
             .prepare(
                 state(&storage, b"decided"),
@@ -1028,6 +1038,7 @@ mod tests {
         assert_eq!(replay.next, next);
         assert_eq!(replay.effects.digest().unwrap(), digest);
         storage.materialize(replay).unwrap();
+        storage.validate().unwrap();
         assert_eq!(
             storage
                 .latest_snapshot()
@@ -1038,6 +1049,41 @@ mod tests {
             b"decided"
         );
         assert!(storage.rewind_decided(&previous, &next).is_err());
+    }
+    #[test]
+    fn archive_state_corruption_is_rejected_at_the_rewound_replay_base() {
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("state");
+        let storage = Storage::open(&path, config()).unwrap();
+        let genesis = storage
+            .prepare(state(&storage, b"genesis"), boundary(0, 0), BTreeMap::new())
+            .unwrap();
+        let previous = storage.materialize(genesis).unwrap();
+        let prepared = storage
+            .prepare(state(&storage, b"decided"), boundary(1, 1), BTreeMap::new())
+            .unwrap();
+        let next = prepared.next.clone();
+        storage
+            .0
+            .forest
+            .write()
+            .materialize(prepared.forest)
+            .unwrap();
+        let mut bytes = storage.latest_snapshot().archive_state().unwrap().unwrap();
+        *bytes.last_mut().unwrap() ^= 1;
+        // Preserve the encoding/count so only commitment authentication rejects it.
+        crate::archive::Mmr::decode(&bytes).unwrap();
+        storage.0.raw.corrupt_for_test(
+            crate::Space::Application,
+            crate::archive::STATE_KEY,
+            Some(&bytes),
+        );
+        drop(storage);
+        let storage = Storage::open(&path, config()).unwrap();
+        assert!(storage.rewind_decided(&previous, &next).is_err());
+        assert!(storage.check_materialized().is_err());
+        drop(storage);
+        assert!(Storage::open(&path, config()).is_err());
     }
     #[test]
     fn midnight_proofs_keep_adjacent_generations_without_creating_empty_days() {
