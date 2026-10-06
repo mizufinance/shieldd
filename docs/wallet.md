@@ -87,15 +87,24 @@ schema rejects stale databases; reset and resynchronize them before use.
 [Permanent nullifiers](nullifier-history.md) defines proof trust and query privacy.
 
 Completion permits at most one real daily-volume transition per subject/day,
-including precompleted actions. A daily-volume transfer reserves one confirmed
-accumulator head per subject/day.
-Definite pre-broadcast failure or rejection releases the reservation only for its
-transaction owner; ambiguous
-broadcast keeps it reserved until confirmation or strict expiry. Confirmation
-records the successor and clears the reservation atomically. Recovery verifies
-the owner payload’s commitment and transition chain before a head becomes
+including precompleted actions. Concurrent completions can consume the same
+confirmed head; consensus nullifier uniqueness rejects the losing transaction.
+After a stale-head rejection, sync and rebuild from the confirmed head. Recovery
+verifies the owner payload's commitment and transition chain before a head becomes
 plannable. Incomplete history cannot open a second budget. See
 [the volume relation](compliance/flow.md#daily-volume-state).
+
+Block writes retire complete and incomplete accumulator heads and their retained
+SCT occurrences at the [strict day cutoff](compliance/flow.md#daily-volume-state).
+Cleanup uses the exact scanned block's timestamp in the same transaction as
+recovery, SCT persistence and sync metadata. Already absent expired witnesses are
+harmless; malformed stored commitments or mismatched retained occurrences abort
+the write. The wallet trusts authoritative monotonic accepted-block time rather
+than authenticating it from the SCT root. A wrong future host timestamp can
+prematurely retire usable heads and require resynchronization; duplicate origin
+nullifiers still reject a reopened budget. Cleanup bounds the retained time
+horizon, not the number of subjects; initial cleanup is proportional to expired
+history.
 
 `pcli` supports offline initialization, addresses and custody. Bankd owns live
 query/submission workflows and mobile/admin smoke tests. See

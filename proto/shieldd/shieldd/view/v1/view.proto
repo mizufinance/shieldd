@@ -236,7 +236,9 @@ message TransactionPlannerRequest {
   // The epoch of the transaction being planned.
   shieldd.core.component.sct.v1.Epoch epoch = 201;
 
-  // Voluntarily disclose outbound transfers instead of consuming the daily accumulator.
+  // Request voluntary issuer disclosure for eligible outbound actions.
+  // False still permits disclosure on volume overflow, an exceeded limit, or
+  // incomplete recovery. Missing required policy or recovery data is an error.
   bool disclose_to_issuer = 202;
 
   // Request message subtypes

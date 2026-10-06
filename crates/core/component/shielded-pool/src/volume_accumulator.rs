@@ -649,6 +649,25 @@ mod tests {
         assert_eq!(select_accumulator_day(172_799), 86_400);
     }
 
+    #[cfg(feature = "component")]
+    #[test]
+    fn retention_covers_the_last_admissible_previous_day_timestamp() {
+        use shieldd_sdk_compliance::registry::{
+            check_timestamp_freshness, MAX_TIMESTAMP_DRIFT_SECS,
+        };
+
+        assert!(VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS >= MAX_TIMESTAMP_DRIFT_SECS);
+        let day_start = UTC_DAY_SECS;
+        let target = day_start + UTC_DAY_SECS - 1;
+        let last_fresh_block = i64::try_from(target + MAX_TIMESTAMP_DRIFT_SECS).unwrap();
+        assert!(check_timestamp_freshness(target, last_fresh_block).is_ok());
+        assert!(check_timestamp_freshness(target, last_fresh_block + 1).is_err());
+        assert!(
+            last_fresh_block
+                < i64::try_from(day_start + VOLUME_ACCUMULATOR_RETENTION_SECS).unwrap()
+        );
+    }
+
     #[test]
     fn accumulation_is_inclusive_at_the_limit_and_discloses_overflow() {
         assert_eq!(accumulated_volume(40, 60, 100), Some(100));

@@ -147,6 +147,10 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         self
     }
 
+    /// Requests voluntary issuer disclosure for eligible outbound actions.
+    ///
+    /// `false` still permits disclosure on volume overflow, an exceeded limit, or
+    /// incomplete recovery. Missing required policy or recovery data is an error.
     pub fn disclose_to_issuer(&mut self, disclose: bool) -> &mut Self {
         self.disclose_to_issuer = disclose;
         self

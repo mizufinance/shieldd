@@ -40,6 +40,7 @@ pub struct Shared<'ctx> {
     pub eligible_ordinary: BoolVar<'ctx, Scalar>,
     pub sender_address: [Var<'ctx, Scalar>; 4],
     pub asset: Var<'ctx, Scalar>,
+    /// The caller must independently constrain this amount below 2^128.
     pub outbound: Var<'ctx, Scalar>,
     pub daily_limit: Var<'ctx, Scalar>,
     pub anchor: Var<'ctx, Scalar>,
@@ -102,12 +103,11 @@ pub fn constrain<'ctx>(
     let prior = var(&amount(w.prior_volume));
     let successor = var(&amount(w.successor_volume));
     decompose(ctx, &prior, 128);
-    decompose(ctx, &successor, 128);
+    let successor_bits = decompose(ctx, &successor, 128);
     let limit_bits = decompose(ctx, &shared.daily_limit, 128);
     let candidate = prior.clone() + &shared.outbound;
-    let candidate_bits = decompose(ctx, &candidate, 128);
     equal_if(&use_real, &successor, &candidate);
-    let within = less_or_equal_bounded(ctx, &candidate_bits, &limit_bits);
+    let within = less_or_equal_bounded(ctx, &successor_bits, &limit_bits);
     (use_real.clone() & !within).assert_eq(&BoolVar::constant(false));
     equal_if(
         &(use_real.clone() & starts_new_day.clone()),
@@ -290,6 +290,7 @@ mod tests {
             nk: var(&c.nk),
             padding_seed: var(&c.padding_seed),
         };
+        decompose(ctx, &shared.outbound, 128);
         let out = constrain(ctx, p, w, &shared);
         out.flagged.assert_eq(&BoolVar::constant(flag));
         let statement = p.circuit(
@@ -337,8 +338,98 @@ mod tests {
         fee.commitment = Scalar::zero();
         assert!(accepts(&p, &fee, &c, false));
     }
+    fn bind_amounts(p: &Parameters, w: &mut Witness, c: &mut ContextValues) {
+        w.prior_commitment = p.native(
+            STATE,
+            &[
+                w.subject.clone(),
+                w.day_start.clone(),
+                amount(w.prior_volume),
+                w.prior_blinding.clone(),
+            ],
+        );
+        c.anchor = tree::native_root(
+            p,
+            Tree::State,
+            w.prior_commitment.clone(),
+            0,
+            &w.prior_path.siblings,
+        );
+        if w.use_real {
+            w.nullifier = if w.starts_new_day {
+                p.native(
+                    ORIGIN_NULLIFIER,
+                    &[c.nk.clone(), w.subject.clone(), w.day_start.clone()],
+                )
+            } else {
+                p.native(
+                    NOTE_NULLIFIER,
+                    &[c.nk.clone(), w.prior_commitment.clone(), Scalar::zero()],
+                )
+            };
+            w.commitment = p.native(
+                STATE,
+                &[
+                    w.subject.clone(),
+                    w.day_start.clone(),
+                    amount(w.successor_volume),
+                    w.successor_blinding.clone(),
+                ],
+            );
+        }
+    }
+
     #[test]
-    fn limit_overflow_timestamp_and_predecessor_mutations_are_rejected() {
+    fn checked_addition_is_enforced_only_for_real_transitions() {
+        let p = Parameters::load().unwrap();
+        let cases = [
+            (0, 0, 0, 0, true),
+            (0, u128::MAX, u128::MAX, u128::MAX, true),
+            (u128::MAX - 1, 1, u128::MAX, u128::MAX, true),
+            (u128::MAX, 0, u128::MAX, u128::MAX, true),
+            (u128::MAX, 1, 0, u128::MAX, false),
+            (5, 10, 15, 14, false),
+            (5, 10, 14, 20, false),
+            (0, u128::MAX, u128::MAX, u128::MAX - 1, false),
+            (0, 1, 1, 0, false),
+        ];
+        for continuation in [false, true] {
+            for (prior, outbound, successor, limit, expected) in cases {
+                if !continuation && prior != 0 {
+                    continue;
+                }
+                let (mut w, mut c) = fixture(&p, continuation, false);
+                w.prior_volume = prior;
+                w.successor_volume = successor;
+                c.outbound = outbound;
+                c.limit = limit;
+                bind_amounts(&p, &mut w, &mut c);
+                assert_eq!(
+                    accepts(&p, &w, &c, false),
+                    expected,
+                    "continuation={continuation}, prior={prior}, outbound={outbound}, successor={successor}, limit={limit}"
+                );
+            }
+        }
+
+        let (mut padding, mut c) = fixture(&p, true, true);
+        padding.prior_volume = u128::MAX;
+        padding.successor_volume = 0;
+        c.outbound = 1;
+        c.limit = 0;
+        bind_amounts(&p, &mut padding, &mut c);
+        assert!(accepts(&p, &padding, &c, true));
+        c.eligible = false;
+        assert!(accepts(&p, &padding, &c, false));
+        padding.proof_context = 2;
+        padding.day_start = Scalar::zero();
+        padding.nullifier = Scalar::zero();
+        padding.commitment = Scalar::zero();
+        assert!(accepts(&p, &padding, &c, false));
+    }
+
+    #[test]
+    fn limit_timestamp_and_predecessor_mutations_are_rejected() {
         let p = Parameters::load().unwrap();
         let (w, mut c) = fixture(&p, true, false);
         c.limit = 15;
@@ -348,9 +439,6 @@ mod tests {
         c.limit = 20;
         let mut bad = w.clone();
         bad.prior_path.siblings[0][0] += &Scalar::one();
-        assert!(!accepts(&p, &bad, &c, false));
-        let mut bad = w.clone();
-        bad.prior_volume = u128::MAX;
         assert!(!accepts(&p, &bad, &c, false));
         let mut bad = w.clone();
         bad.timestamp_second = 86400;
