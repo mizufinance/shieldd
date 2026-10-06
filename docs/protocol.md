@@ -78,6 +78,55 @@ the Binding signature covers the complete body’s auth hash. Balance commitment
 including private fee funding, must sum to zero. Frozen signing vectors live in
 [transaction tests](../crates/core/transaction/tests).
 
+### Same-chain private AvP prototype
+
+The executable [two-wallet prototype](../crates/core/app-tests/tests/private_avp.rs)
+exchanges two assets within the shielded pool using two ordinary Transfer proofs
+and one private FeeFunding Transfer. It uses independent spend keys and a shared
+finalized SCT anchor. No new circuit, proof family, swap pool, or withdrawal is
+required. The fixture uses unregulated test assets; a securities DvP product
+also needs its issuance and compliance integration.
+
+Each wallet retains its own plans, witnesses, keys and authorization randomizers.
+Only serialized proof-bearing action fragments cross the coordination boundary.
+Both wallets verify the canonical unsigned statement through
+`TransferBody::proof_public`, verify the proofs, and trial-decrypt the counterparty's
+receiver output. They check the exact receiving address, asset, amount, mandatory
+encrypted memo, fee, chain ID, finite expiry and their own proposed action before
+signing the complete transaction effect hash. The unsigned projection grants no
+spend authority: consensus still requires every SpendAuth signature.
+
+After verifying all SpendAuth signatures, each wallet releases only its fresh,
+transaction-specific value-commitment blinding. The assembler checks each
+principal commitment opens to zero residual, the fee commitment covers the public
+fee, and the summed scalar matches the canonical nonidentity binding key before
+signing the complete body auth hash. Authorization randomizers and the proof's
+independent commitment openings remain local. This is a prototype of that
+assembly strategy, not a privacy certification for production use.
+
+Run it with a development Pari registry matching the current circuits:
+
+```sh
+export CARGO_BUILD_JOBS=2 RAYON_NUM_THREADS=2
+cargo run --locked --profile ci -p shieldd-sdk-proof-params --example pari_setup -- /tmp/shieldd-avp-keys
+SHIELDD_PARI_KEYS=/tmp/shieldd-avp-keys cargo test --locked --profile ci -p shieldd-sdk-app-tests --test private_avp -- --ignored --nocapture --test-threads=1
+```
+
+The prototype checks native atomic rejection, positive fees, usable receipt notes,
+persisted wallet history across reopen, and actual spends using recovered notes
+and witnesses. Receipt recognition matches accepted
+effects and input nullifiers, recording the actual txID because randomized
+signatures can produce different IDs for the same authorized effects.
+Amounts, asset identities and recipients stay encrypted on chain; the fee and
+ordinary transaction metadata remain public. Participants know their negotiated
+terms, and any coordinator given those terms also knows them.
+
+Durable negotiation sessions, input reservations, cancellation/retry handling,
+authenticated coordinator transport, and live Bankd submission are outside this
+bounded native prototype. Atomic acceptance does not guarantee completion:
+the final assembler can withhold submission. Cross-chain settlement requires a
+separate protocol; the same-chain transaction does not provide it.
+
 Supported user action families are defined by [Action](../crates/core/transaction/src/action.rs).
 Transfer binds its receiver ciphertext, metadata, owner accumulator payload and
 proof context. NoteReshape preserves sender ownership and regulated Active status.

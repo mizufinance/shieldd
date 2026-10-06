@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use rand::{rngs::StdRng, SeedableRng};
 use shieldd_sdk_asset::Value;
-#[cfg(feature = "component")]
 use shieldd_sdk_compliance::TRANSFER_WIRE_BYTES;
 use shieldd_sdk_compliance::{
     derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
@@ -9,7 +8,6 @@ use shieldd_sdk_compliance::{
 };
 use shieldd_sdk_crypto::Fr;
 
-#[cfg(feature = "component")]
 use super::TransferOutputBody;
 use crate::{
     transfer::{
@@ -173,7 +171,6 @@ pub(crate) fn change_output_transfer_compliance() -> TransferOutputComplianceByt
     }
 }
 
-#[cfg(feature = "component")]
 pub(crate) fn parse_transfer_output_compliance(
     outputs: &[TransferOutputBody],
 ) -> Result<(TransferComplianceCiphertext, TransferComplianceMetadata)> {

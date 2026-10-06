@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use anyhow::{Context, Error};
+use anyhow::{Context, Error, Result};
 use reddsa::{sapling::SpendAuth, Signature, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_crypto::Fq;
@@ -9,10 +9,12 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
+use super::compliance::{parse_transfer_output_compliance, transfer_compliance_public_from_parts};
 use super::generated::{transfer_input_count, transfer_output_count};
 use crate::{
     backref::ENCRYPTED_BACKREF_LEN, discovery::TransferRouting, transfer::TransferProof,
-    EncryptedBackref, NotePayload, TransferProofContext, VolumeAccumulatorPayload,
+    EncryptedBackref, NotePayload, TransferOutputPublic, TransferProofContext, TransferProofPublic,
+    TransferSpendPublic, VolumeAccumulatorPayload, VolumeAccumulatorPublic,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -58,6 +60,80 @@ pub struct Transfer {
 }
 
 impl TransferBody {
+    /// Reconstruct the proof statement without granting spend authorization or state admission.
+    /// Wallets inspecting a joint transaction and consensus use the same projection.
+    pub fn proof_public(
+        &self,
+        anchor: shieldd_sdk_tct::Root,
+        expected_context: TransferProofContext,
+    ) -> Result<TransferProofPublic> {
+        anyhow::ensure!(
+            self.anchor == anchor,
+            "transfer body anchor does not match transaction anchor"
+        );
+        self.validate_shape()
+            .context("transfer body shape mismatch")?;
+        anyhow::ensure!(
+            self.proof_context == expected_context,
+            "transfer proof context does not match its transaction location"
+        );
+        shieldd_sdk_keys::ensure_nonidentity_spend_auth_key(
+            &self.rk,
+            "transfer randomized spend key",
+        )?;
+        for (index, input) in self.inputs.iter().enumerate() {
+            anyhow::ensure!(
+                input.compliance_ciphertext.is_empty(),
+                "transfer input {} compliance ciphertext must be empty",
+                index + 1
+            );
+        }
+        let (ciphertext, metadata) = parse_transfer_output_compliance(&self.outputs)?;
+        let public = TransferProofPublic {
+            rk: self.rk,
+            anchor,
+            balance_commitment: self.balance_commitment,
+            asset_anchor: self.asset_anchor,
+            compliance_anchor: self.compliance_anchor,
+            target_timestamp: Fq::from(self.target_timestamp),
+            inputs: self
+                .inputs
+                .iter()
+                .map(|input| TransferSpendPublic {
+                    nullifier: input.nullifier,
+                })
+                .collect(),
+            outputs: self
+                .outputs
+                .iter()
+                .map(|output| {
+                    Ok(TransferOutputPublic {
+                        note_commitment: output.note_payload.note_commitment,
+                        recovery_commitment: output
+                            .note_payload
+                            .recovery_capsule
+                            .as_ref()
+                            .ok_or_else(|| anyhow::anyhow!("missing transfer recovery capsule"))?
+                            .commitment(),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+            compliance: transfer_compliance_public_from_parts(&ciphertext, &metadata)?,
+            routing: self.routing,
+            routing_parameter_set_id: self.routing_parameter_set_id,
+            volume_accumulator: VolumeAccumulatorPublic {
+                nullifier: self.volume_accumulator.nullifier,
+                commitment: self.volume_accumulator.commitment,
+                day_start: self.volume_accumulator.day_start,
+            },
+            proof_context: self.proof_context,
+        };
+        public
+            .validate_shape()
+            .context("transfer proof shape mismatch")?;
+        Ok(public)
+    }
+
     pub fn validate_shape(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
             self.inputs.len() == transfer_input_count(),
