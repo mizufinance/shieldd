@@ -211,7 +211,7 @@ enum TransferProofContext {
 message VolumeAccumulatorPayload {
   sct.v1.Nullifier nullifier = 1;
   crypto.tct.v1.StateCommitment commitment = 2;
-  // OVK-encrypted fixed-width accumulator state (92-byte plaintext plus AEAD tag).
+  // OVK-encrypted fixed-width accumulator state (93-byte plaintext, 109-byte ciphertext).
   bytes encrypted_state = 3;
   // UTC day start in Unix seconds. Used only to scope temporary nullifier storage.
   uint64 day_start = 4;

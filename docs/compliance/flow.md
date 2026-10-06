@@ -97,13 +97,22 @@ precondition, not a circuit-enforceable fact about a malicious creator's randomn
 
 ## Daily volume state
 
-An external regulated ordinary Transfer stays undisclosed by proving a real
-accumulator transition with checked `u128` addition and
-`prior_undisclosed_volume + receiver_amount <= daily_volume_limit`. Equality is
+Undisclosed volume is tracked per sender address and asset, for the UTC calendar
+day selected by the action's target timestamp. The authenticated asset policy
+sets the daily limit; [registration policy](#policy-and-registration) owns the
+external ACP identity and address scope.
+
+An eligible external regulated Transfer or shielded host withdrawal stays
+undisclosed by proving a real accumulator transition with checked `u128` addition and
+`prior_undisclosed_volume + outbound_amount <= daily_volume_limit`. Equality is
 allowed. A larger candidate or explicit disclosure request uses padding, flags
-only the current transfer, and leaves the accumulator head unchanged. Unregulated
+only the current action, and leaves the accumulator head unchanged. Unregulated
 and self-transfers remain unflagged. Fee funding uses a proof-bound disabled
 context and emits no accumulator commitment.
+
+`disclose_to_issuer = false` declines voluntary disclosure. Eligible actions may
+still disclose when checked addition overflows, the candidate exceeds the limit,
+or recovery is incomplete. Missing required policy or recovery data is an error.
 
 The accounting day is UTC-aligned and independent of SCT epochs. Target timestamps
 must be within ±30 minutes of signed block time. A day's first transition emits a
@@ -113,11 +122,11 @@ indistinguishable real or padding commitments.
 
 Volume nullifiers live in a day-scoped set, separate from global spend-nullifier
 history, and are pruned strictly after `day_start + 24h + 30m`. The owner recovers
-the transition from a 108-byte OVK-authenticated compact-block payload containing
-92 plaintext bytes. Each day starts a new origin. Incomplete history prevents
+the transition from a 109-byte OVK-authenticated compact-block payload containing
+93 plaintext bytes. Each day starts a new origin. Incomplete history prevents
 tracked transfers for that day while disclosure remains available. The issuer
-learns the current transfer, not the private total. [Wallet state](../wallet.md)
-owns reservation, recovery and concurrent-completion rules.
+learns the current action, not the private total. [Wallet state](../wallet.md)
+owns recovery, retention and concurrent-completion rules.
 
 ## Wire and acceptance
 

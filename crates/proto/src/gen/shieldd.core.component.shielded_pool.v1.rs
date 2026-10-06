@@ -526,7 +526,7 @@ pub struct VolumeAccumulatorPayload {
     pub commitment: ::core::option::Option<
         super::super::super::super::crypto::tct::v1::StateCommitment,
     >,
-    /// OVK-encrypted fixed-width accumulator state (92-byte plaintext plus AEAD tag).
+    /// OVK-encrypted fixed-width accumulator state (93-byte plaintext, 109-byte ciphertext).
     #[prost(bytes = "vec", tag = "3")]
     pub encrypted_state: ::prost::alloc::vec::Vec<u8>,
     /// UTC day start in Unix seconds. Used only to scope temporary nullifier storage.

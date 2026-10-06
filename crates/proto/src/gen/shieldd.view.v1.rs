@@ -226,7 +226,9 @@ pub struct TransactionPlannerRequest {
     /// The epoch of the transaction being planned.
     #[prost(message, optional, tag = "201")]
     pub epoch: ::core::option::Option<super::super::core::component::sct::v1::Epoch>,
-    /// Voluntarily disclose outbound transfers instead of consuming the daily accumulator.
+    /// Request voluntary issuer disclosure for eligible outbound actions.
+    /// False still permits disclosure on volume overflow, an exceeded limit, or
+    /// incomplete recovery. Missing required policy or recovery data is an error.
     #[prost(bool, tag = "202")]
     pub disclose_to_issuer: bool,
     /// Specifies either that the planner should compute fees automatically or that it should use a fixed fee amount.

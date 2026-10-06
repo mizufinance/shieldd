@@ -23,15 +23,12 @@ use shieldd_sdk_app::params::AppParameters;
 use shieldd_sdk_asset::{asset, asset::Id, asset::Metadata, Value};
 use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
 use shieldd_sdk_fee::GasPrices;
-use shieldd_sdk_keys::{
-    keys::{AddressIndex, NullifierKey},
-    Address, FullViewingKey,
-};
+use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::{
-    discovery, note, Note, Rseed, VolumeAccumulatorPayload, VolumeAccumulatorState,
+    discovery, note, Note, Rseed, VolumeAccumulatorState, VOLUME_ACCUMULATOR_RETENTION_SECS,
 };
 use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
 use shieldd_sdk_transaction::Transaction;
@@ -66,13 +63,6 @@ pub enum VolumeAccumulatorRecovery {
     Absent,
     Complete(ConfirmedVolumeAccumulator),
     Incomplete,
-}
-
-#[derive(Debug, Clone)]
-pub struct VolumeAccumulatorReservation {
-    pub state: VolumeAccumulatorState,
-    pub payload: VolumeAccumulatorPayload,
-    pub expires_at: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -831,6 +821,7 @@ mod volume_accumulator_tests {
     use camino::Utf8Path;
     use shieldd_sdk_app::params::AppParameters;
     use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_shielded_pool::VolumeAccumulatorPayload;
 
     fn state() -> VolumeAccumulatorState {
         VolumeAccumulatorState {
@@ -855,44 +846,420 @@ mod volume_accumulator_tests {
         )
     }
 
+    fn block(height: u64) -> FilteredBlock {
+        FilteredBlock {
+            new_notes: BTreeMap::new(),
+            spent_nullifiers: Vec::new(),
+            height,
+            discovery_parameters: None,
+            app_parameters_updated: false,
+            gas_prices: None,
+            volume_accumulators: Vec::new(),
+        }
+    }
+
+    fn recover(
+        tree: &mut tct::Tree,
+        state: VolumeAccumulatorState,
+    ) -> crate::sync::RecoveredVolumeAccumulator {
+        let position = tree.insert(tct::Witness::Keep, state.commitment()).unwrap();
+        crate::sync::RecoveredVolumeAccumulator {
+            payload: payload(&state),
+            state,
+            position,
+        }
+    }
+
+    async fn commit(
+        storage: &Storage,
+        tree: &mut tct::Tree,
+        block: FilteredBlock,
+        timestamp: u64,
+    ) -> anyhow::Result<()> {
+        storage
+            .record_block(
+                block,
+                vec![],
+                tree,
+                None,
+                None,
+                WalletBlockMetadata {
+                    timestamp,
+                    ..Default::default()
+                },
+            )
+            .await
+    }
+
     #[tokio::test]
-    async fn reservation_is_exclusive_until_strict_expiry() {
+    async fn expired_heads_and_witnesses_retire_only_after_the_cutoff() -> anyhow::Result<()> {
+        use shieldd_sdk_shielded_pool::VOLUME_ACCUMULATOR_RETENTION_SECS;
+
+        let directory = tempfile::tempdir()?;
+        let path = Utf8Path::from_path(directory.path())
+            .unwrap()
+            .join("wallet.sqlite");
+        let mut storage = Storage::initialize(
+            Some(&path),
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await?;
+        let mut states = vec![state(); 4];
+        for (i, state) in states.iter_mut().enumerate().skip(1) {
+            state.subject = VolumeAccumulatorState::subject(
+                &test_keys::ADDRESS_0,
+                asset::Id(Fq::from(91 + i as u64)),
+            );
+        }
+        states[2].day_start += 86_400;
+        states[3].day_start += 2 * 86_400;
+        let mut tree = tct::Tree::new();
+        let mut first = block(0);
+        first.volume_accumulators = states
+            .iter()
+            .cloned()
+            .map(|state| recover(&mut tree, state))
+            .collect();
+        let positions = first
+            .volume_accumulators
+            .iter()
+            .map(|head| head.position)
+            .collect::<Vec<_>>();
+        let duplicate = tree.insert(tct::Witness::Keep, states[0].commitment())?;
+        let unrelated = tree.insert(tct::Witness::Keep, StateCommitment(Fq::from(777)))?;
+        tree.end_block()?;
+        commit(&storage, &mut tree, first, states[0].day_start).await?;
+        storage.pool.get()?.execute(
+            "UPDATE volume_accumulators SET recovery_status = 1 WHERE subject = ?1",
+            [states[1].subject.to_bytes().to_vec()],
+        )?;
+
+        for (height, timestamp, expired) in [
+            (
+                1,
+                states[0].day_start + VOLUME_ACCUMULATOR_RETENTION_SECS,
+                false,
+            ),
+            (
+                2,
+                states[0].day_start + VOLUME_ACCUMULATOR_RETENTION_SECS + 1,
+                true,
+            ),
+        ] {
+            tree.end_block()?;
+            let root = tree.root();
+            let position = tree.position();
+            commit(&storage, &mut tree, block(height), timestamp).await?;
+            for reopen in [false, true] {
+                if reopen {
+                    drop(storage);
+                    storage = Storage::load(&path).await?;
+                    tree = storage.state_commitment_tree().await?;
+                }
+                for (i, state) in states.iter().enumerate() {
+                    let recovery = storage
+                        .volume_accumulator_recovery(state.subject, state.day_start)
+                        .await?;
+                    if i < 2 && expired {
+                        assert!(
+                            matches!(recovery, VolumeAccumulatorRecovery::Absent),
+                            "expired head must be deleted only after the strict cutoff"
+                        );
+                    } else if i == 1 {
+                        assert!(matches!(recovery, VolumeAccumulatorRecovery::Incomplete));
+                    } else {
+                        let VolumeAccumulatorRecovery::Complete(head) = recovery else {
+                            panic!("active head must remain complete")
+                        };
+                        assert_eq!(&head.state, state);
+                        assert_eq!(head.position, positions[i]);
+                    }
+                    assert_eq!(tree.witness(positions[i]).is_none(), i < 2 && expired);
+                }
+                assert_eq!(tree.root(), root, "forgetting must preserve the root");
+                assert_eq!(tree.position(), position);
+                for retained in [duplicate, unrelated] {
+                    tree.witness(retained)
+                        .expect("unrelated occurrence must remain")
+                        .verify(root)?;
+                }
+                assert_eq!(storage.last_sync_height().await?, Some(height));
+                assert_eq!(storage.block_timestamp().await?, timestamp);
+            }
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn late_previous_day_continuation_survives_sequential_catch_up() -> anyhow::Result<()> {
+        use shieldd_sdk_shielded_pool::VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS;
+
         let storage = Storage::initialize(
             None::<&Utf8Path>,
             (*test_keys::FULL_VIEWING_KEY).clone(),
             AppParameters::default(),
         )
-        .await
-        .unwrap();
-        let state = state();
-        let payload = payload(&state);
-        let reservation = |expires_at| VolumeAccumulatorReservation {
-            state: state.clone(),
-            payload: payload.clone(),
-            expires_at,
-        };
-        let nk = *test_keys::FULL_VIEWING_KEY.nullifier_key();
+        .await?;
+        let prior = state();
+        let mut tree = tct::Tree::new();
+        let origin = recover(&mut tree, prior.clone());
+        let prior_position = origin.position;
+        let mut first = block(0);
+        first.volume_accumulators.push(origin);
+        tree.end_block()?;
+        let last_second = prior.day_start + 86_399;
+        commit(&storage, &mut tree, first, last_second).await?;
+        tree.end_block()?;
+        commit(&storage, &mut tree, block(1), last_second + 1).await?;
 
+        let successor = VolumeAccumulatorState {
+            undisclosed_volume: 51,
+            blinding: Fq::from(8),
+            ..prior.clone()
+        };
+        let mut continuation = recover(&mut tree, successor.clone());
+        continuation.payload = VolumeAccumulatorPayload::encrypt(
+            &successor,
+            true,
+            Nullifier::derive(
+                test_keys::FULL_VIEWING_KEY.nullifier_key(),
+                prior_position,
+                &prior.commitment(),
+            ),
+            successor.commitment(),
+            test_keys::FULL_VIEWING_KEY.outgoing(),
+        );
+        let successor_position = continuation.position;
+        let mut late = block(2);
+        late.volume_accumulators.push(continuation);
+        tree.end_block()?;
+        commit(
+            &storage,
+            &mut tree,
+            late,
+            last_second + VOLUME_ACCUMULATOR_RETENTION_GRACE_SECS,
+        )
+        .await?;
+        let VolumeAccumulatorRecovery::Complete(head) = storage
+            .volume_accumulator_recovery(prior.subject, prior.day_start)
+            .await?
+        else {
+            panic!("an admissible previous-day continuation must keep complete recovery")
+        };
+        assert_eq!(head.state, successor);
+        assert_eq!(head.position, successor_position);
+        assert!(tree.witness(prior_position).is_none());
+        tree.witness(successor_position)
+            .expect("successor must remain witnessed")
+            .verify(tree.root())?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn expiry_rolls_back_after_sct_persistence_and_retries() -> anyhow::Result<()> {
+        use shieldd_sdk_shielded_pool::VOLUME_ACCUMULATOR_RETENTION_SECS;
+
+        let directory = tempfile::tempdir()?;
+        let path = Utf8Path::from_path(directory.path())
+            .unwrap()
+            .join("wallet.sqlite");
+        let storage = Storage::initialize(
+            Some(&path),
+            (*test_keys::FULL_VIEWING_KEY).clone(),
+            AppParameters::default(),
+        )
+        .await?;
+        let state = state();
+        let mut tree = tct::Tree::new();
+        let recovered = recover(&mut tree, state.clone());
+        let expired_position = recovered.position;
+        let duplicate = tree.insert(tct::Witness::Keep, state.commitment())?;
+        let mut first = block(0);
+        first.volume_accumulators.push(recovered);
+        tree.end_block()?;
+        commit(&storage, &mut tree, first, state.day_start).await?;
+        let durable = storage.state_commitment_tree().await?;
+        storage.pool.get()?.execute_batch(&format!(
+            "CREATE TRIGGER fail_after_expiry BEFORE INSERT ON kv WHEN NEW.k = 'block_timestamp'
+             BEGIN SELECT CASE WHEN
+               NOT EXISTS(SELECT 1 FROM volume_accumulators) AND
+               NOT EXISTS(SELECT 1 FROM sct_commitments WHERE position = {})
+             THEN RAISE(ABORT, 'injected after expiry')
+             ELSE RAISE(ABORT, 'expiry did not reach SCT persistence') END; END;",
+            u64::from(expired_position),
+        ))?;
+        tree.end_block()?;
+        let root = tree.root();
+        let position = tree.position();
+        let prior_witness = tree.witness(expired_position);
+        let duplicate_witness = tree.witness(duplicate);
+        let timestamp = state.day_start + VOLUME_ACCUMULATOR_RETENTION_SECS + 1;
+        let error = commit(&storage, &mut tree, block(1), timestamp)
+            .await
+            .expect_err("late failure must roll back expiry");
+        assert!(
+            error.to_string().contains("injected after expiry"),
+            "{error:#}"
+        );
+        assert_eq!(tree.root(), root);
+        assert_eq!(tree.position(), position);
+        assert_eq!(tree.witness(expired_position), prior_witness);
+        assert_eq!(tree.witness(duplicate), duplicate_witness);
+        drop(storage);
+
+        let storage = Storage::load(&path).await?;
+        assert_eq!(storage.last_sync_height().await?, Some(0));
+        assert_eq!(storage.block_timestamp().await?, state.day_start);
+        assert!(matches!(
+            storage
+                .volume_accumulator_recovery(state.subject, state.day_start)
+                .await?,
+            VolumeAccumulatorRecovery::Complete(_)
+        ));
+        let persisted = storage.state_commitment_tree().await?;
+        assert_eq!(persisted.root(), durable.root());
+        assert_eq!(persisted.position(), durable.position());
+        assert_eq!(
+            persisted.witness(expired_position),
+            durable.witness(expired_position)
+        );
+        assert_eq!(persisted.witness(duplicate), durable.witness(duplicate));
         storage
-            .reserve_volume_accumulators(vec![reservation(120)], [1; 32], 100, nk)
-            .await
-            .unwrap();
-        assert!(storage
-            .reserve_volume_accumulators(vec![reservation(140)], [2; 32], 120, nk)
-            .await
-            .is_err());
-        storage
-            .reserve_volume_accumulators(vec![reservation(140)], [2; 32], 121, nk)
-            .await
-            .unwrap();
-        assert!(storage
-            .reserve_volume_accumulators(vec![reservation(160)], [3; 32], 140, nk)
-            .await
-            .is_err());
-        storage
-            .reserve_volume_accumulators(vec![reservation(160)], [3; 32], 141, nk)
-            .await
-            .unwrap();
+            .pool
+            .get()?
+            .execute_batch("DROP TRIGGER fail_after_expiry")?;
+        commit(&storage, &mut tree, block(1), timestamp).await?;
+        assert_eq!(tree.root(), root);
+        assert_eq!(tree.position(), position);
+        assert!(tree.witness(expired_position).is_none());
+        tree.witness(duplicate)
+            .expect("equal commitment occurrence must remain")
+            .verify(root)?;
+        assert_eq!(storage.last_sync_height().await?, Some(1));
+        assert_eq!(storage.block_timestamp().await?, timestamp);
+        assert!(matches!(
+            storage
+                .volume_accumulator_recovery(state.subject, state.day_start)
+                .await?,
+            VolumeAccumulatorRecovery::Absent
+        ));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn expiry_is_idempotent_but_rejects_corrupt_rows_and_unrepresentable_time(
+    ) -> anyhow::Result<()> {
+        use shieldd_sdk_shielded_pool::VOLUME_ACCUMULATOR_RETENTION_SECS;
+
+        for fault in [
+            "missing witness",
+            "commitment",
+            "negative position",
+            "out of range position",
+            "different commitment",
+            "timestamp",
+        ] {
+            let storage = Storage::initialize(
+                None::<&Utf8Path>,
+                (*test_keys::FULL_VIEWING_KEY).clone(),
+                AppParameters::default(),
+            )
+            .await?;
+            let state = state();
+            let mut tree = tct::Tree::new();
+            let recovered = recover(&mut tree, state.clone());
+            let expired_position = recovered.position;
+            let unrelated = tree.insert(tct::Witness::Keep, StateCommitment(Fq::from(777)))?;
+            let mut first = block(0);
+            first.volume_accumulators.push(recovered);
+            tree.end_block()?;
+            commit(&storage, &mut tree, first, state.day_start).await?;
+            let mut timestamp = state.day_start + VOLUME_ACCUMULATOR_RETENTION_SECS + 1;
+            let expected_error = match fault {
+                "missing witness" => {
+                    assert!(tree.forget(expired_position));
+                    None
+                }
+                "commitment" => {
+                    storage.pool.get()?.execute(
+                        "UPDATE volume_accumulators SET commitment = ?1",
+                        [vec![0xff]],
+                    )?;
+                    Some("expired volume accumulator commitment is malformed")
+                }
+                "negative position" => {
+                    storage
+                        .pool
+                        .get()?
+                        .execute("UPDATE volume_accumulators SET position = -1", [])?;
+                    Some("expired volume accumulator position is negative")
+                }
+                "out of range position" => {
+                    storage
+                        .pool
+                        .get()?
+                        .execute("UPDATE volume_accumulators SET position = ?1", [1u64 << 48])?;
+                    Some("expired volume accumulator position is outside the SCT")
+                }
+                "different commitment" => {
+                    storage.pool.get()?.execute(
+                        "UPDATE volume_accumulators SET position = ?1",
+                        [u64::from(unrelated)],
+                    )?;
+                    Some("expired volume accumulator position has a different commitment")
+                }
+                "timestamp" => {
+                    timestamp = u64::MAX;
+                    Some("wallet volume expiry threshold exceeds SQLite i64")
+                }
+                _ => unreachable!(),
+            };
+            tree.end_block()?;
+            let root = tree.root();
+            let position = tree.position();
+            let prior_witness = tree.witness(expired_position);
+            let unrelated_witness = tree.witness(unrelated);
+            let result = commit(&storage, &mut tree, block(1), timestamp).await;
+            if let Some(expected_error) = expected_error {
+                let error = result.expect_err("corrupt expiry must abort");
+                assert!(
+                    error.to_string().contains(expected_error),
+                    "fault={fault}: {error:#}"
+                );
+                assert_eq!(storage.last_sync_height().await?, Some(0));
+                assert_eq!(storage.block_timestamp().await?, state.day_start);
+                let count: i64 = storage.pool.get()?.query_row(
+                    "SELECT COUNT(*) FROM volume_accumulators",
+                    [],
+                    |row| row.get(0),
+                )?;
+                assert_eq!(count, 1, "failed cleanup must retain the row");
+                assert_eq!(tree.witness(expired_position), prior_witness);
+                assert!(storage
+                    .state_commitment_tree()
+                    .await?
+                    .witness(expired_position)
+                    .is_some());
+            } else {
+                result?;
+                assert!(matches!(
+                    storage
+                        .volume_accumulator_recovery(state.subject, state.day_start)
+                        .await?,
+                    VolumeAccumulatorRecovery::Absent
+                ));
+                assert!(storage
+                    .state_commitment_tree()
+                    .await?
+                    .witness(expired_position)
+                    .is_none());
+            }
+            assert_eq!(tree.root(), root);
+            assert_eq!(tree.position(), position);
+            assert_eq!(tree.witness(unrelated), unrelated_witness);
+        }
+        Ok(())
     }
 
     #[tokio::test]
@@ -931,70 +1298,6 @@ mod volume_accumulator_tests {
                 .unwrap(),
             VolumeAccumulatorRecovery::Incomplete
         ));
-    }
-
-    #[tokio::test]
-    async fn multi_reservation_failure_is_atomic_and_stale_origins_reject() {
-        let storage = Storage::initialize(
-            None::<&Utf8Path>,
-            (*test_keys::FULL_VIEWING_KEY).clone(),
-            AppParameters::default(),
-        )
-        .await
-        .unwrap();
-        let state = state();
-        let payload = payload(&state);
-        let reservation = VolumeAccumulatorReservation {
-            state: state.clone(),
-            payload: payload.clone(),
-            expires_at: 200,
-        };
-        let nk = *test_keys::FULL_VIEWING_KEY.nullifier_key();
-        assert!(storage
-            .reserve_volume_accumulators(
-                vec![reservation.clone(), reservation.clone()],
-                [1; 32],
-                100,
-                nk,
-            )
-            .await
-            .is_err());
-        let reservation_count: i64 = storage
-            .pool
-            .get()
-            .unwrap()
-            .query_row(
-                "SELECT COUNT(*) FROM volume_accumulator_reservations",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(reservation_count, 0);
-
-        storage
-            .pool
-            .get()
-            .unwrap()
-            .execute(
-                "INSERT INTO volume_accumulators
-                 (subject, day_start, volume, blinding, commitment, position, recovery_status)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0)",
-                (
-                    state.subject.to_bytes().to_vec(),
-                    state.day_start as i64,
-                    state.undisclosed_volume.to_le_bytes().to_vec(),
-                    state.blinding.to_bytes().to_vec(),
-                    state.commitment().0.to_bytes().to_vec(),
-                    7i64,
-                ),
-            )
-            .unwrap();
-        assert!(storage
-            .reserve_volume_accumulators(vec![reservation], [2; 32], 100, nk)
-            .await
-            .unwrap_err()
-            .to_string()
-            .contains("head changed"));
     }
 }
 
@@ -1074,94 +1377,6 @@ impl Storage {
                     position: tct::Position::from(position),
                 },
             ))
-        })
-        .await?
-    }
-
-    pub async fn reserve_volume_accumulators(
-        &self,
-        reservations: Vec<VolumeAccumulatorReservation>,
-        tx_id: [u8; 32],
-        chain_time: u64,
-        nk: NullifierKey,
-    ) -> anyhow::Result<()> {
-        let pool = self.pool.clone();
-        spawn_blocking(move || {
-            let mut connection = pool.get()?;
-            let transaction = connection.transaction()?;
-            transaction.execute(
-                "DELETE FROM volume_accumulator_reservations WHERE expires_at < ?1",
-                [chain_time as i64],
-            )?;
-
-            let mut subjects = BTreeSet::new();
-            for reservation in &reservations {
-                let state = &reservation.state;
-                let payload = &reservation.payload;
-                anyhow::ensure!(
-                    subjects.insert((state.subject.to_bytes(), state.day_start)),
-                    "transaction contains more than one real accumulator transition for the same subject and day"
-                );
-                anyhow::ensure!(
-                    payload.day_start == state.day_start && payload.commitment == state.commitment(),
-                    "volume accumulator reservation does not match its decrypted successor"
-                );
-
-                let prior: Option<(Vec<u8>, i64, i64)> = transaction
-                    .query_row(
-                        "SELECT commitment, position, recovery_status
-                         FROM volume_accumulators WHERE subject = ?1 AND day_start = ?2",
-                        (state.subject.to_bytes().to_vec(), state.day_start as i64),
-                        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-                    )
-                    .optional()?;
-                let expected = match prior {
-                    Some((commitment, position, recovery_status)) => {
-                        anyhow::ensure!(
-                            recovery_status == 0,
-                            "daily volume accumulator head is incomplete; rebuild with issuer disclosure"
-                        );
-                        let commitment = StateCommitment::try_from(commitment.as_slice())?;
-                        let position: u64 = position
-                            .try_into()
-                            .context("stored volume accumulator position is negative")?;
-                        Nullifier::derive(&nk, tct::Position::from(position), &commitment)
-                    }
-                    None => state.origin_nullifier(&nk),
-                };
-                anyhow::ensure!(
-                    payload.nullifier == expected,
-                    "daily volume accumulator head changed after planning; rebuild the transaction"
-                );
-
-                let busy: bool = transaction.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM volume_accumulator_reservations
-                     WHERE subject = ?1 AND day_start = ?2)",
-                    (state.subject.to_bytes().to_vec(), state.day_start as i64),
-                    |row| row.get(0),
-                )?;
-                anyhow::ensure!(
-                    !busy,
-                    "daily volume accumulator head is reserved by an in-flight transaction; request issuer disclosure or wait"
-                );
-            }
-
-            for reservation in reservations {
-                transaction.execute(
-                    "INSERT INTO volume_accumulator_reservations
-                     (subject, day_start, nullifier, tx_id, expires_at)
-                     VALUES (?1, ?2, ?3, ?4, ?5)",
-                    (
-                        reservation.state.subject.to_bytes().to_vec(),
-                        reservation.state.day_start as i64,
-                        reservation.payload.nullifier.to_bytes().to_vec(),
-                        tx_id.to_vec(),
-                        reservation.expires_at as i64,
-                    ),
-                )?;
-            }
-            transaction.commit()?;
-            anyhow::Ok(())
         })
         .await?
     }
@@ -2339,11 +2554,32 @@ impl Storage {
                         recovery_status,
                     ),
                 )?;
-                dbtx.execute(
-                    "DELETE FROM volume_accumulator_reservations
-                     WHERE subject = ?1 AND day_start = ?2 AND nullifier = ?3",
-                    (&subject, day_start, recovered.payload.nullifier.to_bytes().to_vec()),
+            }
+
+            if let Some(cutoff) = metadata.timestamp.checked_sub(VOLUME_ACCUMULATOR_RETENTION_SECS) {
+                let cutoff = i64::try_from(cutoff)
+                    .context("wallet volume expiry threshold exceeds SQLite i64")?;
+                let mut statement = dbtx.prepare(
+                    "DELETE FROM volume_accumulators WHERE day_start < ?1 RETURNING position, commitment",
                 )?;
+                let expired = statement.query_map([cutoff], |row| {
+                    Ok((row.get::<_, i64>(0)?, row.get::<_, Vec<u8>>(1)?))
+                })?;
+                for expired in expired {
+                    let (position, commitment) = expired?;
+                    let raw_position = u64::try_from(position)
+                        .context("expired volume accumulator position is negative")?;
+                    let position = tct::Position::from(raw_position);
+                    anyhow::ensure!(u64::from(position) == raw_position,
+                        "expired volume accumulator position is outside the SCT");
+                    let commitment = StateCommitment::try_from(commitment.as_slice())
+                        .context("expired volume accumulator commitment is malformed")?;
+                    if let Some(witness) = new_sct.witness(position) {
+                        anyhow::ensure!(witness.commitment() == commitment,
+                            "expired volume accumulator position has a different commitment");
+                    }
+                    new_sct.forget(position);
+                }
             }
 
             // Update SCT table with current SCT state

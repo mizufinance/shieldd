@@ -131,17 +131,6 @@ CREATE TABLE volume_accumulators (
     PRIMARY KEY (subject, day_start)
 );
 
--- Broadcast-time locks are separate from confirmed accumulator recovery state.
-CREATE TABLE volume_accumulator_reservations (
-    subject                 BLOB NOT NULL,
-    day_start               BIGINT NOT NULL,
-    nullifier               BLOB NOT NULL,
-    tx_id                   BLOB NOT NULL,
-    expires_at              BIGINT NOT NULL,
-    PRIMARY KEY (subject, day_start),
-    UNIQUE (day_start, nullifier)
-);
-
 -- general purpose note queries
 CREATE INDEX spendable_notes_idx ON spendable_notes (
     address_index,

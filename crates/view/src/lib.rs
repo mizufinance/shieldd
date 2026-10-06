@@ -29,9 +29,7 @@ pub use crate::note_manager::{
     NoteManager, NoteManagerPlanningResult, NoteManagerResumeToken, TransferResumeToken,
 };
 pub use crate::note_record::SpendableNoteRecord;
-pub use crate::storage::{
-    ConfirmedVolumeAccumulator, Storage, VolumeAccumulatorRecovery, VolumeAccumulatorReservation,
-};
+pub use crate::storage::{ConfirmedVolumeAccumulator, Storage, VolumeAccumulatorRecovery};
 
 pub mod planning_intent;
 
