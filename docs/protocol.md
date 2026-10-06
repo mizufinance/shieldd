@@ -78,14 +78,16 @@ the Binding signature covers the complete body’s auth hash. Balance commitment
 including private fee funding, must sum to zero. Frozen signing vectors live in
 [transaction tests](../crates/core/transaction/tests).
 
-### Same-chain private AvP prototype
+### Same-chain private AvP and DvP prototype
 
 The executable [two-wallet prototype](../crates/core/app-tests/tests/private_avp.rs)
 exchanges two assets within the shielded pool using two ordinary Transfer proofs
 and one private FeeFunding Transfer. It uses independent spend keys and a shared
 finalized SCT anchor. No new circuit, proof family, swap pool, or withdrawal is
-required. The fixture uses unregulated test assets; a securities DvP product
-also needs its issuance and compliance integration.
+required. AvP exchanges two fungible assets; DvP delivers a test security against
+a distinct test cash token, with fees paid in the separate base token. The demo
+covers unregulated AvP and regulated AvP/DvP. Test denominations represent cash
+and securities; production issuance and live Bankd integration remain separate.
 
 Each wallet retains its own plans, witnesses, keys and authorization randomizers.
 Only serialized proof-bearing action fragments cross the coordination boundary.
@@ -111,6 +113,25 @@ export CARGO_BUILD_JOBS=2 RAYON_NUM_THREADS=2
 cargo run --locked --profile ci -p shieldd-sdk-proof-params --example pari_setup -- /tmp/shieldd-avp-keys
 SHIELDD_PARI_KEYS=/tmp/shieldd-avp-keys cargo test --locked --profile ci -p shieldd-sdk-app-tests --test private_avp -- --ignored --nocapture --test-threads=1
 ```
+
+Regulated cases install asset policies and active participant registrations through
+genesis, including the receiving addresses. Wallet completion uses confirmed
+volume recovery and a compliance snapshot at the same finalized height. Private
+external legs advance each sender's encrypted daily volume accumulator; reopening
+the wallet recovers the exact outgoing volume. Self-directed receipt spends and
+fee funding do not advance that volume. Both regulated legs use distinct registered
+assets; the base fee token cannot be registered as regulated. In the private case,
+the issuer cannot recover full transaction terms through the flagged disclosure ciphertext. A
+separate explicitly disclosed case verifies issuer recovery of the agreed terms.
+The genesis policies use the default daily limit; these fixtures do not exercise
+crossing a configured threshold. Existing audit-key visibility still applies.
+
+A fork of the pre-settlement state accepts the complete transaction in CheckTx,
+then freezes a recipient. DeliverTx rejects that same transaction as a stale
+compliance snapshot, despite the cached stateless verification. The committed
+rejection leaves no consumed input or volume nullifiers, indexed transaction,
+output payloads, or host withdrawals. The unfrozen chain accepts the transaction.
+A status change requires fresh proofs and both owners' renewed authorization.
 
 The prototype checks native atomic rejection, positive fees, usable receipt notes,
 persisted wallet history across reopen, and actual spends using recovered notes

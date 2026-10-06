@@ -2,28 +2,43 @@
 //! cross the fragment boundary; the coordinator handles only public action bytes.
 use anyhow::{ensure, Context, Result};
 use ff::Field;
+use group::GroupEncoding;
 use rand_core::OsRng;
 use reddsa::{sapling::Binding, SigningKey};
 use shieldd_sdk_app::{
-    app::HostBlock,
+    app::{HostBlock, HostExecution, HostTxResponse},
     genesis::{AppState, Content},
     params::AppParameters,
     test_support::{TestHost, TEST_CHAIN_ID},
 };
 use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
+use shieldd_sdk_compliance::{
+    derive_regulated_nullifier_key,
+    genesis::{GenesisUserRegistration, NativeAssetRegistration},
+    scanning::decrypt_full_flagged,
+    structs::OrbisCapabilityCertificate,
+    ComplianceLeaf, DetectionKey, TransferComplianceCiphertext, TransferComplianceMetadata,
+};
 use shieldd_sdk_crypto::Fr;
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::{
     keys::{SpendKey, SpendKeyBytes},
     test_keys, Address,
 };
-use shieldd_sdk_mock_client::{MockClient, TransactionIntent, TransferIntent};
+use shieldd_sdk_mock_client::{
+    MockClient, StateReadComplianceProvider, TransactionIntent, TransferIntent,
+};
 use shieldd_sdk_num::Amount;
-use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_sct::permanent_nullifiers::manifest;
+use shieldd_sdk_proto::{
+    execution_client::v1::{
+        apply_compliance_action_request, ApplyComplianceActionRequest, FreezeUserAsset, HostSource,
+    },
+    DomainType,
+};
+use shieldd_sdk_sct::{component::clock::EpochRead as _, permanent_nullifiers::manifest};
 use shieldd_sdk_shielded_pool::{
-    genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, Transfer, TransferPlan,
-    TransferProofContext,
+    component::StateReadExt as _, genesis::Allocation, select_accumulator_day, ShieldedInputPlan,
+    ShieldedOutputPlan, Transfer, TransferPlan, TransferProofContext, VolumeAccumulatorState,
 };
 use shieldd_sdk_transaction::{
     gas::transfer_gas_cost,
@@ -33,9 +48,300 @@ use shieldd_sdk_transaction::{
     Action, ActionPlan, FeeFunding, Transaction, TransactionBody, TransactionParameters,
     TransactionPlan,
 };
-use shieldd_sdk_view::Storage as WalletStorage;
+use shieldd_sdk_view::{
+    complete_plan_with_compliance, CompletionData, Storage as WalletStorage,
+    VolumeAccumulatorRecovery, VolumeRecoveryRecord,
+};
 
 mod common;
+
+#[derive(Clone, Copy, Debug)]
+enum DemoAssets {
+    Unregulated,
+    RegulatedPrivate,
+    RegulatedDisclosed,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SettlementKind {
+    AvP,
+    DvP,
+}
+
+impl SettlementKind {
+    fn asset_denoms(self, mode: DemoAssets) -> (&'static str, String) {
+        match self {
+            Self::AvP if mode.regulated() => ("private_avp_asset", "private_avp_payment".into()),
+            Self::AvP => ("private_avp_asset", BASE_ASSET_DENOM.base_denom().denom),
+            Self::DvP => ("private_dvp_security", "private_dvp_cash".into()),
+        }
+    }
+}
+
+impl DemoAssets {
+    fn regulated(self) -> bool {
+        !matches!(self, Self::Unregulated)
+    }
+    fn disclosed(self) -> bool {
+        matches!(self, Self::RegulatedDisclosed)
+    }
+}
+
+fn register_assets(
+    genesis: &mut Content,
+    alice: &SpendKey,
+    bob: &SpendKey,
+    asset_x: asset::Id,
+    asset_y: asset::Id,
+) -> Result<Vec<DetectionKey>> {
+    let authority = reddsa::VerificationKey::from(alice.spend_auth_key());
+    let mut issuers = Vec::new();
+    for (index, asset_id) in [asset_x, asset_y].into_iter().enumerate() {
+        let issuer = DetectionKey::new(Fr::random(&mut OsRng));
+        let ring_secret = Fr::random(&mut OsRng);
+        let ring_pk = *shieldd_sdk_crypto::generators::SPEND_AUTH * ring_secret;
+        let registration = NativeAssetRegistration {
+            asset_id,
+            is_regulated: true,
+            audit_keys: Some(shieldd_sdk_compliance::audit_keys::test_keys()),
+            dk_pub: Some(issuer.public_key().to_bytes()),
+            registration_authority_vk: Some(authority),
+            seizure_authority_vk: Some(authority),
+            ring_pk: Some(ring_pk.to_bytes()),
+            ring_id: format!("avp-ring-{index}"),
+            policy_id: format!("avp-policy-{index}"),
+            permission: "read".into(),
+            resource: format!("avp-asset-{index}"),
+        };
+        let policy = registration.asset_policy()?;
+        for (key, address_index) in [(alice, 0u32), (alice, 7), (bob, 0)] {
+            let fvk = key.full_viewing_key();
+            let address = fvk.payment_address(address_index.into());
+            let rnk_dh_pk = *address.diversified_generator() * ring_secret;
+            let rnk = derive_regulated_nullifier_key(
+                fvk.incoming(),
+                &address,
+                asset_id,
+                ring_pk,
+                rnk_dh_pk,
+            )?;
+            let leaf = ComplianceLeaf::registered_from_rnk(address, asset_id, rnk_dh_pk, rnk)?;
+            genesis
+                .compliance_content
+                .user_registrations
+                .push(GenesisUserRegistration {
+                    capability_certificate: OrbisCapabilityCertificate::sign_for_test(
+                        TEST_CHAIN_ID,
+                        &leaf,
+                        &policy,
+                        ring_secret,
+                    )?,
+                    leaf,
+                });
+        }
+        genesis.compliance_content.native_assets.push(registration);
+        issuers.push(issuer);
+    }
+    Ok(issuers)
+}
+
+/// Use confirmed wallet volume recovery rather than the mock client's default
+/// forced disclosure. Both data sources must describe the same finalized height.
+async fn complete_intent(
+    intent: TransactionIntent,
+    wallet: &WalletStorage,
+    state: shieldd_sdk_storage::Snapshot,
+    disclosed: bool,
+) -> Result<TransactionPlan> {
+    ensure!(
+        wallet.last_sync_height().await? == Some(state.get_block_height().await?),
+        "wallet and compliance snapshot heights differ"
+    );
+    let timestamp: u64 = state
+        .get_current_block_timestamp()
+        .await?
+        .unix_timestamp()
+        .try_into()?;
+    let day_start = select_accumulator_day(timestamp);
+    let mut volumes = Vec::new();
+    for action in &intent.actions {
+        if let Some(spend) = action.spends().first() {
+            let subject =
+                VolumeAccumulatorState::subject(&spend.note.address(), spend.note.asset_id());
+            volumes.push(VolumeRecoveryRecord {
+                subject,
+                day_start,
+                recovery: wallet
+                    .volume_accumulator_recovery(subject, day_start)
+                    .await?,
+            });
+        }
+    }
+    let routing = state.get_current_discovery_parameters().await?;
+    let provider = StateReadComplianceProvider::new(state);
+    complete_plan_with_compliance(
+        intent,
+        |queries| async move {
+            Ok(CompletionData {
+                compliance: provider.get_batch_proofs(&queries).await?,
+                volumes,
+            })
+        },
+        &mut OsRng,
+        routing,
+        Some(timestamp),
+        disclosed,
+    )
+    .await
+}
+
+fn check_regulated_leg(
+    participant: &Participant,
+    issuer: &DetectionKey,
+    mode: DemoAssets,
+) -> Result<()> {
+    let principal = participant.principal();
+    ensure!(
+        principal.compliance.witness.asset.is_regulated,
+        "missing regulated asset witness"
+    );
+    ensure!(
+        principal.volume_accumulator.is_real() == !mode.disclosed(),
+        "wrong accumulator mode"
+    );
+    let receiver = &participant.own_fragment.body.outputs[0];
+    let ciphertext = TransferComplianceCiphertext::from_bytes(&receiver.compliance_ciphertext)?;
+    let metadata = TransferComplianceMetadata::from_bytes(&receiver.compliance_metadata)?;
+    let disclosed = decrypt_full_flagged(
+        issuer.inner(),
+        &ciphertext,
+        &metadata,
+        principal.spends[0].note.asset_id(),
+    )?;
+    if mode.disclosed() {
+        let disclosed = disclosed.context("issuer cannot recover explicitly disclosed leg")?;
+        ensure!(
+            disclosed.amount == principal.outputs[0].value.amount
+                && disclosed.asset_id == principal.outputs[0].value.asset_id
+                && disclosed.sender_address.transmission_key
+                    == principal.spends[0]
+                        .note
+                        .address()
+                        .transmission_key()
+                        .to_bytes()
+                && disclosed.receiver_address.transmission_key
+                    == principal.outputs[0]
+                        .dest_address
+                        .transmission_key()
+                        .to_bytes(),
+            "issuer recovered incorrect terms"
+        );
+    } else {
+        ensure!(
+            disclosed.is_none(),
+            "private regulated leg disclosed to issuer"
+        );
+        ensure!(
+            principal
+                .volume_accumulator
+                .successor_state()
+                .context("missing real volume state")?
+                .undisclosed_volume
+                == principal.outputs[0].value.amount.value(),
+            "outbound volume differs from terms"
+        );
+    }
+    Ok(())
+}
+
+/// Fork the finalized pre-settlement state so a committed freeze can reject the
+/// same otherwise valid transaction without altering the positive-control chain.
+async fn check_freeze_rejection(
+    chain: &shieldd_sdk_storage::TempStorage,
+    tx: &Transaction,
+    address: Address,
+    asset_id: asset::Id,
+) -> Result<()> {
+    let directory = tempfile::tempdir()?;
+    let boundary = chain.manifest().context("missing committed boundary")?;
+    let checkpoint = directory.path().join("checkpoint");
+    chain.checkpoint(&checkpoint, &boundary)?;
+    let storage = shieldd_sdk_storage::Storage::restore(
+        &checkpoint,
+        &directory.path().join("fork"),
+        shieldd_sdk_storage::ForestConfig {
+            buckets: 1024,
+            cache_mib: 1,
+            preallocate: false,
+            materialization_workers: 2,
+        },
+        boundary.digest()?,
+    )?;
+    let mut host = HostExecution::new(storage.clone(), shieldd_sdk_app_tests::registry()).await?;
+    ensure!(
+        host.check_tx(&tx.encode_to_vec()).await?.code == 0,
+        "freeze fixture lacks valid positive control"
+    );
+    host.begin_block_for_testing(HostBlock {
+        height: 2,
+        block_id: [2; 32],
+        time: tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:01Z")?,
+    })
+    .await?;
+    host.apply_compliance_action(ApplyComplianceActionRequest {
+        source: Some(HostSource {
+            height: 2,
+            tx_hash: vec![0xF0; 32],
+            tx_index: 0,
+            msg_index: 0,
+        }),
+        action: Some(apply_compliance_action_request::Action::Freeze(
+            FreezeUserAsset {
+                address: Some(address.into()),
+                asset_id: Some(asset_id.into()),
+            },
+        )),
+    })
+    .await?;
+    let rejected = host.deliver_tx(&tx.encode_to_vec()).await?;
+    ensure!(
+        rejected.code == HostTxResponse::STALE_COMPLIANCE_SNAPSHOT
+            && rejected.log.contains("reprove and reauthorize"),
+        "freeze reached wrong boundary: {}",
+        rejected.log
+    );
+    ensure!(
+        rejected.withdrawals.is_empty(),
+        "frozen settlement created a withdrawal"
+    );
+    host.end_block(2).await?;
+    host.commit_for_testing().await?;
+    let snapshot = storage.latest_snapshot();
+    let boundary = manifest(&snapshot)?;
+    for nf in tx.spent_nullifiers() {
+        let status = host.nullifier_reader().status(nf, &boundary)?;
+        status.verify(boundary.digest()?)?;
+        ensure!(!status.spent, "frozen settlement consumed an input");
+    }
+    let block = common::wallet_block(&snapshot, 2).await?;
+    ensure!(
+        block.transactions.is_empty()
+            && block.block.state_payloads.is_empty()
+            && block.block.nullifiers.is_empty(),
+        "frozen settlement left partial effects"
+    );
+    for transfer in tx.transfers() {
+        ensure!(
+            !host.nullifier_reader().volume_exists(
+                &snapshot,
+                shieldd_sdk_storage::Day(transfer.body.volume_accumulator.day_start),
+                transfer.body.volume_accumulator.nullifier,
+            )?,
+            "frozen settlement consumed volume state"
+        );
+    }
+    Ok(())
+}
 
 /// Kept by one wallet. This record is deliberately neither serializable nor Debug.
 struct Participant {
@@ -391,6 +697,34 @@ async fn assert_nullifiers(
 #[tokio::test]
 #[ignore = "requires SHIELDD_PARI_KEYS and generates real settlement and receipt-spend proofs"]
 async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
+    run_settlement(SettlementKind::AvP, DemoAssets::Unregulated).await
+}
+
+#[tokio::test]
+#[ignore = "requires SHIELDD_PARI_KEYS and generates regulated settlement and receipt-spend proofs"]
+async fn private_avp_regulated_assets_settle_without_issuer_disclosure() -> Result<()> {
+    run_settlement(SettlementKind::AvP, DemoAssets::RegulatedPrivate).await
+}
+
+#[tokio::test]
+#[ignore = "requires SHIELDD_PARI_KEYS and generates issuer-disclosed settlement and receipt-spend proofs"]
+async fn private_avp_regulated_assets_can_disclose_to_issuers() -> Result<()> {
+    run_settlement(SettlementKind::AvP, DemoAssets::RegulatedDisclosed).await
+}
+
+#[tokio::test]
+#[ignore = "requires SHIELDD_PARI_KEYS and generates regulated DvP settlement and receipt-spend proofs"]
+async fn private_dvp_security_and_cash_settle_without_issuer_disclosure() -> Result<()> {
+    run_settlement(SettlementKind::DvP, DemoAssets::RegulatedPrivate).await
+}
+
+#[tokio::test]
+#[ignore = "requires SHIELDD_PARI_KEYS and generates issuer-disclosed DvP settlement and receipt-spend proofs"]
+async fn private_dvp_security_and_cash_can_disclose_to_issuers() -> Result<()> {
+    run_settlement(SettlementKind::DvP, DemoAssets::RegulatedDisclosed).await
+}
+
+async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     let alice_key = test_keys::SPEND_KEY.clone();
     let bob_key = SpendKey::try_from(SpendKeyBytes([42; 32]))?;
     let alice_address = alice_key.full_viewing_key().payment_address(0u32.into());
@@ -400,14 +734,16 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
         alice_key.full_viewing_key() != bob_key.full_viewing_key(),
         "independent owners required"
     );
-    let asset_x = asset::REGISTRY.parse_unit("private_avp_asset").id();
+    let (asset_x_denom, asset_y_denom) = kind.asset_denoms(mode);
+    let asset_x = asset::REGISTRY.parse_unit(asset_x_denom).id();
+    let asset_y = asset::REGISTRY.parse_unit(&asset_y_denom).id();
     let alice_sends = Value {
         amount: 25u64.into(),
         asset_id: asset_x,
     };
     let bob_sends = Value {
         amount: 500u64.into(),
-        asset_id: *BASE_ASSET_ID,
+        asset_id: asset_y,
     };
     let chain = common::new_storage().await?;
     let prices = GasPrices {
@@ -425,12 +761,12 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
     genesis.shielded_pool_content.allocations = vec![
         Allocation {
             raw_amount: 1_000u64.into(),
-            raw_denom: "private_avp_asset".into(),
+            raw_denom: asset_x_denom.into(),
             address: alice_address.clone(),
         },
         Allocation {
             raw_amount: 2_000u64.into(),
-            raw_denom: BASE_ASSET_DENOM.base_denom().denom,
+            raw_denom: asset_y_denom,
             address: bob_address.clone(),
         },
         Allocation {
@@ -439,6 +775,18 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
             address: bob_address.clone(),
         },
     ];
+    if asset_y != *BASE_ASSET_ID {
+        genesis.shielded_pool_content.allocations.push(Allocation {
+            raw_amount: 10_000u64.into(),
+            raw_denom: BASE_ASSET_DENOM.base_denom().denom,
+            address: alice_address.clone(),
+        });
+    }
+    let issuers = if mode.regulated() {
+        register_assets(&mut genesis, &alice_key, &bob_key, asset_x, asset_y)?
+    } else {
+        Vec::new()
+    };
     let mut host = TestHost::new(
         chain.storage().clone(),
         AppState::Content(genesis),
@@ -447,6 +795,29 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
     )
     .await?;
     host.execute(vec![]).await?;
+    let wallets_dir = tempfile::tempdir()?;
+    let alice_path = camino::Utf8PathBuf::from_path_buf(wallets_dir.path().join("alice.sqlite"))
+        .map_err(|_| anyhow::anyhow!("non UTF-8 temporary path"))?;
+    let bob_path = camino::Utf8PathBuf::from_path_buf(wallets_dir.path().join("bob.sqlite"))
+        .map_err(|_| anyhow::anyhow!("non UTF-8 temporary path"))?;
+    let app_params = AppParameters {
+        chain_id: TEST_CHAIN_ID.into(),
+        ..Default::default()
+    };
+    let alice_store = WalletStorage::initialize(
+        Some(&alice_path),
+        alice_key.full_viewing_key().clone(),
+        app_params.clone(),
+    )
+    .await?;
+    let bob_store = WalletStorage::initialize(
+        Some(&bob_path),
+        bob_key.full_viewing_key().clone(),
+        app_params,
+    )
+    .await?;
+    common::scan_latest(&chain, &alice_store).await?;
+    common::scan_latest(&chain, &bob_store).await?;
     let alice_wallet = MockClient::new(alice_key.clone())
         .with_sync_to_storage(&chain)
         .await?;
@@ -463,23 +834,20 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
         expiry_height: 50,
         fee,
     };
-    let alice_plan = alice_wallet
-        .complete_intent(
-            TransactionIntent {
-                actions: vec![transfer_intent(
-                    &alice_wallet,
-                    1_000,
-                    alice_sends,
-                    bob_address.clone(),
-                )?
-                .into()],
-                fee_funding: None,
-                memo: Some(memo.clone()),
-                transaction_parameters: parameters.clone(),
-            },
-            chain.latest_snapshot(),
-        )
-        .await?;
+    let alice_plan = complete_intent(
+        TransactionIntent {
+            actions: vec![
+                transfer_intent(&alice_wallet, 1_000, alice_sends, bob_address.clone())?.into(),
+            ],
+            fee_funding: None,
+            memo: Some(memo.clone()),
+            transaction_parameters: parameters.clone(),
+        },
+        &alice_store,
+        chain.latest_snapshot(),
+        mode.disclosed(),
+    )
+    .await?;
     let mut fee_intent = transfer_intent(
         &bob_wallet,
         100_000,
@@ -491,25 +859,36 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
     )?;
     // The fee is a residual in its dedicated action, rather than a note sent out of the pool.
     fee_intent.outputs.truncate(1);
-    let bob_plan = bob_wallet
-        .complete_intent(
-            TransactionIntent {
-                actions: vec![transfer_intent(
-                    &bob_wallet,
-                    2_000,
-                    bob_sends,
-                    alice_receive.clone(),
-                )?
-                .into()],
-                fee_funding: Some(fee_intent),
-                memo: Some(memo.clone()),
-                transaction_parameters: parameters.clone(),
-            },
-            chain.latest_snapshot(),
-        )
-        .await?;
+    let bob_plan = complete_intent(
+        TransactionIntent {
+            actions: vec![
+                transfer_intent(&bob_wallet, 2_000, bob_sends, alice_receive.clone())?.into(),
+            ],
+            fee_funding: Some(fee_intent),
+            memo: Some(memo.clone()),
+            transaction_parameters: parameters.clone(),
+        },
+        &bob_store,
+        chain.latest_snapshot(),
+        mode.disclosed(),
+    )
+    .await?;
     let mut alice = build_participant(alice_wallet, alice_plan, 0, bob_sends, alice_receive)?;
     let mut bob = build_participant(bob_wallet, bob_plan, 1, alice_sends, bob_address)?;
+    if mode.regulated() {
+        check_regulated_leg(&alice, &issuers[0], mode)?;
+        check_regulated_leg(&bob, &issuers[1], mode)?;
+        ensure!(
+            !bob.local_plan
+                .fee_funding
+                .as_ref()
+                .context("fee plan")?
+                .transfer
+                .volume_accumulator
+                .is_real(),
+            "regulated fee funding counted as outbound volume"
+        );
+    }
     let mut tx = Transaction {
         transaction_body: TransactionBody {
             actions: vec![
@@ -563,6 +942,9 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
     let blinding = contributions.iter().fold(Fr::zero(), |sum, c| {
         sum + c.principal_blinding + c.fee_blinding.unwrap_or_else(Fr::zero)
     });
+    if mode.regulated() {
+        check_freeze_rejection(&chain, &tx, bob.receiving_address.clone(), asset_x).await?;
+    }
 
     let mut negatives: Vec<(&str, Transaction, &str)> = Vec::new();
     let mut missing_leg = tx.clone();
@@ -664,23 +1046,6 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
         tx.id() != proposed_id && tx.effect_hash() == agreed_effect,
         "signature variant fixture"
     );
-    let wallets_dir = tempfile::tempdir()?;
-    let alice_path = camino::Utf8PathBuf::from_path_buf(wallets_dir.path().join("alice.sqlite"))
-        .map_err(|_| anyhow::anyhow!("non UTF-8 temporary path"))?;
-    let bob_path = camino::Utf8PathBuf::from_path_buf(wallets_dir.path().join("bob.sqlite"))
-        .map_err(|_| anyhow::anyhow!("non UTF-8 temporary path"))?;
-    let app_params = AppParameters {
-        chain_id: TEST_CHAIN_ID.into(),
-        ..Default::default()
-    };
-    let alice_store = WalletStorage::initialize(
-        Some(&alice_path),
-        alice.wallet.fvk.clone(),
-        app_params.clone(),
-    )
-    .await?;
-    let bob_store =
-        WalletStorage::initialize(Some(&bob_path), bob.wallet.fvk.clone(), app_params).await?;
     common::scan_latest(&chain, &alice_store).await?;
     common::scan_latest(&chain, &bob_store).await?;
     let result = host
@@ -715,6 +1080,37 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
                     && record.note.address() == participant.receiving_address),
             "received note lost after wallet reopen"
         );
+        let principal = participant.principal();
+        let subject = VolumeAccumulatorState::subject(
+            &principal.spends[0].note.address(),
+            principal.spends[0].note.asset_id(),
+        );
+        let recovery = store
+            .volume_accumulator_recovery(
+                subject,
+                select_accumulator_day(principal.compliance.timestamp),
+            )
+            .await?;
+        if matches!(mode, DemoAssets::RegulatedPrivate) {
+            let VolumeAccumulatorRecovery::Complete(head) = recovery else {
+                anyhow::bail!("private volume head lost after wallet reopen");
+            };
+            ensure!(
+                head.state.undisclosed_volume == principal.outputs[0].value.amount.value()
+                    && head.commitment
+                        == principal
+                            .volume_accumulator
+                            .successor_state()
+                            .context("real volume successor")?
+                            .commitment(),
+                "recovered volume state differs from authorized outbound leg"
+            );
+        } else {
+            ensure!(
+                matches!(recovery, VolumeAccumulatorRecovery::Absent),
+                "disclosed or unregulated leg advanced private volume"
+            );
+        }
         let receipts = store.transactions(Some(3), Some(3)).await?;
         ensure!(
             receipts
@@ -742,9 +1138,11 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
     host.execution.end_block(4).await?;
     host.execution.commit_for_testing().await?;
 
-    // Prove actual spends using notes AND witnesses from each reopened wallet.
-    // Alice's received cash funds her fee; Bob's received asset is his ordinary
-    // input. Both keep the remaining value in self-directed shielded notes.
+    common::scan_latest(&chain, &alice_store).await?;
+    common::scan_latest(&chain, &bob_store).await?;
+
+    // Prove actual receipt spends using notes and witnesses from reopened wallets.
+    // DvP cash and security receipts remain distinct from the base fee token.
     let followup_fee = prices.fee(&(transfer_gas_cost() + transfer_gas_cost()));
     let mut followups = Vec::new();
     for (participant, store, key) in [
@@ -760,7 +1158,9 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
                     && record.note.address() == participant.receiving_address
             })
             .context("received note")?;
-        let principal = if participant.slot == 0 {
+        let receipt_funds_fee =
+            participant.slot == 0 && participant.incoming.asset_id == *BASE_ASSET_ID;
+        let principal = if receipt_funds_fee {
             store
                 .notes(false, Some(asset_x), None, None)
                 .await?
@@ -770,7 +1170,7 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
         } else {
             received.clone()
         };
-        let fee_note = if participant.slot == 0 {
+        let fee_note = if receipt_funds_fee {
             received.clone()
         } else {
             store
@@ -778,7 +1178,7 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
                 .await?
                 .into_iter()
                 .find(|record| record.note.amount() > followup_fee.amount())
-                .context("Bob's shielded fee change")?
+                .context("separate shielded fee note")?
         };
         let self_transfer =
             |record: &shieldd_sdk_view::SpendableNoteRecord, amount: Amount| TransferIntent {
@@ -797,34 +1197,45 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
                 )],
                 value_blinding: Fr::random(&mut OsRng),
             };
-        let client = MockClient::new(key.clone())
-            .with_sync_to_storage(&chain)
-            .await?;
-        let plan = client
-            .complete_intent(
-                TransactionIntent {
-                    actions: vec![self_transfer(&principal, principal.note.amount()).into()],
-                    fee_funding: Some(self_transfer(
-                        &fee_note,
-                        fee_note
-                            .note
-                            .amount()
-                            .checked_sub(&followup_fee.amount())
-                            .context("fee balance")?,
-                    )),
-                    memo: Some(MemoPlan::new(
-                        &mut OsRng,
-                        MemoPlaintext::blank_memo(principal.note.address()),
-                    )),
-                    transaction_parameters: TransactionParameters {
-                        chain_id: TEST_CHAIN_ID.into(),
-                        expiry_height: 50,
-                        fee: followup_fee,
-                    },
+        let plan = complete_intent(
+            TransactionIntent {
+                actions: vec![self_transfer(&principal, principal.note.amount()).into()],
+                fee_funding: Some(self_transfer(
+                    &fee_note,
+                    fee_note
+                        .note
+                        .amount()
+                        .checked_sub(&followup_fee.amount())
+                        .context("fee balance")?,
+                )),
+                memo: Some(MemoPlan::new(
+                    &mut OsRng,
+                    MemoPlaintext::blank_memo(principal.note.address()),
+                )),
+                transaction_parameters: TransactionParameters {
+                    chain_id: TEST_CHAIN_ID.into(),
+                    expiry_height: 50,
+                    fee: followup_fee,
                 },
-                chain.latest_snapshot(),
-            )
-            .await?;
+            },
+            store,
+            chain.latest_snapshot(),
+            mode.disclosed(),
+        )
+        .await?;
+        ensure!(
+            plan.actions.iter().all(|action| match action {
+                ActionPlan::Transfer(transfer) => !transfer.volume_accumulator.is_real(),
+                _ => false,
+            }) && !plan
+                .fee_funding
+                .as_ref()
+                .context("receipt fee funding")?
+                .transfer
+                .volume_accumulator
+                .is_real(),
+            "self-directed receipt spend advanced private outbound volume"
+        );
         let witness = store
             .witness_plan(&plan, shieldd_sdk_app_tests::registry().id())
             .await?;
@@ -863,6 +1274,6 @@ async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
     for followup in &followups {
         assert_nullifiers(&host, &chain, followup, true).await?;
     }
-    println!("Private AvP settled: independent wallets, two assets, existing Transfer proofs, positive shielded fees, no host withdrawals. Atomic rejection, receipt recovery and real spends from reopened wallets verified.");
+    println!("{kind:?} {mode:?} settled: independent wallets, two assets, existing Transfer proofs, positive shielded fees, no host withdrawals. Atomic rejection, receipt recovery and real spends from reopened wallets verified.");
     Ok(())
 }
