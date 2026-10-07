@@ -98,12 +98,16 @@ keys, checks the shared terms, and decrypts each expected receipt to verify its
 address, asset, amount and wrapped memo. Negotiating wallets also verify every
 peer proof through the canonical `TransferBody::proof_public` projection. Chain
 admission separately checks current roots, grants, fees and unspent state.
+All participants, including a fee-only sponsor, share the transaction memo key
+and plaintext, including its return address.
 
 Software custody and FROST both sign the complete transaction effect hash.
 FROST followers repeat local checks before generating nonces; they receive no
 bare digest override. The threshold CLI displays the complete public candidate
 and the group's local terms for approval. Ordinary single-wallet plan signing
 remains supported.
+FROST approval and final binding assembly do not verify peer proofs; that check
+belongs to negotiation and is repeated before wallets release balance openings.
 
 Only after every spend authorization verifies do owners release their fresh,
 transaction-specific balance openings. The assembler requires exactly one opening
