@@ -194,34 +194,13 @@ fn full_openings_and_payload_exports() {
 #[test]
 #[ignore = "requires local Pari keys and actual proof generation"]
 fn native_proofs_bind_claims_context_and_family_at_both_capacities() {
-    let mut w = fixture();
     for count in [1, 32] {
-        while w.outputs.len() < count {
-            let mut c = w.request.outputs[0].clone();
-            c.reference.transaction_id = format!("{:064x}", w.outputs.len());
-            let mut o = fixture_with_seed(10 + w.outputs.len() as u8)
-                .outputs
-                .remove(0);
-            o.public.reference = c.reference.clone();
-            w.outputs.push(o);
-            w.request.outputs.push(c);
-        }
-        for claim in &mut w.request.outputs {
-            claim.amount = count == 1;
-            claim.recipient = count == 1;
-        }
-        w.request.total = Some(TotalClaim {
-            reveal: false,
-            predicate: Some(AmountPredicate::GreaterThan((42 * count).to_string())),
-        });
-        let started = std::time::Instant::now();
         let registry = registry();
-        let p = prove(&w, &registry).unwrap();
-        eprintln!(
-            "outputs={count} elapsed={:?} bytes={}",
-            started.elapsed(),
-            serde_json::to_vec(&p).unwrap().len()
-        );
+        let p = if count == 1 {
+            one_output_package().clone()
+        } else {
+            prove(&proof_witness(count), &registry).unwrap()
+        };
         assert!(verify(&p, Some(&registry)).unwrap().cryptography_verified);
         assert_eq!(
             p.statement
@@ -364,12 +343,12 @@ fn missing_registry_is_unavailable() {
 
 #[cfg(feature = "prover")]
 #[test]
-#[ignore = "requires local Pari keys and pcli; generates one real proof"]
+#[ignore = "requires local Pari keys and pcli; uses the capacity-one proof"]
 fn real_machine_verification_outcomes() {
     use std::io::Write;
     use std::process::{Command, Stdio};
     let registry = registry();
-    let mut package = prove(&fixture(), &registry).unwrap();
+    let mut package = one_output_package().clone();
     let binary = std::env::var("SHIELDD_PCLI_BIN").unwrap();
     let check = |package: &DisclosurePackage, missing: bool| {
         let mut command = Command::new(&binary);
@@ -414,4 +393,34 @@ fn real_machine_verification_outcomes() {
 fn registry() -> shieldd_sdk_proof_params::pari::Registry {
     shieldd_sdk_proof_params::pari::Registry::load(std::env::var("SHIELDD_PARI_KEYS").unwrap())
         .unwrap()
+}
+
+#[cfg(feature = "prover")]
+fn proof_witness(count: usize) -> DisclosureWitness {
+    let mut w = fixture();
+    while w.outputs.len() < count {
+        let mut c = w.request.outputs[0].clone();
+        c.reference.transaction_id = format!("{:064x}", w.outputs.len());
+        let mut o = fixture_with_seed(10 + w.outputs.len() as u8)
+            .outputs
+            .remove(0);
+        o.public.reference = c.reference.clone();
+        w.outputs.push(o);
+        w.request.outputs.push(c);
+    }
+    for claim in &mut w.request.outputs {
+        claim.amount = count == 1;
+        claim.recipient = count == 1;
+    }
+    w.request.total = Some(TotalClaim {
+        reveal: false,
+        predicate: Some(AmountPredicate::GreaterThan((42 * count).to_string())),
+    });
+    w
+}
+
+#[cfg(feature = "prover")]
+fn one_output_package() -> &'static DisclosurePackage {
+    static PACKAGE: std::sync::OnceLock<DisclosurePackage> = std::sync::OnceLock::new();
+    PACKAGE.get_or_init(|| prove(&proof_witness(1), &registry()).unwrap())
 }

@@ -14,7 +14,7 @@ use {
     shieldd_sdk_transaction::{memo::MemoPlaintext, plan::MemoPlan, TransactionParameters},
 };
 
-mod common;
+use crate::common;
 
 #[tokio::test]
 async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {

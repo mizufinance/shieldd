@@ -31,18 +31,23 @@ jobs:
           nix-cache-glob: "shieldd/**/*.nix"
           rust-workspaces: "shieldd"
 
-      - name: Test Orbis/Vera integration contracts
+      - name: Check isolated Orbis/Vera feature boundaries
         working-directory: shieldd
         run: |
           python3 scripts/check_orbis_vendor.py
-          nix develop --command cargo test --locked --profile ci \
-            -p shieldd-sdk-disclosure --features orbis -- --test-threads=1
-          nix develop --command cargo test --locked --profile ci \
+          nix develop --command cargo check --locked --profile ci --all-targets \
+            -p shieldd-sdk-disclosure --features orbis
+          nix develop --command cargo check --locked --profile ci --all-targets \
             -p shieldd-orbis-client \
-            -p orbis-integration -- --test-threads=1
-          nix develop --command cargo test --locked --profile ci \
+            -p orbis-integration
+          nix develop --command cargo check --locked --profile ci --all-targets \
             -p shieldd-sdk-compliance \
-          --features scanner -- --test-threads=1
+            --features scanner
+          nix develop --command cargo test --locked --profile ci \
+            -p shieldd-sdk-disclosure --features orbis --test claims \
+            missing_registry_is_unavailable -- --exact --test-threads=1 \
+            | tee "$RUNNER_TEMP/disclosure-without-proof.log"
+          python3 -c 'import pathlib, sys; assert "1 passed; 0 failed" in pathlib.Path(sys.argv[1]).read_text()' "$RUNNER_TEMP/disclosure-without-proof.log"
 
       - name: Report live integration prerequisite
         run: echo "::notice::The locked Decaf377 Orbis image is unsupported. This job validates adapter contracts only; live BLS12-381 PRE and Jubjub PET require compatible external implementations."

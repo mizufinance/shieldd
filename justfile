@@ -5,6 +5,8 @@ export GOMAXPROCS := "2"
 export GOFLAGS := "-p=2"
 export SHIELDD_PARI_KEYS := env_var_or_default("SHIELDD_PARI_KEYS", justfile_directory() / "target/dev-pari-keys")
 
+shieldd_test_storage := '{"buckets":1024,"cache_mib":1,"preallocate":true,"materialization_workers":2}'
+
 default:
     @just --list
 
@@ -36,9 +38,9 @@ pari-setup:
 
 ci-check: check
 
-# Call pari-setup once before tests. All proof tests share this explicit registry.
+# Run ordinary and proof gates in one process per test binary to share immutable fixtures.
 ci-test:
-    cargo test --locked --profile ci --workspace --all-features -- --test-threads=1
+    SHIELDD_STORAGE='{{shieldd_test_storage}}' SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci --workspace --all-features -- --include-ignored --skip generate_transaction_signing_test_vectors --skip unavailable_io_uring_creates_no_store --test-threads=1
 
 commonware-test:
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo test --locked --release --manifest-path third_party/commonware/Cargo.toml -p commonware-cryptography --lib --no-default-features --features std,bls12381 zk::pari -- --test-threads=1
@@ -51,9 +53,9 @@ chunks-test:
     CARGO_TARGET_DIR="{{justfile_directory()}}/target" cargo check --locked --manifest-path third_party/imbl-sized-chunks-0.2.0/Cargo.toml --no-default-features
 
 pari-proof-tests:
-    SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci --workspace --all-features -- --ignored --skip generate_transaction_signing_test_vectors --skip unavailable_io_uring_creates_no_store --test-threads=1
+    SHIELDD_STORAGE='{{shieldd_test_storage}}' SHIELDD_PCLI_BIN="{{justfile_directory()}}/target/ci/pcli" cargo test --locked --profile ci --workspace --all-features -- --ignored --skip generate_transaction_signing_test_vectors --skip unavailable_io_uring_creates_no_store --test-threads=1
 
-ci-preflight: check rustdocs-check features-check commonware-test ci-test pari-proof-tests
+ci-preflight: check rustdocs-check features-check commonware-test ci-test
 
 # Validate local dependencies for the Orbis integration flow.
 orbis-integration-preflight:

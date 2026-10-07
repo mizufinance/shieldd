@@ -1,4 +1,4 @@
-#![cfg(feature = "disclosure-e2e")]
+use crate::common;
 use anyhow::{ensure, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use rand_core::OsRng;
@@ -19,7 +19,6 @@ use shieldd_sdk_transaction::TransactionParameters;
 use shieldd_sdk_view::Storage;
 use std::process::Stdio;
 use tonic::codegen::*;
-mod common;
 
 #[derive(Clone)]
 struct CommittedQueries {

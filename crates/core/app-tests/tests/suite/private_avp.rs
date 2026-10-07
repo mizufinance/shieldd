@@ -54,35 +54,15 @@ use shieldd_sdk_view::{
     VolumeAccumulatorRecovery, VolumeRecoveryRecord,
 };
 
-mod common;
+use crate::common;
 
 #[derive(Clone, Copy, Debug)]
 enum DemoAssets {
-    Unregulated,
     RegulatedPrivate,
     RegulatedDisclosed,
 }
 
-#[derive(Clone, Copy, Debug)]
-enum SettlementKind {
-    AvP,
-    DvP,
-}
-
-impl SettlementKind {
-    fn asset_denoms(self, mode: DemoAssets) -> (&'static str, String) {
-        match self {
-            Self::AvP if mode.regulated() => ("private_avp_asset", "private_avp_payment".into()),
-            Self::AvP => ("private_avp_asset", BASE_ASSET_DENOM.base_denom().denom),
-            Self::DvP => ("private_dvp_security", "private_dvp_cash".into()),
-        }
-    }
-}
-
 impl DemoAssets {
-    fn regulated(self) -> bool {
-        !matches!(self, Self::Unregulated)
-    }
     fn disclosed(self) -> bool {
         matches!(self, Self::RegulatedDisclosed)
     }
@@ -195,11 +175,11 @@ async fn complete_intent(
 }
 
 fn check_regulated_leg(
-    participant: &Participant,
+    principal: &TransferPlan,
+    transfer: &Transfer,
     issuer: &DetectionKey,
     mode: DemoAssets,
 ) -> Result<()> {
-    let principal = participant.principal();
     ensure!(
         principal.compliance.witness.asset.is_regulated,
         "missing regulated asset witness"
@@ -208,7 +188,7 @@ fn check_regulated_leg(
         principal.volume_accumulator.is_real() == !mode.disclosed(),
         "wrong accumulator mode"
     );
-    let receiver = &participant.own_fragment.body.outputs[0];
+    let receiver = &transfer.body.outputs[0];
     let ciphertext = TransferComplianceCiphertext::from_bytes(&receiver.compliance_ciphertext)?;
     let metadata = TransferComplianceMetadata::from_bytes(&receiver.compliance_metadata)?;
     let disclosed = decrypt_full_flagged(
@@ -524,33 +504,15 @@ async fn assert_nullifiers(
 }
 
 #[tokio::test]
-#[ignore = "requires SHIELDD_PARI_KEYS and generates real settlement and receipt-spend proofs"]
-async fn private_avp_two_wallets_settle_atomically() -> Result<()> {
-    run_settlement(SettlementKind::AvP, DemoAssets::Unregulated).await
-}
-
-#[tokio::test]
-#[ignore = "requires SHIELDD_PARI_KEYS and generates regulated settlement and receipt-spend proofs"]
+#[ignore = "requires SHIELDD_PARI_KEYS and real settlement and receipt-spend proofs"]
 async fn private_avp_regulated_assets_settle_without_issuer_disclosure() -> Result<()> {
-    run_settlement(SettlementKind::AvP, DemoAssets::RegulatedPrivate).await
+    run_settlement(DemoAssets::RegulatedPrivate).await
 }
 
 #[tokio::test]
-#[ignore = "requires SHIELDD_PARI_KEYS and generates issuer-disclosed settlement and receipt-spend proofs"]
-async fn private_avp_regulated_assets_can_disclose_to_issuers() -> Result<()> {
-    run_settlement(SettlementKind::AvP, DemoAssets::RegulatedDisclosed).await
-}
-
-#[tokio::test]
-#[ignore = "requires SHIELDD_PARI_KEYS and generates regulated DvP settlement and receipt-spend proofs"]
-async fn private_dvp_security_and_cash_settle_without_issuer_disclosure() -> Result<()> {
-    run_settlement(SettlementKind::DvP, DemoAssets::RegulatedPrivate).await
-}
-
-#[tokio::test]
-#[ignore = "requires SHIELDD_PARI_KEYS and generates issuer-disclosed DvP settlement and receipt-spend proofs"]
-async fn private_dvp_security_and_cash_can_disclose_to_issuers() -> Result<()> {
-    run_settlement(SettlementKind::DvP, DemoAssets::RegulatedDisclosed).await
+#[ignore = "requires SHIELDD_PARI_KEYS and real settlement and receipt-spend proofs"]
+async fn private_dvp_security_and_base_cash_can_disclose_to_issuer() -> Result<()> {
+    run_settlement(DemoAssets::RegulatedDisclosed).await
 }
 
 struct SigningTerminal {
@@ -674,7 +636,7 @@ async fn three_owners_exchange_a_basket_with_threshold_fee_sponsorship() -> Resu
         raw_denom: BASE_ASSET_DENOM.base_denom().denom,
         address: sponsor_address.clone(),
     });
-    register_assets(&mut genesis, &keys.iter().collect::<Vec<_>>(), &assets)?;
+    let issuers = register_assets(&mut genesis, &keys.iter().collect::<Vec<_>>(), &assets)?;
     let chain = common::new_storage().await?;
     let registry = shieldd_sdk_app_tests::registry();
     let mut host = TestHost::new(
@@ -731,7 +693,7 @@ async fn three_owners_exchange_a_basket_with_threshold_fee_sponsorship() -> Resu
             },
             &store,
             chain.latest_snapshot(),
-            false,
+            owner != 0,
         )
         .await?;
         fragments.push(JointFragment::build(
@@ -740,6 +702,26 @@ async fn three_owners_exchange_a_basket_with_threshold_fee_sponsorship() -> Resu
             &wallet.witness_plan(&plan)?,
             &registry,
         )?);
+        // Alice keeps two private volume heads; Bob and Carol disclose to
+        // distinct issuers, exercising disclosed terms beyond the first slot.
+        for (local, slot) in slots.iter().copied().enumerate() {
+            let ActionPlan::Transfer(principal) = &plan.actions[local] else {
+                unreachable!()
+            };
+            let Action::Transfer(transfer) = &fragments.last().unwrap().actions[local] else {
+                unreachable!()
+            };
+            check_regulated_leg(
+                principal,
+                transfer,
+                &issuers[slot],
+                if owner == 0 {
+                    DemoAssets::RegulatedPrivate
+                } else {
+                    DemoAssets::RegulatedDisclosed
+                },
+            )?;
+        }
         indices.push(slots);
         plans.push(plan);
         wallets.push(wallet);
@@ -918,13 +900,20 @@ async fn three_owners_exchange_a_basket_with_threshold_fee_sponsorship() -> Resu
                     select_accumulator_day(principal.compliance.timestamp),
                 )
                 .await?;
-            let VolumeAccumulatorRecovery::Complete(head) = state else {
-                anyhow::bail!("private volume head missing")
-            };
-            ensure!(
-                head.state.undisclosed_volume == values[*slot].amount.value(),
-                "wrong per-asset volume increment"
-            );
+            if owner == 0 {
+                let VolumeAccumulatorRecovery::Complete(head) = state else {
+                    anyhow::bail!("private volume head missing")
+                };
+                ensure!(
+                    head.state.undisclosed_volume == values[*slot].amount.value(),
+                    "wrong per-asset volume increment"
+                );
+            } else {
+                ensure!(
+                    matches!(state, VolumeAccumulatorRecovery::Absent),
+                    "disclosed basket leg advanced private volume"
+                );
+            }
         }
     }
     // Spend all newly received assets in one owner's next transaction. These are
@@ -1060,7 +1049,7 @@ async fn three_owners_exchange_a_basket_with_threshold_fee_sponsorship() -> Resu
     Ok(())
 }
 
-async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
+async fn run_settlement(mode: DemoAssets) -> Result<()> {
     let alice_key = test_keys::SPEND_KEY.clone();
     let bob_key = SpendKey::try_from(SpendKeyBytes([42; 32]))?;
     let alice_address = alice_key.full_viewing_key().payment_address(0u32.into());
@@ -1070,7 +1059,12 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
         alice_key.full_viewing_key() != bob_key.full_viewing_key(),
         "independent owners required"
     );
-    let (asset_x_denom, asset_y_denom) = kind.asset_denoms(mode);
+    let asset_x_denom = "private_security";
+    let asset_y_denom = if mode.disclosed() {
+        BASE_ASSET_DENOM.base_denom().denom
+    } else {
+        "private_cash".into()
+    };
     let asset_x = asset::REGISTRY.parse_unit(asset_x_denom).id();
     let asset_y = asset::REGISTRY.parse_unit(&asset_y_denom).id();
     let alice_sends = Value {
@@ -1118,11 +1112,12 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
             address: alice_address.clone(),
         });
     }
-    let issuers = if mode.regulated() {
-        register_assets(&mut genesis, &[&alice_key, &bob_key], &[asset_x, asset_y])?
+    let regulated_assets = if mode.disclosed() {
+        vec![asset_x]
     } else {
-        Vec::new()
+        vec![asset_x, asset_y]
     };
+    let issuers = register_assets(&mut genesis, &[&alice_key, &bob_key], &regulated_assets)?;
     let mut host = TestHost::new(
         chain.storage().clone(),
         AppState::Content(genesis),
@@ -1211,20 +1206,26 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     .await?;
     let mut alice = build_participant(alice_wallet, alice_plan, 0, bob_sends, alice_receive)?;
     let mut bob = build_participant(bob_wallet, bob_plan, 1, alice_sends, bob_address)?;
-    if mode.regulated() {
-        check_regulated_leg(&alice, &issuers[0], mode)?;
-        check_regulated_leg(&bob, &issuers[1], mode)?;
+    check_regulated_leg(alice.principal(), &alice.own_fragment, &issuers[0], mode)?;
+    if !mode.disclosed() {
+        check_regulated_leg(bob.principal(), &bob.own_fragment, &issuers[1], mode)?;
+    } else {
         ensure!(
-            !bob.local_plan
-                .fee_funding
-                .as_ref()
-                .context("fee plan")?
-                .transfer
-                .volume_accumulator
-                .is_real(),
-            "regulated fee funding counted as outbound volume"
+            !bob.principal().compliance.witness.asset.is_regulated
+                && !bob.principal().volume_accumulator.is_real(),
+            "BASE cash leg must be unregulated without a private volume transition"
         );
     }
+    ensure!(
+        !bob.local_plan
+            .fee_funding
+            .as_ref()
+            .context("fee plan")?
+            .transfer
+            .volume_accumulator
+            .is_real(),
+        "fee funding counted as outbound volume"
+    );
     let mut tx = Transaction {
         transaction_body: TransactionBody {
             actions: vec![
@@ -1283,9 +1284,7 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
             .map(|bytes| Fr::from_bytes(&bytes).unwrap())
             .unwrap_or_else(Fr::zero)
     });
-    if mode.regulated() {
-        check_freeze_rejection(&chain, &tx, bob.receiving_address.clone(), asset_x).await?;
-    }
+    check_freeze_rejection(&chain, &tx, bob.receiving_address.clone(), asset_x).await?;
 
     let mut negatives: Vec<(&str, Transaction, &str)> = Vec::new();
     let mut missing_leg = tx.clone();
@@ -1483,7 +1482,7 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     common::scan_latest(&chain, &bob_store).await?;
 
     // Prove actual receipt spends using notes and witnesses from reopened wallets.
-    // DvP cash and security receipts remain distinct from the base fee token.
+    // The disclosed DvP cash receipt funds Alice's next shielded fee.
     let followup_fee = prices.fee(&(transfer_gas_cost() + transfer_gas_cost()));
     let mut followups = Vec::new();
     for (participant, store, key) in [
@@ -1502,9 +1501,18 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
         let receipt_funds_fee =
             participant.slot == 0 && participant.incoming.asset_id == *BASE_ASSET_ID;
         let principal = if receipt_funds_fee {
-            store
-                .notes(false, Some(asset_x), None, None)
-                .await?
+            let notes = store.notes(false, Some(asset_x), None, None).await?;
+            ensure!(
+                notes.len() == 1
+                    && notes[0].note.value()
+                        == Value {
+                            amount: 975u64.into(),
+                            asset_id: asset_x,
+                        }
+                    && notes[0].note.address() == alice_address,
+                "Alice's security change differs from agreed settlement"
+            );
+            notes
                 .into_iter()
                 .next()
                 .context("Alice's shielded change")?
@@ -1593,6 +1601,21 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
                 .any(|nf| nf == received.nullifier),
             "receipt was not spent"
         );
+        if receipt_funds_fee {
+            ensure!(
+                followup
+                    .transaction_body
+                    .fee_funding
+                    .as_ref()
+                    .context("receipt-funded fee")?
+                    .transfer
+                    .body
+                    .inputs
+                    .iter()
+                    .any(|input| input.nullifier == received.nullifier),
+                "BASE cash receipt did not fund the fee"
+            );
+        }
         followups.push(followup);
     }
     let result = host
@@ -1615,6 +1638,6 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     for followup in &followups {
         assert_nullifiers(&host, &chain, followup, true).await?;
     }
-    println!("{kind:?} {mode:?} settled: independent wallets, two assets, existing Transfer proofs, positive shielded fees, no host withdrawals. Atomic rejection, receipt recovery and real spends from reopened wallets verified.");
+    println!("{mode:?} settled: independent wallets, two assets, existing Transfer proofs, positive shielded fees, no host withdrawals. Atomic rejection, receipt recovery and real spends from reopened wallets verified.");
     Ok(())
 }

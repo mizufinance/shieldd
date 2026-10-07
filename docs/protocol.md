@@ -83,7 +83,7 @@ including private fee funding, must sum to zero. Frozen signing vectors live in
 The [joint wallet API](../crates/core/transaction/src/joint.rs) assembles ordinary
 fixed-shape Transfer actions from independent wallets into one atomic transaction.
 An owner can contribute several independent asset legs; a separate bank or wallet
-can own only the existing FeeFunding action. The [settlement demos](../crates/core/app-tests/tests/private_avp.rs)
+can own only the existing FeeFunding action. The [settlement demos](../crates/core/app-tests/tests/suite/private_avp.rs)
 cover regulated AvP/DvP, a three-owner basket, threshold fee sponsorship and actual
 receipt spending. AvP exchanges assets; DvP delivers a security against cash.
 All legs settle on one shielded chain, using the existing proof registry.
@@ -131,7 +131,7 @@ Run it with a development Pari registry matching the current circuits:
 ```sh
 export CARGO_BUILD_JOBS=2 RAYON_NUM_THREADS=2
 cargo run --locked --profile ci -p shieldd-sdk-proof-params --example pari_setup -- /tmp/shieldd-avp-keys
-SHIELDD_PARI_KEYS=/tmp/shieldd-avp-keys cargo test --locked --profile ci -p shieldd-sdk-app-tests --test private_avp --test joint_registration --all-features -- --ignored --nocapture --test-threads=1
+SHIELDD_PARI_KEYS=/tmp/shieldd-avp-keys cargo test --locked --profile ci -p shieldd-sdk-app-tests --test suite --all-features -- private_avp:: joint_registration:: --ignored --nocapture --test-threads=1
 ```
 
 Regulated cases install asset policies and active participant registrations through

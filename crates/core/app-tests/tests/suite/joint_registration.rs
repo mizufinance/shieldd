@@ -32,7 +32,7 @@ use shieldd_sdk_transaction::{
     Action, Transaction, TransactionBody, TransactionParameters, TransactionPlan,
 };
 
-mod common;
+use crate::common;
 
 fn registrations(
     owner: &SpendKey,

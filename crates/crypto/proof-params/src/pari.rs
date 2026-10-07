@@ -327,9 +327,31 @@ impl Registry {
     ) -> Result<()> {
         proof::verify_batch(family, self.verifying_key(family)?, items, strategy)
     }
+    /// Checks every proving artifact without retaining a prover or multiple proving keys.
+    pub fn validate_proving_keys(&self) -> Result<()> {
+        for family in Family::ALL {
+            self.load_proving_key(family)?;
+        }
+        Ok(())
+    }
+
+    fn load_proving_key(&self, family: Family) -> Result<ProvingKey> {
+        let trusted = self.key(family)?;
+        let encoded = read_artifact(
+            &self.directory.join(format!("{}.pk", family.label())),
+            &trusted.entry.proving_key,
+            PROVING_KEY_LIMIT,
+        )?;
+        let key = decode_key::<ProvingKey>(&encoded)?;
+        ensure!(
+            key.verifying_key() == &trusted.verifying,
+            "proving key embeds a different verifying key"
+        );
+        Ok(key)
+    }
+
     pub fn prove(&self, witness: &Witness, strategy: &impl Strategy) -> Result<Envelope> {
         let family = witness.family();
-        let trusted = self.key(family)?;
         let mut cache = self
             .prover
             .lock()
@@ -338,17 +360,7 @@ impl Registry {
             // Release the previous allocation before decoding a different family.
             *cache = None;
             let compiled = catalogue::compile(family)?;
-            let encoded = read_artifact(
-                &self.directory.join(format!("{}.pk", family.label())),
-                &trusted.entry.proving_key,
-                PROVING_KEY_LIMIT,
-            )?;
-            let key = decode_key::<ProvingKey>(&encoded)?;
-            ensure!(
-                key.verifying_key() == &trusted.verifying,
-                "proving key embeds a different verifying key"
-            );
-            drop(encoded);
+            let key = self.load_proving_key(family)?;
             *cache = Some(Prover { compiled, key });
         }
         let prover = cache.as_ref().context("prover cache absent")?;
@@ -565,6 +577,128 @@ mod tests {
         fs::write(&key_path, &key)?;
         fs::write(&manifest_path, &original)?;
         assert_eq!(Registry::load(directory.path())?.id(), cold.id());
+        Ok(())
+    }
+    #[test]
+    fn proving_artifacts_check_every_family_and_exact_key_bytes() -> Result<()> {
+        use commonware_cryptography::zk::{
+            circuit::{build, Var},
+            pari::{InputLayout, Relation},
+        };
+
+        // Compact real keys exercise artifact validation; the warm-registry test owns
+        // native catalogue/relation validation through Registry::load.
+        let (circuit, indices) = build(|ctx| {
+            let x = Var::witness(ctx, |_| Scalar::from(3));
+            let public = Var::witness(ctx, |_| Scalar::from(9));
+            (x.clone() * &x).assert_eq(&public);
+            vec![public, x]
+        });
+        let layout = InputLayout::new(vec![indices[0]], vec![vec![indices[1]]])?;
+        let relation = Relation::compile(&circuit, &layout)?;
+        let mut rng = rand10::rand_core::UnwrapErr(rand10::rngs::SysRng);
+        let (pk, vk) = pari::setup(&relation, &mut rng, &Sequential)?;
+        let (other_pk, other_vk) = pari::setup(&relation, &mut rng, &Sequential)?;
+        let pk = pk.encode().to_vec();
+        let other_pk = other_pk.encode().to_vec();
+        let directory = tempfile::tempdir()?;
+        let mut keys = BTreeMap::new();
+        for family in Family::ALL {
+            let (bytes, verifying) = if family == Family::DisclosureOne {
+                (&other_pk, &other_vk)
+            } else {
+                (&pk, &vk)
+            };
+            keys.insert(
+                family,
+                Key {
+                    entry: Entry {
+                        family,
+                        relation: hex::encode(relation.digest()),
+                        verifying_key_digest: hex::encode(verifying.digest()),
+                        domain_size: relation.domain_size(),
+                        verifying_key: write_new(
+                            &directory.path().join(format!("{}.vk", family.label())),
+                            &verifying.encode(),
+                        )?,
+                        proving_key: write_new(
+                            &directory.path().join(format!("{}.pk", family.label())),
+                            bytes,
+                        )?,
+                    },
+                    verifying: verifying.clone(),
+                },
+            );
+        }
+        let mut registry = Registry {
+            id: [0; 32],
+            directory: directory.path().to_owned(),
+            keys,
+            prover: Mutex::new(None),
+        };
+        registry.validate_proving_keys()?;
+        for family in Family::ALL {
+            let path = directory.path().join(format!("{}.pk", family.label()));
+            fs::remove_file(&path)?;
+            let error = registry.validate_proving_keys().unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains(&format!("opening {}", path.display())),
+                "{error:#}"
+            );
+            fs::write(
+                path,
+                if family == Family::DisclosureOne {
+                    &other_pk
+                } else {
+                    &pk
+                },
+            )?;
+        }
+        let last = Family::DisclosureOne;
+        let key = registry.keys.remove(&last).unwrap();
+        let error = registry.validate_proving_keys().unwrap_err();
+        assert!(
+            error.to_string().contains("proof family missing"),
+            "{error:#}"
+        );
+        registry.keys.insert(last, key);
+
+        let path = directory.path().join("transfer.pk");
+        let original = registry.keys[&Family::Transfer].entry.proving_key.clone();
+        let mut changed = pk.clone();
+        changed[0] ^= 1;
+        fs::write(&path, changed)?;
+        let error = registry.validate_proving_keys().unwrap_err();
+        assert!(error.to_string().contains("checksum mismatch"), "{error:#}");
+        let mut trailing = pk.clone();
+        trailing.push(0);
+        for (bytes, expected) in [
+            (&trailing, "trailing key bytes"),
+            (&other_pk, "different verifying key"),
+        ] {
+            fs::write(&path, bytes)?;
+            registry
+                .keys
+                .get_mut(&Family::Transfer)
+                .unwrap()
+                .entry
+                .proving_key = Artifact {
+                bytes: bytes.len() as u64,
+                sha256: hex::encode(Sha256::digest(bytes)),
+            };
+            let error = registry.validate_proving_keys().unwrap_err();
+            assert!(error.to_string().contains(expected), "{error:#}");
+        }
+        fs::write(&path, pk)?;
+        registry
+            .keys
+            .get_mut(&Family::Transfer)
+            .unwrap()
+            .entry
+            .proving_key = original;
+        registry.validate_proving_keys()?;
         Ok(())
     }
     #[test]

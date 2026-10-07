@@ -1,3 +1,4 @@
+use crate::common;
 use anyhow::Context;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
@@ -11,7 +12,6 @@ use shieldd_sdk_shielded_pool::genesis::Allocation;
 use shieldd_sdk_storage::TempStorage;
 use shieldd_sdk_view::{Storage, StoragePlanningIo};
 use std::ops::Deref;
-mod common;
 const COUNT: usize = 5;
 const NOTE_VALUE: u64 = 1_000_000;
 

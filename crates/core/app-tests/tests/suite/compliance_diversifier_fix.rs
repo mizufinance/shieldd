@@ -24,7 +24,7 @@ use {
     tracing::info,
 };
 
-mod common;
+use crate::common;
 
 #[tokio::test]
 async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfer(

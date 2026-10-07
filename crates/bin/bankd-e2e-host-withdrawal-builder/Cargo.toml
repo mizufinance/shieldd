@@ -8,6 +8,11 @@ repository = { workspace = true }
 license = { workspace = true }
 publish = false
 
+[[bin]]
+name = "bankd-e2e-host-withdrawal-builder"
+path = "src/main.rs"
+test = false
+
 [features]
 default = ["prover"]
 prover = [

@@ -92,15 +92,17 @@ jobs:
         run: printf 'SHIELDD_PARI_KEYS=%s\n' "$RUNNER_TEMP/shieldd-pari-keys" >> "$GITHUB_ENV"
 
       - name: Restore development Pari registry
-        id: pari-keys
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ runner.temp }}/shieldd-pari-keys
-          key: pari-keys-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/circuits/**', 'crates/crypto/primitives/**', 'crates/crypto/proof-params/**', 'third_party/commonware/**', 'third_party/commonware-patches/**') }}
+          key: pari-keys-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/circuits/**', 'crates/crypto/primitives/**', 'crates/crypto/proof-params/**', 'third_party/commonware/**', 'third_party/commonware-patches/**') }}
+          restore-keys: pari-keys-v2-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Generate development Pari registry
-        if: steps.pari-keys.outputs.cache-hit != 'true'
-        run: nix develop .#ci --command just pari-setup
+      - name: Validate or generate development Pari registry
+        run: nix develop .#ci --command python3 scripts/ci/prepare_pari_registry.py
+        env:
+          CARGO_BUILD_JOBS: 2
+          RAYON_NUM_THREADS: 2
 
       - name: Reproduce pinned Commonware sources and patches
         run: |
@@ -141,9 +143,6 @@ jobs:
         env:
           CARGO_BUILD_JOBS: 2
           RAYON_NUM_THREADS: 2
-
-      - name: Run real Pari proof tests
-        run: nix develop .#ci --command just pari-proof-tests
 
   summary:
     needs: [checks, tests]
