@@ -15,6 +15,9 @@ impl serde::Serialize for CoordinatorRound1 {
                 coordinator_round1::Request::Plan(v) => {
                     struct_ser.serialize_field("plan", v)?;
                 }
+                coordinator_round1::Request::JointTransaction(v) => {
+                    struct_ser.serialize_field("jointTransaction", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -28,11 +31,14 @@ impl<'de> serde::Deserialize<'de> for CoordinatorRound1 {
     {
         const FIELDS: &[&str] = &[
             "plan",
+            "joint_transaction",
+            "jointTransaction",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Plan,
+            JointTransaction,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -56,6 +62,7 @@ impl<'de> serde::Deserialize<'de> for CoordinatorRound1 {
                     {
                         match value {
                             "plan" => Ok(GeneratedField::Plan),
+                            "jointTransaction" | "joint_transaction" => Ok(GeneratedField::JointTransaction),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -83,6 +90,13 @@ impl<'de> serde::Deserialize<'de> for CoordinatorRound1 {
                                 return Err(serde::de::Error::duplicate_field("plan"));
                             }
                             request__ = map_.next_value::<::std::option::Option<_>>()?.map(coordinator_round1::Request::Plan)
+;
+                        }
+                        GeneratedField::JointTransaction => {
+                            if request__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("jointTransaction"));
+                            }
+                            request__ = map_.next_value::<::std::option::Option<_>>()?.map(coordinator_round1::Request::JointTransaction)
 ;
                         }
                         GeneratedField::__SkipField__ => {
@@ -1386,6 +1400,351 @@ impl<'de> serde::Deserialize<'de> for follower_round2::Inner {
             }
         }
         deserializer.deserialize_struct("shieldd.custody.threshold.v1.FollowerRound2.Inner", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for JointSigningRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.transaction.is_some() {
+            len += 1;
+        }
+        if self.plan.is_some() {
+            len += 1;
+        }
+        if !self.action_indices.is_empty() {
+            len += 1;
+        }
+        if !self.incoming.is_empty() {
+            len += 1;
+        }
+        if self.anchor.is_some() {
+            len += 1;
+        }
+        if self.action_count != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.custody.threshold.v1.JointSigningRequest", len)?;
+        if let Some(v) = self.transaction.as_ref() {
+            struct_ser.serialize_field("transaction", v)?;
+        }
+        if let Some(v) = self.plan.as_ref() {
+            struct_ser.serialize_field("plan", v)?;
+        }
+        if !self.action_indices.is_empty() {
+            struct_ser.serialize_field("actionIndices", &self.action_indices.iter().map(ToString::to_string).collect::<Vec<_>>())?;
+        }
+        if !self.incoming.is_empty() {
+            struct_ser.serialize_field("incoming", &self.incoming)?;
+        }
+        if let Some(v) = self.anchor.as_ref() {
+            struct_ser.serialize_field("anchor", v)?;
+        }
+        if self.action_count != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("actionCount", ToString::to_string(&self.action_count).as_str())?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for JointSigningRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "transaction",
+            "plan",
+            "action_indices",
+            "actionIndices",
+            "incoming",
+            "anchor",
+            "action_count",
+            "actionCount",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Transaction,
+            Plan,
+            ActionIndices,
+            Incoming,
+            Anchor,
+            ActionCount,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "transaction" => Ok(GeneratedField::Transaction),
+                            "plan" => Ok(GeneratedField::Plan),
+                            "actionIndices" | "action_indices" => Ok(GeneratedField::ActionIndices),
+                            "incoming" => Ok(GeneratedField::Incoming),
+                            "anchor" => Ok(GeneratedField::Anchor),
+                            "actionCount" | "action_count" => Ok(GeneratedField::ActionCount),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = JointSigningRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.custody.threshold.v1.JointSigningRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<JointSigningRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut transaction__ = None;
+                let mut plan__ = None;
+                let mut action_indices__ = None;
+                let mut incoming__ = None;
+                let mut anchor__ = None;
+                let mut action_count__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Transaction => {
+                            if transaction__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("transaction"));
+                            }
+                            transaction__ = map_.next_value()?;
+                        }
+                        GeneratedField::Plan => {
+                            if plan__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("plan"));
+                            }
+                            plan__ = map_.next_value()?;
+                        }
+                        GeneratedField::ActionIndices => {
+                            if action_indices__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("actionIndices"));
+                            }
+                            action_indices__ =
+                                Some(map_.next_value::<Vec<::pbjson::private::NumberDeserialize<_>>>()?
+                                    .into_iter().map(|x| x.0).collect())
+                            ;
+                        }
+                        GeneratedField::Incoming => {
+                            if incoming__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("incoming"));
+                            }
+                            incoming__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Anchor => {
+                            if anchor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("anchor"));
+                            }
+                            anchor__ = map_.next_value()?;
+                        }
+                        GeneratedField::ActionCount => {
+                            if action_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("actionCount"));
+                            }
+                            action_count__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(JointSigningRequest {
+                    transaction: transaction__,
+                    plan: plan__,
+                    action_indices: action_indices__.unwrap_or_default(),
+                    incoming: incoming__.unwrap_or_default(),
+                    anchor: anchor__,
+                    action_count: action_count__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.custody.threshold.v1.JointSigningRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for joint_signing_request::ExpectedReceipt {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.action_index != 0 {
+            len += 1;
+        }
+        if self.output_index != 0 {
+            len += 1;
+        }
+        if self.address.is_some() {
+            len += 1;
+        }
+        if self.value.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.custody.threshold.v1.JointSigningRequest.ExpectedReceipt", len)?;
+        if self.action_index != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("actionIndex", ToString::to_string(&self.action_index).as_str())?;
+        }
+        if self.output_index != 0 {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("outputIndex", ToString::to_string(&self.output_index).as_str())?;
+        }
+        if let Some(v) = self.address.as_ref() {
+            struct_ser.serialize_field("address", v)?;
+        }
+        if let Some(v) = self.value.as_ref() {
+            struct_ser.serialize_field("value", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for joint_signing_request::ExpectedReceipt {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "action_index",
+            "actionIndex",
+            "output_index",
+            "outputIndex",
+            "address",
+            "value",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ActionIndex,
+            OutputIndex,
+            Address,
+            Value,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "actionIndex" | "action_index" => Ok(GeneratedField::ActionIndex),
+                            "outputIndex" | "output_index" => Ok(GeneratedField::OutputIndex),
+                            "address" => Ok(GeneratedField::Address),
+                            "value" => Ok(GeneratedField::Value),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = joint_signing_request::ExpectedReceipt;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.custody.threshold.v1.JointSigningRequest.ExpectedReceipt")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<joint_signing_request::ExpectedReceipt, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut action_index__ = None;
+                let mut output_index__ = None;
+                let mut address__ = None;
+                let mut value__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ActionIndex => {
+                            if action_index__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("actionIndex"));
+                            }
+                            action_index__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::OutputIndex => {
+                            if output_index__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("outputIndex"));
+                            }
+                            output_index__ =
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Address => {
+                            if address__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("address"));
+                            }
+                            address__ = map_.next_value()?;
+                        }
+                        GeneratedField::Value => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("value"));
+                            }
+                            value__ = map_.next_value()?;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(joint_signing_request::ExpectedReceipt {
+                    action_index: action_index__.unwrap_or_default(),
+                    output_index: output_index__.unwrap_or_default(),
+                    address: address__,
+                    value: value__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.custody.threshold.v1.JointSigningRequest.ExpectedReceipt", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for Signature {

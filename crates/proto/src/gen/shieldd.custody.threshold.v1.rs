@@ -33,10 +33,70 @@ impl ::prost::Name for Signature {
         "/shieldd.custody.threshold.v1.Signature".into()
     }
 }
+/// The complete joint candidate and the local terms approved by this signing group.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct JointSigningRequest {
+    #[prost(message, optional, tag = "1")]
+    pub transaction: ::core::option::Option<
+        super::super::super::core::transaction::v1::Transaction,
+    >,
+    #[prost(message, optional, tag = "2")]
+    pub plan: ::core::option::Option<
+        super::super::super::core::transaction::v1::TransactionPlan,
+    >,
+    /// Candidate action indices corresponding to local plan actions, in order.
+    #[prost(uint64, repeated, tag = "3")]
+    pub action_indices: ::prost::alloc::vec::Vec<u64>,
+    #[prost(message, repeated, tag = "4")]
+    pub incoming: ::prost::alloc::vec::Vec<joint_signing_request::ExpectedReceipt>,
+    #[prost(message, optional, tag = "5")]
+    pub anchor: ::core::option::Option<super::super::super::crypto::tct::v1::MerkleRoot>,
+    #[prost(uint64, tag = "6")]
+    pub action_count: u64,
+}
+/// Nested message and enum types in `JointSigningRequest`.
+pub mod joint_signing_request {
+    /// A receipt expected in a specific output of a peer's Transfer.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct ExpectedReceipt {
+        #[prost(uint64, tag = "1")]
+        pub action_index: u64,
+        #[prost(uint64, tag = "2")]
+        pub output_index: u64,
+        #[prost(message, optional, tag = "3")]
+        pub address: ::core::option::Option<
+            super::super::super::super::core::keys::v1::Address,
+        >,
+        #[prost(message, optional, tag = "4")]
+        pub value: ::core::option::Option<
+            super::super::super::super::core::asset::v1::Value,
+        >,
+    }
+    impl ::prost::Name for ExpectedReceipt {
+        const NAME: &'static str = "ExpectedReceipt";
+        const PACKAGE: &'static str = "shieldd.custody.threshold.v1";
+        fn full_name() -> ::prost::alloc::string::String {
+            "shieldd.custody.threshold.v1.JointSigningRequest.ExpectedReceipt".into()
+        }
+        fn type_url() -> ::prost::alloc::string::String {
+            "/shieldd.custody.threshold.v1.JointSigningRequest.ExpectedReceipt".into()
+        }
+    }
+}
+impl ::prost::Name for JointSigningRequest {
+    const NAME: &'static str = "JointSigningRequest";
+    const PACKAGE: &'static str = "shieldd.custody.threshold.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.custody.threshold.v1.JointSigningRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.custody.threshold.v1.JointSigningRequest".into()
+    }
+}
 /// The message the coordinator sends in round 1 of the signing protocol.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CoordinatorRound1 {
-    #[prost(oneof = "coordinator_round1::Request", tags = "1")]
+    #[prost(oneof = "coordinator_round1::Request", tags = "1, 5")]
     pub request: ::core::option::Option<coordinator_round1::Request>,
 }
 /// Nested message and enum types in `CoordinatorRound1`.
@@ -46,6 +106,9 @@ pub mod coordinator_round1 {
         /// The plan that the coordinator would like the followers to sign.
         #[prost(message, tag = "1")]
         Plan(super::super::super::super::core::transaction::v1::TransactionPlan),
+        /// The complete joint transaction, including approved local terms and receipts.
+        #[prost(message, tag = "5")]
+        JointTransaction(super::JointSigningRequest),
     }
 }
 impl ::prost::Name for CoordinatorRound1 {
@@ -94,7 +157,7 @@ pub mod coordinator_round2 {
     }
     /// A FROST signing package without a message.
     ///
-    /// We structure things this way because the message is derived from the transaction plan.
+    /// The message is derived from the validated signing request.
     /// FROST expects the signing package to include the identified commitments *and*
     /// the message, but we have no need to include the message.
     #[derive(Clone, PartialEq, ::prost::Message)]

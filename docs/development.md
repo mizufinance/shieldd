@@ -9,7 +9,7 @@ Rust/Commonware. Run commands from the repository root.
 | `just pari-setup` | Generate a fresh complete demo proof registry |
 | `just check` | Formatting and docs first, then source provenance, tooling and Rust checks |
 | `just docs-check` | Local Markdown links and exact filename casing, including repository skills |
-| `just ci-test` | Workspace tests with an explicitly selected registry |
+| `just ci-test` | Serial workspace tests, including real proofs, with an explicitly selected registry |
 | `just commonware-test` | Pinned Commonware Pari and circuit compiler tests |
 | `just chunks-test` | Immutable collection safety regressions and `no_std` checks |
 | `just pari-proof-tests` | Serial ignored proof gates, including Disclosure app/CLI tests; workspace all features |
@@ -23,8 +23,10 @@ Rust/Commonware. Run commands from the repository root.
 
 Set `SHIELDD_PARI_KEYS` to share an existing registry. Its default in `just` is
 `target/dev-pari-keys`. Setup refuses to overwrite existing keys. CI caches
-development keys outside Cargo targets with an exact source/toolchain cache key and no fallback; normal
-registry loading still checks the keys against the compiled relations. See
+development keys outside Cargo targets. A source/toolchain cache key selects an exact
+hit first, then a same-platform fallback. CI validates the compiled relations and
+all verifying/proving artifacts before reuse; an invalid disposable cache is regenerated.
+Normal registry loading still checks verifying keys against the compiled relations. See
 [Proof system](proof-system.md) for registry and state identity rules.
 
 ## Select verification by impact
@@ -48,14 +50,19 @@ run under `ci` does not establish a separate `--release` test run. Follow the sh
 | Vendor patch | Source reproduction, vendor regressions and downstream proof gates under the pinned-source policy |
 | Orbis | Local adapter/contract tests separately from live external tests; the incompatible locked runtime must still be rejected |
 
-PR CI runs ordinary workspace tests and `just pari-proof-tests`. Both use the same
-workspace/all-features build graph, including the pcli binary.
-The proof gate selects ignored tests and skips the transaction signing-vector
-generator, which writes fixtures rather than asserting behavior.
-The denied-I/O fixture runs in the separate container storage gate and is also
-excluded from the proof selection. Ordinary
-`cargo test` skips ignored tests, and neither command proves
-live Bankd/Orbis compatibility. The locked Orbis image is currently unsupported;
+PR CI runs `just ci-test`: ordinary and ignored proof tests share one invocation
+per binary under the workspace/all-features graph, including the pcli binary.
+The integration suite shares its registry and immutable proof fixtures, while each
+stateful scenario owns fresh storage. Test recipes and the standalone persistence
+gate use small preallocated forests; the persistence gate preserves a caller's
+`SHIELDD_STORAGE` override. Set `SHIELDD_STORAGE` when invoking Cargo directly.
+The selection skips the transaction signing-vector
+generator, which writes fixtures, and the denied-I/O fixture, which runs in the
+separate container storage gate. `just pari-proof-tests` remains an ignored-only
+command for focused proving work. Ordinary `cargo test` skips ignored tests.
+The Orbis job checks isolated feature configurations and executes the proof-disabled
+Disclosure case; all-feature adapter tests run in the workspace suite. Neither
+job proves live Bankd/Orbis compatibility. The locked Orbis image is unsupported;
 see the [external contract](jubjub-external-contract.md).
 
 Run formatting and cheap tooling checks before expensive compilation. Record

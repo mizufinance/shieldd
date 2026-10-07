@@ -1,3 +1,4 @@
+use crate::common;
 use anyhow::Context;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
@@ -14,7 +15,6 @@ use shieldd_sdk_shielded_pool::{
 use shieldd_sdk_storage::TempStorage;
 use shieldd_sdk_transaction::ActionPlan;
 use shieldd_sdk_view::{NoteManager, NoteManagerPlanningResult, Storage, StoragePlanningIo};
-mod common;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn paid_withdrawal_splits_fee_note_then_resumes_and_executes() -> anyhow::Result<()> {

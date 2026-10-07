@@ -236,7 +236,6 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
 #[cfg(feature = "component")]
 #[cfg(all(test, all(feature = "prover", any(unix, windows))))]
 mod tests {
-    use crate::test_proof_helpers::proof_test_helpers::registry;
     use ff::Field;
     use rand::SeedableRng;
 
@@ -250,32 +249,6 @@ mod tests {
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_tct as tct;
-
-    #[test]
-    #[ignore = "expensive: native Pari proof generation with local keys"]
-    fn regulated_and_unregulated_proofs_verify_individually_and_in_a_batch() -> anyhow::Result<()> {
-        use shieldd_sdk_proof_params::pari::proving_strategy;
-        let registry = registry();
-        let strategy = proving_strategy()?;
-        let mut items = Vec::new();
-        for (seed, regulated) in [(42, true), (43, false)] {
-            let (public, private) = build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng(
-                &mut rand::rngs::StdRng::seed_from_u64(seed),
-                *BASE_ASSET_ID,
-                regulated,
-                false,
-            );
-            let proof = super::TransferProof::prove(public.clone(), private, registry)?;
-            proof.verify(&public, registry)?;
-            let item = proof.to_batch_item(&public)?;
-            assert_eq!(item.family, shieldd_sdk_circuits::proof::Family::Transfer);
-            items.push(item);
-        }
-        assert_ne!(items[0].statement, items[1].statement);
-        assert_ne!(items[0].envelope.to_bytes(), items[1].envelope.to_bytes());
-        assert_eq!(registry.verify_items(&items, strategy)?.len(), 2);
-        Ok(())
-    }
 
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
         ComplianceLeaf::synthetic_unregulated(address.clone(), *BASE_ASSET_ID)
@@ -327,12 +300,20 @@ mod tests {
             shieldd_sdk_circuits::encoding::field(&public.statement_hash().unwrap()),
             "mapped witness must preserve the action statement",
         );
+        assert_eq!(
+            witness.family(),
+            shieldd_sdk_circuits::proof::Family::Transfer
+        );
         let valued = catalogue::evaluate(&witness).expect("evaluate transfer witness");
         assert!(
             valued.is_satisfied(),
             "transfer witness violates the relation"
         );
-        let compiled = catalogue::compile(witness.family()).expect("compile canonical relation");
+        static RELATION: std::sync::OnceLock<catalogue::Compiled> = std::sync::OnceLock::new();
+        let compiled = RELATION.get_or_init(|| {
+            catalogue::compile(shieldd_sdk_circuits::proof::Family::Transfer)
+                .expect("compile canonical relation")
+        });
         compiled
             .relation
             .witness(

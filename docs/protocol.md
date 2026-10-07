@@ -78,40 +78,60 @@ the Binding signature covers the complete body’s auth hash. Balance commitment
 including private fee funding, must sum to zero. Frozen signing vectors live in
 [transaction tests](../crates/core/transaction/tests).
 
-### Same-chain private AvP and DvP prototype
+### Same-chain joint transactions
 
-The executable [two-wallet prototype](../crates/core/app-tests/tests/private_avp.rs)
-exchanges two assets within the shielded pool using two ordinary Transfer proofs
-and one private FeeFunding Transfer. It uses independent spend keys and a shared
-finalized SCT anchor. No new circuit, proof family, swap pool, or withdrawal is
-required. AvP exchanges two fungible assets; DvP delivers a test security against
-a distinct test cash token, with fees paid in the separate base token. The demo
-covers unregulated AvP and regulated AvP/DvP. Test denominations represent cash
-and securities; production issuance and live Bankd integration remain separate.
+The [joint wallet API](../crates/core/transaction/src/joint.rs) assembles ordinary
+fixed-shape Transfer actions from independent wallets into one atomic transaction.
+An owner can contribute several independent asset legs; a separate bank or wallet
+can own only the existing FeeFunding action. The [settlement demos](../crates/core/app-tests/tests/suite/private_avp.rs)
+cover regulated AvP/DvP, a three-owner basket, threshold fee sponsorship and actual
+receipt spending. AvP exchanges assets; DvP delivers a security against cash.
+All legs settle on one shielded chain, using the existing proof registry.
 
-Each wallet retains its own plans, witnesses, keys and authorization randomizers.
-Only serialized proof-bearing action fragments cross the coordination boundary.
-Both wallets verify the canonical unsigned statement through
-`TransferBody::proof_public`, verify the proofs, and trial-decrypt the counterparty's
-receiver output. They check the exact receiving address, asset, amount, mandatory
-encrypted memo, fee, chain ID, finite expiry and their own proposed action before
-signing the complete transaction effect hash. The unsigned projection grants no
-spend authority: consensus still requires every SpendAuth signature.
+Wallets agree on the finalized SCT anchor, ordered action count, chain ID, expiry,
+fee and encrypted memo before proving. Each wallet keeps its plans, witnesses and
+keys local and exchanges only serialized proof-bearing Action/FeeFunding records.
+A JointSigningRequest contains the complete candidate, local plan, owned action
+indices and distinct incoming output expectations. It stays within that owner's
+custody group. Every signer reconstructs its own action effects and randomized
+keys, checks the shared terms, and decrypts each expected receipt to verify its
+address, asset, amount and wrapped memo. Negotiating wallets also verify every
+peer proof through the canonical `TransferBody::proof_public` projection. Chain
+admission separately checks current roots, grants, fees and unspent state.
+All participants, including a fee-only sponsor, share the transaction memo key
+and plaintext, including its return address.
 
-After verifying all SpendAuth signatures, each wallet releases only its fresh,
-transaction-specific value-commitment blinding. The assembler checks each
-principal commitment opens to zero residual, the fee commitment covers the public
-fee, and the summed scalar matches the canonical nonidentity binding key before
-signing the complete body auth hash. Authorization randomizers and the proof's
-independent commitment openings remain local. This is a prototype of that
-assembly strategy, not a privacy certification for production use.
+Software custody and FROST both sign the complete transaction effect hash.
+FROST followers repeat local checks before generating nonces; they receive no
+bare digest override. The threshold CLI displays the complete public candidate
+and the group's local terms for approval. Ordinary single-wallet plan signing
+remains supported.
+FROST approval and final binding assembly do not verify peer proofs; that check
+belongs to negotiation and is repeated before wallets release balance openings.
+
+Only after every spend authorization verifies do owners release their fresh,
+transaction-specific balance openings. The assembler requires exactly one opening
+per Transfer and fee slot, proves each principal commitment has zero residual,
+checks fee coverage and the nonidentity aggregate binding key, then signs the
+complete body auth hash. Contributions bind that final body and its anchor;
+changed proofs or signature bytes require fresh contributions. Proof-internal
+openings and authorization randomizers never cross the owner coordination boundary.
+
+Existing asset and user registration actions can share the same sponsored
+transaction. Transfers precede asset registrations, which precede user
+registrations; the host validates fee funding against the pre-transaction roots.
+Each registration retains its authority grant and certificate checks. A later
+invalid or expired grant rolls back earlier registrations, audit records and fee
+spends. Newly registered leaves cannot be used by ordinary proofs built against
+the preceding roots. Registration composition does not change private volume
+accounting or the fixed Transfer relation.
 
 Run it with a development Pari registry matching the current circuits:
 
 ```sh
 export CARGO_BUILD_JOBS=2 RAYON_NUM_THREADS=2
 cargo run --locked --profile ci -p shieldd-sdk-proof-params --example pari_setup -- /tmp/shieldd-avp-keys
-SHIELDD_PARI_KEYS=/tmp/shieldd-avp-keys cargo test --locked --profile ci -p shieldd-sdk-app-tests --test private_avp -- --ignored --nocapture --test-threads=1
+SHIELDD_PARI_KEYS=/tmp/shieldd-avp-keys cargo test --locked --profile ci -p shieldd-sdk-app-tests --test suite --all-features -- private_avp:: joint_registration:: --ignored --nocapture --test-threads=1
 ```
 
 Regulated cases install asset policies and active participant registrations through
@@ -133,7 +153,7 @@ rejection leaves no consumed input or volume nullifiers, indexed transaction,
 output payloads, or host withdrawals. The unfrozen chain accepts the transaction.
 A status change requires fresh proofs and both owners' renewed authorization.
 
-The prototype checks native atomic rejection, positive fees, usable receipt notes,
+The demos check native atomic rejection, positive fees, usable receipt notes,
 persisted wallet history across reopen, and actual spends using recovered notes
 and witnesses. Receipt recognition matches accepted
 effects and input nullifiers, recording the actual txID because randomized
@@ -142,9 +162,8 @@ Amounts, asset identities and recipients stay encrypted on chain; the fee and
 ordinary transaction metadata remain public. Participants know their negotiated
 terms, and any coordinator given those terms also knows them.
 
-Durable negotiation sessions, input reservations, cancellation/retry handling,
-authenticated coordinator transport, and live Bankd submission are outside this
-bounded native prototype. Atomic acceptance does not guarantee completion:
+The API has no durable negotiation session or input reservation. Callers provide
+authenticated transport, cancellation/retry handling and Bankd submission. Atomic acceptance does not guarantee completion:
 the final assembler can withhold submission. Cross-chain settlement requires a
 separate protocol; the same-chain transaction does not provide it.
 

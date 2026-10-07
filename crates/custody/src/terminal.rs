@@ -1,12 +1,23 @@
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_transaction::TransactionPlan;
+use shieldd_sdk_transaction::{joint::JointSigningRequest, TransactionPlan};
 use tonic::async_trait;
 
 #[derive(Debug, Clone)]
 pub enum SigningRequest {
     TransactionPlan(TransactionPlan),
+    JointTransaction(Box<JointSigningRequest>),
+}
+
+impl SigningRequest {
+    /// Check the group's owned effects and incoming receipts before approval or nonce allocation.
+    pub fn validate_joint(&self, fvk: &shieldd_sdk_keys::FullViewingKey) -> Result<()> {
+        if let Self::JointTransaction(request) = self {
+            request.validate(fvk)?;
+        }
+        Ok(())
+    }
 }
 /// A trait abstracting over the kind of terminal interface we expect.
 ///

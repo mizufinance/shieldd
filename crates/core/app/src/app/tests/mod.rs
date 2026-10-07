@@ -373,7 +373,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
         raw_denom: BASE_ASSET_DENOM.deref().base_denom().denom,
         address: test_keys::ADDRESS_0.to_owned(),
     })
-    .take(tx_count)
+    .take(2)
     .collect();
 
     let app_state_bytes = serde_json::to_vec(&AppState::Content(Content {
@@ -395,6 +395,15 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
     .await?;
     test_node.execute(Vec::new()).await?;
 
+    anyhow::ensure!(tx_count <= 2, "fixture provides at most two transactions");
+    static TRANSACTIONS: tokio::sync::OnceCell<Vec<Vec<u8>>> = tokio::sync::OnceCell::const_new();
+    let txs = TRANSACTIONS
+        .get_or_try_init(|| build_test_txs(&storage))
+        .await?;
+    Ok((storage, test_node, txs[..tx_count].to_vec()))
+}
+
+async fn build_test_txs(storage: &TempStorage) -> Result<Vec<Vec<u8>>> {
     let client = Arc::new(
         MockClient::new(test_keys::SPEND_KEY.clone())
             .with_sync_to_storage(&storage)
@@ -409,9 +418,9 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
                 && note.address() == test_keys::ADDRESS_0.deref().clone()
         })
         .cloned()
-        .take(tx_count)
+        .take(2)
         .collect();
-    let mut txs = Vec::with_capacity(tx_count);
+    let mut txs = Vec::with_capacity(2);
     for note in notes {
         let spend = ShieldedInputPlan::new(
             &mut OsRng,
@@ -469,7 +478,7 @@ async fn setup_test_txs(tx_count: usize) -> Result<(TempStorage, TestHost, Vec<V
         txs.push(tx.encode_to_vec());
     }
 
-    Ok((storage, test_node, txs))
+    Ok(txs)
 }
 
 #[tokio::test]
@@ -682,10 +691,63 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     let plan = client
         .complete_intent(intent, storage.latest_snapshot())
         .await?;
+    let ActionPlan::Transfer(principal) = &plan.actions[0] else {
+        unreachable!()
+    };
+    assert!(principal.compliance.witness.asset.is_regulated);
+    assert!(
+        !plan
+            .fee_funding
+            .as_ref()
+            .unwrap()
+            .transfer
+            .compliance
+            .witness
+            .asset
+            .is_regulated
+    );
     let tx_bytes = client
         .witness_auth_build(&plan, registry())
         .await?
         .encode_to_vec();
+    let artifacts =
+        App::build_tx_artifacts_extracted(&[Arc::new(Transaction::decode_canonical(&tx_bytes)?)])
+            .await?;
+    let items = artifacts[0]
+        .proof_items
+        .values()
+        .flatten()
+        .cloned()
+        .collect::<Vec<_>>();
+    assert_eq!(items.len(), 2);
+    for item in &items {
+        assert_eq!(item.family, shieldd_sdk_circuits::proof::Family::Transfer);
+        registry().verify_item(item)?;
+    }
+    let decoded = Transaction::decode_canonical(&tx_bytes)?;
+    let Action::Transfer(principal) = &decoded.transaction_body.actions[0] else {
+        unreachable!()
+    };
+    assert_eq!(items[0].envelope.to_bytes(), principal.proof.inner);
+    assert_eq!(
+        items[1].envelope.to_bytes(),
+        decoded
+            .transaction_body
+            .fee_funding
+            .as_ref()
+            .unwrap()
+            .transfer
+            .proof
+            .inner
+    );
+    assert_ne!(items[0].statement, items[1].statement);
+    assert_ne!(items[0].envelope.to_bytes(), items[1].envelope.to_bytes());
+    assert_eq!(
+        registry()
+            .verify_items(&items, shieldd_sdk_proof_params::pari::proving_strategy()?)?
+            .len(),
+        2
+    );
     eprintln!(
         "PET-ready regulated host transaction: {} bytes",
         tx_bytes.len()
@@ -837,17 +899,14 @@ async fn regulated_genesis_note_transfers_through_host_and_compact_block() -> Re
     Ok(())
 }
 
-async fn candidate_envelope_from_fixture_txs(
-    _storage: &TempStorage,
-    txs: &[Vec<u8>],
-) -> Result<CandidateEnvelope> {
+fn candidate_envelope_from_fixture_txs(txs: &[Vec<u8>]) -> Result<CandidateEnvelope> {
     CandidateEnvelope::new(txs.to_vec(), "app_test".into())
 }
 
 #[tokio::test]
 async fn process_candidate_envelope_accepts_valid_fixture() -> Result<()> {
     let (storage, _node, txs) = setup_test_txs(2).await?;
-    let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
+    let envelope = candidate_envelope_from_fixture_txs(&txs)?;
     let mut app = App::new(
         storage.latest_snapshot(),
         registry(),
@@ -876,7 +935,7 @@ async fn execute_validated_candidate_envelope_rechecks_metadata() -> Result<()> 
     let spent_nullifiers = Transaction::decode(txs[0].as_slice())?
         .spent_nullifiers()
         .collect::<Vec<_>>();
-    let envelope = candidate_envelope_from_fixture_txs(&storage, &txs).await?;
+    let envelope = candidate_envelope_from_fixture_txs(&txs)?;
 
     let mut preflight_app = App::new(
         storage.latest_snapshot(),

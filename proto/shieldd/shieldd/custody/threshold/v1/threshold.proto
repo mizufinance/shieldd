@@ -3,7 +3,10 @@ syntax = "proto3";
 package shieldd.custody.threshold.v1;
 
 import "shieldd/core/transaction/v1/transaction.proto";
+import "shieldd/core/asset/v1/asset.proto";
+import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/crypto/redjubjub_frost/v1/redjubjub_frost.proto";
+import "shieldd/crypto/tct/v1/tct.proto";
 
 // A key one can use to verify signatures.
 //
@@ -17,12 +20,33 @@ message Signature {
   bytes inner = 1;
 }
 
+// The complete joint candidate and the local terms approved by this signing group.
+message JointSigningRequest {
+  // A receipt expected in a specific output of a peer's Transfer.
+  message ExpectedReceipt {
+    uint64 action_index = 1;
+    uint64 output_index = 2;
+    core.keys.v1.Address address = 3;
+    core.asset.v1.Value value = 4;
+  }
+
+  core.transaction.v1.Transaction transaction = 1;
+  core.transaction.v1.TransactionPlan plan = 2;
+  // Candidate action indices corresponding to local plan actions, in order.
+  repeated uint64 action_indices = 3;
+  repeated ExpectedReceipt incoming = 4;
+  crypto.tct.v1.MerkleRoot anchor = 5;
+  uint64 action_count = 6;
+}
+
 // The message the coordinator sends in round 1 of the signing protocol.
 message CoordinatorRound1 {
   reserved 2, 3, 4;
   oneof request {
     // The plan that the coordinator would like the followers to sign.
     core.transaction.v1.TransactionPlan plan = 1;
+    // The complete joint transaction, including approved local terms and receipts.
+    JointSigningRequest joint_transaction = 5;
   }
 }
 
@@ -38,7 +62,7 @@ message CoordinatorRound2 {
 
   // A FROST signing package without a message.
   //
-  // We structure things this way because the message is derived from the transaction plan.
+  // The message is derived from the validated signing request.
   // FROST expects the signing package to include the identified commitments *and*
   // the message, but we have no need to include the message.
   message PartialSigningPackage {

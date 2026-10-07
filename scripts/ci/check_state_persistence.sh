@@ -4,10 +4,12 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 export CARGO_BUILD_JOBS=2 RAYON_NUM_THREADS=2 GOMAXPROCS=2
+default_storage='{"buckets":1024,"cache_mib":1,"preallocate":true,"materialization_workers":2}'
+export SHIELDD_STORAGE="${SHIELDD_STORAGE:-$default_storage}"
 export SHIELDD_PARI_KEYS="${SHIELDD_PARI_KEYS:-$root/target/dev-pari-keys}"
 SHIELDD_PARI_KEYS="$(python3 -c 'import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())' "$SHIELDD_PARI_KEYS")"
 export CARGO_TARGET_DIR="$root/target"
 cd "$root"
-cargo test --locked --profile ci --workspace --all-features --no-run
+cargo build --locked --profile ci --workspace --all-features --example state_persistence
 "$CARGO_TARGET_DIR/ci/examples/state_persistence" "$work/db" "$work/result"
 echo 'Current-version reopen, checkpoint, history, replay and next-root persistence passed.'

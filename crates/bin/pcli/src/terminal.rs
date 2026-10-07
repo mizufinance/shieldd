@@ -51,6 +51,35 @@ impl Terminal for ActualTerminal {
                 pretty_print_transaction_plan(self.fvk.clone(), plan)?;
                 println!("Do you approve this transaction?");
             }
+            SigningRequest::JointTransaction(request) => {
+                let fvk = self.fvk.as_ref().ok_or_else(|| {
+                    anyhow::anyhow!("joint signing requires the signing group's full viewing key")
+                })?;
+                request.validate(fvk)?;
+                println!("Complete joint transaction candidate:");
+                println!("{}", serde_json::to_string_pretty(&request.transaction)?);
+                println!("Local approved plan:");
+                pretty_print_transaction_plan(Some(fvk.clone()), &request.plan)?;
+                println!("Local action indices: {:?}", request.action_indices);
+                println!(
+                    "Agreed anchor: {:?}; action count: {}",
+                    request.anchor, request.action_count
+                );
+                println!("Expected incoming receipts:");
+                for receipt in &request.incoming {
+                    println!(
+                        "Action {}, output {}: {} units of {} to {}",
+                        receipt.action_index,
+                        receipt.output_index,
+                        receipt.value.amount,
+                        receipt.value.asset_id,
+                        receipt.address
+                    );
+                }
+                println!(
+                    "Approve these local terms and receipts against the complete joint candidate?"
+                );
+            }
         };
 
         println!("Press enter to continue");

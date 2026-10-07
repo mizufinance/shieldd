@@ -175,85 +175,28 @@ impl Transaction {
     }
 
     pub fn decrypt_memo(&self, fvk: &FullViewingKey) -> anyhow::Result<MemoPlaintext> {
-        if self.transaction_body().memo.is_none() {
-            return Err(anyhow::anyhow!("no memo"));
-        }
-
-        if let Some((note_payload, ovk_wrapped_key, wrapped_memo_key, balance_commitment)) = self
-            .actions()
-            .find_map(|action| match action {
-                Action::Transfer(transfer) => transfer.body.outputs.iter().next().map(|output| {
-                    (
-                        output.note_payload.clone(),
-                        output.ovk_wrapped_key.clone(),
-                        output.wrapped_memo_key.clone(),
-                        transfer.body.balance_commitment,
-                    )
-                }),
-                Action::NoteReshape(note_reshape) => {
-                    note_reshape.body.outputs.iter().next().map(|output| {
-                        (
-                            output.note_payload.clone(),
-                            output.ovk_wrapped_key.clone(),
-                            output.wrapped_memo_key.clone(),
-                            note_reshape.body.balance_commitment,
-                        )
-                    })
-                }
-
-                Action::ShieldedHostWithdrawal(withdrawal) => Some((
-                    withdrawal.body.change_output.note_payload.clone(),
-                    withdrawal.body.change_output.ovk_wrapped_key.clone(),
-                    withdrawal.body.change_output.wrapped_memo_key.clone(),
-                    withdrawal.body.balance_commitment,
-                )),
-                _ => None,
-            })
-            .or_else(|| {
-                self.transaction_body
-                    .fee_funding
-                    .as_ref()
-                    .and_then(|fee_funding| {
-                        fee_funding
-                            .transfer
-                            .body
-                            .outputs
-                            .iter()
-                            .next()
-                            .map(|output| {
-                                (
-                                    output.note_payload.clone(),
-                                    output.ovk_wrapped_key.clone(),
-                                    output.wrapped_memo_key.clone(),
-                                    fee_funding.transfer.body.balance_commitment,
-                                )
-                            })
-                    })
-            })
-        {
-            let shared_secret = Note::decrypt_key(
-                ovk_wrapped_key,
-                note_payload.note_commitment,
-                balance_commitment,
+        let memo = self.transaction_body.memo.as_ref().context("no memo")?;
+        for output in self.shielded_outputs() {
+            let payload = output.note_payload;
+            if let Ok(plaintext) = MemoCiphertext::decrypt_outgoing(
+                output.wrapped_memo_key,
+                output.ovk_wrapped_key.clone(),
+                payload.note_commitment,
+                output.balance_commitment,
                 fvk.outgoing(),
-                &note_payload.ephemeral_key,
-            );
-
-            let memo_key: PayloadKey = match shared_secret {
-                Ok(shared_secret) => {
-                    let payload_key =
-                        PayloadKey::derive(&shared_secret, &note_payload.ephemeral_key);
-                    wrapped_memo_key.decrypt_outgoing(&payload_key)?
+                &payload.ephemeral_key,
+                memo.clone(),
+            ) {
+                return Ok(plaintext);
+            }
+            if let Ok(key) = output
+                .wrapped_memo_key
+                .decrypt(payload.ephemeral_key, fvk.incoming())
+            {
+                if let Ok(plaintext) = MemoCiphertext::decrypt(&key, memo.clone()) {
+                    return Ok(plaintext);
                 }
-                Err(_) => wrapped_memo_key.decrypt(note_payload.ephemeral_key, fvk.incoming())?,
-            };
-
-            let tx_body = self.transaction_body();
-            let memo_ciphertext = tx_body
-                .memo
-                .as_ref()
-                .expect("memo field exists on this transaction");
-            return MemoCiphertext::decrypt(&memo_key, memo_ciphertext.clone());
+            }
         }
 
         Err(anyhow::anyhow!("unable to decrypt memo"))
@@ -265,55 +208,21 @@ impl Transaction {
     ) -> anyhow::Result<BTreeMap<StateCommitment, PayloadKey>> {
         let mut result = BTreeMap::new();
 
-        for action in self.actions() {
-            match action {
-                Action::Transfer(transfer) => {
-                    insert_payload_keys_for_outputs(
-                        &mut result,
-                        &transfer.body.outputs,
-                        transfer.body.balance_commitment,
-                        fvk,
-                    )?;
-                }
-                Action::NoteReshape(note_reshape) => {
-                    insert_payload_keys_for_outputs(
-                        &mut result,
-                        &note_reshape.body.outputs,
-                        note_reshape.body.balance_commitment,
-                        fvk,
-                    )?;
-                }
-
-                Action::ShieldedHostWithdrawal(withdrawal) => {
-                    let output = &withdrawal.body.change_output;
-                    let ovk_wrapped_key = output.ovk_wrapped_key.clone();
-                    let commitment = output.note_payload.note_commitment;
-                    let epk = &output.note_payload.ephemeral_key;
-                    let cv = withdrawal.body.balance_commitment;
-                    let shared_secret =
-                        Note::decrypt_key(ovk_wrapped_key, commitment, cv, fvk.outgoing(), epk);
-
-                    match shared_secret {
-                        Ok(shared_secret) => {
-                            result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
-                        }
-                        Err(_) => {
-                            let shared_secret = fvk.incoming().key_agreement_with(epk);
-                            result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
-                        }
-                    }
-                }
-                Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => {}
-            }
-        }
-
-        if let Some(fee_funding) = &self.transaction_body.fee_funding {
-            insert_payload_keys_for_outputs(
-                &mut result,
-                &fee_funding.transfer.body.outputs,
-                fee_funding.transfer.body.balance_commitment,
-                fvk,
-            )?;
+        for output in self.shielded_outputs() {
+            let payload = output.note_payload;
+            let epk = &payload.ephemeral_key;
+            let shared_secret = Note::decrypt_key(
+                output.ovk_wrapped_key.clone(),
+                payload.note_commitment,
+                output.balance_commitment,
+                fvk.outgoing(),
+                epk,
+            )
+            .unwrap_or_else(|_| fvk.incoming().key_agreement_with(epk));
+            result.insert(
+                payload.note_commitment,
+                PayloadKey::derive(&shared_secret, epk),
+            );
         }
 
         Ok(result)
@@ -334,11 +243,11 @@ impl Transaction {
                     | ActionView::ShieldedHostWithdrawal(_)
             ) && memo_plaintext.is_none()
             {
-                memo_plaintext = match self.transaction_body().memo {
+                memo_plaintext = match self.transaction_body.memo.as_ref() {
                     Some(ciphertext) => {
                         memo_ciphertext = Some(ciphertext.clone());
                         payload_key_from_view(&action_view).and_then(|payload_key| {
-                            MemoCiphertext::decrypt(payload_key, ciphertext).ok()
+                            MemoCiphertext::decrypt(payload_key, ciphertext.clone()).ok()
                         })
                     }
                     None => None,
@@ -355,10 +264,10 @@ impl Transaction {
             .map(|fee_funding| fee_funding.view_from_perspective(txp));
         if memo_plaintext.is_none() {
             if let (Some(ciphertext), Some(TransferView::Visible { payload_key, .. })) =
-                (self.transaction_body().memo, fee_funding.as_ref())
+                (self.transaction_body.memo.as_ref(), fee_funding.as_ref())
             {
                 memo_ciphertext = Some(ciphertext.clone());
-                memo_plaintext = MemoCiphertext::decrypt(payload_key, ciphertext).ok();
+                memo_plaintext = MemoCiphertext::decrypt(payload_key, ciphertext.clone()).ok();
             }
         }
 
@@ -423,44 +332,27 @@ impl Transaction {
     }
 
     pub fn spent_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
-        let mut nullifiers = self
-            .actions()
-            .flat_map(|action| match action {
-                Action::Transfer(transfer) => transfer
-                    .body
-                    .inputs
+        self.actions()
+            .flat_map(|action| {
+                let (transfer, reshape): (&[_], &[_]) = match action {
+                    Action::Transfer(transfer) => (&transfer.body.inputs, &[]),
+                    Action::NoteReshape(reshape) => (&[], &reshape.body.inputs),
+                    Action::ShieldedHostWithdrawal(withdrawal) => (&withdrawal.body.inputs, &[]),
+                    Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => {
+                        (&[], &[])
+                    }
+                };
+                transfer
                     .iter()
                     .map(|input| input.nullifier)
-                    .collect(),
-                Action::NoteReshape(note_reshape) => note_reshape
-                    .body
-                    .inputs
-                    .iter()
-                    .map(|input| input.nullifier)
-                    .collect(),
-
-                Action::ShieldedHostWithdrawal(withdrawal) => withdrawal
-                    .body
-                    .inputs
-                    .iter()
-                    .map(|input| input.nullifier)
-                    .collect(),
-                _ => Vec::new(),
+                    .chain(reshape.iter().map(|input| input.nullifier))
             })
-            .collect::<Vec<_>>();
-
-        if let Some(fee_funding) = &self.transaction_body.fee_funding {
-            nullifiers.extend(
-                fee_funding
-                    .transfer
-                    .body
-                    .inputs
+            .chain(
+                self.transaction_body
+                    .fee_funding
                     .iter()
-                    .map(|input| input.nullifier),
-            );
-        }
-
-        nullifiers.into_iter()
+                    .flat_map(|fee| fee.transfer.body.inputs.iter().map(|input| input.nullifier)),
+            )
     }
 
     /// Scoped volume nullifiers for body actions; fee funding has no volume effect.
@@ -476,7 +368,7 @@ impl Transaction {
         })
     }
 
-    /// Counts every proof-bound spend without allocating the iterator's buffer.
+    /// Counts every proof-bound spend, including fee funding.
     pub fn spent_nullifier_count(&self) -> usize {
         let body_count = self.actions().fold(0usize, |count, action| {
             let action_count = match action {
@@ -498,45 +390,37 @@ impl Transaction {
     }
 
     pub fn state_commitments(&self) -> impl Iterator<Item = StateCommitment> + '_ {
-        let mut commitments = self
-            .actions()
-            .flat_map(|action| match action {
-                Action::Transfer(transfer) => transfer
-                    .body
-                    .outputs
-                    .iter()
-                    .map(|output| Some(output.note_payload.note_commitment))
-                    .chain(std::iter::once(Some(
-                        transfer.body.volume_accumulator.commitment,
-                    )))
-                    .collect::<Vec<_>>(),
-                Action::NoteReshape(note_reshape) => note_reshape
-                    .body
-                    .outputs
-                    .iter()
-                    .map(|output| Some(output.note_payload.note_commitment))
-                    .collect::<Vec<_>>(),
-
-                Action::ShieldedHostWithdrawal(withdrawal) => vec![Some(
-                    withdrawal.body.change_output.note_payload.note_commitment,
-                )],
-                _ => vec![None],
+        self.actions()
+            .flat_map(|action| {
+                action_outputs(action)
+                    .map(|output| output.note_payload.note_commitment)
+                    .chain(match action {
+                        Action::Transfer(transfer) => {
+                            Some(transfer.body.volume_accumulator.commitment)
+                        }
+                        _ => None,
+                    })
             })
-            .filter_map(|x| x)
-            .collect::<Vec<_>>();
-
-        if let Some(fee_funding) = &self.transaction_body.fee_funding {
-            commitments.extend(
-                fee_funding
-                    .transfer
-                    .body
-                    .outputs
-                    .iter()
+            .chain(
+                self.fee_outputs()
                     .map(|output| output.note_payload.note_commitment),
-            );
-        }
+            )
+    }
 
-        commitments.into_iter()
+    fn shielded_outputs(&self) -> impl Iterator<Item = OutputRef<'_>> {
+        self.actions()
+            .flat_map(action_outputs)
+            .chain(self.fee_outputs())
+    }
+
+    fn fee_outputs(&self) -> impl Iterator<Item = OutputRef<'_>> {
+        self.transaction_body.fee_funding.iter().flat_map(|fee| {
+            fee.transfer
+                .body
+                .outputs
+                .iter()
+                .map(|output| output.into_output_ref(fee.transfer.body.balance_commitment))
+        })
     }
 
     pub fn transaction_body(&self) -> TransactionBody {
@@ -554,7 +438,7 @@ impl Transaction {
     pub fn id(&self) -> TransactionId {
         use sha2::{Digest, Sha256};
 
-        let tx_bytes: Vec<u8> = self.clone().try_into().expect("can serialize transaction");
+        let tx_bytes: Vec<u8> = self.into();
         let mut id_bytes = [0; 32];
         id_bytes[..].copy_from_slice(Sha256::digest(&tx_bytes).as_slice());
 
@@ -587,64 +471,98 @@ impl Transaction {
     }
 }
 
-fn insert_payload_keys_for_outputs<Output>(
-    result: &mut BTreeMap<StateCommitment, PayloadKey>,
-    outputs: &[Output],
-    balance_commitment: shieldd_sdk_asset::balance::Commitment,
-    fvk: &FullViewingKey,
-) -> anyhow::Result<()>
-where
-    for<'a> &'a Output: IntoOutputRef<'a>,
-{
-    for output in outputs {
-        let output = output.into_output_ref();
-        let commitment = output.note_payload.note_commitment;
-        let epk = &output.note_payload.ephemeral_key;
-        let shared_secret = Note::decrypt_key(
-            output.ovk_wrapped_key.clone(),
-            commitment,
-            balance_commitment,
-            fvk.outgoing(),
-            epk,
-        );
-
-        match shared_secret {
-            Ok(shared_secret) => {
-                result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
+fn action_outputs(action: &Action) -> impl Iterator<Item = OutputRef<'_>> {
+    let (transfer, reshape, withdrawal, balance_commitment): (&[_], &[_], Option<&_>, _) =
+        match action {
+            Action::Transfer(transfer) => (
+                &transfer.body.outputs[..],
+                &[][..],
+                None,
+                transfer.body.balance_commitment,
+            ),
+            Action::NoteReshape(reshape) => (
+                &[][..],
+                &reshape.body.outputs[..],
+                None,
+                reshape.body.balance_commitment,
+            ),
+            Action::ShieldedHostWithdrawal(withdrawal) => (
+                &[][..],
+                &[][..],
+                Some(&withdrawal.body.change_output),
+                withdrawal.body.balance_commitment,
+            ),
+            Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => {
+                (&[][..], &[][..], None, Default::default())
             }
-            Err(_) => {
-                let shared_secret = fvk.incoming().key_agreement_with(epk);
-                result.insert(commitment, PayloadKey::derive(&shared_secret, epk));
-            }
-        }
-    }
-
-    Ok(())
+        };
+    transfer
+        .iter()
+        .map(move |output| output.into_output_ref(balance_commitment))
+        .chain(
+            reshape
+                .iter()
+                .map(move |output| output.into_output_ref(balance_commitment)),
+        )
+        .chain(
+            withdrawal
+                .into_iter()
+                .map(move |output| output.into_output_ref(balance_commitment)),
+        )
 }
 
 trait IntoOutputRef<'a> {
-    fn into_output_ref(self) -> OutputRef<'a>;
+    fn into_output_ref(
+        self,
+        balance_commitment: shieldd_sdk_asset::balance::Commitment,
+    ) -> OutputRef<'a>;
 }
 
 struct OutputRef<'a> {
     note_payload: &'a shieldd_sdk_shielded_pool::NotePayload,
     ovk_wrapped_key: &'a shieldd_sdk_keys::symmetric::OvkWrappedKey,
+    wrapped_memo_key: &'a shieldd_sdk_keys::symmetric::WrappedMemoKey,
+    balance_commitment: shieldd_sdk_asset::balance::Commitment,
 }
 
 impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::TransferOutputBody {
-    fn into_output_ref(self) -> OutputRef<'a> {
+    fn into_output_ref(
+        self,
+        balance_commitment: shieldd_sdk_asset::balance::Commitment,
+    ) -> OutputRef<'a> {
         OutputRef {
             note_payload: &self.note_payload,
             ovk_wrapped_key: &self.ovk_wrapped_key,
+            wrapped_memo_key: &self.wrapped_memo_key,
+            balance_commitment,
         }
     }
 }
 
 impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
-    fn into_output_ref(self) -> OutputRef<'a> {
+    fn into_output_ref(
+        self,
+        balance_commitment: shieldd_sdk_asset::balance::Commitment,
+    ) -> OutputRef<'a> {
         OutputRef {
             note_payload: &self.note_payload,
             ovk_wrapped_key: &self.ovk_wrapped_key,
+            wrapped_memo_key: &self.wrapped_memo_key,
+            balance_commitment,
+        }
+    }
+}
+
+impl<'a> IntoOutputRef<'a> for &'a shieldd_sdk_shielded_pool::ShieldedWithdrawalChangeBody {
+    fn into_output_ref(
+        self,
+        balance_commitment: shieldd_sdk_asset::balance::Commitment,
+    ) -> OutputRef<'a> {
+        OutputRef {
+            note_payload: &self.note_payload,
+            ovk_wrapped_key: &self.ovk_wrapped_key,
+            wrapped_memo_key: &self.wrapped_memo_key,
+            balance_commitment,
         }
     }
 }
@@ -833,7 +751,14 @@ mod tests {
             tx.spent_nullifiers().count(),
             "zero-allocation count must match the canonical iterator"
         );
-        assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 3);
+        assert_eq!(
+            tx.state_commitments().collect::<Vec<_>>(),
+            vec![
+                shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(5u64)),
+                shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(50u64)),
+                transfer.body.volume_accumulator.commitment,
+            ]
+        );
 
         let fee_funded_tx = Transaction {
             transaction_body: TransactionBody {
@@ -853,8 +778,20 @@ mod tests {
             "body and fee-funding nullifiers must share one canonical count"
         );
         assert_eq!(
-            fee_funded_tx.state_commitments().collect::<Vec<_>>().len(),
-            5
+            fee_funded_tx.state_commitments().collect::<Vec<_>>(),
+            vec![
+                shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(5u64)),
+                shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(50u64)),
+                fee_funded_tx
+                    .transfers()
+                    .next()
+                    .unwrap()
+                    .body
+                    .volume_accumulator
+                    .commitment,
+                shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(5u64)),
+                shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(50u64)),
+            ]
         );
     }
 
@@ -1110,6 +1047,19 @@ mod tests {
             ],
             "transaction-wide duplicate detection must see every fixed-slot \
              NoteReshape and shielded-withdrawal nullifier"
+        );
+        assert_eq!(
+            tx.state_commitments().collect::<Vec<_>>(),
+            [6u64, 16, 16, 16, 16, 27]
+                .map(|value| shieldd_sdk_tct::StateCommitment(shieldd_sdk_crypto::Fq::from(value))),
+            "mixed output commitments must retain action and slot order"
+        );
+        let Action::ShieldedHostWithdrawal(withdrawal) = &tx.transaction_body.actions[2] else {
+            unreachable!()
+        };
+        assert_eq!(
+            tx.volume_nullifiers().collect::<Vec<_>>(),
+            vec![withdrawal.body.volume_accumulator.scoped_nullifier()]
         );
         assert_eq!(
             tx.spent_nullifier_count(),

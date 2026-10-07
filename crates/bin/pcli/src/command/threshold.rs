@@ -20,10 +20,12 @@ impl ThresholdCmd {
             }
             _ => None, // If not threshold, we can't sign using threshold config
         };
+        let terminal = ActualTerminal {
+            fvk: config.as_ref().map(|config| config.fvk().clone()),
+        };
         match self {
             ThresholdCmd::Sign => {
-                shieldd_sdk_custody::threshold::follow(config.as_ref(), &ActualTerminal::default())
-                    .await
+                shieldd_sdk_custody::threshold::follow(config.as_ref(), &terminal).await
             }
         }
     }

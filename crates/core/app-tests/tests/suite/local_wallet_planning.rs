@@ -1,3 +1,4 @@
+use crate::common;
 use anyhow::Context;
 use shieldd_sdk_app::{
     genesis::{AppState, Content},
@@ -10,7 +11,6 @@ use shieldd_sdk_transaction::ActionPlan;
 use shieldd_sdk_view::{
     planning_io::PlanningIo, NoteManager, NoteManagerPlanningResult, Storage, StoragePlanningIo,
 };
-mod common;
 
 #[tokio::test]
 async fn local_wallet_plan_preserves_inputs_outputs_context_and_insufficient_balance(
