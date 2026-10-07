@@ -957,13 +957,34 @@ mod tests {
             .transfer
             .body
             .proof_context = TransferProofContext::Ordinary;
-        cases.push((changed, "context"));
+        changed
+            .transaction
+            .transaction_body
+            .fee_funding
+            .as_ref()
+            .unwrap()
+            .transfer
+            .body
+            .proof_public(changed.anchor, TransferProofContext::Ordinary)
+            .unwrap();
+        cases.push((
+            changed,
+            "transfer proof context does not match its transaction location",
+        ));
         let mut changed = valid.clone();
         let Action::Transfer(peer) = &mut changed.transaction.transaction_body.actions[2] else {
             unreachable!()
         };
         peer.body.proof_context = TransferProofContext::FeeFunding;
-        cases.push((changed, "context"));
+        peer.body.volume_accumulator =
+            shieldd_sdk_shielded_pool::VolumeAccumulatorPayload::canonical_fee_funding();
+        peer.body
+            .proof_public(changed.anchor, TransferProofContext::FeeFunding)
+            .unwrap();
+        cases.push((
+            changed,
+            "transfer proof context does not match its transaction location",
+        ));
         let mut changed = valid.clone();
         let Action::Transfer(peer) = &mut changed.transaction.transaction_body.actions[2] else {
             unreachable!()
