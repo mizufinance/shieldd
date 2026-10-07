@@ -28,6 +28,7 @@ mod witness_data;
 
 pub mod action;
 pub mod gas;
+pub mod joint;
 pub mod memo;
 pub mod plan;
 pub mod view;

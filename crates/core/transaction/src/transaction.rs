@@ -179,81 +179,76 @@ impl Transaction {
             return Err(anyhow::anyhow!("no memo"));
         }
 
-        if let Some((note_payload, ovk_wrapped_key, wrapped_memo_key, balance_commitment)) = self
+        let outputs = self
             .actions()
-            .find_map(|action| match action {
-                Action::Transfer(transfer) => transfer.body.outputs.iter().next().map(|output| {
-                    (
-                        output.note_payload.clone(),
-                        output.ovk_wrapped_key.clone(),
-                        output.wrapped_memo_key.clone(),
-                        transfer.body.balance_commitment,
-                    )
-                }),
-                Action::NoteReshape(note_reshape) => {
-                    note_reshape.body.outputs.iter().next().map(|output| {
+            .flat_map(|action| match action {
+                Action::Transfer(transfer) => transfer
+                    .body
+                    .outputs
+                    .iter()
+                    .map(|output| {
                         (
                             output.note_payload.clone(),
                             output.ovk_wrapped_key.clone(),
                             output.wrapped_memo_key.clone(),
-                            note_reshape.body.balance_commitment,
+                            transfer.body.balance_commitment,
                         )
                     })
-                }
-
-                Action::ShieldedHostWithdrawal(withdrawal) => Some((
-                    withdrawal.body.change_output.note_payload.clone(),
-                    withdrawal.body.change_output.ovk_wrapped_key.clone(),
-                    withdrawal.body.change_output.wrapped_memo_key.clone(),
-                    withdrawal.body.balance_commitment,
-                )),
-                _ => None,
-            })
-            .or_else(|| {
-                self.transaction_body
-                    .fee_funding
-                    .as_ref()
-                    .and_then(|fee_funding| {
-                        fee_funding
-                            .transfer
-                            .body
-                            .outputs
-                            .iter()
-                            .next()
-                            .map(|output| {
-                                (
-                                    output.note_payload.clone(),
-                                    output.ovk_wrapped_key.clone(),
-                                    output.wrapped_memo_key.clone(),
-                                    fee_funding.transfer.body.balance_commitment,
-                                )
-                            })
+                    .collect::<Vec<_>>(),
+                Action::NoteReshape(reshape) => reshape
+                    .body
+                    .outputs
+                    .iter()
+                    .map(|output| {
+                        (
+                            output.note_payload.clone(),
+                            output.ovk_wrapped_key.clone(),
+                            output.wrapped_memo_key.clone(),
+                            reshape.body.balance_commitment,
+                        )
                     })
+                    .collect(),
+                Action::ShieldedHostWithdrawal(withdrawal) => {
+                    let output = &withdrawal.body.change_output;
+                    vec![(
+                        output.note_payload.clone(),
+                        output.ovk_wrapped_key.clone(),
+                        output.wrapped_memo_key.clone(),
+                        withdrawal.body.balance_commitment,
+                    )]
+                }
+                _ => Vec::new(),
             })
-        {
-            let shared_secret = Note::decrypt_key(
-                ovk_wrapped_key,
-                note_payload.note_commitment,
+            .chain(self.transaction_body.fee_funding.iter().flat_map(|fee| {
+                fee.transfer.body.outputs.iter().map(|output| {
+                    (
+                        output.note_payload.clone(),
+                        output.ovk_wrapped_key.clone(),
+                        output.wrapped_memo_key.clone(),
+                        fee.transfer.body.balance_commitment,
+                    )
+                })
+            }));
+        for (payload, ovk, wrapped_memo, balance_commitment) in outputs {
+            if let Ok(memo) = MemoCiphertext::decrypt_outgoing(
+                &wrapped_memo,
+                ovk,
+                payload.note_commitment,
                 balance_commitment,
                 fvk.outgoing(),
-                &note_payload.ephemeral_key,
-            );
-
-            let memo_key: PayloadKey = match shared_secret {
-                Ok(shared_secret) => {
-                    let payload_key =
-                        PayloadKey::derive(&shared_secret, &note_payload.ephemeral_key);
-                    wrapped_memo_key.decrypt_outgoing(&payload_key)?
+                &payload.ephemeral_key,
+                self.transaction_body.memo.clone().expect("memo exists"),
+            ) {
+                return Ok(memo);
+            }
+            if let Ok(key) = wrapped_memo.decrypt(payload.ephemeral_key, fvk.incoming()) {
+                if let Ok(memo) = MemoCiphertext::decrypt(
+                    &key,
+                    self.transaction_body.memo.clone().expect("memo exists"),
+                ) {
+                    return Ok(memo);
                 }
-                Err(_) => wrapped_memo_key.decrypt(note_payload.ephemeral_key, fvk.incoming())?,
-            };
-
-            let tx_body = self.transaction_body();
-            let memo_ciphertext = tx_body
-                .memo
-                .as_ref()
-                .expect("memo field exists on this transaction");
-            return MemoCiphertext::decrypt(&memo_key, memo_ciphertext.clone());
+            }
         }
 
         Err(anyhow::anyhow!("unable to decrypt memo"))

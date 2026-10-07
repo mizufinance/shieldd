@@ -11,7 +11,7 @@ use shieldd_sdk_app::{
     params::AppParameters,
     test_support::{TestHost, TEST_CHAIN_ID},
 };
-use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
+use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
 use shieldd_sdk_compliance::{
     derive_regulated_nullifier_key,
     genesis::{GenesisUserRegistration, NativeAssetRegistration},
@@ -38,13 +38,14 @@ use shieldd_sdk_proto::{
 use shieldd_sdk_sct::{component::clock::EpochRead as _, permanent_nullifiers::manifest};
 use shieldd_sdk_shielded_pool::{
     component::StateReadExt as _, genesis::Allocation, select_accumulator_day, ShieldedInputPlan,
-    ShieldedOutputPlan, Transfer, TransferPlan, TransferProofContext, VolumeAccumulatorState,
+    ShieldedOutputPlan, Transfer, TransferPlan, VolumeAccumulatorState,
 };
 use shieldd_sdk_transaction::{
     gas::transfer_gas_cost,
+    joint::{self, BindingContribution, ExpectedReceipt, JointFragment, JointSigningRequest},
     memo::MemoPlaintext,
     plan::MemoPlan,
-    txhash::{AuthorizingData, EffectHash, EffectingData},
+    txhash::{AuthorizingData, EffectingData},
     Action, ActionPlan, FeeFunding, Transaction, TransactionBody, TransactionParameters,
     TransactionPlan,
 };
@@ -89,14 +90,12 @@ impl DemoAssets {
 
 fn register_assets(
     genesis: &mut Content,
-    alice: &SpendKey,
-    bob: &SpendKey,
-    asset_x: asset::Id,
-    asset_y: asset::Id,
+    wallets: &[&SpendKey],
+    assets: &[asset::Id],
 ) -> Result<Vec<DetectionKey>> {
-    let authority = reddsa::VerificationKey::from(alice.spend_auth_key());
+    let authority = reddsa::VerificationKey::from(wallets[0].spend_auth_key());
     let mut issuers = Vec::new();
-    for (index, asset_id) in [asset_x, asset_y].into_iter().enumerate() {
+    for (index, asset_id) in assets.iter().copied().enumerate() {
         let issuer = DetectionKey::new(Fr::random(&mut OsRng));
         let ring_secret = Fr::random(&mut OsRng);
         let ring_pk = *shieldd_sdk_crypto::generators::SPEND_AUTH * ring_secret;
@@ -114,7 +113,7 @@ fn register_assets(
             resource: format!("avp-asset-{index}"),
         };
         let policy = registration.asset_policy()?;
-        for (key, address_index) in [(alice, 0u32), (alice, 7), (bob, 0)] {
+        for (key, address_index) in wallets.iter().flat_map(|key| [(key, 0u32), (key, 7)]) {
             let fvk = key.full_viewing_key();
             let address = fvk.payment_address(address_index.into());
             let rnk_dh_pk = *address.diversified_generator() * ring_secret;
@@ -375,155 +374,50 @@ impl Participant {
             .transpose()
     }
 
+    fn request(&self, candidate: &Transaction) -> JointSigningRequest {
+        JointSigningRequest {
+            transaction: candidate.clone(),
+            plan: self.local_plan.clone(),
+            action_indices: vec![self.slot],
+            incoming: vec![ExpectedReceipt {
+                action_index: 1 - self.slot,
+                output_index: 0,
+                address: self.receiving_address.clone(),
+                value: self.incoming,
+            }],
+            anchor: self.own_fragment.body.anchor,
+            action_count: 2,
+        }
+    }
+
     fn inspect(&self, candidate: &Transaction) -> Result<()> {
-        let body = &candidate.transaction_body;
-        ensure!(
-            body.actions.len() == 2,
-            "expected exactly two principal legs"
-        );
-        ensure!(
-            body.transaction_parameters.to_proto()
-                == self.local_plan.transaction_parameters.to_proto(),
-            "agreed transaction parameters changed"
-        );
-        let memo = self
-            .local_plan
-            .memo
-            .as_ref()
-            .context("missing agreed memo")?;
-        ensure!(
-            body.memo.as_ref().map(DomainType::encode_to_vec) == Some(memo.memo()?.encode_to_vec()),
-            "agreed memo changed"
-        );
-        ensure!(
-            candidate.anchor == self.own_fragment.body.anchor,
-            "agreed anchor changed"
-        );
-        let mut keys = Vec::new();
-        for action in &body.actions {
-            let Action::Transfer(transfer) = action else {
-                anyhow::bail!("principal leg is not a Transfer");
-            };
-            let public = transfer
-                .body
-                .proof_public(candidate.anchor, TransferProofContext::Ordinary)?;
-            transfer
-                .proof
-                .verify(&public, &shieldd_sdk_app_tests::registry())?;
-            keys.push(transfer.body.rk);
-        }
-        let fee = body
-            .fee_funding
-            .as_ref()
-            .context("missing agreed fee funding")?;
-        let public = fee
-            .transfer
-            .body
-            .proof_public(candidate.anchor, TransferProofContext::FeeFunding)?;
-        fee.transfer
-            .proof
-            .verify(&public, &shieldd_sdk_app_tests::registry())?;
-        keys.push(fee.transfer.body.rk);
-        ensure!(
-            keys.iter()
-                .enumerate()
-                .all(|(i, key)| !keys[..i].contains(key)),
-            "reused randomized key"
-        );
-        let Action::Transfer(own) = &body.actions[self.slot] else {
-            unreachable!()
-        };
-        ensure!(
-            own.effect_hash() == self.own_fragment.effect_hash()
-                && own.proof.inner == self.own_fragment.proof.inner,
-            "wallet's proposed leg changed"
-        );
-        if let Some(own_fee) = &self.own_fee_fragment {
-            ensure!(
-                fee.effect_hash() == own_fee.effect_hash()
-                    && fee.transfer.proof.inner == own_fee.transfer.proof.inner,
-                "wallet's fee funding changed"
-            );
-        }
-        let Action::Transfer(peer) = &body.actions[1 - self.slot] else {
-            unreachable!()
-        };
-        let received = peer.body.outputs[0]
-            .note_payload
-            .trial_decrypt(&self.wallet.fvk)
-            .context("incoming receiver note is not usable by this wallet")?;
-        ensure!(
-            received.address() == self.receiving_address,
-            "incoming receiving address differs"
-        );
-        ensure!(
-            received.value() == self.incoming,
-            "incoming asset or amount differs"
-        );
-        ensure!(
-            candidate.decrypt_memo(&self.wallet.fvk)? == memo.plaintext,
-            "incoming memo cannot be recovered"
-        );
-        Ok(())
+        let request = self.request(candidate);
+        request.validate(&self.wallet.fvk)?;
+        request.verify_proofs(&shieldd_sdk_app_tests::registry())
     }
 
     fn authorize(&self, key: &SpendKey, candidate: &mut Transaction) -> Result<()> {
-        self.inspect(candidate)?;
-        let digest = candidate.effect_hash();
-        let Action::Transfer(own) = &mut candidate.transaction_body.actions[self.slot] else {
-            unreachable!()
-        };
-        own.auth_sig = key
-            .spend_auth_key()
-            .randomize(&self.principal().auth_randomizer)
-            .sign(OsRng, digest.as_ref());
-        if let Some(plan) = &self.local_plan.fee_funding {
-            candidate
-                .transaction_body
-                .fee_funding
-                .as_mut()
-                .context("missing fee funding")?
-                .transfer
-                .auth_sig = key
-                .spend_auth_key()
-                .randomize(&plan.transfer.auth_randomizer)
-                .sign(OsRng, digest.as_ref());
-        }
-        Ok(())
+        let request = self.request(candidate);
+        let authorization = request.authorize(key, &shieldd_sdk_app_tests::registry())?;
+        request.apply(candidate, &authorization)
     }
 
-    /// Reveal only these transaction-specific CV openings, after all owners have
-    /// signed the complete effect hash. The proof's independent opening stays local.
-    fn contribution(&self, candidate: &Transaction) -> Result<Contribution> {
-        self.inspect(candidate)?;
-        verify_spend_authorizations(candidate)?;
-        let principal_blinding = self.principal().value_blinding;
-        ensure!(
-            self.principal().balance() == Balance::default(),
-            "principal has residual value"
-        );
-        Ok(Contribution {
-            effect_hash: candidate.effect_hash(),
-            slot: self.slot,
-            principal_blinding,
-            fee_blinding: self
-                .local_plan
-                .fee_funding
-                .as_ref()
-                .map(|fee| fee.value_blinding()),
-        })
+    fn contribution(&self, candidate: &Transaction) -> Result<BindingContribution> {
+        self.request(candidate).contribution(
+            candidate,
+            &self.wallet.fvk,
+            &shieldd_sdk_app_tests::registry(),
+        )
     }
 }
 
-struct Contribution {
-    effect_hash: EffectHash,
-    slot: usize,
-    principal_blinding: Fr,
-    fee_blinding: Option<Fr>,
+fn bind(candidate: &mut Transaction, contributions: &[BindingContribution]) -> Result<()> {
+    joint::finalize(candidate, contributions)
 }
 
-fn verify_spend_authorizations(tx: &Transaction) -> Result<()> {
-    let digest = tx.effect_hash();
+// These negative fixtures intentionally violate envelope checks. Verify their
+// spend signatures alone so chain rejection reaches the intended boundary.
+fn assert_spend_signatures(tx: &Transaction) -> Result<()> {
     for transfer in tx.transfers().chain(
         tx.transaction_body
             .fee_funding
@@ -533,55 +427,9 @@ fn verify_spend_authorizations(tx: &Transaction) -> Result<()> {
         transfer
             .body
             .rk
-            .verify(digest.as_ref(), &transfer.auth_sig)?;
+            .verify(tx.effect_hash().as_ref(), &transfer.auth_sig)?;
     }
     Ok(())
-}
-
-/// Coordinator/assembler: no SpendKey, FVK, plan, note plaintext, or witness.
-fn bind(candidate: &mut Transaction, contributions: &[Contribution]) -> Result<()> {
-    verify_spend_authorizations(candidate)?;
-    ensure!(contributions.len() == 2, "missing contribution");
-    let mut blinding = Fr::zero();
-    let mut fee_blinding = None;
-    for (slot, contribution) in contributions.iter().enumerate() {
-        ensure!(
-            contribution.slot == slot && contribution.effect_hash == candidate.effect_hash(),
-            "contribution belongs to different transaction or slot"
-        );
-        let Action::Transfer(transfer) = &candidate.transaction_body.actions[slot] else {
-            anyhow::bail!("invalid leg")
-        };
-        ensure!(
-            transfer.body.balance_commitment
-                == Balance::default().commit(contribution.principal_blinding),
-            "principal contribution does not open zero residual"
-        );
-        blinding += contribution.principal_blinding;
-        if let Some(value) = contribution.fee_blinding {
-            ensure!(
-                fee_blinding.replace(value).is_none(),
-                "multiple fee contributors"
-            );
-            blinding += value;
-        }
-    }
-    let fee = candidate
-        .transaction_body
-        .fee_funding
-        .as_ref()
-        .context("missing fee funding")?;
-    ensure!(
-        fee.transfer.body.balance_commitment
-            + candidate
-                .transaction_body
-                .transaction_parameters
-                .fee
-                .commit(Fr::zero())
-            == Balance::default().commit(fee_blinding.context("missing fee contribution")?),
-        "fee contribution does not cover public fee"
-    );
-    sign_binding(candidate, blinding)
 }
 
 fn sign_binding(tx: &mut Transaction, blinding: Fr) -> Result<()> {
@@ -636,35 +484,16 @@ fn build_participant(
     receiving_address: Address,
 ) -> Result<Participant> {
     let witness = wallet.witness_plan(&local_plan)?;
-    let memo = local_plan.memo.as_ref().context("missing memo")?;
-    let ActionPlan::Transfer(principal) = &local_plan.actions[0] else {
-        anyhow::bail!("invalid plan")
-    };
-    let paths = principal
-        .spends
-        .iter()
-        .map(|spend| witness.proof(spend.position, spend.note.commit()))
-        .collect::<Result<Vec<_>>>()?;
-    let own_fragment = principal.build_unauth_transfer(
+    let fragment = JointFragment::build(
+        &local_plan,
         &wallet.fvk,
-        [0; 64].into(),
-        paths,
-        witness.anchor,
-        &memo.key,
+        &witness,
         &shieldd_sdk_app_tests::registry(),
     )?;
-    let own_fee_fragment = local_plan
-        .fee_funding
-        .as_ref()
-        .map(|fee| {
-            fee.build_unauth(
-                &wallet.fvk,
-                &witness,
-                &memo.key,
-                &shieldd_sdk_app_tests::registry(),
-            )
-        })
-        .transpose()?;
+    let Some(Action::Transfer(own_fragment)) = fragment.actions.into_iter().next() else {
+        anyhow::bail!("invalid plan")
+    };
+    let own_fee_fragment = fragment.fee_funding;
     Ok(Participant {
         wallet,
         local_plan,
@@ -722,6 +551,513 @@ async fn private_dvp_security_and_cash_settle_without_issuer_disclosure() -> Res
 #[ignore = "requires SHIELDD_PARI_KEYS and generates issuer-disclosed DvP settlement and receipt-spend proofs"]
 async fn private_dvp_security_and_cash_can_disclose_to_issuers() -> Result<()> {
     run_settlement(SettlementKind::DvP, DemoAssets::RegulatedDisclosed).await
+}
+
+struct SigningTerminal {
+    incoming: tokio::sync::Mutex<tokio::sync::mpsc::Receiver<String>>,
+    outgoing: tokio::sync::mpsc::Sender<String>,
+}
+
+#[tonic::async_trait]
+impl shieldd_sdk_custody::threshold::Terminal for SigningTerminal {
+    async fn confirm_request(
+        &self,
+        _: &shieldd_sdk_custody::threshold::SigningRequest,
+    ) -> Result<bool> {
+        Ok(true)
+    }
+    fn explain(&self, _: &str) -> Result<()> {
+        Ok(())
+    }
+    async fn broadcast(&self, message: &str) -> Result<()> {
+        self.outgoing.send(message.to_owned()).await?;
+        Ok(())
+    }
+    async fn read_line_raw(&self) -> Result<String> {
+        self.incoming
+            .lock()
+            .await
+            .recv()
+            .await
+            .context("threshold channel closed")
+    }
+    async fn get_password(&self) -> Result<String> {
+        anyhow::bail!("test never requests a password")
+    }
+}
+
+async fn threshold_authorize(
+    configs: &[shieldd_sdk_custody::threshold::Config],
+    request: JointSigningRequest,
+) -> Result<shieldd_sdk_transaction::AuthorizationData> {
+    let (to_follower, follower_in) = tokio::sync::mpsc::channel(2);
+    let (to_coordinator, coordinator_in) = tokio::sync::mpsc::channel(2);
+    let follower_config = configs[1].clone();
+    let follower = tokio::spawn(async move {
+        shieldd_sdk_custody::threshold::follow(
+            Some(&follower_config),
+            &SigningTerminal {
+                incoming: tokio::sync::Mutex::new(follower_in),
+                outgoing: to_coordinator,
+            },
+        )
+        .await
+    });
+    let coordinator = shieldd_sdk_custody::threshold::Threshold::new(
+        configs[0].clone(),
+        SigningTerminal {
+            incoming: tokio::sync::Mutex::new(coordinator_in),
+            outgoing: to_follower,
+        },
+    );
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        coordinator.authorize_joint(request),
+    )
+    .await??;
+    follower.await??;
+    Ok(result)
+}
+
+#[tokio::test]
+#[ignore = "requires SHIELDD_PARI_KEYS and real regulated basket and threshold sponsor proofs"]
+async fn three_owners_exchange_a_basket_with_threshold_fee_sponsorship() -> Result<()> {
+    let keys = [
+        test_keys::SPEND_KEY.clone(),
+        SpendKey::try_from(SpendKeyBytes([42; 32]))?,
+        SpendKey::try_from(SpendKeyBytes([43; 32]))?,
+    ];
+    let configs = shieldd_sdk_custody::threshold::Config::deal(&mut OsRng, 2, 2)?;
+    let addresses = keys
+        .iter()
+        .map(|key| key.full_viewing_key().payment_address(0u32.into()))
+        .collect::<Vec<_>>();
+    let sponsor_address = configs[0].fvk().payment_address(0u32.into());
+    let denoms = ["joint_security", "joint_cash", "joint_bond", "joint_coupon"];
+    let assets = denoms.map(|denom| asset::REGISTRY.parse_unit(denom).id());
+    // Alice sends two different assets; Bob pays Carol; Carol pays Alice.
+    let senders = [0usize, 1, 2, 0];
+    let recipients = [1usize, 2, 0, 1];
+    let values = [25u64, 500, 75, 10]
+        .into_iter()
+        .zip(assets)
+        .map(|(amount, asset_id)| Value {
+            amount: amount.into(),
+            asset_id,
+        })
+        .collect::<Vec<_>>();
+    let prices = GasPrices {
+        execution_price: 1_000,
+        ..Default::default()
+    };
+    let gas = transfer_gas_cost()
+        + transfer_gas_cost()
+        + transfer_gas_cost()
+        + transfer_gas_cost()
+        + transfer_gas_cost();
+    let parameters = TransactionParameters {
+        chain_id: TEST_CHAIN_ID.into(),
+        expiry_height: 50,
+        fee: prices.fee(&gas),
+    };
+    let mut genesis = Content::default().with_chain_id(TEST_CHAIN_ID.into());
+    genesis.fee_content.fee_params.fixed_gas_prices = prices;
+    for (i, denom) in denoms.iter().enumerate() {
+        genesis.shielded_pool_content.allocations.push(Allocation {
+            raw_amount: 1_000u64.into(),
+            raw_denom: (*denom).into(),
+            address: addresses[senders[i]].clone(),
+        });
+    }
+    genesis.shielded_pool_content.allocations.push(Allocation {
+        raw_amount: 100_000u64.into(),
+        raw_denom: BASE_ASSET_DENOM.base_denom().denom,
+        address: sponsor_address.clone(),
+    });
+    register_assets(&mut genesis, &keys.iter().collect::<Vec<_>>(), &assets)?;
+    let chain = common::new_storage().await?;
+    let registry = shieldd_sdk_app_tests::registry();
+    let mut host = TestHost::new(
+        chain.storage().clone(),
+        AppState::Content(genesis),
+        tendermint::Time::parse_from_rfc3339("2026-01-01T00:00:00Z")?,
+        registry.clone(),
+    )
+    .await?;
+    host.execute(vec![]).await?;
+    let memo = MemoPlan::new(&mut OsRng, MemoPlaintext::blank_memo(addresses[0].clone()));
+    let mut wallets = Vec::new();
+    let mut stores = Vec::new();
+    let mut plans = Vec::new();
+    let mut fragments = Vec::new();
+    let mut indices = Vec::new();
+    for (owner, key) in keys.iter().enumerate() {
+        let store = WalletStorage::initialize(
+            None::<&camino::Utf8Path>,
+            key.full_viewing_key().clone(),
+            AppParameters {
+                chain_id: TEST_CHAIN_ID.into(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        common::scan_latest(&chain, &store).await?;
+        let wallet = MockClient::new(key.clone())
+            .with_sync_to_storage(&chain)
+            .await?;
+        let slots = senders
+            .iter()
+            .enumerate()
+            .filter_map(|(i, sender)| (*sender == owner).then_some(i))
+            .collect::<Vec<_>>();
+        let actions = slots
+            .iter()
+            .map(|i| {
+                transfer_intent(
+                    &wallet,
+                    1_000,
+                    values[*i],
+                    addresses[recipients[*i]].clone(),
+                )
+                .map(Into::into)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let plan = complete_intent(
+            TransactionIntent {
+                actions,
+                fee_funding: None,
+                memo: Some(memo.clone()),
+                transaction_parameters: parameters.clone(),
+            },
+            &store,
+            chain.latest_snapshot(),
+            false,
+        )
+        .await?;
+        fragments.push(JointFragment::build(
+            &plan,
+            &wallet.fvk,
+            &wallet.witness_plan(&plan)?,
+            &registry,
+        )?);
+        indices.push(slots);
+        plans.push(plan);
+        wallets.push(wallet);
+        stores.push(store);
+    }
+    let sponsor_store = WalletStorage::initialize(
+        None::<&camino::Utf8Path>,
+        configs[0].fvk().clone(),
+        AppParameters {
+            chain_id: TEST_CHAIN_ID.into(),
+            ..Default::default()
+        },
+    )
+    .await?;
+    common::scan_latest(&chain, &sponsor_store).await?;
+    // This mock is used only for viewing/witnessing. Its dummy spending key is
+    // never used; the threshold group alone authorizes the fee input.
+    let mut sponsor = MockClient::new(SpendKey::try_from(SpendKeyBytes([44; 32]))?);
+    sponsor.fvk = configs[0].fvk().clone();
+    sponsor.sync_to_latest(chain.latest_snapshot()).await?;
+    let mut fee_intent = transfer_intent(
+        &sponsor,
+        100_000,
+        Value {
+            amount: Amount::from(100_000u64) - parameters.fee.amount(),
+            asset_id: *BASE_ASSET_ID,
+        },
+        sponsor_address,
+    )?;
+    fee_intent.outputs.truncate(1);
+    let sponsor_plan = complete_intent(
+        TransactionIntent {
+            actions: vec![],
+            fee_funding: Some(fee_intent),
+            memo: Some(memo.clone()),
+            transaction_parameters: parameters.clone(),
+        },
+        &sponsor_store,
+        chain.latest_snapshot(),
+        false,
+    )
+    .await?;
+    let sponsor_fragment = JointFragment::build(
+        &sponsor_plan,
+        &sponsor.fvk,
+        &sponsor.witness_plan(&sponsor_plan)?,
+        &registry,
+    )?;
+    let actions = (0..4)
+        .map(|slot| {
+            let owner = senders[slot];
+            let local = indices[owner]
+                .iter()
+                .position(|i| *i == slot)
+                .expect("owned slot");
+            // Exchange only existing action wire bytes, including proof envelopes.
+            Action::decode(fragments[owner].actions[local].encode_to_vec().as_slice())
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let mut tx = Transaction {
+        transaction_body: TransactionBody {
+            actions,
+            fee_funding: sponsor_fragment.fee_funding,
+            memo: Some(memo.memo()?),
+            transaction_parameters: parameters,
+        },
+        anchor: sponsor.sct.root(),
+        binding_sig: [0; 64].into(),
+    };
+    let mut requests = Vec::new();
+    for owner in 0..3 {
+        let incoming = recipients
+            .iter()
+            .enumerate()
+            .filter_map(|(i, recipient)| {
+                (*recipient == owner).then_some(ExpectedReceipt {
+                    action_index: i,
+                    output_index: 0,
+                    address: addresses[owner].clone(),
+                    value: values[i],
+                })
+            })
+            .collect::<Vec<_>>();
+        requests.push(JointSigningRequest {
+            transaction: tx.clone(),
+            plan: plans[owner].clone(),
+            action_indices: indices[owner].clone(),
+            incoming,
+            anchor: tx.anchor,
+            action_count: 4,
+        });
+    }
+    let sponsor_request = JointSigningRequest {
+        transaction: tx.clone(),
+        plan: sponsor_plan,
+        action_indices: vec![],
+        incoming: vec![],
+        anchor: tx.anchor,
+        action_count: 4,
+    };
+    let mut duplicate_receipt = requests[1].clone();
+    duplicate_receipt.incoming[1] = duplicate_receipt.incoming[0].clone();
+    ensure!(
+        duplicate_receipt
+            .validate(&wallets[1].fvk)
+            .unwrap_err()
+            .to_string()
+            .contains("duplicate expected receipt"),
+        "one receipt satisfied two basket obligations"
+    );
+    for owner in 0..3 {
+        requests[owner].validate(&wallets[owner].fvk)?;
+        requests[owner].verify_proofs(&registry)?;
+        ensure!(
+            tx.decrypt_memo(&wallets[owner].fvk)? == memo.plaintext,
+            "wallet failed to recover memo from later action"
+        );
+        let auth = requests[owner].authorize(&keys[owner], &registry)?;
+        requests[owner].apply(&mut tx, &auth)?;
+    }
+    sponsor_request.validate(&sponsor.fvk)?;
+    sponsor_request.verify_proofs(&registry)?;
+    ensure!(
+        sponsor_request
+            .contribution(&tx, &sponsor.fvk, &registry)
+            .is_err(),
+        "sponsor opening released before sponsor authorization"
+    );
+    let auth = threshold_authorize(&configs, sponsor_request.clone()).await?;
+    sponsor_request.apply(&mut tx, &auth)?;
+    let mut contributions = (0..3)
+        .map(|owner| requests[owner].contribution(&tx, &wallets[owner].fvk, &registry))
+        .collect::<Result<Vec<_>>>()?;
+    contributions.push(sponsor_request.contribution(&tx, &sponsor.fvk, &registry)?);
+    ensure!(
+        joint::finalize(&mut tx.clone(), &contributions[..3]).is_err(),
+        "missing sponsor contribution accepted"
+    );
+    joint::finalize(&mut tx, &contributions)?;
+    ensure!(
+        host.execution.check_tx(&tx.encode_to_vec()).await?.code == 0,
+        "joint transaction rejected by CheckTx"
+    );
+    assert_nullifiers(&host, &chain, &tx, false).await?;
+    host.execute(vec![tx.encode_to_vec()]).await?;
+    assert_nullifiers(&host, &chain, &tx, true).await?;
+    for owner in 0..3 {
+        wallets[owner]
+            .sync_to_latest(chain.latest_snapshot())
+            .await?;
+        common::scan_latest(&chain, &stores[owner]).await?;
+        for expected in &requests[owner].incoming {
+            ensure!(
+                wallets[owner].notes.values().any(
+                    |note| note.value() == expected.value && note.address() == expected.address
+                ),
+                "settled receipt missing"
+            );
+        }
+        for slot in &indices[owner] {
+            let principal = match &plans[owner].actions[indices[owner]
+                .iter()
+                .position(|i| i == slot)
+                .expect("local slot")]
+            {
+                ActionPlan::Transfer(plan) => plan,
+                _ => unreachable!(),
+            };
+            let subject = VolumeAccumulatorState::subject(
+                &principal.spends[0].note.address(),
+                values[*slot].asset_id,
+            );
+            let state = stores[owner]
+                .volume_accumulator_recovery(
+                    subject,
+                    select_accumulator_day(principal.compliance.timestamp),
+                )
+                .await?;
+            let VolumeAccumulatorRecovery::Complete(head) = state else {
+                anyhow::bail!("private volume head missing")
+            };
+            ensure!(
+                head.state.undisclosed_volume == values[*slot].amount.value(),
+                "wrong per-asset volume increment"
+            );
+        }
+    }
+    // Spend all newly received assets in one owner's next transaction. These are
+    // separate fixed-shape Transfers, each with its own asset-scoped volume head.
+    let bob_actions = requests[1]
+        .incoming
+        .iter()
+        .map(|receipt| {
+            transfer_intent(
+                &wallets[1],
+                receipt
+                    .value
+                    .amount
+                    .value()
+                    .try_into()
+                    .expect("small amount"),
+                receipt.value,
+                addresses[1].clone(),
+            )
+            .map(Into::into)
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let next_memo = MemoPlan::new(&mut OsRng, MemoPlaintext::blank_memo(addresses[1].clone()));
+    let next_prices = GasPrices {
+        execution_price: 1_000,
+        ..Default::default()
+    };
+    let next_gas = transfer_gas_cost() + transfer_gas_cost() + transfer_gas_cost();
+    let next_parameters = TransactionParameters {
+        chain_id: TEST_CHAIN_ID.into(),
+        expiry_height: 50,
+        fee: next_prices.fee(&next_gas),
+    };
+    let spend = complete_intent(
+        TransactionIntent {
+            actions: bob_actions,
+            fee_funding: None,
+            memo: Some(next_memo.clone()),
+            transaction_parameters: next_parameters.clone(),
+        },
+        &stores[1],
+        chain.latest_snapshot(),
+        false,
+    )
+    .await?;
+    sponsor.sync_to_latest(chain.latest_snapshot()).await?;
+    common::scan_latest(&chain, &sponsor_store).await?;
+    let sponsor_amount = 100_000u64
+        - u64::try_from(
+            tx.transaction_body
+                .transaction_parameters
+                .fee
+                .amount()
+                .value(),
+        )?;
+    let mut next_fee = transfer_intent(
+        &sponsor,
+        sponsor_amount,
+        Value {
+            amount: Amount::from(sponsor_amount) - next_parameters.fee.amount(),
+            asset_id: *BASE_ASSET_ID,
+        },
+        configs[0].fvk().payment_address(0u32.into()),
+    )?;
+    next_fee.outputs.truncate(1);
+    let fee_plan = complete_intent(
+        TransactionIntent {
+            actions: vec![],
+            fee_funding: Some(next_fee),
+            memo: Some(next_memo.clone()),
+            transaction_parameters: next_parameters.clone(),
+        },
+        &sponsor_store,
+        chain.latest_snapshot(),
+        false,
+    )
+    .await?;
+    let principal = JointFragment::build(
+        &spend,
+        &wallets[1].fvk,
+        &wallets[1].witness_plan(&spend)?,
+        &registry,
+    )?;
+    let funding = JointFragment::build(
+        &fee_plan,
+        &sponsor.fvk,
+        &sponsor.witness_plan(&fee_plan)?,
+        &registry,
+    )?;
+    let mut receipt_spend = Transaction {
+        transaction_body: TransactionBody {
+            actions: principal.actions,
+            fee_funding: funding.fee_funding,
+            memo: Some(next_memo.memo()?),
+            transaction_parameters: next_parameters,
+        },
+        anchor: sponsor.sct.root(),
+        binding_sig: [0; 64].into(),
+    };
+    let owner_request = JointSigningRequest {
+        transaction: receipt_spend.clone(),
+        plan: spend,
+        action_indices: vec![0, 1],
+        incoming: vec![],
+        anchor: receipt_spend.anchor,
+        action_count: 2,
+    };
+    let fee_request = JointSigningRequest {
+        transaction: receipt_spend.clone(),
+        plan: fee_plan,
+        action_indices: vec![],
+        incoming: vec![],
+        anchor: receipt_spend.anchor,
+        action_count: 2,
+    };
+    owner_request.apply(
+        &mut receipt_spend,
+        &owner_request.authorize(&keys[1], &registry)?,
+    )?;
+    fee_request.validate(&sponsor.fvk)?;
+    fee_request.verify_proofs(&registry)?;
+    fee_request.apply(
+        &mut receipt_spend,
+        &threshold_authorize(&configs, fee_request.clone()).await?,
+    )?;
+    let receipt_contributions = [
+        owner_request.contribution(&receipt_spend, &wallets[1].fvk, &registry)?,
+        fee_request.contribution(&receipt_spend, &sponsor.fvk, &registry)?,
+    ];
+    joint::finalize(&mut receipt_spend, &receipt_contributions)?;
+    host.execute(vec![receipt_spend.encode_to_vec()]).await?;
+    assert_nullifiers(&host, &chain, &receipt_spend, true).await?;
+    Ok(())
 }
 
 async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
@@ -783,7 +1119,7 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
         });
     }
     let issuers = if mode.regulated() {
-        register_assets(&mut genesis, &alice_key, &bob_key, asset_x, asset_y)?
+        register_assets(&mut genesis, &[&alice_key, &bob_key], &[asset_x, asset_y])?
     } else {
         Vec::new()
     };
@@ -940,7 +1276,12 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     let contributions = [alice.contribution(&tx)?, bob.contribution(&tx)?];
     bind(&mut tx, &contributions)?;
     let blinding = contributions.iter().fold(Fr::zero(), |sum, c| {
-        sum + c.principal_blinding + c.fee_blinding.unwrap_or_else(Fr::zero)
+        sum + c.actions.iter().fold(Fr::zero(), |total, opening| {
+            total + Fr::from_bytes(&opening.blinding).unwrap()
+        }) + c
+            .fee_blinding
+            .map(|bytes| Fr::from_bytes(&bytes).unwrap())
+            .unwrap_or_else(Fr::zero)
     });
     if mode.regulated() {
         check_freeze_rejection(&chain, &tx, bob.receiving_address.clone(), asset_x).await?;
@@ -949,7 +1290,7 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     let mut negatives: Vec<(&str, Transaction, &str)> = Vec::new();
     let mut missing_leg = tx.clone();
     missing_leg.transaction_body.actions.pop();
-    let bob_blinding = contributions[1].principal_blinding;
+    let bob_blinding = bob.principal().value_blinding;
     sign_binding(&mut missing_leg, blinding - bob_blinding)?;
     negatives.push(("removed counter-leg", missing_leg, "signature"));
     let mut reordered = tx.clone();
@@ -970,7 +1311,7 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     transfer.proof.inner[116] ^= 0x20;
     transfer.proof.validate_encoding()?;
     sign_binding(&mut corrupt_proof, blinding)?;
-    verify_spend_authorizations(&corrupt_proof)?;
+    assert_spend_signatures(&corrupt_proof)?;
     negatives.push(("invalid peer proof", corrupt_proof, "proof"));
     let mut bad_binding = tx.clone();
     bad_binding.binding_sig = [0; 64].into();
@@ -981,7 +1322,7 @@ async fn run_settlement(kind: SettlementKind, mode: DemoAssets) -> Result<()> {
     };
     transfer.body.anchor = MockClient::new(bob_key.clone()).sct.root();
     sign_binding(&mut mismatched_anchor, blinding)?;
-    verify_spend_authorizations(&mismatched_anchor)?;
+    assert_spend_signatures(&mismatched_anchor)?;
     negatives.push(("different leg anchor", mismatched_anchor, "anchor"));
     // Agree and sign an already elapsed deadline, so the negative case reaches
     // the historical expiry check with otherwise valid proofs and signatures.

@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use rand_core::OsRng;
 use serde::Serialize;
-use shieldd_sdk_transaction::AuthorizationData;
+use shieldd_sdk_transaction::{joint::JointSigningRequest, AuthorizationData};
 use tonic::{async_trait, Request, Response, Status};
 
 use shieldd_sdk_keys::{keys::AddressIndex, Address, FullViewingKey};
@@ -51,6 +51,9 @@ pub async fn follow(config: Option<&Config>, terminal: &impl Terminal) -> Result
     let config = config.ok_or(anyhow!(
         "cannot threshold sign transaction using a non-threshold custody backend"
     ))?;
+    round1_message
+        .signing_request()
+        .validate_joint(config.fvk())?;
     if !terminal
         .confirm_request(round1_message.signing_request())
         .await?
@@ -171,6 +174,20 @@ impl<T> Threshold<T> {
 }
 
 impl<T: Terminal> Threshold<T> {
+    /// Authorize this group's owned actions against the complete joint transaction effects.
+    ///
+    /// The caller verifies peer proofs during wallet negotiation before starting this ceremony.
+    pub async fn authorize_joint(&self, request: JointSigningRequest) -> Result<AuthorizationData> {
+        request.validate(self.config.fvk())?;
+        let request = SigningRequest::JointTransaction(Box::new(request));
+        anyhow::ensure!(
+            self.terminal.confirm_request(&request).await?,
+            "joint transaction authorization declined"
+        );
+        let SigningResponse::Transaction(data) = self.authorize(request).await?;
+        Ok(data)
+    }
+
     /// Try and create the necessary signatures to authorize the transaction plan.
     async fn authorize(&self, request: SigningRequest) -> Result<SigningResponse> {
         // Some requests will have no signatures to gather, so there's no need
