@@ -6642,6 +6642,7 @@ dependencies = [
  "shieldd-sdk-compliance",
  "shieldd-sdk-crypto",
  "shieldd-sdk-disclosure",
+ "shieldd-sdk-fee",
  "shieldd-sdk-keys",
  "shieldd-sdk-mock-client",
  "shieldd-sdk-num",

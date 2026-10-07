@@ -9,6 +9,7 @@ the area relevant to the task; each topic has one authoritative document.
 | --- | --- | --- |
 | Execution, block lifecycle, host effects | [HostExecution](../crates/core/app/src/app/host.rs), [service](../crates/bin/shieldd/src/service.rs) | [Architecture](architecture.md) |
 | Keys, notes, signing, withdrawals | [core](../crates/core), [transaction](../crates/core/transaction/src) | [Protocol](protocol.md) |
+| Same-chain private AvP and DvP prototype | [two-wallet prototype](../crates/core/app-tests/tests/private_avp.rs) | [Flow and run command](protocol.md#same-chain-private-avp-and-dvp-prototype) |
 | Voluntary disclosure | [disclosure](../crates/disclosure/src/lib.rs) | [Disclosure](disclosure.md) |
 | Wallet planning, scanning, history | [view](../crates/view/src) | [Wallet](wallet.md) |
 | Registration, detection, audit | [compliance](../crates/core/component/compliance/src) | [Compliance](compliance/flow.md) |

@@ -240,8 +240,6 @@ mod tests {
     use ff::Field;
     use rand::SeedableRng;
 
-    #[cfg(feature = "component")]
-    use crate::component::transfer_extract_public;
     use crate::test_proof_helpers::proof_test_helpers::build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng;
     use crate::{
         Note, RecoveryCommitment, Rseed, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
@@ -349,12 +347,28 @@ mod tests {
     fn transfer_public_projection_matches_builder_without_proving() {
         for regulated in [false, true] {
             let (transfer, expected, context) = crate::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof(regulated);
-            let actual =
-                transfer_extract_public(&transfer, &context).expect("extract public inputs");
+            let actual = transfer
+                .body
+                .proof_public(context.anchor, crate::TransferProofContext::Ordinary)
+                .expect("extract public inputs");
             assert_eq!(
                 actual.statement_hash().unwrap(),
                 expected.statement_hash().unwrap()
             );
+            assert!(transfer
+                .body
+                .proof_public(context.anchor, crate::TransferProofContext::FeeFunding,)
+                .unwrap_err()
+                .to_string()
+                .contains("transaction location"));
+            let mut changed_anchor = transfer.body.clone();
+            changed_anchor.anchor = shieldd_sdk_tct::Tree::default().root();
+            assert_ne!(changed_anchor.anchor, context.anchor);
+            assert!(changed_anchor
+                .proof_public(context.anchor, crate::TransferProofContext::Ordinary,)
+                .unwrap_err()
+                .to_string()
+                .contains("anchor"));
         }
     }
 

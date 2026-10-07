@@ -41,7 +41,6 @@ impl NotePayload {
         // Try to decrypt the encrypted note using the ephemeral key and persistent incoming
         // viewing key -- if it doesn't decrypt, it wasn't meant for us.
         let note = Note::decrypt(&self.encrypted_note, fvk.incoming(), &self.ephemeral_key).ok()?;
-        tracing::debug!(note_commitment = ?note.commit(), ?note, "found note while scanning");
 
         // Verification logic (if any fails, return None & log error)
         // Reject notes with zero amount
@@ -73,6 +72,7 @@ impl NotePayload {
             tracing::warn!("decrypted note does not match provided recovery capsule");
             return None;
         }
+        tracing::debug!(note_commitment = ?note.commit(), "found note while scanning");
         // NOTE: We intentionally return `Option` here instead of `Result`
         // such that we gracefully drop malformed notes instead of returning an error
         // that may propagate up the call stack and cause a panic.

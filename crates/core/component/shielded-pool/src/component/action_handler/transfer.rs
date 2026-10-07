@@ -8,94 +8,14 @@ use shieldd_sdk_storage::ActionHandler;
 use shieldd_sdk_storage::StateWrite;
 use shieldd_sdk_txhash::TransactionContext;
 
-use crate::transfer::compliance::{
-    parse_transfer_output_compliance, transfer_compliance_public_from_parts,
-};
 use crate::{
     component::action_handler::note_reshape,
     component::{NoteManager as _, StateReadExt as _, StateWriteExt as _},
-    Transfer, TransferOutputPublic, TransferProofContext, TransferProofPublic, TransferSpendPublic,
-    VolumeAccumulatorPublic,
+    Transfer, TransferProofContext,
 };
 
 fn transfer_verify_auth_sig(transfer: &Transfer, context: &TransactionContext) -> Result<()> {
     note_reshape::verify_auth_sig("transfer", &transfer.body.rk, &transfer.auth_sig, context)
-}
-
-fn transfer_check_lengths(transfer: &Transfer) -> Result<()> {
-    for (index, input) in transfer.body.inputs.iter().enumerate() {
-        anyhow::ensure!(
-            input.compliance_ciphertext.is_empty(),
-            "transfer input {} compliance ciphertext must be empty",
-            index + 1
-        );
-    }
-    let _ = parse_transfer_output_compliance(&transfer.body.outputs)?;
-    Ok(())
-}
-
-pub(crate) fn transfer_extract_public(
-    transfer: &Transfer,
-    context: &TransactionContext,
-) -> Result<TransferProofPublic> {
-    let inputs = transfer
-        .body
-        .inputs
-        .iter()
-        .map(|input| {
-            Ok(TransferSpendPublic {
-                nullifier: input.nullifier,
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-    let (ciphertext, metadata) = parse_transfer_output_compliance(&transfer.body.outputs)?;
-    let outputs = transfer
-        .body
-        .outputs
-        .iter()
-        .map(|output| {
-            Ok(TransferOutputPublic {
-                note_commitment: output.note_payload.note_commitment,
-                recovery_commitment: output
-                    .note_payload
-                    .recovery_capsule
-                    .as_ref()
-                    .ok_or_else(|| anyhow::anyhow!("missing transfer recovery capsule"))?
-                    .commitment(),
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    let public = TransferProofPublic {
-        rk: transfer.body.rk,
-        anchor: context.anchor,
-        balance_commitment: transfer.body.balance_commitment,
-        asset_anchor: transfer.body.asset_anchor,
-        compliance_anchor: transfer.body.compliance_anchor,
-        target_timestamp: shieldd_sdk_crypto::Fq::from(transfer.body.target_timestamp),
-        inputs,
-        outputs,
-        compliance: transfer_compliance_public_from_parts(&ciphertext, &metadata)?,
-        routing: transfer.body.routing,
-        routing_parameter_set_id: transfer.body.routing_parameter_set_id,
-        volume_accumulator: VolumeAccumulatorPublic {
-            nullifier: transfer.body.volume_accumulator.nullifier,
-            commitment: transfer.body.volume_accumulator.commitment,
-            day_start: transfer.body.volume_accumulator.day_start,
-        },
-        proof_context: transfer.body.proof_context,
-    };
-    public
-        .validate_shape()
-        .context("transfer proof shape mismatch")?;
-    Ok(public)
-}
-
-fn transfer_to_batch_item(
-    transfer: &Transfer,
-    public: TransferProofPublic,
-) -> Result<Verification> {
-    transfer.proof.to_batch_item(&public)
 }
 
 pub fn transfer_check_stateless_and_extract(
@@ -103,19 +23,11 @@ pub fn transfer_check_stateless_and_extract(
     context: &TransactionContext,
     expected_context: TransferProofContext,
 ) -> Result<Verification> {
-    note_reshape::validate_action_anchor("transfer", transfer.body.anchor, context)?;
-    transfer
+    let public = transfer
         .body
-        .validate_shape()
-        .context("transfer body shape mismatch")?;
-    anyhow::ensure!(
-        transfer.body.proof_context == expected_context,
-        "transfer proof context does not match its transaction location"
-    );
+        .proof_public(context.anchor, expected_context)?;
     transfer_verify_auth_sig(transfer, context)?;
-    transfer_check_lengths(transfer)?;
-    let public = transfer_extract_public(transfer, context)?;
-    transfer_to_batch_item(transfer, public)
+    transfer.proof.to_batch_item(&public)
 }
 
 /// Evidence that an exact verified Transfer passed its state preconditions.
@@ -292,10 +204,12 @@ mod tests {
 
     #[test]
     fn stateless_rejects_nonempty_input_compliance_ciphertext() {
-        let (mut transfer, _, _) = build_transfer_action_and_public_without_proof(true);
+        let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
         transfer.body.inputs[0].compliance_ciphertext.push(1);
 
-        let error = transfer_check_lengths(&transfer)
+        let error = transfer
+            .body
+            .proof_public(context.anchor, TransferProofContext::Ordinary)
             .expect_err("input compliance bytes are not part of the proof statement");
         assert!(
             error

@@ -17,8 +17,6 @@ pub use action_handler::shielded_host_withdrawal::{
     shielded_host_withdrawal_check_stateless_and_extract,
     shielded_host_withdrawal_execute_verified, shielded_host_withdrawal_verify_auth_sig,
 };
-#[cfg(all(test, all(feature = "prover", any(unix, windows))))]
-pub(crate) use action_handler::transfer::transfer_extract_public;
 pub use action_handler::transfer::{
     transfer_check_stateless_and_extract, transfer_execute_validated, transfer_execute_verified,
     transfer_validate_verified, ValidatedTransferExecution,

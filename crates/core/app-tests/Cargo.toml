@@ -50,6 +50,7 @@ tonic                            = { workspace = true, optional = true }
 tracing                          = { workspace = true }
 
 [dev-dependencies]
+shieldd-sdk-fee = { workspace = true }
 shieldd-sdk-storage = { workspace = true, features = ["test-support"] }
 hex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
